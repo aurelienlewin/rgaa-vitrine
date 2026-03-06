@@ -132,6 +132,10 @@ Based on production audit data from `../audit/out/20260306-141236/audit.resume.j
 - Compliance-score retrieval now recognizes broader wording patterns and decimal French percentages (e.g. `96,51 %`) on accessibility statements.
 - Compliance retrieval now also reads declarative meta hints (`rgaa:compliance-status`, `rgaa:compliance-score`) and SPA shell signals when accessibility pages expose little static body text.
 
+Operational note:
+
+- If you rely on `rgaa:compliance-*` meta hints for your own site, deploy the latest frontend build before testing submissions, otherwise moderation may still classify the site with stale metadata.
+
 ## SEO
 
 - Rich metadata: description, robots, canonical, hreflang
