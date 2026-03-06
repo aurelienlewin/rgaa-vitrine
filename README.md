@@ -27,7 +27,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Reddit-like upvote on each directory tile with accessible button state (`aria-pressed`) and live vocal feedback.
 - Each directory tile now includes an explicit RGAA baseline badge (`RGAA 4.1` or `RGAA 5.0 prêt`) with readable explanation text.
 - Submission flow now includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
-- Add-site flow now exposes a visible category dropdown (including `Coopérative et services`) plus an optional custom category override field.
+- Add-site flow now exposes a visible category dropdown (including `Coopérative et services`) without custom free-text entry.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
 - High-contrast color system tuned for low-vision navigation in both light and dark modes (including stronger visited-link and status semantics).
@@ -202,6 +202,7 @@ Local services:
 - `200` + `submissionStatus: "duplicate"` when site already exists
 - `202` + `submissionStatus: "pending"` when the site requires manual review
 - `4xx` when rejected by validation/anti-abuse rules (spam, invalid input, etc.)
+- Public submissions accept only moderator-approved category values from the dropdown; unknown values are normalized to `Autre`.
 
 `POST /api/site-insight?preview=1` behavior:
 

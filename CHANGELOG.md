@@ -125,10 +125,11 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Site submissions are now rejected when the normalized URL is in moderation blocklist.
 - Moderation UI now includes accessible editors for site blocklist and vote blocklist.
 - Showcase and moderation tiles now expose an RGAA baseline indicator (`RGAA 4.1` or `RGAA 5.0 prêt`) with explicit explanatory text and backend detection.
-- Category inputs are now open text with suggestions in both submission and moderation flows, and include a dedicated `Coopérative et services` suggestion.
+- Category inputs are now split by role: public submission uses a fixed accessible select list, while moderation keeps custom category editing capabilities.
 - Moderation update flow now allows explicit per-site override of the RGAA baseline badge (`4.1` or `5.0-ready`).
 - Existing showcase entries now resolve to `RGAA 4.1` by default; `RGAA 5.0 prêt` appears only after explicit moderation override.
-- Add-site category control now uses a visible select list (including `Coopérative et services`) with optional custom-text override for broader taxonomy.
+- Add-site category control now uses a visible select list (including `Coopérative et services`) with no public custom-text override.
+- `/api/site-insight` now normalizes public category values to the moderator-approved set and falls back to `Autre` for unknown values.
 - Vercel API deployment now uses consolidated handlers (`api/index.js` + `api/[...slug].js`) to stay under Hobby serverless function limits.
 
 ### Security
