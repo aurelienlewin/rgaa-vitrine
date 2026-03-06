@@ -1476,7 +1476,6 @@ function App() {
                     setSubmissionPreviewEntry(null)
                     setSubmissionPreviewStatus(null)
                   }}
-                  aria-describedby="categorie-site-help"
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 >
                   {showcaseCategories.map((category) => (
@@ -1485,9 +1484,6 @@ function App() {
                     </option>
                   ))}
                 </select>
-                <p id="categorie-site-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                  Inclut notamment: Coopérative et services.
-                </p>
               </div>
 
               <button
