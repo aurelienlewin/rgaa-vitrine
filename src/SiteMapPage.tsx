@@ -56,6 +56,21 @@ const technicalLinks: SiteLink[] = [
     description: 'Fichier généré automatiquement pour l’indexation des pages publiques.',
   },
   {
+    href: '/ai-context.json',
+    label: 'Contexte IA JSON',
+    description: 'Résumé machine-readable du site, des pages publiques et des endpoints de données.',
+  },
+  {
+    href: '/llms.txt',
+    label: 'LLMs.txt',
+    description: 'Instructions de découverte rapides pour crawlers et agents IA.',
+  },
+  {
+    href: '/llms-full.txt',
+    label: 'LLMs full',
+    description: 'Contexte détaillé: schéma de données, limites et conseils d’usage.',
+  },
+  {
     href: '/robots.txt',
     label: 'Fichier robots.txt',
     description: 'Consignes d’exploration des robots pour le site.',
@@ -125,6 +140,9 @@ function SiteMapPage() {
               createAbsoluteUrl('/'),
               createAbsoluteUrl('/plan-du-site'),
               createAbsoluteUrl('/sitemap.xml'),
+              createAbsoluteUrl('/ai-context.json'),
+              createAbsoluteUrl('/llms.txt'),
+              createAbsoluteUrl('/llms-full.txt'),
               createAbsoluteUrl('/robots.txt'),
             ],
           },

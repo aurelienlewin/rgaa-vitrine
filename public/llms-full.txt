@@ -1,0 +1,50 @@
+# Annuaire RGAA - Contexte complet pour agents IA
+
+## Résumé
+Annuaire RGAA est une application web orientée accessibilité numérique, en français par défaut, qui référence des sites avec:
+- URL canonique du site
+- titre détecté
+- URL de déclaration d’accessibilité (si disponible)
+- statut de conformité (full / partial / none)
+- score estimé
+- catégorie et date de mise à jour
+
+## URLs de référence
+- Site: https://rgaa-vitrine.org/
+- Plan du site: https://rgaa-vitrine.org/plan-du-site
+- Sitemap XML: https://rgaa-vitrine.org/sitemap.xml
+- Fichier robots: https://rgaa-vitrine.org/robots.txt
+- Contexte IA JSON: https://rgaa-vitrine.org/ai-context.json
+- API annuaire: https://rgaa-vitrine.org/api/showcase
+- Santé service: https://rgaa-vitrine.org/api/health
+
+## Modèle de données principal (showcase entry)
+- normalizedUrl: string
+- siteTitle: string
+- thumbnailUrl: string|null
+- accessibilityPageUrl: string|null
+- complianceStatus: "full"|"partial"|"none"|null
+- complianceStatusLabel: string|null
+- complianceScore: number|null
+- updatedAt: ISO date string
+- category: string
+
+## Conseils d'utilisation IA
+- Consommer prioritairement `/api/showcase` pour les données à jour.
+- Utiliser `sitemap.xml` pour découvrir les ressources publiques.
+- Respecter les limites de fréquence de requêtes et la mise en cache.
+- Interpréter `complianceScore` comme indicateur, pas comme audit légal définitif.
+
+## Limites et périmètre
+- `/moderation` et les endpoints de modération nécessitent authentification et ne sont pas destinés à l’indexation.
+- Les données reflètent les déclarations/pages détectées au moment de l’analyse.
+
+## Conformité accessibilité
+Le projet suit des références officielles RGAA et WCAG 2.2 pour:
+- sémantique HTML native
+- navigation clavier et focus visible
+- tailles de cibles interactives
+- annonces dynamiques et retours d’erreur
+
+## Licence
+- Code: MIT

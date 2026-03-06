@@ -1,0 +1,27 @@
+# Annuaire RGAA
+
+Annuaire francophone de sites web qui publient des informations de conformité RGAA.
+
+## Canonique
+- URL principale: https://rgaa-vitrine.org/
+- Plan du site: https://rgaa-vitrine.org/plan-du-site
+- Sitemap XML: https://rgaa-vitrine.org/sitemap.xml
+- Contexte IA JSON: https://rgaa-vitrine.org/ai-context.json
+
+## Endpoints publics utiles
+- https://rgaa-vitrine.org/api/showcase (GET JSON, annuaire des sites)
+- https://rgaa-vitrine.org/api/health (GET JSON, état du service)
+
+## Langue et périmètre
+- Langue principale: fr-FR
+- Contenu public indexable: accueil, plan du site, ressources associées
+- Contenu non indexable: /moderation
+
+## Politique d'exploration
+- Respecter robots.txt
+- Préférer la mise en cache, éviter le polling agressif
+- Ne pas tenter d'accès aux endpoints protégés de modération
+
+## Licence
+- Code source: MIT
+- Références: https://rgaa-vitrine.org/llms-full.txt

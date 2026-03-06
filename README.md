@@ -118,6 +118,7 @@ The UI now adapts automatically to operating-system and browser accessibility pr
 - Structured data (JSON-LD): `WebSite`, `Organization`, `Person`, `CollectionPage`, `SiteNavigationElement`
 - Accessible public site map page: `/plan-du-site`
 - Auto-generated sitemap endpoint: `/sitemap.xml` (backed by API route `/api/sitemap`)
+- AI crawler files: `/llms.txt`, `/llms-full.txt`, `/ai-context.json` (and `/api/ai-context`)
 - `public/robots.txt`
 
 ## Getting Started

@@ -17,6 +17,10 @@
       "destination": "/api/sitemap"
     },
     {
+      "source": "/ai-context.json",
+      "destination": "/api/ai-context"
+    },
+    {
       "source": "/(.*\\..*)",
       "destination": "/$1"
     },

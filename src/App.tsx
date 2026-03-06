@@ -295,6 +295,16 @@ function App() {
   }, [showcaseEntries])
 
   const homeStructuredData = useMemo(() => {
+    const latestUpdatedTimestamp = showcaseEntries.reduce((currentLatest, entry) => {
+      const parsed = Date.parse(entry.updatedAt)
+      if (Number.isNaN(parsed)) {
+        return currentLatest
+      }
+      return Math.max(currentLatest, parsed)
+    }, 0)
+    const latestUpdatedAt =
+      latestUpdatedTimestamp > 0 ? new Date(latestUpdatedTimestamp).toISOString() : new Date().toISOString()
+
     const itemListElements = showcaseEntries.slice(0, 12).map((entry, index) => ({
       '@type': 'ListItem',
       position: index + 1,
@@ -343,6 +353,33 @@ function App() {
             itemListOrder: 'https://schema.org/ItemListOrderDescending',
             itemListElement: itemListElements,
           },
+        },
+        {
+          '@type': 'Dataset',
+          '@id': createAbsoluteUrl('/#dataset-showcase'),
+          name: 'Vitrine RGAA - données publiques',
+          description:
+            'Jeu de données public des sites référencés dans l’annuaire RGAA, incluant catégorie et indicateurs de conformité.',
+          inLanguage: 'fr-FR',
+          isAccessibleForFree: true,
+          license: 'https://opensource.org/license/mit/',
+          url: createAbsoluteUrl('/api/showcase'),
+          dateModified: latestUpdatedAt,
+          creator: {
+            '@id': createAbsoluteUrl('/#organization'),
+          },
+          distribution: [
+            {
+              '@type': 'DataDownload',
+              contentUrl: createAbsoluteUrl('/api/showcase'),
+              encodingFormat: 'application/json',
+            },
+            {
+              '@type': 'DataDownload',
+              contentUrl: createAbsoluteUrl('/ai-context.json'),
+              encodingFormat: 'application/json',
+            },
+          ],
         },
       ],
     }

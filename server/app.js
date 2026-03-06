@@ -5,6 +5,7 @@ import { timingSafeEqual } from 'node:crypto'
 import { buildSiteInsight, SiteInsightError } from './siteInsight.js'
 import { isGithubNotifierEnabled, notifyPendingModerationOnGithub } from './githubNotifier.js'
 import { buildSitemapXml, resolvePublicAppUrl } from './sitemap.js'
+import { buildAiContextPayload } from './aiContext.js'
 import {
   buildPendingSubmission,
   buildShowcaseEntry,
@@ -217,11 +218,49 @@ app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
       changeFrequency: 'weekly',
       priority: 0.8,
     },
+    {
+      path: '/ai-context.json',
+      lastModified,
+      changeFrequency: 'daily',
+      priority: 0.7,
+    },
+    {
+      path: '/llms.txt',
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    {
+      path: '/llms-full.txt',
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
   ])
 
   response.setHeader('content-type', 'application/xml; charset=utf-8')
   response.setHeader('cache-control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600')
   response.status(200).send(sitemapXml)
+})
+
+app.get(['/ai-context.json', '/api/ai-context'], async (_request, response) => {
+  const baseUrl = resolvePublicAppUrl()
+  let entries = []
+
+  try {
+    entries = await showcaseStorage.list({ limit: 500 })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      console.error('AI context uses empty dataset because storage is unavailable', error.message)
+    } else {
+      console.error('Unexpected AI context generation error', error)
+    }
+  }
+
+  const payload = buildAiContextPayload({ baseUrl, entries })
+  response.setHeader('content-type', 'application/json; charset=utf-8')
+  response.setHeader('cache-control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600')
+  response.status(200).json(payload)
 })
 
 app.get('/api/health', (_request, response) => {
