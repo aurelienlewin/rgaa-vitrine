@@ -342,6 +342,13 @@ npm run start:api
 - Code of Conduct: [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
 - Security policy: [SECURITY.md](./SECURITY.md)
 
+## Soutien
+
+J’ai lancé cet annuaire pour que le RGAA ne reste pas un sigle, mais une promesse tenue à chaque
+personne. Quand l’empathie guide les choix, l’activité progresse et l’équité devient concrète.
+
+- M’offrir un café: https://buymeacoffee.com/aurelienlewin
+
 ## Accessibility Sources Embedded
 
 - `skill/rgaa-official-recommendations/SKILL.md`

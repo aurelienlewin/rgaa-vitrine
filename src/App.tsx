@@ -1546,6 +1546,10 @@ function App() {
               <p className="text-sm font-semibold uppercase tracking-wide text-amber-900 dark:text-amber-100">
                 Soutien
               </p>
+              <p className="mt-3 text-sm text-amber-900 dark:text-amber-100">
+                J’ai lancé cet annuaire pour que le RGAA ne reste pas un sigle, mais une promesse tenue à chaque
+                personne. Quand l’empathie guide les choix, l’activité progresse et l’équité devient concrète.
+              </p>
               <a
                 href={supportProfile.buyMeACoffeeUrl}
                 target="_blank"
