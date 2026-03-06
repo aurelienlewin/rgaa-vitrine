@@ -43,6 +43,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - URL registration workflow with secure server-side metadata enrichment.
 - Dedicated moderation UI at `/moderation` for approving/rejecting pending submissions.
 - Dedicated moderation UI now supports published entry editing and deletion (title, category, score, status, vignette, accessibility URL).
+- Moderation now includes editable site blocklist and vote-blocklist controls, plus a single action to delete and block a published site.
 - Public accessibility declaration page at `/accessibilite` including score, non-conformities, and contact.
 - Annuaire listing cards designed for disabled people and accessibility enthusiasts.
 - RGAA awareness sections sourced from official French references.
@@ -115,6 +116,8 @@ You can check the active storage mode via:
 - Response timeout and maximum HTML size limits
 - Global rate limiting on API endpoints + stricter hourly limiter for submissions
 - Dedicated vote anti-abuse controls: one-vote safeguards per user/browser fingerprint + per network fingerprint, plus hourly vote rate limiting
+- Moderation-enforced site blocklist now prevents new submissions on blocked URLs.
+- Moderation-enforced vote blocking now disables upvotes for selected URLs.
 - Domain-level deduplication via canonical URL normalization (e.g. `www` variants collapse)
 - Honeypot field validation to reduce automated spam submissions
 - Automatic spam/marketing signal rejection (quality filter)
@@ -184,6 +187,10 @@ Local services:
 - `GET /api/moderation/showcase` lists published entries for admin operations (protected)
 - `POST /api/moderation/showcase/update` updates one published entry (protected)
 - `POST /api/moderation/showcase/delete` deletes one published entry (protected)
+- `POST /api/moderation/showcase/delete-and-block` deletes and blocklists one published entry (protected)
+- `GET /api/moderation/blocklist` returns site and vote blocklists (protected)
+- `POST /api/moderation/blocklist/site` updates site blocklist state (protected)
+- `POST /api/moderation/blocklist/votes` updates vote blocklist state (protected)
 
 `POST /api/site-insight` behavior:
 
@@ -239,14 +246,15 @@ Vote notes:
 
 - `clientVoterId` is generated and persisted in browser storage by the frontend.
 - The API combines client and network-based fingerprints to block repeated votes on the same site.
-- Successful response returns the updated entry (`upvoteCount`, `hasUpvoted`) plus a localized `message`.
+- Successful response returns the updated entry (`upvoteCount`, `hasUpvoted`, `votesBlocked`) plus a localized `message`.
+- When moderation blocks votes on one URL, public vote controls are dimmed and unavailable for this tile.
 
 ### Manual moderation workflow
 
 1. A submission requiring human review is stored server-side as `pending`.
 2. A moderator opens `/moderation`, enters the moderation token, and loads the pending queue.
 3. The moderator approves or rejects each entry from the UI (the page calls moderation APIs with `submissionId`).
-4. The moderator can edit or delete already published entries directly from `/moderation`.
+4. The moderator can edit, delete, delete+block, and manage site/vote blocklists directly from `/moderation`.
 
 Endpoints are protected by `MODERATION_API_TOKEN`.
 
@@ -313,6 +321,10 @@ The repository includes native Vercel serverless endpoints in `api/`:
 - `api/moderation/showcase/index.js`
 - `api/moderation/showcase/update.js`
 - `api/moderation/showcase/delete.js`
+- `api/moderation/showcase/delete-and-block.js`
+- `api/moderation/blocklist/index.js`
+- `api/moderation/blocklist/site.js`
+- `api/moderation/blocklist/votes.js`
 
 This avoids production `NOT_FOUND` responses on `/api/*` routes when the frontend is deployed as a Vite app.
 Vercel rewrites also ensure SPA routes (including `/moderation`) resolve to `index.html` instead of returning 404 on refresh/direct access.

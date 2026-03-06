@@ -38,6 +38,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - New protected moderation endpoints for published entries management: `GET /api/moderation/showcase`, `POST /api/moderation/showcase/update`, and `POST /api/moderation/showcase/delete`.
 - New accessible upvote system on showcase tiles, with `POST /api/showcase/upvote` and persisted `upvoteCount`.
 - Dedicated Vercel serverless handlers for showcase routes: `api/showcase/index.js` and `api/showcase/upvote.js`.
+- New moderation rule endpoints for editable site blocklist and vote blocklist, plus `delete-and-block` action on published entries.
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
@@ -119,6 +120,10 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Vote registration now applies layered anti-abuse safeguards (client fingerprint + network fingerprint + hourly limiter) with localized feedback messages.
 - Vercel function glob now targets nested API handlers (`api/**/*.js`) so showcase/moderation subroutes share the same runtime limits.
 - Showcase vote-state reads now rely on a client vote index + TTL server cache, reducing Upstash command volume (no per-entry `SISMEMBER` burst on listing loads).
+- Focus management has been reworked across home and moderation actions: focus now stays local for in-place actions, moves to contextual summaries on view changes, and redirects to the next logical control when edited/deleted rows disappear.
+- Public showcase now exposes moderation vote availability state (`votesBlocked`) and disables voting on blocked URLs.
+- Site submissions are now rejected when the normalized URL is in moderation blocklist.
+- Moderation UI now includes accessible editors for site blocklist and vote blocklist.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
