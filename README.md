@@ -17,6 +17,11 @@ Application Vite + React (FR) pour valoriser la conformite accessibilite d'un si
 - Filtres par categorie et niveau de conformite
 - Interface front entierement en francais et orientee accessibilite clavier/focus
 
+## SEO
+- Balises meta enrichies: description, robots, canonical, hreflang, Open Graph, Twitter Card.
+- Donnees structurees JSON-LD (`WebSite` + `Organization` + `Person`).
+- `robots.txt` pour l autorisation d indexation.
+
 ## Securite API
 - Validation stricte des URL HTTP(S)
 - Blocage des hotes locaux/prives (protection SSRF)

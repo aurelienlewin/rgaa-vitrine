@@ -3,14 +3,76 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="author" content="Aurélien Lewin" />
+    <meta name="application-name" content="Vitrine Fierte RGAA" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta
+      name="keywords"
+      content="RGAA, accessibilite numerique, conformite RGAA, declaration accessibilite, vitrine accessibilite"
+    />
     <meta
       name="description"
-      content="Vitrine de fierte RGAA pour valoriser la conformite accessibilite des sites web."
+      content="Vitrine francaise pour valoriser la conformite RGAA: analyse URL, score accessibilite, page de declaration et bonnes pratiques officielles."
     />
+    <link rel="canonical" href="https://rgaa-pride-vitrine.invalid/" />
+    <link rel="alternate" href="https://rgaa-pride-vitrine.invalid/" hreflang="fr-FR" />
+
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Vitrine Fierte RGAA" />
+    <meta property="og:title" content="Vitrine Fierte RGAA" />
+    <meta
+      property="og:description"
+      content="Valorisez la conformite RGAA de votre site avec une vitrine claire, filtrable et orientee accessibilite."
+    />
+    <meta property="og:url" content="https://rgaa-pride-vitrine.invalid/" />
+    <meta property="og:image" content="https://avatars.githubusercontent.com/u/45093822?v=4" />
+    <meta property="og:image:alt" content="Logo avatar du createur de la Vitrine Fierte RGAA" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Vitrine Fierte RGAA" />
+    <meta
+      name="twitter:description"
+      content="Analysez une URL et mettez en avant la conformite RGAA de votre site."
+    />
+    <meta name="twitter:image" content="https://avatars.githubusercontent.com/u/45093822?v=4" />
     <title>Vitrine Fierte RGAA</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Vitrine Fierte RGAA",
+        "inLanguage": "fr-FR",
+        "description": "Plateforme de valorisation de la conformite RGAA des sites web.",
+        "publisher": {
+          "@type": "Organization",
+          "name": "Vitrine Fierte RGAA",
+          "url": "https://github.com/aurelienlewin",
+          "logo": "https://avatars.githubusercontent.com/u/45093822?v=4"
+        },
+        "creator": {
+          "@type": "Person",
+          "name": "Aurélien Lewin",
+          "url": "https://github.com/aurelienlewin"
+        }
+      }
+    </script>
+    <script>
+      (function () {
+        var url = window.location.origin + window.location.pathname;
+        var canonical = document.querySelector('link[rel="canonical"]');
+        var ogUrl = document.querySelector('meta[property="og:url"]');
+        if (canonical) canonical.setAttribute("href", url);
+        if (ogUrl) ogUrl.setAttribute("content", url);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      Cette application necessite JavaScript pour afficher la vitrine RGAA interactive.
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
