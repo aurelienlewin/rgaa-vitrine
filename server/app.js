@@ -38,6 +38,7 @@ const SUSPICIOUS_MARKETING_TOKENS = [
   'crypto airdrop',
 ]
 const VOTE_FINGERPRINT_SALT = process.env.VOTE_FINGERPRINT_SALT ?? 'annuaire-rgaa-votes'
+const MAX_ARCHIVE_IMPORT_BYTES = 2_000_000
 const PUBLIC_SUBMISSION_CATEGORY_FALLBACK = 'Autre'
 const PUBLIC_SUBMISSION_CATEGORIES = [
   'Administration',
@@ -198,6 +199,13 @@ function parseBooleanFlag(value) {
     }
   }
 
+  return null
+}
+
+function parseArchiveImportMode(value) {
+  if (value === 'merge' || value === 'replace') {
+    return value
+  }
   return null
 }
 
@@ -375,7 +383,7 @@ app.use(
   }),
 )
 
-app.use(express.json({ limit: '2kb' }))
+app.use(express.json({ limit: '3mb' }))
 
 const submissionLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -859,6 +867,70 @@ app.post('/api/moderation/blocklist/votes', requireModerationAuth, async (reques
 
     console.error('Unexpected error in /api/moderation/blocklist/votes', error)
     sendJsonError(response, 500, 'Erreur interne lors de la mise à jour du blocage des votes.')
+  }
+})
+
+app.get('/api/moderation/archive', requireModerationAuth, async (_request, response) => {
+  try {
+    const archivePayload = await showcaseStorage.exportArchive()
+    const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
+
+    response.setHeader('content-type', 'application/json; charset=utf-8')
+    response.setHeader('content-disposition', `attachment; filename="annuaire-rgaa-archive-${timestamp}.json"`)
+    response.setHeader('cache-control', 'no-store')
+    response.status(200).json(archivePayload)
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/archive', error)
+    sendJsonError(response, 500, 'Erreur lors de l’export de la base.')
+  }
+})
+
+app.post('/api/moderation/archive/import', requireModerationAuth, async (request, response) => {
+  const mode = parseArchiveImportMode(request.body?.mode)
+  if (!mode) {
+    sendJsonError(response, 400, 'Mode d’import invalide. Utilisez merge ou replace.')
+    return
+  }
+
+  const archivePayload =
+    request.body?.archive && typeof request.body.archive === 'object'
+      ? request.body.archive
+      : request.body
+
+  if (!archivePayload || typeof archivePayload !== 'object') {
+    sendJsonError(response, 400, 'Archive invalide.')
+    return
+  }
+
+  const payloadSize = Buffer.byteLength(JSON.stringify(archivePayload), 'utf8')
+  if (payloadSize > MAX_ARCHIVE_IMPORT_BYTES) {
+    sendJsonError(response, 413, 'Archive trop volumineuse pour import.')
+    return
+  }
+
+  try {
+    const importResult = await showcaseStorage.importArchive(archivePayload, mode)
+    response.json({
+      mode,
+      ...importResult,
+      message:
+        mode === 'replace'
+          ? 'Archive importée en mode remplacement.'
+          : 'Archive importée en mode fusion.',
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/archive/import', error)
+    sendJsonError(response, 500, 'Erreur lors de l’import de la base.')
   }
 })
 

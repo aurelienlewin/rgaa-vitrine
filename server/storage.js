@@ -22,6 +22,8 @@ const CLIENT_VOTES_REDIS_TTL_SECONDS = 180 * 24 * 60 * 60
 
 const ALLOWED_STATUSES = new Set(['full', 'partial', 'none'])
 const ALLOWED_RGAA_BASELINES = new Set(['4.1', '5.0-ready'])
+const ARCHIVE_FORMAT = 'annuaire-rgaa-archive'
+const ARCHIVE_VERSION = 1
 
 function resolveRedisCacheTtlMs() {
   const rawValue = Number.parseInt(process.env.REDIS_CACHE_TTL_MS ?? '', 10)
@@ -216,6 +218,215 @@ function parsePendingEntry(payload) {
     createdAt,
     reviewReason: toNullableString(payload.reviewReason),
     category: sanitizeCategory(payload.category),
+  }
+}
+
+function normalizeUrlCandidate(value) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed || trimmed.length > 400) {
+    return null
+  }
+
+  return trimmed
+}
+
+function normalizeVoteTokenList(values) {
+  if (!Array.isArray(values)) {
+    return []
+  }
+
+  const set = new Set()
+  for (const value of values) {
+    if (typeof value !== 'string') {
+      continue
+    }
+    const trimmed = value.trim()
+    if (!trimmed) {
+      continue
+    }
+    set.add(trimmed.slice(0, 160))
+  }
+
+  return Array.from(set)
+}
+
+function normalizeVotesByUrl(values) {
+  if (!Array.isArray(values)) {
+    return []
+  }
+
+  const byUrl = new Map()
+  for (const item of values) {
+    if (!item || typeof item !== 'object') {
+      continue
+    }
+
+    const normalizedUrl = normalizeUrlCandidate(item.normalizedUrl)
+    if (!normalizedUrl) {
+      continue
+    }
+
+    const tokens = normalizeVoteTokenList(item.tokens)
+    if (tokens.length === 0) {
+      continue
+    }
+
+    const existingTokens = byUrl.get(normalizedUrl) ?? new Set()
+    for (const token of tokens) {
+      existingTokens.add(token)
+    }
+    byUrl.set(normalizedUrl, existingTokens)
+  }
+
+  return sortNormalizedUrlList(byUrl.keys()).map((normalizedUrl) => ({
+    normalizedUrl,
+    tokens: Array.from(byUrl.get(normalizedUrl)),
+  }))
+}
+
+function normalizeClientVotesByIndex(values) {
+  if (!Array.isArray(values)) {
+    return []
+  }
+
+  const byClient = new Map()
+  for (const item of values) {
+    if (!item || typeof item !== 'object') {
+      continue
+    }
+
+    const clientVoteIndexId = normalizeClientVoteIndexId(item.clientVoteIndexId)
+    if (!clientVoteIndexId) {
+      continue
+    }
+
+    const rawUrls = Array.isArray(item.urls) ? item.urls : []
+    const nextUrls = new Set(byClient.get(clientVoteIndexId) ?? [])
+    for (const rawUrl of rawUrls) {
+      const normalizedUrl = normalizeUrlCandidate(rawUrl)
+      if (normalizedUrl) {
+        nextUrls.add(normalizedUrl)
+      }
+    }
+
+    if (nextUrls.size > 0) {
+      byClient.set(clientVoteIndexId, nextUrls)
+    }
+  }
+
+  return Array.from(byClient.entries())
+    .sort((left, right) => left[0].localeCompare(right[0], 'fr'))
+    .map(([clientVoteIndexId, urlsSet]) => ({
+      clientVoteIndexId,
+      urls: sortNormalizedUrlList(urlsSet),
+    }))
+}
+
+function normalizeArchiveEntries(values) {
+  if (!Array.isArray(values)) {
+    return []
+  }
+
+  const byUrl = new Map()
+  for (const value of values) {
+    const parsed = parseStoredEntry(value)
+    if (!parsed) {
+      continue
+    }
+
+    const previous = byUrl.get(parsed.normalizedUrl)
+    const parsedTimestamp = Date.parse(parsed.updatedAt)
+    const previousTimestamp = previous ? Date.parse(previous.updatedAt) : Number.NEGATIVE_INFINITY
+
+    if (!previous || parsedTimestamp >= previousTimestamp) {
+      byUrl.set(parsed.normalizedUrl, parsed)
+    }
+  }
+
+  return Array.from(byUrl.values())
+}
+
+function normalizeArchivePendingEntries(values) {
+  if (!Array.isArray(values)) {
+    return []
+  }
+
+  const bySubmissionId = new Map()
+  for (const value of values) {
+    const parsed = parsePendingEntry(value)
+    if (!parsed) {
+      continue
+    }
+
+    const previous = bySubmissionId.get(parsed.submissionId)
+    const parsedTimestamp = Date.parse(parsed.createdAt)
+    const previousTimestamp = previous ? Date.parse(previous.createdAt) : Number.NEGATIVE_INFINITY
+    if (!previous || parsedTimestamp >= previousTimestamp) {
+      bySubmissionId.set(parsed.submissionId, parsed)
+    }
+  }
+
+  return Array.from(bySubmissionId.values())
+}
+
+function normalizeArchiveUrlList(values) {
+  if (!Array.isArray(values)) {
+    return []
+  }
+
+  const urls = new Set()
+  for (const value of values) {
+    const normalizedUrl = normalizeUrlCandidate(value)
+    if (normalizedUrl) {
+      urls.add(normalizedUrl)
+    }
+  }
+
+  return sortNormalizedUrlList(urls)
+}
+
+function normalizeArchiveImportPayload(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return null
+  }
+
+  const source =
+    payload.data && typeof payload.data === 'object'
+      ? payload.data
+      : payload
+
+  if (!source || typeof source !== 'object') {
+    return null
+  }
+
+  const entries = normalizeArchiveEntries(source.entries ?? source.showcaseEntries)
+  const pendingEntries = normalizeArchivePendingEntries(source.pendingEntries ?? source.pending)
+  const siteBlocklist = normalizeArchiveUrlList(source.siteBlocklist)
+  const voteBlocklist = normalizeArchiveUrlList(source.voteBlocklist)
+  const voteTokensByUrl = normalizeVotesByUrl(source.voteTokensByUrl ?? source.votesByUrl)
+  const clientVotesByIndex = normalizeClientVotesByIndex(source.clientVotesByIndex ?? source.clientVotes)
+
+  return {
+    entries,
+    pendingEntries,
+    siteBlocklist,
+    voteBlocklist,
+    voteTokensByUrl,
+    clientVotesByIndex,
+  }
+}
+
+function buildArchivePayload(storageMode, data) {
+  return {
+    format: ARCHIVE_FORMAT,
+    version: ARCHIVE_VERSION,
+    exportedAt: new Date().toISOString(),
+    storageMode,
+    data,
   }
 }
 
@@ -530,6 +741,99 @@ class InMemoryShowcaseStorage {
     return entries.slice(0, limit)
   }
 
+  async exportArchive() {
+    const entries = this.#sortedEntries()
+    const pendingEntries = this.#sortedPendingEntries()
+    const siteBlocklist = sortNormalizedUrlList(this.siteBlocklist)
+    const voteBlocklist = sortNormalizedUrlList(this.voteBlocklist)
+    const voteTokensByUrl = sortNormalizedUrlList(this.votesByUrl.keys()).map((normalizedUrl) => ({
+      normalizedUrl,
+      tokens: Array.from(this.votesByUrl.get(normalizedUrl) ?? []),
+    }))
+    const clientVotesByIndex = Array.from(this.votesByClient.entries())
+      .sort((left, right) => left[0].localeCompare(right[0], 'fr'))
+      .map(([clientVoteIndexId, urlsSet]) => ({
+        clientVoteIndexId,
+        urls: sortNormalizedUrlList(urlsSet),
+      }))
+
+    return buildArchivePayload(this.mode, {
+      entries,
+      pendingEntries,
+      siteBlocklist,
+      voteBlocklist,
+      voteTokensByUrl,
+      clientVotesByIndex,
+    })
+  }
+
+  async importArchive(payload, mode = 'merge') {
+    if (mode !== 'merge' && mode !== 'replace') {
+      throw new ShowcaseStorageError('Mode d’import invalide. Utilisez merge ou replace.', 400)
+    }
+
+    const normalized = normalizeArchiveImportPayload(payload)
+    if (!normalized) {
+      throw new ShowcaseStorageError('Archive invalide.', 400)
+    }
+
+    if (mode === 'replace') {
+      this.entries.clear()
+      this.pendingEntries.clear()
+      this.votesByUrl.clear()
+      this.votesByClient.clear()
+      this.siteBlocklist.clear()
+      this.voteBlocklist.clear()
+    }
+
+    for (const entry of normalized.entries) {
+      await this.upsert(entry)
+    }
+    for (const pendingEntry of normalized.pendingEntries) {
+      await this.upsertPending(pendingEntry)
+    }
+    for (const normalizedUrl of normalized.siteBlocklist) {
+      this.siteBlocklist.add(normalizedUrl)
+    }
+    for (const normalizedUrl of normalized.voteBlocklist) {
+      this.voteBlocklist.add(normalizedUrl)
+    }
+
+    for (const voteEntry of normalized.voteTokensByUrl) {
+      const existing = this.votesByUrl.get(voteEntry.normalizedUrl) ?? new Set()
+      for (const token of voteEntry.tokens) {
+        existing.add(token)
+      }
+      this.votesByUrl.set(voteEntry.normalizedUrl, existing)
+    }
+
+    for (const clientVoteEntry of normalized.clientVotesByIndex) {
+      const existing = this.votesByClient.get(clientVoteEntry.clientVoteIndexId) ?? new Set()
+      for (const normalizedUrl of clientVoteEntry.urls) {
+        existing.add(normalizedUrl)
+      }
+      this.votesByClient.set(clientVoteEntry.clientVoteIndexId, existing)
+    }
+
+    return {
+      mode,
+      imported: {
+        entries: normalized.entries.length,
+        pendingEntries: normalized.pendingEntries.length,
+        siteBlocklist: normalized.siteBlocklist.length,
+        voteBlocklist: normalized.voteBlocklist.length,
+        voteTokenGroups: normalized.voteTokensByUrl.length,
+        clientVoteGroups: normalized.clientVotesByIndex.length,
+      },
+      totals: {
+        entries: this.entries.size,
+        pendingEntries: this.pendingEntries.size,
+        siteBlocklist: this.siteBlocklist.size,
+        voteBlocklist: this.voteBlocklist.size,
+      },
+    }
+  }
+
   #sortedEntries() {
     return Array.from(this.entries.values()).sort((left, right) => {
       const leftTime = Date.parse(left.updatedAt)
@@ -644,6 +948,98 @@ class UpstashShowcaseStorage {
   _invalidateVoteBlocklistCache() {
     this.voteBlocklistCache = null
     this.voteBlocklistCacheExpiresAt = 0
+  }
+
+  _invalidateAllCaches() {
+    this._invalidateShowcaseCache()
+    this._invalidatePendingCache()
+    this._invalidateSiteBlocklistCache()
+    this._invalidateVoteBlocklistCache()
+    this.clientVotesCacheById.clear()
+  }
+
+  _extractScanResult(scanResult) {
+    if (Array.isArray(scanResult) && scanResult.length >= 2) {
+      return {
+        cursor: String(scanResult[0] ?? '0'),
+        keys: Array.isArray(scanResult[1]) ? scanResult[1] : [],
+      }
+    }
+
+    if (scanResult && typeof scanResult === 'object') {
+      const cursor = String(scanResult.cursor ?? scanResult[0] ?? '0')
+      const keys = Array.isArray(scanResult.keys)
+        ? scanResult.keys
+        : Array.isArray(scanResult[1])
+          ? scanResult[1]
+          : []
+      return { cursor, keys }
+    }
+
+    return { cursor: '0', keys: [] }
+  }
+
+  async _scanKeysByPattern(pattern) {
+    const keys = []
+    let cursor = '0'
+
+    try {
+      do {
+        const scanResult = await this.redis.scan(cursor, { match: pattern, count: 200 })
+        const parsed = this._extractScanResult(scanResult)
+        cursor = parsed.cursor
+        for (const key of parsed.keys) {
+          if (typeof key === 'string' && key.trim()) {
+            keys.push(key)
+          }
+        }
+      } while (cursor !== '0')
+    } catch (error) {
+      console.error('Redis scan failed', error)
+      return []
+    }
+
+    return keys
+  }
+
+  async _listClientVoteKeys() {
+    return this._scanKeysByPattern(`${SHOWCASE_CLIENT_VOTES_PREFIX}*`)
+  }
+
+  async _clearAllData() {
+    const entryIds = await this.redis.zrange(SHOWCASE_INDEX_KEY, 0, MAX_STORED_ENTRIES - 1)
+    const pendingIds = await this.redis.zrange(PENDING_INDEX_KEY, 0, MAX_PENDING_STORED_ENTRIES - 1)
+    const clientVoteKeys = await this._listClientVoteKeys()
+
+    const cleanup = this.redis
+      .multi()
+      .del(SHOWCASE_INDEX_KEY)
+      .del(PENDING_INDEX_KEY)
+      .del(PENDING_BY_URL_HASH_KEY)
+      .del(SITE_BLOCKLIST_KEY)
+      .del(VOTE_BLOCKLIST_KEY)
+
+    for (const entryId of Array.isArray(entryIds) ? entryIds : []) {
+      if (typeof entryId !== 'string' || !entryId.trim()) {
+        continue
+      }
+      cleanup.del(entryKeyFromId(entryId))
+      cleanup.del(votesKeyFromId(entryId))
+    }
+
+    for (const pendingId of Array.isArray(pendingIds) ? pendingIds : []) {
+      if (typeof pendingId !== 'string' || !pendingId.trim()) {
+        continue
+      }
+      cleanup.del(pendingKeyFromId(pendingId))
+    }
+
+    for (const key of clientVoteKeys) {
+      cleanup.del(key)
+    }
+
+    await cleanup.exec()
+    this._invalidateAllCaches()
   }
 
   async upsert(entry) {
@@ -1100,6 +1496,150 @@ class UpstashShowcaseStorage {
     } catch (error) {
       console.error('Redis listPending failed', error)
       throw new ShowcaseStorageError('Lecture Redis de modération indisponible.', 503)
+    }
+  }
+
+  async exportArchive() {
+    try {
+      const [entries, pendingEntries, siteBlocklist, voteBlocklist] = await Promise.all([
+        this.list({ limit: MAX_STORED_ENTRIES }),
+        this.listPending({ limit: MAX_PENDING_STORED_ENTRIES }),
+        this.listSiteBlocklist(),
+        this.listVoteBlocklist(),
+      ])
+
+      const voteTokensByUrl = []
+      for (const entry of entries) {
+        const voteKey = votesKeyFromId(encodeEntryId(entry.normalizedUrl))
+        const rawTokens = await this.redis.smembers(voteKey)
+        const tokens = normalizeVoteTokenList(rawTokens)
+        if (tokens.length > 0) {
+          voteTokensByUrl.push({
+            normalizedUrl: entry.normalizedUrl,
+            tokens,
+          })
+        }
+      }
+
+      const clientVotesByIndex = []
+      const clientVoteKeys = await this._listClientVoteKeys()
+      for (const key of clientVoteKeys) {
+        if (!key.startsWith(SHOWCASE_CLIENT_VOTES_PREFIX)) {
+          continue
+        }
+
+        const rawClientVoteIndexId = key.slice(SHOWCASE_CLIENT_VOTES_PREFIX.length)
+        const clientVoteIndexId = normalizeClientVoteIndexId(rawClientVoteIndexId)
+        if (!clientVoteIndexId) {
+          continue
+        }
+
+        const rawUrls = await this.redis.smembers(key)
+        const urls = normalizeArchiveUrlList(rawUrls)
+        if (urls.length > 0) {
+          clientVotesByIndex.push({
+            clientVoteIndexId,
+            urls,
+          })
+        }
+      }
+
+      return buildArchivePayload(this.mode, {
+        entries,
+        pendingEntries,
+        siteBlocklist,
+        voteBlocklist,
+        voteTokensByUrl,
+        clientVotesByIndex,
+      })
+    } catch (error) {
+      console.error('Redis exportArchive failed', error)
+      throw new ShowcaseStorageError('Export de la base indisponible.', 503)
+    }
+  }
+
+  async importArchive(payload, mode = 'merge') {
+    if (mode !== 'merge' && mode !== 'replace') {
+      throw new ShowcaseStorageError('Mode d’import invalide. Utilisez merge ou replace.', 400)
+    }
+
+    const normalized = normalizeArchiveImportPayload(payload)
+    if (!normalized) {
+      throw new ShowcaseStorageError('Archive invalide.', 400)
+    }
+
+    try {
+      if (mode === 'replace') {
+        await this._clearAllData()
+      }
+
+      for (const entry of normalized.entries) {
+        await this.upsert(entry)
+      }
+      for (const pendingEntry of normalized.pendingEntries) {
+        await this.upsertPending(pendingEntry)
+      }
+
+      if (normalized.siteBlocklist.length > 0) {
+        await this.redis.sadd(SITE_BLOCKLIST_KEY, ...normalized.siteBlocklist)
+      }
+      if (normalized.voteBlocklist.length > 0) {
+        await this.redis.sadd(VOTE_BLOCKLIST_KEY, ...normalized.voteBlocklist)
+      }
+
+      const voteWrite = this.redis.multi()
+      for (const voteEntry of normalized.voteTokensByUrl) {
+        if (voteEntry.tokens.length === 0) {
+          continue
+        }
+        const voteKey = votesKeyFromId(encodeEntryId(voteEntry.normalizedUrl))
+        voteWrite.sadd(voteKey, ...voteEntry.tokens)
+      }
+      await voteWrite.exec()
+
+      const clientVotesWrite = this.redis.multi()
+      for (const clientVoteEntry of normalized.clientVotesByIndex) {
+        if (clientVoteEntry.urls.length === 0) {
+          continue
+        }
+        const clientVoteKey = clientVotesKeyFromId(clientVoteEntry.clientVoteIndexId)
+        clientVotesWrite.sadd(clientVoteKey, ...clientVoteEntry.urls)
+        clientVotesWrite.expire(clientVoteKey, CLIENT_VOTES_REDIS_TTL_SECONDS)
+      }
+      await clientVotesWrite.exec()
+
+      this._invalidateAllCaches()
+
+      const [entriesCount, pendingCount, siteBlocklistCount, voteBlocklistCount] = await Promise.all([
+        this.redis.zcard(SHOWCASE_INDEX_KEY),
+        this.redis.zcard(PENDING_INDEX_KEY),
+        this.redis.scard(SITE_BLOCKLIST_KEY),
+        this.redis.scard(VOTE_BLOCKLIST_KEY),
+      ])
+
+      return {
+        mode,
+        imported: {
+          entries: normalized.entries.length,
+          pendingEntries: normalized.pendingEntries.length,
+          siteBlocklist: normalized.siteBlocklist.length,
+          voteBlocklist: normalized.voteBlocklist.length,
+          voteTokenGroups: normalized.voteTokensByUrl.length,
+          clientVoteGroups: normalized.clientVotesByIndex.length,
+        },
+        totals: {
+          entries: toNonNegativeInteger(entriesCount),
+          pendingEntries: toNonNegativeInteger(pendingCount),
+          siteBlocklist: toNonNegativeInteger(siteBlocklistCount),
+          voteBlocklist: toNonNegativeInteger(voteBlocklistCount),
+        },
+      }
+    } catch (error) {
+      console.error('Redis importArchive failed', error)
+      if (error instanceof ShowcaseStorageError) {
+        throw error
+      }
+      throw new ShowcaseStorageError('Import de la base indisponible.', 503)
     }
   }
 }
