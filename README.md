@@ -321,24 +321,14 @@ Recommended GitHub setup:
 
 ## Deployment (Vercel)
 
-The repository includes native Vercel serverless endpoints in `api/`:
+The repository uses consolidated Vercel serverless handlers in `api/`:
 
-- `api/site-insight.js`
-- `api/showcase/index.js`
-- `api/showcase/upvote.js`
-- `api/health.js`
-- `api/moderation/pending.js`
-- `api/moderation/approve.js`
-- `api/moderation/reject.js`
-- `api/moderation/showcase/index.js`
-- `api/moderation/showcase/update.js`
-- `api/moderation/showcase/delete.js`
-- `api/moderation/showcase/delete-and-block.js`
-- `api/moderation/blocklist/index.js`
-- `api/moderation/blocklist/site.js`
-- `api/moderation/blocklist/votes.js`
+- `api/index.js` for `/api`
+- `api/[...slug].js` for all nested API routes (`/api/*`)
+- `api/_run-app.js` shared adapter toward `server/app.js`
 
 This avoids production `NOT_FOUND` responses on `/api/*` routes when the frontend is deployed as a Vite app.
+It also keeps function count low for Vercel Hobby plan limits.
 Vercel rewrites also ensure SPA routes (including `/moderation`) resolve to `index.html` instead of returning 404 on refresh/direct access.
 
 Ensure these environment variables are configured in Vercel project settings:
