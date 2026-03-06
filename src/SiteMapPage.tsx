@@ -54,6 +54,11 @@ const directorySections: SiteLink[] = [
     label: 'Ressources officielles RGAA',
     description: 'Liens de référence pour les équipes design et développement.',
   },
+  {
+    href: '/#liste-vitrines',
+    label: 'Fiches par site',
+    description: 'Chaque carte mène à une fiche dédiée (`/site/{slug}`) indexable et partageable.',
+  },
 ]
 
 const technicalLinks: SiteLink[] = [

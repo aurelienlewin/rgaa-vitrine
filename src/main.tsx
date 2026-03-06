@@ -16,6 +16,7 @@ if (canUseDom) {
 const ModerationPage = lazy(() => import('./ModerationPage.tsx'))
 const SiteMapPage = lazy(() => import('./SiteMapPage.tsx'))
 const AccessibilityPage = lazy(() => import('./AccessibilityPage.tsx'))
+const SiteProfilePage = lazy(() => import('./SiteProfilePage.tsx'))
 
 function loadSecondaryFonts() {
   return Promise.all([
@@ -51,6 +52,7 @@ const currentPathname = normalizePathname(canUseDom ? window.location.pathname :
 const isModerationRoute = currentPathname.startsWith('/moderation')
 const isSiteMapRoute = currentPathname === '/plan-du-site'
 const isAccessibilityRoute = currentPathname === '/accessibilite'
+const isSiteProfileRoute = currentPathname.startsWith('/site/')
 
 const RootComponent = isModerationRoute
   ? ModerationPage
@@ -58,6 +60,8 @@ const RootComponent = isModerationRoute
     ? SiteMapPage
     : isAccessibilityRoute
       ? AccessibilityPage
+      : isSiteProfileRoute
+        ? SiteProfilePage
       : App
 
 if (canUseDom) {

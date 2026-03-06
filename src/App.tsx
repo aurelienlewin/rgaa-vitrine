@@ -2,12 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, MouseEvent as ReactMouseEvent, RefObject } from 'react'
 import ThemeToggle from './ThemeToggle'
 import { applySeo, createAbsoluteUrl } from './seo'
+import { resolveShowcaseProfilePath } from './siteProfiles'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
 type RgaaBaseline = '4.1' | '5.0-ready'
 
 type ShowcaseEntry = {
   normalizedUrl: string
+  slug?: string
+  profilePath?: string
   siteTitle: string
   thumbnailUrl: string | null
   accessibilityPageUrl: string | null
@@ -233,6 +236,11 @@ function toDomSafeIdSegment(value: string) {
 function normalizeShowcaseEntry(entry: ShowcaseEntry): ShowcaseEntry {
   return {
     ...entry,
+    slug:
+      typeof entry.slug === 'string' && /^[a-z0-9-]{4,120}$/.test(entry.slug)
+        ? entry.slug
+        : undefined,
+    profilePath: resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug),
     rgaaBaseline: normalizeRgaaBaseline(entry.rgaaBaseline),
     upvoteCount:
       typeof entry.upvoteCount === 'number' && Number.isFinite(entry.upvoteCount) && entry.upvoteCount >= 0
@@ -511,7 +519,7 @@ function App() {
       '@type': 'ListItem',
       position: index + 1,
       name: entry.siteTitle,
-      url: entry.normalizedUrl,
+      url: createAbsoluteUrl(resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug)),
     }))
 
     return {
@@ -1301,9 +1309,19 @@ function App() {
                         <p className="wrap-anywhere text-sm text-slate-600 dark:text-slate-300">{entry.normalizedUrl}</p>
                         <p className="text-sm">
                           <a
+                            href={entry.profilePath ?? resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug)}
+                            aria-label={`Ouvrir la fiche annuaire de ${entry.siteTitle}`}
+                            className={`inline-flex min-h-11 items-center rounded-xl border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 px-3 py-2 font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
+                          >
+                            Voir la fiche annuaire
+                          </a>
+                        </p>
+                        <p className="text-sm">
+                          <a
                             href={entry.normalizedUrl}
                             target="_blank"
-                            rel="noreferrer noopener"
+                            rel="noopener external"
+                            referrerPolicy="strict-origin-when-cross-origin"
                             aria-label={`Visiter le site ${entry.siteTitle}`}
                             className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                           >
@@ -1315,7 +1333,8 @@ function App() {
                             <a
                               href={entry.accessibilityPageUrl}
                               target="_blank"
-                              rel="noreferrer noopener"
+                              rel="noopener external"
+                              referrerPolicy="strict-origin-when-cross-origin"
                               aria-label={`Ouvrir la déclaration d’accessibilité de ${entry.siteTitle}`}
                               className={`inline-flex min-h-11 items-center rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 font-semibold text-emerald-900 dark:text-emerald-100 ${focusRingClass}`}
                             >
