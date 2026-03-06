@@ -196,6 +196,7 @@ function App() {
   const formSectionRef = useRef<HTMLElement | null>(null)
   const helpSectionRef = useRef<HTMLElement | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const resultsSummaryRef = useRef<HTMLParagraphElement | null>(null)
   const directoryErrorRef = useRef<HTMLParagraphElement | null>(null)
   const submitErrorRef = useRef<HTMLParagraphElement | null>(null)
   const submitInfoRef = useRef<HTMLParagraphElement | null>(null)
@@ -260,6 +261,17 @@ function App() {
       return searchable.includes(normalizedQuery)
     })
   }, [categoryFilter, searchQuery, showcaseEntries, statusFilter])
+
+  const handleSearchSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+      announcePolite(
+        `Recherche appliquée. ${filteredShowcaseEntries.length} site(s) affiché(s) sur ${showcaseEntries.length}.`,
+      )
+      focusElement(resultsSummaryRef.current)
+    },
+    [announcePolite, filteredShowcaseEntries.length, focusElement, showcaseEntries.length],
+  )
 
   const directoryStats = useMemo(() => {
     const full = showcaseEntries.filter((entry) => entry.complianceStatus === 'full').length
@@ -500,81 +512,94 @@ function App() {
               </p>
             </div>
 
-            <div className="mt-4 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3">
-              <div>
-                <label htmlFor="recherche-vitrine" className="block text-sm font-medium">
-                  Recherche
-                </label>
-                <input
-                  ref={searchInputRef}
-                  id="recherche-vitrine"
-                  type="search"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Escape' && searchQuery) {
-                      setSearchQuery('')
-                      announcePolite('Recherche effacée.')
-                    }
-                  }}
-                  placeholder="Titre, URL, catégorie..."
-                  aria-controls="liste-vitrines"
-                  aria-describedby="recherche-aide"
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm ${focusRingClass}`}
-                />
+            <form
+              className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              role="search"
+              aria-label="Recherche dans l’annuaire des vitrines"
+              onSubmit={handleSearchSubmit}
+            >
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <label htmlFor="recherche-vitrine" className="block text-sm font-medium">
+                    Recherche
+                  </label>
+                  <input
+                    ref={searchInputRef}
+                    id="recherche-vitrine"
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Escape' && searchQuery) {
+                        setSearchQuery('')
+                        announcePolite('Recherche effacée.')
+                      }
+                    }}
+                    placeholder="Titre, URL, catégorie..."
+                    aria-controls="liste-vitrines"
+                    aria-describedby="recherche-aide"
+                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm ${focusRingClass}`}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="filtre-statut" className="block text-sm font-medium">
+                    Niveau de conformité
+                  </label>
+                  <select
+                    id="filtre-statut"
+                    value={statusFilter}
+                    onChange={(event) => setStatusFilter(event.target.value as ShowcaseStatusFilter)}
+                    aria-controls="liste-vitrines"
+                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm ${focusRingClass}`}
+                  >
+                    {Object.entries(showcaseStatusFilterLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="filtre-categorie" className="block text-sm font-medium">
+                    Catégorie
+                  </label>
+                  <select
+                    id="filtre-categorie"
+                    value={categoryFilter}
+                    onChange={(event) => setCategoryFilter(event.target.value)}
+                    aria-controls="liste-vitrines"
+                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm ${focusRingClass}`}
+                  >
+                    <option value="all">Toutes les catégories</option>
+                    {showcaseCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {formatCategory(category)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label htmlFor="filtre-statut" className="block text-sm font-medium">
-                  Niveau de conformité
-                </label>
-                <select
-                  id="filtre-statut"
-                  value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value as ShowcaseStatusFilter)}
-                  aria-controls="liste-vitrines"
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm ${focusRingClass}`}
+              <div className="mt-3 flex flex-wrap gap-3">
+                <button
+                  type="submit"
+                  className={`inline-flex min-h-11 items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white ${focusRingClass}`}
                 >
-                  {Object.entries(showcaseStatusFilterLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="filtre-categorie" className="block text-sm font-medium">
-                  Catégorie
-                </label>
-                <select
-                  id="filtre-categorie"
-                  value={categoryFilter}
-                  onChange={(event) => setCategoryFilter(event.target.value)}
-                  aria-controls="liste-vitrines"
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm ${focusRingClass}`}
+                  Rechercher
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900 ${focusRingClass}`}
                 >
-                  <option value="all">Toutes les catégories</option>
-                  {showcaseCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {formatCategory(category)}
-                    </option>
-                  ))}
-                </select>
+                  Réinitialiser les filtres
+                </button>
               </div>
-            </div>
+            </form>
 
-            <div className="mt-3">
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900 ${focusRingClass}`}
-              >
-                Réinitialiser les filtres
-              </button>
-            </div>
-
-            <p className="mt-3 text-sm text-slate-700">
+            <p ref={resultsSummaryRef} tabIndex={-1} className="mt-3 text-sm text-slate-700">
               {filteredShowcaseEntries.length} site(s) affiché(s) sur {showcaseEntries.length}.
             </p>
 

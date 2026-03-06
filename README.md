@@ -21,6 +21,7 @@ Planned public website: **https://rgaa-vitrine.org**
 - Multiple skip links for keyboard navigation (`contenu`, `filtres`, `ajout`, `aide`).
 - Programmatic focus management on skip-link targets and dynamic feedback blocks (errors/status).
 - Keyboard filter ergonomics: `Échap` clears search input and a dedicated reset button restores all filters.
+- Explicit filter CTA with a `Rechercher` button for clear submit action and predictable keyboard flow.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
 - Directory-first UX with filters, categories, and search at the core.
