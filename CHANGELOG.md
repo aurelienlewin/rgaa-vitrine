@@ -48,6 +48,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Directory filters now include an explicit `Rechercher` CTA (search form submit) with focus return to results summary.
 - SVG logo baseline clipping has been fixed by adding vertical canvas padding and rebalancing text block positioning.
 - App branding has been renamed to `Annuaire RGAA` (including metadata, UI labels, package name, and crawler user-agent).
+- Vercel config now removes invalid `functions.runtime` to comply with current platform runtime validation.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
