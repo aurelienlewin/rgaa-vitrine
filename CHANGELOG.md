@@ -64,6 +64,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Main app footer now links to moderation page for authorized reviewers.
 - Pending moderation duplicate lookup now uses a dedicated Redis URL index (no full pending-list scan per submission).
 - Default app font stack now prioritizes dyslexia-friendly families (`OpenDyslexic`, `Atkinson Hyperlegible`, `Lexend`), with robust fallback fonts.
+- Vercel rewrites now route SPA paths (including `/moderation`) to `index.html`, fixing direct-access/refresh 404 errors.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

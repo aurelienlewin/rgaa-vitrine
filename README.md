@@ -171,6 +171,7 @@ The repository includes native Vercel serverless endpoints in `api/`:
 - `api/moderation/reject.js`
 
 This avoids production `NOT_FOUND` responses on `/api/*` routes when the frontend is deployed as a Vite app.
+Vercel rewrites also ensure SPA routes (including `/moderation`) resolve to `index.html` instead of returning 404 on refresh/direct access.
 
 Ensure these environment variables are configured in Vercel project settings:
 
