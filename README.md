@@ -32,6 +32,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Persistent light/dark mode toggle available on both directory and moderation screens.
 - Dark mode styling is consistently applied through Tailwind `dark:` variants to avoid mixed-theme rendering.
 - Discreet footer build stamp (`version + UTC timestamp`) helps detect stale cache quickly.
+- Footer version now resolves from release tags first (with package version fallback) to stay aligned with published GitHub releases.
 - Footer now uses a clearer three-column information architecture (`Projet`, `Navigation rapide`, `Soutien`) on large screens.
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
 - UI typography avoids tiny text; informational content and metadata are rendered at `text-sm` or above.

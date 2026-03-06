@@ -114,6 +114,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Site insight compliance retrieval now consumes metadata hints (`rgaa:compliance-status`, `rgaa:compliance-score`) and stronger SPA-page textual signals to avoid false manual-review downgrades.
 - Documentation now clarifies that `rgaa:compliance-*` extraction depends on deploying the latest frontend metadata before submission tests.
 - Submission flow now performs a non-persistent pre-analysis (`/api/site-insight?preview=1`) and displays detected score/status before final confirmation.
+- Footer build version now resolves from release tags first (then package version), preventing stale `0.0.0` display when releases are published.
 - `GET /api/showcase` now accepts `clientVoterId` and returns per-entry vote state (`hasUpvoted`) for the current visitor.
 - Vote registration now applies layered anti-abuse safeguards (client fingerprint + network fingerprint + hourly limiter) with localized feedback messages.
 - Vercel function glob now targets nested API handlers (`api/**/*.js`) so showcase/moderation subroutes share the same runtime limits.
