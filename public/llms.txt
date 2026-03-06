@@ -6,11 +6,13 @@ Annuaire francophone de sites web qui publient des informations de conformité R
 - URL principale: https://annuaire-rgaa.fr/
 - Plan du site: https://annuaire-rgaa.fr/plan-du-site
 - Déclaration d’accessibilité: https://annuaire-rgaa.fr/accessibilite
+- Fiches site: https://annuaire-rgaa.fr/site/{slug}
 - Sitemap XML: https://annuaire-rgaa.fr/sitemap.xml
 - Contexte IA JSON: https://annuaire-rgaa.fr/ai-context.json
 
 ## Endpoints publics utiles
 - https://annuaire-rgaa.fr/api/showcase (GET JSON, annuaire des sites)
+- https://annuaire-rgaa.fr/api/showcase?slug={slug} (GET JSON, une fiche ciblée)
 - https://annuaire-rgaa.fr/api/health (GET JSON, état du service)
 
 ## Langue et périmètre

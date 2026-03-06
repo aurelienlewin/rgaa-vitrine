@@ -9,6 +9,26 @@ function toIsoDate(value) {
   return new Date(parsed).toISOString()
 }
 
+function resolveProfilePath(entry) {
+  if (typeof entry?.profilePath === 'string' && entry.profilePath.startsWith('/')) {
+    return entry.profilePath
+  }
+
+  if (typeof entry?.slug === 'string' && /^[a-z0-9-]{4,120}$/.test(entry.slug)) {
+    return `/site/${entry.slug}`
+  }
+
+  return null
+}
+
+function createAbsoluteUrl(baseUrl, path) {
+  try {
+    return new URL(path, `${baseUrl}/`).toString()
+  } catch {
+    return null
+  }
+}
+
 function readLastUpdated(entries) {
   const timestamps = entries
     .map((entry) => Date.parse(entry.updatedAt))
@@ -51,12 +71,13 @@ function readStatusBreakdown(entries) {
   return breakdown
 }
 
-function summarizeTopEntries(entries, maxItems = 20) {
+function summarizeTopEntries(entries, baseUrl, maxItems = 20) {
   return entries.slice(0, maxItems).map((entry) => ({
     title: entry.siteTitle,
     url: entry.normalizedUrl,
     slug: typeof entry.slug === 'string' ? entry.slug : null,
-    profilePath: typeof entry.profilePath === 'string' ? entry.profilePath : null,
+    profilePath: resolveProfilePath(entry),
+    profileUrl: createAbsoluteUrl(baseUrl, resolveProfilePath(entry) ?? '/'),
     category: entry.category,
     complianceStatus: entry.complianceStatus,
     complianceStatusLabel: entry.complianceStatusLabel,
@@ -70,6 +91,15 @@ function summarizeTopEntries(entries, maxItems = 20) {
 export function buildAiContextPayload({ baseUrl, entries }) {
   const repositoryUrl = process.env.PUBLIC_REPOSITORY_URL || DEFAULT_REPOSITORY_URL
   const lastUpdated = readLastUpdated(entries)
+  const sampleProfileUrls = entries
+    .map((entry) => createAbsoluteUrl(baseUrl, resolveProfilePath(entry) ?? '/'))
+    .filter((value) => typeof value === 'string' && value.includes('/site/'))
+    .slice(0, 30)
+  const samplePublicPages = sampleProfileUrls.slice(0, 3).map((url) => ({
+    url,
+    title: 'Exemple de fiche site référencé',
+    description: 'Page publique dédiée à un site de la vitrine RGAA.',
+  }))
 
   return {
     version: '1.0',
@@ -113,7 +143,14 @@ export function buildAiContextPayload({ baseUrl, entries }) {
         title: 'Fiche site référencé',
         description: 'Page publique dédiée à un site référencé, avec liens sortants et métadonnées.',
       },
+      ...samplePublicPages,
     ],
+    siteProfiles: {
+      pagePattern: `${baseUrl}/site/{slug}`,
+      apiPattern: `${baseUrl}/api/showcase?slug={slug}`,
+      totalIndexedProfiles: entries.length,
+      sampleUrls: sampleProfileUrls,
+    },
     api: {
       policy:
         'Endpoints publics en lecture seule. Merci de privilégier la mise en cache et d’éviter le polling agressif.',
@@ -123,7 +160,7 @@ export function buildAiContextPayload({ baseUrl, entries }) {
           method: 'GET',
           format: 'application/json',
           authRequired: false,
-          description: 'Liste des sites publiés dans la vitrine RGAA.',
+          description: 'Liste des sites publiés dans la vitrine RGAA, avec accès direct par slug.',
           parameters: ['search', 'status', 'category', 'slug', 'limit'],
           sampleFields: [
             'normalizedUrl',
@@ -155,12 +192,18 @@ export function buildAiContextPayload({ baseUrl, entries }) {
       totalEntries: entries.length,
       lastUpdated,
       complianceBreakdown: readStatusBreakdown(entries),
-      topEntries: summarizeTopEntries(entries),
+      topEntries: summarizeTopEntries(entries, baseUrl),
     },
     crawling: {
       indexable: true,
       nonIndexablePaths: ['/moderation'],
       robotsTxt: `${baseUrl}/robots.txt`,
+      crawlSeeds: [
+        `${baseUrl}/`,
+        `${baseUrl}/plan-du-site`,
+        `${baseUrl}/sitemap.xml`,
+        ...sampleProfileUrls,
+      ],
     },
   }
 }

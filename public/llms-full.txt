@@ -13,26 +13,33 @@ Annuaire RGAA est une application web orientée accessibilité numérique, en fr
 - Site: https://annuaire-rgaa.fr/
 - Plan du site: https://annuaire-rgaa.fr/plan-du-site
 - Déclaration d’accessibilité: https://annuaire-rgaa.fr/accessibilite
+- Pattern de fiche publique: https://annuaire-rgaa.fr/site/{slug}
 - Sitemap XML: https://annuaire-rgaa.fr/sitemap.xml
 - Fichier robots: https://annuaire-rgaa.fr/robots.txt
 - Contexte IA JSON: https://annuaire-rgaa.fr/ai-context.json
 - API annuaire: https://annuaire-rgaa.fr/api/showcase
+- API fiche ciblée: https://annuaire-rgaa.fr/api/showcase?slug={slug}
 - Santé service: https://annuaire-rgaa.fr/api/health
 
 ## Modèle de données principal (showcase entry)
 - normalizedUrl: string
+- slug: string (identifiant de fiche publique)
+- profilePath: string (chemin interne `/site/{slug}`)
 - siteTitle: string
 - thumbnailUrl: string|null
 - accessibilityPageUrl: string|null
 - complianceStatus: "full"|"partial"|"none"|null
 - complianceStatusLabel: string|null
 - complianceScore: number|null
+- rgaaBaseline: "4.1"|"5.0-ready"
 - updatedAt: ISO date string
 - category: string
 
 ## Conseils d'utilisation IA
 - Consommer prioritairement `/api/showcase` pour les données à jour.
+- Pour une fiche précise, privilégier `/api/showcase?slug={slug}`.
 - Utiliser `sitemap.xml` pour découvrir les ressources publiques.
+- Utiliser `/plan-du-site` pour récupérer un extrait de liens vers les fiches publiées.
 - Respecter les limites de fréquence de requêtes et la mise en cache.
 - Interpréter `complianceScore` comme indicateur, pas comme audit légal définitif.
 
