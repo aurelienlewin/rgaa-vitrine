@@ -40,6 +40,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Discreet footer build stamp (`version + UTC timestamp`) helps detect stale cache quickly.
 - Footer version now resolves from release tags first (with package version fallback) to stay aligned with published GitHub releases.
 - Footer now uses a clearer three-column information architecture (`Projet`, `Navigation rapide`, `Soutien`) on large screens.
+- Secondary pages (`/plan-du-site`, `/accessibilite`, `/site/{slug}`, `/moderation`) now share a consistent top navigation and the same global footer as homepage.
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
 - Route lazy-loading fallback is announced as status (`aria-live="polite"`) to avoid silent loading states.
 - UI typography avoids tiny text; informational content and metadata are rendered at `text-sm` or above.

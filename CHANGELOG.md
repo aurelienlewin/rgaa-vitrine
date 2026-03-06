@@ -127,6 +127,8 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Profile pages now expose stronger crawl paths with related-profile internal links and footer navigation targets.
 - `Plan du site` now fetches and renders an explicit extract of `/site/{slug}` links for additional internal discovery and associated `ItemList` structured data.
 - `ai-context` and `llms*.txt` now document profile-page patterns and profile-level API access (`/api/showcase?slug={slug}`), including crawl seed URLs.
+- Page chrome consistency pass: shared secondary header navigation and shared global footer are now applied across `/plan-du-site`, `/accessibilite`, `/site/{slug}`, and `/moderation`.
+- Skip links on secondary/moderation pages now include direct keyboard access to the footer (`Aller au pied de page`).
 - Footer build version now resolves from release tags first (then package version), preventing stale `0.0.0` display when releases are published.
 - `GET /api/showcase` now accepts `clientVoterId` and returns per-entry vote state (`hasUpvoted`) for the current visitor.
 - Vote registration now applies layered anti-abuse safeguards (client fingerprint + network fingerprint + hourly limiter) with localized feedback messages.
