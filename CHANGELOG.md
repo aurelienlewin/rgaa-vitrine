@@ -39,6 +39,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - New accessible upvote system on showcase tiles, with `POST /api/showcase/upvote` and persisted `upvoteCount`.
 - Dedicated Vercel serverless handlers for showcase routes: `api/showcase/index.js` and `api/showcase/upvote.js`.
 - New moderation rule endpoints for editable site blocklist and vote blocklist, plus `delete-and-block` action on published entries.
+- Frontend Vercel Web Analytics integration via `@vercel/analytics`.
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
