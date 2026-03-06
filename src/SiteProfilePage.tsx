@@ -21,6 +21,11 @@ type ShowcaseEntry = {
   category: string
 }
 
+const MAX_RELATED_ENTRIES = 6
+const MAX_RELATED_FETCH_LIMIT = 80
+const PROFILE_API_LINK_ID = 'app-profile-api-link'
+const PROFILE_UP_LINK_ID = 'app-profile-up-link'
+
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const skipLinksContainerClass =
@@ -45,6 +50,32 @@ function formatScore(value: number | null) {
   }).format(value)
 
   return `${localized}%`
+}
+
+function formatRgaaBaseline(value: ShowcaseEntry['rgaaBaseline']) {
+  return value === '5.0-ready' ? 'RGAA 5.0 prêt' : 'RGAA 4.1'
+}
+
+function readSafeSlug(value: unknown) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  return /^[a-z0-9-]{4,120}$/.test(value) ? value : null
+}
+
+function normalizeRgaaBaseline(value: unknown): ShowcaseEntry['rgaaBaseline'] {
+  return value === '5.0-ready' ? '5.0-ready' : '4.1'
+}
+
+function normalizeShowcaseEntry(entry: ShowcaseEntry): ShowcaseEntry {
+  const safeSlug = readSafeSlug(entry.slug)
+  return {
+    ...entry,
+    slug: safeSlug ?? undefined,
+    profilePath: resolveShowcaseProfilePath(entry.normalizedUrl, safeSlug),
+    rgaaBaseline: normalizeRgaaBaseline(entry.rgaaBaseline),
+  }
 }
 
 function isShowcaseEntry(payload: unknown): payload is ShowcaseEntry {
@@ -78,16 +109,40 @@ async function readApiPayload(response: Response) {
   }
 
   const compactBody = rawBody.trim().replace(/\s+/g, ' ')
+  if (/<!doctype html|<html[\s>]/i.test(compactBody)) {
+    return {
+      error:
+        'Réponse HTML reçue à la place de JSON API. Vérifiez le routage des endpoints /api/*.',
+    }
+  }
   return { error: compactBody.slice(0, 220) || 'Réponse serveur non JSON.' }
+}
+
+function upsertHeadLink(id: string, attributes: Record<string, string>) {
+  let element = document.getElementById(id) as HTMLLinkElement | null
+  if (!element) {
+    element = document.createElement('link')
+    element.id = id
+    document.head.append(element)
+  }
+
+  for (const [key, value] of Object.entries(attributes)) {
+    element.setAttribute(key, value)
+  }
 }
 
 function SiteProfilePage() {
   const [entry, setEntry] = useState<ShowcaseEntry | null>(null)
+  const [relatedEntries, setRelatedEntries] = useState<ShowcaseEntry[]>([])
+  const [isLoadingRelated, setIsLoadingRelated] = useState(false)
+  const [relatedErrorMessage, setRelatedErrorMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [copyMessage, setCopyMessage] = useState('')
   const mainRef = useRef<HTMLElement | null>(null)
   const backlinkSectionRef = useRef<HTMLElement | null>(null)
+  const relatedSectionRef = useRef<HTMLElement | null>(null)
+  const footerRef = useRef<HTMLElement | null>(null)
   const copyMessageRef = useRef<HTMLParagraphElement | null>(null)
   const slug =
     typeof window !== 'undefined'
@@ -117,22 +172,44 @@ function SiteProfilePage() {
     [focusElement],
   )
 
+  const resolvedSlug = useMemo(() => {
+    if (entry) {
+      return readSafeSlug(entry.slug) ?? slug
+    }
+
+    return slug
+  }, [entry, slug])
   const profilePath = useMemo(() => {
     if (!entry) {
       return slug ? `/site/${slug}` : '/site'
     }
 
-    return resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug)
-  }, [entry, slug])
+    return resolveShowcaseProfilePath(entry.normalizedUrl, resolvedSlug)
+  }, [entry, resolvedSlug, slug])
   const profileUrl = createAbsoluteUrl(profilePath)
+  const profileApiUrl = useMemo(() => {
+    if (!resolvedSlug) {
+      return createAbsoluteUrl('/api/showcase')
+    }
+
+    return `${createAbsoluteUrl('/api/showcase')}?slug=${encodeURIComponent(resolvedSlug)}`
+  }, [resolvedSlug])
   const backlinkSnippet = `<a href="${profileUrl}">Référencé sur Annuaire RGAA</a>`
 
   useEffect(() => {
     if (entry) {
+      const relatedItemElements = relatedEntries.map((candidate, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: candidate.siteTitle,
+        item: createAbsoluteUrl(resolveShowcaseProfilePath(candidate.normalizedUrl, candidate.slug)),
+      }))
+
       applySeo({
         title: `${entry.siteTitle} | Fiche annuaire RGAA`,
-        description: `${entry.siteTitle} est référencé sur annuaire-rgaa.fr avec catégorie, score détecté et accès à la déclaration d’accessibilité.`,
+        description: `${entry.siteTitle} est référencé sur annuaire-rgaa.fr avec catégorie, niveau détecté, score et liens utiles d’accessibilité.`,
         path: profilePath,
+        ogType: 'profile',
         structuredData: {
           '@context': 'https://schema.org',
           '@graph': [
@@ -150,11 +227,36 @@ function SiteProfilePage() {
                 url: createAbsoluteUrl('/'),
                 name: 'Annuaire RGAA',
               },
-              about: {
-                '@type': 'Organization',
-                name: entry.siteTitle,
-                url: entry.normalizedUrl,
+              mainEntity: {
+                '@id': `${profileUrl}#referenced-site`,
               },
+            },
+            {
+              '@type': 'Organization',
+              '@id': `${profileUrl}#referenced-site`,
+              name: entry.siteTitle,
+              url: entry.normalizedUrl,
+              sameAs: entry.accessibilityPageUrl ? [entry.accessibilityPageUrl] : undefined,
+            },
+            {
+              '@type': 'Dataset',
+              '@id': `${profileUrl}#dataset-entry`,
+              name: `Données publiques de la fiche ${entry.siteTitle}`,
+              description:
+                'Extrait machine-readable de la fiche annuaire: catégorie, score détecté, niveau et URL de référence.',
+              inLanguage: 'fr-FR',
+              url: profileApiUrl,
+              isPartOf: {
+                '@id': `${createAbsoluteUrl('/')}#dataset-showcase`,
+              },
+              dateModified: entry.updatedAt,
+              distribution: [
+                {
+                  '@type': 'DataDownload',
+                  contentUrl: profileApiUrl,
+                  encodingFormat: 'application/json',
+                },
+              ],
             },
             {
               '@type': 'BreadcrumbList',
@@ -173,6 +275,17 @@ function SiteProfilePage() {
                 },
               ],
             },
+            ...(relatedItemElements.length > 0
+              ? [
+                  {
+                    '@type': 'ItemList',
+                    '@id': `${profileUrl}#related-profiles`,
+                    name: 'Fiches associées',
+                    numberOfItems: relatedItemElements.length,
+                    itemListElement: relatedItemElements,
+                  },
+                ]
+              : []),
           ],
         },
       })
@@ -187,7 +300,31 @@ function SiteProfilePage() {
       robots: 'noindex,follow',
       structuredData: null,
     })
-  }, [entry, profilePath, profileUrl])
+  }, [entry, profileApiUrl, profilePath, profileUrl, relatedEntries])
+
+  useEffect(() => {
+    if (!resolvedSlug) {
+      document.getElementById(PROFILE_API_LINK_ID)?.remove()
+      document.getElementById(PROFILE_UP_LINK_ID)?.remove()
+      return
+    }
+
+    upsertHeadLink(PROFILE_API_LINK_ID, {
+      rel: 'alternate',
+      type: 'application/json',
+      href: profileApiUrl,
+      title: 'Données publiques de la fiche',
+    })
+    upsertHeadLink(PROFILE_UP_LINK_ID, {
+      rel: 'up',
+      href: createAbsoluteUrl('/'),
+    })
+
+    return () => {
+      document.getElementById(PROFILE_API_LINK_ID)?.remove()
+      document.getElementById(PROFILE_UP_LINK_ID)?.remove()
+    }
+  }, [profileApiUrl, resolvedSlug])
 
   useEffect(() => {
     if (!slug) {
@@ -227,7 +364,7 @@ function SiteProfilePage() {
         }
 
         if (!cancelled) {
-          setEntry(firstEntry)
+          setEntry(normalizeShowcaseEntry(firstEntry))
         }
       } catch (error) {
         if (!cancelled) {
@@ -248,6 +385,71 @@ function SiteProfilePage() {
       cancelled = true
     }
   }, [slug])
+
+  useEffect(() => {
+    if (!entry) {
+      setRelatedEntries([])
+      setRelatedErrorMessage(null)
+      setIsLoadingRelated(false)
+      return
+    }
+
+    const activeEntry = entry
+    let cancelled = false
+
+    async function loadRelatedEntries() {
+      setIsLoadingRelated(true)
+      setRelatedErrorMessage(null)
+
+      try {
+        const response = await fetch(
+          `/api/showcase?category=${encodeURIComponent(activeEntry.category)}&limit=${MAX_RELATED_FETCH_LIMIT}`,
+        )
+        const payload = await readApiPayload(response)
+
+        if (!response.ok) {
+          throw new Error(typeof payload.error === 'string' ? payload.error : 'Chargement des fiches associées impossible.')
+        }
+
+        const responseEntries = Array.isArray(payload.entries)
+          ? payload.entries
+          : Array.isArray(payload)
+            ? payload
+            : null
+
+        if (!responseEntries) {
+          throw new Error('Réponse annuaire invalide.')
+        }
+
+        const candidates = responseEntries
+          .filter((candidate) => isShowcaseEntry(candidate))
+          .map((candidate) => normalizeShowcaseEntry(candidate))
+          .filter((candidate) => candidate.normalizedUrl !== activeEntry.normalizedUrl)
+          .slice(0, MAX_RELATED_ENTRIES)
+
+        if (!cancelled) {
+          setRelatedEntries(candidates)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setRelatedEntries([])
+          setRelatedErrorMessage(
+            error instanceof Error ? error.message : 'Chargement des fiches associées impossible.',
+          )
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingRelated(false)
+        }
+      }
+    }
+
+    void loadRelatedEntries()
+
+    return () => {
+      cancelled = true
+    }
+  }, [entry])
 
   useEffect(() => {
     if (copyMessage) {
@@ -275,6 +477,12 @@ function SiteProfilePage() {
         </a>
         <a href="#backlink-fiche" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, backlinkSectionRef)}>
           Aller au lien retour
+        </a>
+        <a href="#fiches-associees" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, relatedSectionRef)}>
+          Aller aux fiches associées
+        </a>
+        <a href="#pied-de-page" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, footerRef)}>
+          Aller au pied de page
         </a>
       </div>
 
@@ -333,6 +541,9 @@ function SiteProfilePage() {
               <p className="mt-1 text-slate-700 dark:text-slate-300">
                 Niveau détecté: <strong>{entry.complianceStatusLabel ?? 'N/A'}</strong>
               </p>
+              <p className="mt-1 text-slate-700 dark:text-slate-300">
+                Référentiel déclaré: <strong>{formatRgaaBaseline(entry.rgaaBaseline)}</strong>
+              </p>
 
               <div className="mt-4 flex flex-wrap gap-3">
                 <a
@@ -360,6 +571,21 @@ function SiteProfilePage() {
                   </span>
                 )}
               </div>
+
+              <section className="mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4" aria-labelledby="donnees-fiche-titre">
+                <h3 id="donnees-fiche-titre" className="text-lg font-semibold">
+                  Données publiques de cette fiche
+                </h3>
+                <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                  Cette fiche dispose d’un endpoint dédié pour la découverte machine et la réutilisation des données.
+                </p>
+                <a
+                  href={profileApiUrl}
+                  className={`mt-3 inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 font-semibold ${focusRingClass}`}
+                >
+                  Ouvrir l’endpoint de fiche
+                </a>
+              </section>
 
               <section id="backlink-fiche" ref={backlinkSectionRef} tabIndex={-1} className="mt-6 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-4" aria-labelledby="backlink-fiche-titre">
                 <h3 id="backlink-fiche-titre" className="text-lg font-semibold text-sky-900 dark:text-sky-100">
@@ -392,9 +618,89 @@ function SiteProfilePage() {
                   </p>
                 )}
               </section>
+
+              <section id="fiches-associees" ref={relatedSectionRef} tabIndex={-1} className="mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4" aria-labelledby="fiches-associees-titre">
+                <h3 id="fiches-associees-titre" className="text-lg font-semibold">
+                  Fiches associées
+                </h3>
+                <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                  Autres sites référencés dans la catégorie <strong>{entry.category}</strong>.
+                </p>
+                {isLoadingRelated && (
+                  <p className="mt-3 text-sm text-slate-700 dark:text-slate-300" role="status" aria-live="polite">
+                    Chargement des fiches associées...
+                  </p>
+                )}
+                {!isLoadingRelated && relatedErrorMessage && (
+                  <p className="mt-3 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 p-3 text-sm text-rose-900 dark:text-rose-100" role="status" aria-live="polite">
+                    {relatedErrorMessage}
+                  </p>
+                )}
+                {!isLoadingRelated && !relatedErrorMessage && relatedEntries.length === 0 && (
+                  <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
+                    Aucune autre fiche de cette catégorie n’est disponible pour le moment.
+                  </p>
+                )}
+                {relatedEntries.length > 0 && (
+                  <ul className="mt-3 grid gap-3">
+                    {relatedEntries.map((candidate) => {
+                      const candidateProfilePath = resolveShowcaseProfilePath(
+                        candidate.normalizedUrl,
+                        candidate.slug,
+                      )
+                      return (
+                        <li key={candidate.normalizedUrl} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
+                          <a
+                            href={candidateProfilePath}
+                            className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}
+                          >
+                            {candidate.siteTitle}
+                          </a>
+                          <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                            {candidate.normalizedUrl}
+                          </p>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </section>
             </article>
           )}
         </main>
+
+        <footer
+          id="pied-de-page"
+          ref={footerRef}
+          tabIndex={-1}
+          className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+        >
+          <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+            <h2 className="text-lg font-semibold">Continuer la navigation</h2>
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              <li>
+                <a href="/" className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}>
+                  Retour à l’accueil
+                </a>
+              </li>
+              <li>
+                <a href="/plan-du-site" className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}>
+                  Plan du site
+                </a>
+              </li>
+              <li>
+                <a href="/accessibilite" className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}>
+                  Déclaration d’accessibilité
+                </a>
+              </li>
+              <li>
+                <a href={profileApiUrl} className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}>
+                  Données publiques de cette fiche
+                </a>
+              </li>
+            </ul>
+          </div>
+        </footer>
       </div>
     </>
   )

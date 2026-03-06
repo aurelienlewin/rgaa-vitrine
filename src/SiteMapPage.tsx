@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
 import ThemeToggle from './ThemeToggle'
 import { applySeo, createAbsoluteUrl } from './seo'
+import { resolveShowcaseProfilePath } from './siteProfiles'
 
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
@@ -13,6 +14,15 @@ type SiteLink = {
   href: string
   label: string
   description: string
+}
+
+type ShowcaseEntry = {
+  normalizedUrl: string
+  slug?: string
+  profilePath?: string
+  siteTitle: string
+  category: string
+  updatedAt: string
 }
 
 const primaryPages: SiteLink[] = [
@@ -87,11 +97,78 @@ const technicalLinks: SiteLink[] = [
     label: 'Fichier robots.txt',
     description: 'Consignes d’exploration des robots pour le site.',
   },
+  {
+    href: '/api/showcase?slug={slug}',
+    label: 'API de fiche (`slug`)',
+    description: 'Accès direct à une fiche publique précise pour automatisation et indexation ciblée.',
+  },
 ]
 
+function isShowcaseEntry(payload: unknown): payload is ShowcaseEntry {
+  if (!payload || typeof payload !== 'object') {
+    return false
+  }
+
+  const candidate = payload as Record<string, unknown>
+  return (
+    typeof candidate.normalizedUrl === 'string' &&
+    typeof candidate.siteTitle === 'string' &&
+    typeof candidate.category === 'string' &&
+    typeof candidate.updatedAt === 'string'
+  )
+}
+
+function readSafeSlug(value: unknown) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  return /^[a-z0-9-]{4,120}$/.test(value) ? value : null
+}
+
+function normalizeShowcaseEntry(entry: ShowcaseEntry): ShowcaseEntry {
+  const safeSlug = readSafeSlug(entry.slug)
+  return {
+    ...entry,
+    slug: safeSlug ?? undefined,
+    profilePath: resolveShowcaseProfilePath(entry.normalizedUrl, safeSlug),
+  }
+}
+
+async function readApiPayload(response: Response) {
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
+  const rawBody = await response.text()
+
+  if (!rawBody.trim()) {
+    return {}
+  }
+
+  if (contentType.includes('application/json')) {
+    try {
+      return JSON.parse(rawBody) as Record<string, unknown>
+    } catch {
+      return { error: 'Réponse JSON invalide du serveur.' }
+    }
+  }
+
+  const compactBody = rawBody.trim().replace(/\s+/g, ' ')
+  if (/<!doctype html|<html[\s>]/i.test(compactBody)) {
+    return {
+      error:
+        'Réponse HTML reçue à la place de JSON API. Vérifiez le routage des endpoints /api/*.',
+    }
+  }
+
+  return { error: compactBody.slice(0, 220) || 'Réponse serveur non JSON.' }
+}
+
 function SiteMapPage() {
+  const [profileEntries, setProfileEntries] = useState<ShowcaseEntry[]>([])
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(true)
+  const [profileErrorMessage, setProfileErrorMessage] = useState<string | null>(null)
   const mainContentRef = useRef<HTMLElement | null>(null)
   const primaryNavRef = useRef<HTMLElement | null>(null)
+  const profileSectionRef = useRef<HTMLElement | null>(null)
 
   const focusElement = useCallback((element: HTMLElement | null) => {
     if (!element) {
@@ -117,10 +194,87 @@ function SiteMapPage() {
   )
 
   useEffect(() => {
+    let cancelled = false
+
+    async function loadProfileEntries() {
+      setIsLoadingProfiles(true)
+      setProfileErrorMessage(null)
+
+      try {
+        const response = await fetch('/api/showcase?limit=120')
+        const payload = await readApiPayload(response)
+        if (!response.ok) {
+          throw new Error(typeof payload.error === 'string' ? payload.error : 'Chargement des fiches impossible.')
+        }
+
+        const responseEntries = Array.isArray(payload.entries)
+          ? payload.entries
+          : Array.isArray(payload)
+            ? payload
+            : null
+
+        if (!responseEntries) {
+          throw new Error('Réponse annuaire invalide.')
+        }
+
+        const uniqueByProfilePath = new Map<string, ShowcaseEntry>()
+        for (const candidate of responseEntries) {
+          if (!isShowcaseEntry(candidate)) {
+            continue
+          }
+          const normalized = normalizeShowcaseEntry(candidate)
+          if (!normalized.profilePath) {
+            continue
+          }
+          if (!uniqueByProfilePath.has(normalized.profilePath)) {
+            uniqueByProfilePath.set(normalized.profilePath, normalized)
+          }
+        }
+
+        const nextEntries = Array.from(uniqueByProfilePath.values())
+        if (!cancelled) {
+          setProfileEntries(nextEntries)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setProfileEntries([])
+          setProfileErrorMessage(
+            error instanceof Error ? error.message : 'Chargement des fiches impossible.',
+          )
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingProfiles(false)
+        }
+      }
+    }
+
+    void loadProfileEntries()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const profileLinksForSeo = useMemo(
+    () => profileEntries.slice(0, 30).map((entry) => createAbsoluteUrl(entry.profilePath ?? '/')),
+    [profileEntries],
+  )
+
+  const profileLinksForUi = useMemo(() => profileEntries.slice(0, 40), [profileEntries])
+
+  useEffect(() => {
+    const profileItemList = profileLinksForUi.map((entry, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: entry.siteTitle,
+      item: createAbsoluteUrl(entry.profilePath ?? '/'),
+    }))
+
     applySeo({
       title: 'Plan du site | Annuaire RGAA',
       description:
-        'Plan du site de l’annuaire RGAA: pages publiques, sections principales et ressources techniques SEO.',
+        'Plan du site de l’annuaire RGAA: pages publiques, fiches site indexables et ressources techniques SEO.',
       path: '/plan-du-site',
       structuredData: {
         '@context': 'https://schema.org',
@@ -175,12 +329,24 @@ function SiteMapPage() {
               createAbsoluteUrl('/llms.txt'),
               createAbsoluteUrl('/llms-full.txt'),
               createAbsoluteUrl('/robots.txt'),
+              ...profileLinksForSeo,
             ],
           },
+          ...(profileItemList.length > 0
+            ? [
+                {
+                  '@type': 'ItemList',
+                  '@id': createAbsoluteUrl('/plan-du-site#fiches'),
+                  name: 'Fiches publiques référencées',
+                  numberOfItems: profileItemList.length,
+                  itemListElement: profileItemList,
+                },
+              ]
+            : []),
         ],
       },
     })
-  }, [])
+  }, [profileLinksForSeo, profileLinksForUi])
 
   return (
     <>
@@ -201,6 +367,13 @@ function SiteMapPage() {
           onClick={(event) => handleSkipLinkClick(event, primaryNavRef)}
         >
           Aller aux liens principaux
+        </a>
+        <a
+          href="#fiches-publiques"
+          className={skipLinkClass}
+          onClick={(event) => handleSkipLinkClick(event, profileSectionRef)}
+        >
+          Aller aux fiches publiées
         </a>
       </div>
 
@@ -298,6 +471,56 @@ function SiteMapPage() {
                 </li>
               ))}
             </ul>
+          </section>
+
+          <section
+            id="fiches-publiques"
+            ref={profileSectionRef}
+            tabIndex={-1}
+            aria-labelledby="fiches-publiques-titre"
+            className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
+          >
+            <h2 id="fiches-publiques-titre" className="text-xl font-semibold">
+              Fiches publiques indexables
+            </h2>
+            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+              Extrait des fiches `/site/{'{'}slug{'}'}` disponibles pour l’indexation et le maillage interne.
+            </p>
+            {isLoadingProfiles && (
+              <p className="mt-3 text-sm text-slate-700 dark:text-slate-300" role="status" aria-live="polite">
+                Chargement des fiches publiques...
+              </p>
+            )}
+            {!isLoadingProfiles && profileErrorMessage && (
+              <p className="mt-3 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 p-3 text-sm text-rose-900 dark:text-rose-100" role="status" aria-live="polite">
+                {profileErrorMessage}
+              </p>
+            )}
+            {!isLoadingProfiles && !profileErrorMessage && profileLinksForUi.length === 0 && (
+              <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
+                Aucune fiche n’est encore publiée.
+              </p>
+            )}
+            {profileLinksForUi.length > 0 && (
+              <ul className="mt-4 grid gap-3 md:grid-cols-2">
+                {profileLinksForUi.map((entry) => (
+                  <li
+                    key={entry.normalizedUrl}
+                    className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4"
+                  >
+                    <a
+                      href={entry.profilePath}
+                      className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}
+                    >
+                      {entry.siteTitle}
+                    </a>
+                    <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                      Catégorie: {entry.category}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           <section
