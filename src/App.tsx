@@ -127,6 +127,19 @@ function formatDate(value: string) {
   }).format(new Date(value))
 }
 
+function formatScore(value: number | null) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 'N/A'
+  }
+
+  const localized = new Intl.NumberFormat('fr-FR', {
+    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(value)
+
+  return `${localized}%`
+}
+
 function normalizeText(value: string) {
   return value
     .normalize('NFD')
@@ -868,7 +881,7 @@ function App() {
                             </span>
                           )}
                           <span className="inline-flex min-h-8 items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                            Score: {entry.complianceScore !== null ? `${entry.complianceScore}%` : 'N/A'}
+                            Score: {formatScore(entry.complianceScore)}
                           </span>
                         </div>
                       </div>

@@ -21,6 +21,12 @@ const accessibilityKeywords = [
   'schema pluriannuel',
   'schéma pluriannuel',
 ]
+const commonAccessibilityPaths = [
+  '/accessibilite',
+  '/accessibilite-numerique',
+  '/declaration-accessibilite',
+  '/accessibilite-et-conformite',
+]
 
 export class SiteInsightError extends Error {
   constructor(message, statusCode = 400) {
@@ -65,6 +71,35 @@ function normalizeSubmittedUrl(rawValue) {
   }
 
   return parsed
+}
+
+export async function validatePublicHttpUrl(rawValue) {
+  if (typeof rawValue !== 'string') {
+    throw new SiteInsightError('URL invalide.', 400)
+  }
+
+  const trimmed = rawValue.trim()
+  if (!trimmed) {
+    throw new SiteInsightError('URL invalide.', 400)
+  }
+
+  let parsed
+  try {
+    parsed = new URL(trimmed)
+  } catch {
+    throw new SiteInsightError('Format URL non reconnu.', 400)
+  }
+
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new SiteInsightError('Seules les URL HTTP(S) sont autorisées.', 400)
+  }
+
+  if (parsed.username || parsed.password) {
+    throw new SiteInsightError("Les URL avec identifiants intégrés ne sont pas autorisées.", 400)
+  }
+
+  await validatePublicHost(parsed.hostname)
+  return parsed.toString()
 }
 
 function isPrivateIpv4(ip) {
@@ -332,16 +367,134 @@ function extractCompliance(text) {
     complianceStatus = 'none'
   }
 
-  let complianceScore = null
-  const scoreMatch = normalized.match(/taux de conformite[^\d]{0,40}(\d{1,3})(?:[.,]\d+)?\s*%/)
-  if (scoreMatch) {
-    const parsedScore = Number(scoreMatch[1])
-    if (!Number.isNaN(parsedScore) && parsedScore >= 0 && parsedScore <= 100) {
-      complianceScore = parsedScore
+  const complianceScore = extractComplianceScore(normalized)
+
+  return { complianceStatus, complianceScore }
+}
+
+function parseScoreValue(rawValue) {
+  if (typeof rawValue !== 'string' || !rawValue.trim()) {
+    return null
+  }
+
+  const normalized = rawValue.replace(',', '.').trim()
+  const parsed = Number(normalized)
+
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+    return null
+  }
+
+  return Math.round(parsed * 100) / 100
+}
+
+function extractComplianceScore(normalizedText) {
+  const prioritizedPatterns = [
+    /taux\s+moyen\s+de\s+conformite[^\d]{0,120}(\d{1,3}(?:[.,]\d{1,2})?)\s*%/,
+    /taux(?:\s+\w+){0,4}\s+de\s+conformite[^\d]{0,120}(\d{1,3}(?:[.,]\d{1,2})?)\s*%/,
+    /conformite[^\d]{0,120}taux[^\d]{0,120}(\d{1,3}(?:[.,]\d{1,2})?)\s*%/,
+  ]
+
+  for (const pattern of prioritizedPatterns) {
+    const matched = normalizedText.match(pattern)
+    if (!matched) {
+      continue
+    }
+
+    const parsed = parseScoreValue(matched[1])
+    if (parsed !== null) {
+      return parsed
     }
   }
 
-  return { complianceStatus, complianceScore }
+  const percentPattern = /(\d{1,3}(?:[.,]\d{1,2})?)\s*%/g
+  const lines = normalizedText
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  let bestCandidate = null
+
+  for (const line of lines) {
+    let match
+    while ((match = percentPattern.exec(line)) !== null) {
+      const parsed = parseScoreValue(match[1])
+      if (parsed === null) {
+        continue
+      }
+
+      let weight = 0
+      if (line.includes('taux moyen de conformite')) {
+        weight += 120
+      } else if (line.includes('taux de conformite')) {
+        weight += 90
+      } else if (line.includes('taux') && line.includes('conformite')) {
+        weight += 75
+      } else if (line.includes('conformite')) {
+        weight += 40
+      }
+
+      if (line.includes('accessibilite') || line.includes('rgaa')) {
+        weight += 12
+      }
+
+      if (line.includes('criteres') || line.includes('respectes')) {
+        weight -= 25
+      }
+
+      const nextCandidate = {
+        weight,
+        value: parsed,
+      }
+
+      if (
+        !bestCandidate ||
+        nextCandidate.weight > bestCandidate.weight ||
+        (nextCandidate.weight === bestCandidate.weight && nextCandidate.value > bestCandidate.value)
+      ) {
+        bestCandidate = nextCandidate
+      }
+    }
+
+    percentPattern.lastIndex = 0
+  }
+
+  return bestCandidate?.value ?? null
+}
+
+function looksLikeAccessibilityPage(html) {
+  const normalizedText = normalizeForMatch(load(html).text())
+  const hasAccessibilitySignal =
+    normalizedText.includes('accessibilite') || normalizedText.includes('declaration') || normalizedText.includes('rgaa')
+  const hasComplianceSignal = normalizedText.includes('conformite') || normalizedText.includes('conforme')
+
+  return hasAccessibilitySignal && hasComplianceSignal
+}
+
+async function resolveAccessibilityPageUrl(baseUrl, detectedAccessibilityPageUrl) {
+  if (detectedAccessibilityPageUrl) {
+    return detectedAccessibilityPageUrl
+  }
+
+  for (const path of commonAccessibilityPaths) {
+    const candidateUrl = toAbsoluteUrl(path, baseUrl)
+    if (!candidateUrl) {
+      continue
+    }
+
+    try {
+      const parsedCandidate = new URL(candidateUrl)
+      await validatePublicHost(parsedCandidate.hostname)
+      const { html } = await fetchHtml(candidateUrl)
+
+      if (looksLikeAccessibilityPage(html)) {
+        return candidateUrl
+      }
+    } catch {
+      // Tentative suivante.
+    }
+  }
+
+  return null
 }
 
 function extractMetaInformation(html, baseUrl) {
@@ -388,12 +541,13 @@ export async function buildSiteInsight(inputUrl) {
 
   const homepage = await fetchHtml(parsed.toString())
   const metadata = extractMetaInformation(homepage.html, homepage.finalUrl)
+  const accessibilityPageUrl = await resolveAccessibilityPageUrl(homepage.finalUrl, metadata.accessibilityPageUrl)
 
   let complianceStatus = null
   let complianceScore = null
 
   try {
-    const compliance = await extractComplianceFromAccessibilityPage(metadata.accessibilityPageUrl)
+    const compliance = await extractComplianceFromAccessibilityPage(accessibilityPageUrl)
     complianceStatus = compliance.complianceStatus
     complianceScore = compliance.complianceScore
   } catch {
@@ -410,7 +564,7 @@ export async function buildSiteInsight(inputUrl) {
     normalizedUrl: canonicalizeListingUrl(homepage.finalUrl),
     siteTitle: metadata.siteTitle,
     thumbnailUrl: metadata.thumbnailUrl,
-    accessibilityPageUrl: metadata.accessibilityPageUrl,
+    accessibilityPageUrl,
     complianceStatus,
     complianceStatusLabel: complianceStatus ? COMPLIANCE_LABELS[complianceStatus] : null,
     complianceScore,
