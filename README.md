@@ -31,7 +31,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Each listed site now has a dedicated public profile page (`/site/{slug}`) with shareable metadata and backlink snippet.
 - Add-site flow now exposes a visible category dropdown (including `Coopérative et services`) without custom free-text entry.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
-- Tailwind v4.1 accessibility helpers are used where relevant: `wrap-anywhere` for long URLs and `user-valid` / `user-invalid` for progressive form feedback.
+- Tailwind v4.2 accessibility helpers are used where relevant: `wrap-anywhere`, `user-valid` / `user-invalid`, and logical utilities (`start-*`, `ps-*`) to avoid direction-specific custom positioning/padding.
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
 - High-contrast color system tuned for low-vision navigation in both light and dark modes (including stronger visited-link and status semantics).
 - Persistent light/dark mode toggle available on both directory and moderation screens.

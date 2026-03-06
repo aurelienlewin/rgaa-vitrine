@@ -137,7 +137,7 @@ const buildTimestampDisplay =
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const skipLinksContainerClass =
-  'fixed left-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:left-4 sm:top-4 sm:max-w-none'
+  'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 shadow-lg ${focusRingClass}`
 const TILE_BATCH_SIZE = 24
 const CLIENT_VOTER_ID_STORAGE_KEY = 'annuaire-rgaa-voter-id'
@@ -1452,7 +1452,7 @@ function App() {
               Cette vitrine suit les recommandations WCAG 2.2 pour un usage clavier, des cibles interactives plus
               confortables et des retours clairs pour toutes et tous.
             </p>
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-sky-900 dark:text-sky-100">
+            <ul className="mt-3 list-disc space-y-1 ps-5 text-sm text-sky-900 dark:text-sky-100">
               <li>Focus clavier visible et non masqué sur les contrôles interactifs.</li>
               <li>Cibles pointeur suffisantes pour limiter les erreurs de sélection.</li>
               <li>Point d’aide cohérent et retrouvé au même endroit dans l’interface.</li>
@@ -1490,7 +1490,7 @@ function App() {
             </p>
 
             <form className="mt-4 grid gap-4 md:grid-cols-[2fr_1fr_auto]" onSubmit={handleSubmit}>
-              <div className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden">
+              <div className="absolute -start-[9999px] top-auto h-px w-px overflow-hidden">
                 <label htmlFor="website" className="block text-sm font-medium">
                   Site web
                 </label>
