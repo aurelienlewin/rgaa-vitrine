@@ -15,8 +15,8 @@
   :root {
     --color-slate-50: #f5f8ff;
     --color-slate-100: #e9effa;
-    --color-slate-200: #d5dfef;
-    --color-slate-300: #b1bfd7;
+    --color-slate-200: #bec9dc;
+    --color-slate-300: #7084a7;
     --color-slate-600: #33415f;
     --color-slate-700: #26324a;
     --color-slate-800: #1b2538;
@@ -24,28 +24,28 @@
     --color-slate-950: #090f1d;
     --color-sky-50: #e7f3ff;
     --color-sky-100: #d7e9ff;
-    --color-sky-200: #b9ddff;
-    --color-sky-300: #92caff;
+    --color-sky-200: #9dc6f5;
+    --color-sky-300: #5e9de1;
     --color-sky-600: #0050a4;
     --color-sky-700: #003f82;
     --color-sky-900: #072d58;
     --color-sky-950: #061f3c;
     --color-emerald-50: #e4f8ee;
     --color-emerald-100: #cff2df;
-    --color-emerald-300: #7fd3a9;
+    --color-emerald-300: #4ea97e;
     --color-emerald-700: #1f7a4f;
     --color-emerald-800: #185f3e;
     --color-emerald-900: #0f4a2f;
     --color-emerald-950: #0a3321;
     --color-amber-50: #fff5da;
     --color-amber-100: #ffedc0;
-    --color-amber-300: #f1be4c;
+    --color-amber-300: #b57900;
     --color-amber-700: #8f5b00;
     --color-amber-900: #5f3a00;
     --color-amber-950: #432800;
     --color-rose-50: #ffe7e6;
     --color-rose-100: #ffd5d4;
-    --color-rose-300: #ff9898;
+    --color-rose-300: #cc6e6e;
     --color-rose-700: #a12626;
     --color-rose-800: #7f1c1c;
     --color-rose-900: #631515;
@@ -71,19 +71,23 @@
 
   a {
     color: var(--color-brand-link);
+    background-color: transparent;
   }
 
   a:hover {
     color: var(--color-brand-link-hover);
+    background-color: transparent;
     text-decoration: underline;
   }
 
   a:visited {
-    color: var(--color-brand-link-visited);
+    color: var(--color-brand-link);
+    background-color: transparent;
   }
 
   a:visited:hover {
     color: var(--color-brand-link-hover);
+    background-color: transparent;
   }
 
   button,
@@ -103,17 +107,17 @@
   :root:not([data-theme='light']) {
     --color-slate-50: #f7f9ff;
     --color-slate-100: #edf2ff;
-    --color-slate-200: #e2e9fb;
-    --color-slate-300: #d6e0f5;
-    --color-slate-600: #3c547d;
-    --color-slate-700: #22385e;
+    --color-slate-200: #c6d4ec;
+    --color-slate-300: #a4b8d8;
+    --color-slate-600: #8ea7cd;
+    --color-slate-700: #6f8db9;
     --color-slate-800: #182845;
     --color-slate-900: #0f1a30;
     --color-slate-950: #070d1a;
     --color-sky-50: #edf6ff;
     --color-sky-100: #eaf3ff;
-    --color-sky-200: #cbe3ff;
-    --color-sky-300: #9bc8ff;
+    --color-sky-200: #a8ceff;
+    --color-sky-300: #7fb6ff;
     --color-sky-600: #74b3ff;
     --color-sky-700: #5c9de8;
     --color-sky-900: #eaf3ff;
@@ -133,7 +137,7 @@
     --color-amber-950: #4a3300;
     --color-rose-50: #fff0f0;
     --color-rose-100: #ffe1e1;
-    --color-rose-300: #ffb5b5;
+    --color-rose-300: #ffc3c3;
     --color-rose-700: #ff9a9a;
     --color-rose-800: #ffbcbc;
     --color-rose-900: #ffe9e9;
@@ -151,8 +155,8 @@
 :root[data-theme='light'] {
   --color-slate-50: #f5f8ff;
   --color-slate-100: #e9effa;
-  --color-slate-200: #d5dfef;
-  --color-slate-300: #b1bfd7;
+  --color-slate-200: #bec9dc;
+  --color-slate-300: #7084a7;
   --color-slate-600: #33415f;
   --color-slate-700: #26324a;
   --color-slate-800: #1b2538;
@@ -160,28 +164,28 @@
   --color-slate-950: #090f1d;
   --color-sky-50: #e7f3ff;
   --color-sky-100: #d7e9ff;
-  --color-sky-200: #b9ddff;
-  --color-sky-300: #92caff;
+  --color-sky-200: #9dc6f5;
+  --color-sky-300: #5e9de1;
   --color-sky-600: #0050a4;
   --color-sky-700: #003f82;
   --color-sky-900: #072d58;
   --color-sky-950: #061f3c;
   --color-emerald-50: #e4f8ee;
   --color-emerald-100: #cff2df;
-  --color-emerald-300: #7fd3a9;
+  --color-emerald-300: #4ea97e;
   --color-emerald-700: #1f7a4f;
   --color-emerald-800: #185f3e;
   --color-emerald-900: #0f4a2f;
   --color-emerald-950: #0a3321;
   --color-amber-50: #fff5da;
   --color-amber-100: #ffedc0;
-  --color-amber-300: #f1be4c;
+  --color-amber-300: #b57900;
   --color-amber-700: #8f5b00;
   --color-amber-900: #5f3a00;
   --color-amber-950: #432800;
   --color-rose-50: #ffe7e6;
   --color-rose-100: #ffd5d4;
-  --color-rose-300: #ff9898;
+  --color-rose-300: #cc6e6e;
   --color-rose-700: #a12626;
   --color-rose-800: #7f1c1c;
   --color-rose-900: #631515;
@@ -198,17 +202,17 @@
 :root[data-theme='dark'] {
   --color-slate-50: #f7f9ff;
   --color-slate-100: #edf2ff;
-  --color-slate-200: #e2e9fb;
-  --color-slate-300: #d6e0f5;
-  --color-slate-600: #3c547d;
-  --color-slate-700: #22385e;
+  --color-slate-200: #c6d4ec;
+  --color-slate-300: #a4b8d8;
+  --color-slate-600: #8ea7cd;
+  --color-slate-700: #6f8db9;
   --color-slate-800: #182845;
   --color-slate-900: #0f1a30;
   --color-slate-950: #070d1a;
   --color-sky-50: #edf6ff;
   --color-sky-100: #eaf3ff;
-  --color-sky-200: #cbe3ff;
-  --color-sky-300: #9bc8ff;
+  --color-sky-200: #a8ceff;
+  --color-sky-300: #7fb6ff;
   --color-sky-600: #74b3ff;
   --color-sky-700: #5c9de8;
   --color-sky-900: #eaf3ff;
@@ -228,7 +232,7 @@
   --color-amber-950: #4a3300;
   --color-rose-50: #fff0f0;
   --color-rose-100: #ffe1e1;
-  --color-rose-300: #ffb5b5;
+  --color-rose-300: #ffc3c3;
   --color-rose-700: #ff9a9a;
   --color-rose-800: #ffbcbc;
   --color-rose-900: #ffe9e9;

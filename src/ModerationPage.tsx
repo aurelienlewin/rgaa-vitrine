@@ -257,7 +257,10 @@ function ModerationPage() {
 
   return (
     <>
-      <div className="fixed left-4 top-4 z-60 flex flex-wrap gap-2" aria-label="Liens d’évitement">
+      <div
+        className="fixed left-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] flex-col items-start gap-2 sm:left-4 sm:top-4 sm:max-w-none"
+        aria-label="Liens d’évitement"
+      >
         <a href="#contenu-moderation" className={skipLinkClass} onClick={focusMain}>
           Aller au contenu
         </a>
@@ -281,6 +284,18 @@ function ModerationPage() {
                 />
                 <a href="/" className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}>
                   Retour à l’annuaire
+                </a>
+                <a
+                  href="/plan-du-site"
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}
+                >
+                  Plan du site
+                </a>
+                <a
+                  href="/accessibilite"
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}
+                >
+                  Accessibilité
                 </a>
               </div>
             </div>

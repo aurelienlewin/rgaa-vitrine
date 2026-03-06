@@ -191,6 +191,7 @@ function App() {
   const [directoryErrorMessage, setDirectoryErrorMessage] = useState<string | null>(null)
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null)
   const [submitInfoMessage, setSubmitInfoMessage] = useState<string | null>(null)
+  const [isSubmitConfirmationStep, setIsSubmitConfirmationStep] = useState(false)
   const [lastAddedEntry, setLastAddedEntry] = useState<ShowcaseEntry | null>(null)
   const [showcaseEntries, setShowcaseEntries] = useState<ShowcaseEntry[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -454,11 +455,39 @@ function App() {
     }
   }, [submitInfoMessage, focusElement])
 
+  const handleCancelSubmissionConfirmation = useCallback(() => {
+    setIsSubmitConfirmationStep(false)
+    setSubmitInfoMessage('Vous pouvez modifier les informations avant de confirmer l’envoi.')
+    announcePolite('Étape de confirmation annulée. Modifiez les champs puis continuez.')
+    window.setTimeout(() => {
+      const urlInput = document.getElementById('url') as HTMLInputElement | null
+      urlInput?.focus()
+    }, 0)
+  }, [announcePolite])
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSubmitErrorMessage(null)
     setSubmitInfoMessage(null)
     setLastAddedEntry(null)
+
+    if (!isSubmitConfirmationStep) {
+      if (!inputUrl.trim()) {
+        const message =
+          'Veuillez saisir une URL complète, par exemple https://www.exemple.fr, avant de continuer.'
+        setSubmitErrorMessage(message)
+        announceAssertive(message)
+        return
+      }
+
+      setIsSubmitConfirmationStep(true)
+      const reviewMessage =
+        'Vérifiez les informations saisies puis confirmez l’envoi. Vous pouvez modifier les champs à tout moment.'
+      setSubmitInfoMessage(reviewMessage)
+      announcePolite(reviewMessage)
+      return
+    }
+
     setLoadingAdd(true)
     announcePolite("Analyse du site en cours.")
 
@@ -483,6 +512,7 @@ function App() {
         const pendingMessage =
           submissionMessage ??
           "Soumission reçue, en attente de vérification humaine avant publication dans la vitrine."
+        setIsSubmitConfirmationStep(false)
         setInputUrl('')
         setWebsiteField('')
         setSubmitInfoMessage(pendingMessage)
@@ -496,6 +526,7 @@ function App() {
         }
 
         const duplicateMessage = submissionMessage ?? 'Ce site est déjà référencé dans la vitrine.'
+        setIsSubmitConfirmationStep(false)
         setInputUrl('')
         setWebsiteField('')
         setSubmitInfoMessage(duplicateMessage)
@@ -507,6 +538,7 @@ function App() {
         throw new Error('Réponse serveur invalide.')
       }
 
+      setIsSubmitConfirmationStep(false)
       setLastAddedEntry(payload)
       setInputUrl('')
       setWebsiteField('')
@@ -528,7 +560,10 @@ function App() {
 
   return (
     <>
-      <div className="fixed left-4 top-4 z-60 flex flex-wrap gap-2" aria-label="Liens d’évitement">
+      <div
+        className="fixed left-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] flex-col items-start gap-2 sm:left-4 sm:top-4 sm:max-w-none"
+        aria-label="Liens d’évitement"
+      >
         <a href="#contenu" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, mainContentRef)}>
           Aller au contenu
         </a>
@@ -889,8 +924,11 @@ function App() {
             <p id="url-help" className="mt-2 text-sm text-slate-700 dark:text-slate-300">
               Ajoutez une URL pour enrichir l’annuaire. Les métadonnées publiques seront récupérées automatiquement.
             </p>
+            <p id="url-format-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+              Format recommandé: <strong>https://www.exemple.fr</strong>
+            </p>
 
-            <form className="mt-4 grid gap-4 md:grid-cols-[2fr_1fr_auto]" onSubmit={handleSubmit} noValidate>
+            <form className="mt-4 grid gap-4 md:grid-cols-[2fr_1fr_auto]" onSubmit={handleSubmit}>
               <div className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden">
                 <label htmlFor="website" className="block text-sm font-medium">
                   Site web
@@ -918,9 +956,20 @@ function App() {
                   autoComplete="url"
                   required
                   aria-invalid={Boolean(submitErrorMessage)}
-                  aria-describedby={submitErrorMessage ? 'url-help url-error' : 'url-help'}
+                  aria-describedby={submitErrorMessage ? 'url-help url-format-help url-error' : 'url-help url-format-help'}
                   value={inputUrl}
-                  onChange={(event) => setInputUrl(event.target.value)}
+                  onChange={(event) => {
+                    setInputUrl(event.target.value)
+                    setIsSubmitConfirmationStep(false)
+                  }}
+                  onInvalid={(event) => {
+                    event.currentTarget.setCustomValidity(
+                      'Veuillez saisir une URL complète, par exemple https://www.exemple.fr.',
+                    )
+                  }}
+                  onInput={(event) => {
+                    event.currentTarget.setCustomValidity('')
+                  }}
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 />
               </div>
@@ -933,7 +982,10 @@ function App() {
                   id="categorie-site"
                   name="categorie"
                   value={inputCategory}
-                  onChange={(event) => setInputCategory(event.target.value)}
+                  onChange={(event) => {
+                    setInputCategory(event.target.value)
+                    setIsSubmitConfirmationStep(false)
+                  }}
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 >
                   {showcaseCategories.map((category) => (
@@ -949,9 +1001,43 @@ function App() {
                 disabled={loadingAdd}
                 className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-5 py-2.5 font-semibold text-white dark:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 md:self-end ${focusRingClass}`}
               >
-                {loadingAdd ? 'Ajout...' : 'Ajouter'}
+                {loadingAdd ? 'Envoi...' : isSubmitConfirmationStep ? 'Confirmer l’envoi' : 'Continuer'}
               </button>
+
+              {isSubmitConfirmationStep && (
+                <button
+                  type="button"
+                  onClick={handleCancelSubmissionConfirmation}
+                  className={`min-h-11 rounded-xl border border-slate-300 dark:border-slate-600 px-5 py-2.5 font-semibold text-slate-900 dark:text-slate-50 md:self-end ${focusRingClass}`}
+                >
+                  Modifier les informations
+                </button>
+              )}
             </form>
+
+            {isSubmitConfirmationStep && (
+              <section
+                className="mt-4 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-4"
+                aria-labelledby="verification-envoi-titre"
+              >
+                <h3 id="verification-envoi-titre" className="text-base font-semibold text-sky-900 dark:text-sky-100">
+                  Vérification avant envoi
+                </h3>
+                <p className="mt-2 text-sm text-sky-900 dark:text-sky-100">
+                  Les informations restent modifiables tant que vous n’avez pas confirmé l’envoi.
+                </p>
+                <dl className="mt-3 grid gap-2 text-sm text-sky-900 dark:text-sky-100">
+                  <div>
+                    <dt className="font-semibold">URL</dt>
+                    <dd className="break-all">{inputUrl}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Catégorie</dt>
+                    <dd>{formatCategory(inputCategory)}</dd>
+                  </div>
+                </dl>
+              </section>
+            )}
 
             {submitErrorMessage && (
               <p

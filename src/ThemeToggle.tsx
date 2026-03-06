@@ -48,7 +48,6 @@ function ThemeToggle({ className }: ThemeToggleProps) {
       onClick={handleToggle}
       aria-pressed={resolvedTheme === 'dark'}
       aria-label={nextModeLabel}
-      title={nextModeLabel}
       className={className}
     >
       {currentModeLabel}
