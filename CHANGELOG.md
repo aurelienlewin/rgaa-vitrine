@@ -141,6 +141,9 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Open Graph and Twitter metadata now include URL/image-alt/secure image fields for richer sharing previews.
 - Sitemap now includes `/api/showcase`, and `robots.txt` explicitly blocks moderation paths from indexing.
 - `GET /api/showcase` now returns cache-friendly headers (`Cache-Control`, `Last-Modified`) to improve crawl efficiency.
+- Moderation now supports full database archive export (`GET /api/moderation/archive`) and import (`POST /api/moderation/archive/import`) in `merge` or `replace` mode.
+- Archive export/import includes published entries, pending queue, blocklists, vote fingerprints, and client vote indexes in a readable JSON envelope.
+- Moderation UI now includes an accessible archive section (download + import form with explicit mode selection and focus-safe feedback).
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

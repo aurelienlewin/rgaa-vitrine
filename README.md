@@ -202,6 +202,8 @@ Local services:
 - `GET /api/moderation/blocklist` returns site and vote blocklists (protected)
 - `POST /api/moderation/blocklist/site` updates site blocklist state (protected)
 - `POST /api/moderation/blocklist/votes` updates vote blocklist state (protected)
+- `GET /api/moderation/archive` exports a full moderation archive (protected)
+- `POST /api/moderation/archive/import` imports an archive in `merge` or `replace` mode (protected)
 
 `POST /api/site-insight` behavior:
 
@@ -240,12 +242,36 @@ Local services:
 }
 ```
 
+`POST /api/moderation/archive/import` body:
+
+```json
+{
+  "mode": "merge",
+  "archive": {
+    "format": "annuaire-rgaa-archive",
+    "version": 1,
+    "exportedAt": "2026-03-06T18:45:00.000Z",
+    "storageMode": "redis",
+    "data": {
+      "entries": [],
+      "pendingEntries": [],
+      "siteBlocklist": [],
+      "voteBlocklist": [],
+      "voteTokensByUrl": [],
+      "clientVotesByIndex": []
+    }
+  }
+}
+```
+
 Notes:
 
 - `complianceScore` accepte les décimales (ex: `96.51`) et est normalisé entre `0` et `100`.
 - `rgaaBaseline` accepte `4.1` ou `5.0-ready` pour contrôler le badge RGAA affiché publiquement.
 - `thumbnailUrl` et `accessibilityPageUrl` sont optionnels; envoyer `null` (ou chaîne vide côté UI) pour les vider.
 - Les URL éditées sont validées côté serveur (HTTP/HTTPS public uniquement).
+- `mode: "merge"` fusionne l’archive avec l’existant; `mode: "replace"` remplace d’abord toute la base.
+- L’archive exportée est un JSON lisible (entrées, file d’attente, blocklists, empreintes de vote, index votes client).
 
 `POST /api/showcase/upvote` body:
 
@@ -274,7 +300,7 @@ RGAA baseline notes:
 1. A submission requiring human review is stored server-side as `pending`.
 2. A moderator opens `/moderation`, enters the moderation token, and loads the pending queue.
 3. The moderator approves or rejects each entry from the UI (the page calls moderation APIs with `submissionId`).
-4. The moderator can edit, delete, delete+block, manage site/vote blocklists, and set custom categories directly from `/moderation`.
+4. The moderator can edit, delete, delete+block, manage site/vote blocklists, set custom categories, and archive/restore the full database directly from `/moderation`.
 
 Endpoints are protected by `MODERATION_API_TOKEN`.
 
