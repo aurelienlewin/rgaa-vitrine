@@ -25,13 +25,22 @@ a:hover {
 }
 
 :focus-visible {
-  outline: 3px solid #0a84ff;
-  outline-offset: 2px;
+  outline: 3px solid #005fcc;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
 .skip-link {
   position: relative;
-  top: -4rem;
+  top: 0;
+  transform: translateY(-180%);
   border-radius: 0.5rem;
   background: #ffffff;
   color: #0f172a;
@@ -39,8 +48,8 @@ a:hover {
   box-shadow: 0 6px 18px rgba(2, 6, 23, 0.2);
 }
 
-.skip-link:focus {
-  top: 0;
+.skip-link:focus-visible {
+  transform: translateY(0);
 }
 
 .skip-links {

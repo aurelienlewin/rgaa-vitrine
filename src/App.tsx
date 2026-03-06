@@ -71,6 +71,21 @@ const officialResources = [
   },
 ]
 
+const wcagResources = [
+  {
+    label: 'WCAG 2 - Vue d ensemble (francais)',
+    url: 'https://www.w3.org/WAI/standards-guidelines/wcag/fr',
+  },
+  {
+    label: 'WCAG 2.2 - Quoi de neuf',
+    url: 'https://www.w3.org/WAI/standards-guidelines/wcag/new-in-22/',
+  },
+  {
+    label: 'WCAG 2.2 - Reference rapide (QuickRef)',
+    url: 'https://www.w3.org/WAI/WCAG22/quickref/',
+  },
+]
+
 const githubProfile = {
   name: 'Aurélien Lewin',
   login: 'aurelienlewin',
@@ -261,6 +276,9 @@ function App() {
         <a href="#ajout-site" className="skip-link">
           Aller au formulaire d ajout
         </a>
+        <a href="#aide-accessibilite" className="skip-link">
+          Aller a l aide accessibilite
+        </a>
       </div>
 
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
@@ -270,7 +288,15 @@ function App() {
       <div className="min-h-screen bg-slate-50 text-slate-900">
         <header className="border-b border-slate-200 bg-white">
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-            <p className="text-sm font-semibold uppercase tracking-wide text-slate-600">Annuaire public RGAA</p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-semibold uppercase tracking-wide text-slate-600">Annuaire public RGAA</p>
+              <a
+                href="#aide-accessibilite"
+                className="inline-flex min-h-11 items-center rounded-xl border border-sky-300 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-900"
+              >
+                Aide accessibilite
+              </a>
+            </div>
             <img
               src="/logo-rgaa-vitrine.svg"
               alt="Logo RGAA Vitrine"
@@ -310,7 +336,7 @@ function App() {
             </dl>
           </section>
 
-          <section id="filtres-annuaire" className="mt-8" aria-labelledby="galerie-titre">
+          <section id="filtres-annuaire" className="mt-8" aria-labelledby="galerie-titre" aria-busy={loadingDirectory}>
             <div className="flex flex-col gap-2">
               <h2 id="galerie-titre" className="text-xl font-semibold">
                 Rechercher et filtrer
@@ -329,7 +355,7 @@ function App() {
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Titre, URL, categorie..."
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
+                  className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
                 />
               </div>
 
@@ -341,7 +367,7 @@ function App() {
                   id="filtre-statut"
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value as ShowcaseStatusFilter)}
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
+                  className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
                 >
                   {Object.entries(showcaseStatusFilterLabels).map(([value, label]) => (
                     <option key={value} value={value}>
@@ -359,7 +385,7 @@ function App() {
                   id="filtre-categorie"
                   value={categoryFilter}
                   onChange={(event) => setCategoryFilter(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
+                  className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
                 >
                   <option value="all">Toutes les categories</option>
                   {showcaseCategories.map((category) => (
@@ -409,33 +435,46 @@ function App() {
                         <h3 className="text-lg font-semibold">{entry.siteTitle}</h3>
                         <p className="text-xs text-slate-600">Categorie: {entry.category}</p>
                         <p className="text-xs text-slate-600">Mise a jour: {formatDate(entry.updatedAt)}</p>
+                        <p className="break-all text-xs text-slate-600">{entry.normalizedUrl}</p>
                         <p className="text-sm">
-                          <a href={entry.normalizedUrl} target="_blank" rel="noreferrer noopener" className="break-all">
-                            {entry.normalizedUrl}
+                          <a
+                            href={entry.normalizedUrl}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-3 py-2 font-semibold text-slate-900"
+                          >
+                            Visiter le site
                           </a>
                         </p>
                         <p className="text-sm">
                           {entry.accessibilityPageUrl ? (
-                            <a href={entry.accessibilityPageUrl} target="_blank" rel="noreferrer noopener" className="break-all">
+                            <a
+                              href={entry.accessibilityPageUrl}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              className="inline-flex min-h-11 items-center rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 font-semibold text-emerald-900"
+                            >
                               Declaration accessibilite
                             </a>
                           ) : (
-                            <span className="text-slate-600">Declaration non detectee</span>
+                            <span className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-600">
+                              Declaration non detectee
+                            </span>
                           )}
                         </p>
                         <div className="flex flex-wrap items-center gap-2">
                           {entry.complianceStatus ? (
                             <span
-                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusClassByValue[entry.complianceStatus]}`}
+                              className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-xs font-semibold ${statusClassByValue[entry.complianceStatus]}`}
                             >
                               {entry.complianceStatusLabel}
                             </span>
                           ) : (
-                            <span className="inline-flex rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-800">
+                            <span className="inline-flex min-h-8 items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-800">
                               Niveau inconnu
                             </span>
                           )}
-                          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800">
+                          <span className="inline-flex min-h-8 items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800">
                             Score: {entry.complianceScore !== null ? `${entry.complianceScore}%` : 'N/A'}
                           </span>
                         </div>
@@ -445,6 +484,34 @@ function App() {
                 ))}
               </ul>
             )}
+          </section>
+
+          <section id="aide-accessibilite" className="mt-8 rounded-2xl border border-sky-200 bg-sky-50 p-6" aria-labelledby="aide-titre">
+            <h2 id="aide-titre" className="text-xl font-semibold text-sky-900">
+              Aide accessibilite et reperes WCAG 2.2
+            </h2>
+            <p className="mt-2 text-sky-900">
+              Cette vitrine suit les recommandations WCAG 2.2 pour un usage clavier, des cibles interactives plus
+              confortables et des retours clairs pour toutes et tous.
+            </p>
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-sky-900">
+              <li>Focus clavier visible et non masque sur les controles interactifs.</li>
+              <li>Cibles pointeur suffisantes pour limiter les erreurs de selection.</li>
+              <li>Point d aide coherent et retrouve au meme endroit dans l interface.</li>
+            </ul>
+            <div className="mt-4 grid gap-3">
+              {wcagResources.map((resource) => (
+                <a
+                  key={resource.url}
+                  href={resource.url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex min-h-11 items-center rounded-xl border border-sky-300 bg-white px-4 py-2 font-semibold text-sky-900"
+                >
+                  {resource.label}
+                </a>
+              ))}
+            </div>
           </section>
 
           <section id="ajout-site" className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" aria-labelledby="formulaire-titre">
@@ -466,10 +533,11 @@ function App() {
                   type="url"
                   autoComplete="url"
                   required
-                  aria-describedby="url-help"
+                  aria-invalid={Boolean(errorMessage)}
+                  aria-describedby={errorMessage ? 'url-help url-error' : 'url-help'}
                   value={inputUrl}
                   onChange={(event) => setInputUrl(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-base shadow-sm"
+                  className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-base shadow-sm"
                 />
               </div>
 
@@ -482,7 +550,7 @@ function App() {
                   name="categorie"
                   value={inputCategory}
                   onChange={(event) => setInputCategory(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-base shadow-sm"
+                  className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-base shadow-sm"
                 >
                   {showcaseCategories.map((category) => (
                     <option key={category} value={category}>
@@ -495,14 +563,14 @@ function App() {
               <button
                 type="submit"
                 disabled={loadingAdd}
-                className="rounded-xl bg-slate-900 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:self-end"
+                className="min-h-11 rounded-xl bg-slate-900 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:self-end"
               >
                 {loadingAdd ? 'Ajout...' : 'Ajouter'}
               </button>
             </form>
 
             {errorMessage && (
-              <p className="mt-4 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800" role="alert">
+              <p id="url-error" className="mt-4 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800" role="alert">
                 {errorMessage}
               </p>
             )}
@@ -547,7 +615,12 @@ function App() {
             <ul className="mt-4 grid gap-3">
               {officialResources.map((resource) => (
                 <li key={resource.url} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <a href={resource.url} target="_blank" rel="noreferrer noopener" className="font-semibold">
+                  <a
+                    href={resource.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex min-h-11 items-center font-semibold"
+                  >
                     {resource.label}
                   </a>
                 </li>
@@ -576,13 +649,16 @@ function App() {
                   {githubProfile.name} (@{githubProfile.login})
                 </a>
               </p>
+              <a href="#aide-accessibilite" className="text-sm font-semibold text-slate-800 underline">
+                Aide accessibilite
+              </a>
             </div>
 
             <a
               href={supportProfile.buyMeACoffeeUrl}
               target="_blank"
               rel="noreferrer noopener"
-              className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900"
               aria-label="M offrir un cafe via Buy Me a Coffee"
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
