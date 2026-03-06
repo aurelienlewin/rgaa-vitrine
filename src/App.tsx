@@ -226,6 +226,7 @@ function App() {
   const directoryErrorRef = useRef<HTMLParagraphElement | null>(null)
   const submitErrorRef = useRef<HTMLParagraphElement | null>(null)
   const submitInfoRef = useRef<HTMLParagraphElement | null>(null)
+  const submitConfirmationRef = useRef<HTMLElement | null>(null)
   const tilesSentinelRef = useRef<HTMLDivElement | null>(null)
 
   const announcePolite = useCallback((message: string) => {
@@ -530,9 +531,11 @@ function App() {
 
   useEffect(() => {
     if (submitInfoMessage) {
-      focusElement(submitInfoRef.current)
+      if (!isSubmitConfirmationStep || loadingAdd) {
+        focusElement(submitInfoRef.current)
+      }
     }
-  }, [submitInfoMessage, focusElement])
+  }, [submitInfoMessage, focusElement, isSubmitConfirmationStep, loadingAdd])
 
   const handleCancelSubmissionConfirmation = useCallback(() => {
     setIsSubmitConfirmationStep(false)
@@ -564,10 +567,14 @@ function App() {
         'Vérifiez les informations saisies puis confirmez l’envoi. Vous pouvez modifier les champs à tout moment.'
       setSubmitInfoMessage(reviewMessage)
       announcePolite(reviewMessage)
+      window.setTimeout(() => {
+        focusElement(submitConfirmationRef.current)
+      }, 0)
       return
     }
 
     setLoadingAdd(true)
+    setSubmitInfoMessage('Analyse du site en cours. Merci de patienter.')
     announcePolite("Analyse du site en cours.")
 
     try {
@@ -1116,7 +1123,9 @@ function App() {
 
             {isSubmitConfirmationStep && (
               <section
-                className="mt-4 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-4"
+                ref={submitConfirmationRef}
+                tabIndex={-1}
+                className={`mt-4 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-4 ${focusRingClass}`}
                 aria-labelledby="verification-envoi-titre"
               >
                 <h3 id="verification-envoi-titre" className="text-base font-semibold text-sky-900 dark:text-sky-100">
