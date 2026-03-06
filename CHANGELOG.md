@@ -152,6 +152,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - `/api/site-insight` now normalizes public category values to the moderator-approved set and falls back to `Autre` for unknown values.
 - Vercel API deployment now uses consolidated handlers (`api/index.js` + `api/[...slug].js`) to stay under Hobby serverless function limits.
 - Route lazy-loading fallback now exposes a polite live status for assistive technologies.
+- Lazy-loaded content completion is now explicitly announced on `/site/{slug}` and `/plan-du-site` (loaded/empty/error) through dedicated `aria-live="polite"` regions.
 - Moderation form accessibility pass: token and blocklist URL inputs are explicitly required, editable URL fields are typed as URL, score input includes guidance text, and blocklist row actions expose contextual accessible labels.
 - Serverless API adapter now normalizes absolute/relative request URLs before dispatching to Express (`/api/*`, `/sitemap.xml`, `/ai-context.json`).
 - Showcase loading now accepts multiple API payload shapes (`{ entries }`, array, and legacy nested entries) to avoid false “Liste d’annuaire invalide”.

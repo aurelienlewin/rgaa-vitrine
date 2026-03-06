@@ -43,6 +43,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Secondary pages (`/plan-du-site`, `/accessibilite`, `/site/{slug}`, `/moderation`) now share a consistent top navigation and the same global footer as homepage.
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
 - Route lazy-loading fallback is announced as status (`aria-live="polite"`) to avoid silent loading states.
+- Lazy-loaded completion states are now also announced on `/site/{slug}` and `/plan-du-site` (successful load, empty result, and loading error) via dedicated polite live regions.
 - UI typography avoids tiny text; informational content and metadata are rendered at `text-sm` or above.
 - Muted text and status colors are tuned for stronger contrast in both light and dark themes.
 - Default typography now prioritizes `Atkinson Hyperlegible` for broad readability, with `OpenDyslexic` and `Lexend` as accessible fallbacks.
