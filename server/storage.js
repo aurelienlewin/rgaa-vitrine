@@ -72,6 +72,27 @@ function toNullableNumber(value) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function toBoolean(value) {
+  if (value === true || value === 1 || value === '1') {
+    return true
+  }
+  if (value === false || value === 0 || value === '0') {
+    return false
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (normalized === 'true' || normalized === 'yes') {
+      return true
+    }
+    if (normalized === 'false' || normalized === 'no') {
+      return false
+    }
+  }
+
+  return false
+}
+
 function toNonNegativeInteger(value) {
   const parsed = Number.parseInt(String(value ?? ''), 10)
   if (Number.isNaN(parsed) || parsed < 0) {
@@ -142,6 +163,8 @@ function parseStoredEntry(payload) {
   }
 
   const complianceStatus = toNullableString(payload.complianceStatus)
+  const rgaaBaselineEdited = toBoolean(payload.rgaaBaselineEdited)
+  const persistedRgaaBaseline = normalizeRgaaBaseline(payload.rgaaBaseline)
   const entry = {
     normalizedUrl,
     siteTitle,
@@ -150,7 +173,8 @@ function parseStoredEntry(payload) {
     complianceStatus: ALLOWED_STATUSES.has(complianceStatus ?? '') ? complianceStatus : null,
     complianceStatusLabel: toNullableString(payload.complianceStatusLabel),
     complianceScore: toNullableNumber(payload.complianceScore),
-    rgaaBaseline: normalizeRgaaBaseline(payload.rgaaBaseline),
+    rgaaBaseline: rgaaBaselineEdited ? persistedRgaaBaseline : '4.1',
+    rgaaBaselineEdited,
     upvoteCount: toNonNegativeInteger(payload.upvoteCount),
     updatedAt,
     category: sanitizeCategory(payload.category),
@@ -175,6 +199,8 @@ function parsePendingEntry(payload) {
   }
 
   const complianceStatus = toNullableString(payload.complianceStatus)
+  const rgaaBaselineEdited = toBoolean(payload.rgaaBaselineEdited)
+  const persistedRgaaBaseline = normalizeRgaaBaseline(payload.rgaaBaseline)
   return {
     submissionId,
     normalizedUrl,
@@ -184,7 +210,8 @@ function parsePendingEntry(payload) {
     complianceStatus: ALLOWED_STATUSES.has(complianceStatus ?? '') ? complianceStatus : null,
     complianceStatusLabel: toNullableString(payload.complianceStatusLabel),
     complianceScore: toNullableNumber(payload.complianceScore),
-    rgaaBaseline: normalizeRgaaBaseline(payload.rgaaBaseline),
+    rgaaBaseline: rgaaBaselineEdited ? persistedRgaaBaseline : '4.1',
+    rgaaBaselineEdited,
     updatedAt,
     createdAt,
     reviewReason: toNullableString(payload.reviewReason),
@@ -202,6 +229,7 @@ function serializeEntry(entry) {
     complianceStatusLabel: entry.complianceStatusLabel ?? '',
     complianceScore: entry.complianceScore ?? '',
     rgaaBaseline: normalizeRgaaBaseline(entry.rgaaBaseline),
+    rgaaBaselineEdited: toBoolean(entry.rgaaBaselineEdited),
     upvoteCount: toNonNegativeInteger(entry.upvoteCount),
     updatedAt: entry.updatedAt,
     category: entry.category,
@@ -219,6 +247,7 @@ function serializePendingEntry(entry) {
     complianceStatusLabel: entry.complianceStatusLabel ?? '',
     complianceScore: entry.complianceScore ?? '',
     rgaaBaseline: normalizeRgaaBaseline(entry.rgaaBaseline),
+    rgaaBaselineEdited: toBoolean(entry.rgaaBaselineEdited),
     updatedAt: entry.updatedAt,
     createdAt: entry.createdAt,
     reviewReason: entry.reviewReason ?? '',
@@ -1090,7 +1119,8 @@ export function createShowcaseStorage() {
 export function buildShowcaseEntry(siteInsight, rawCategory) {
   return {
     ...siteInsight,
-    rgaaBaseline: normalizeRgaaBaseline(siteInsight.rgaaBaseline),
+    rgaaBaseline: '4.1',
+    rgaaBaselineEdited: false,
     upvoteCount: toNonNegativeInteger(siteInsight.upvoteCount),
     category: sanitizeCategory(rawCategory),
   }
@@ -1106,7 +1136,8 @@ export function buildPendingSubmission(siteInsight, rawCategory, rawReason) {
     complianceStatus: siteInsight.complianceStatus ?? null,
     complianceStatusLabel: siteInsight.complianceStatusLabel ?? null,
     complianceScore: siteInsight.complianceScore ?? null,
-    rgaaBaseline: normalizeRgaaBaseline(siteInsight.rgaaBaseline),
+    rgaaBaseline: '4.1',
+    rgaaBaselineEdited: false,
     updatedAt: siteInsight.updatedAt,
     createdAt: new Date().toISOString(),
     reviewReason: typeof rawReason === 'string' ? rawReason : null,

@@ -573,7 +573,12 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
 
   try {
     const insight = await buildSiteInsight(url)
-    const isBlocked = await showcaseStorage.isSiteBlocked(insight.normalizedUrl)
+    const normalizedInsight = {
+      ...insight,
+      rgaaBaseline: '4.1',
+      rgaaBaselineEdited: false,
+    }
+    const isBlocked = await showcaseStorage.isSiteBlocked(normalizedInsight.normalizedUrl)
     if (isBlocked) {
       sendJsonError(
         response,
@@ -584,7 +589,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
     }
 
     const sanitizedCategory = sanitizeCategory(category)
-    const existingEntry = await showcaseStorage.getByNormalizedUrl(insight.normalizedUrl)
+    const existingEntry = await showcaseStorage.getByNormalizedUrl(normalizedInsight.normalizedUrl)
 
     if (existingEntry) {
       response.json({
@@ -596,7 +601,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       return
     }
 
-    const existingPending = await showcaseStorage.getPendingByNormalizedUrl(insight.normalizedUrl)
+    const existingPending = await showcaseStorage.getPendingByNormalizedUrl(normalizedInsight.normalizedUrl)
     if (existingPending) {
       response.status(202).json({
         ...existingPending,
@@ -607,7 +612,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       return
     }
 
-    const suspiciousToken = findSuspiciousMarketingToken(insight)
+    const suspiciousToken = findSuspiciousMarketingToken(normalizedInsight)
     if (suspiciousToken) {
       sendJsonError(
         response,
@@ -617,7 +622,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       return
     }
 
-    const manualReviewReason = getManualReviewReason(insight)
+    const manualReviewReason = getManualReviewReason(normalizedInsight)
     if (previewMode) {
       const previewStatus = manualReviewReason ? 'pending' : 'approved'
       const previewMessage = manualReviewReason
@@ -625,7 +630,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
         : 'Pré-analyse terminée. Le site est prêt pour confirmation.'
 
       response.status(previewStatus === 'pending' ? 202 : 200).json({
-        ...insight,
+        ...normalizedInsight,
         category: sanitizedCategory,
         submissionStatus: previewStatus,
         preview: true,
@@ -635,7 +640,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
     }
 
     if (manualReviewReason) {
-      const pendingSubmission = buildPendingSubmission(insight, sanitizedCategory, manualReviewReason)
+      const pendingSubmission = buildPendingSubmission(normalizedInsight, sanitizedCategory, manualReviewReason)
       const savedPendingSubmission = await showcaseStorage.upsertPending(pendingSubmission)
 
       if (isGithubNotifierEnabled()) {
@@ -655,7 +660,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       return
     }
 
-    const showcaseEntry = buildShowcaseEntry(insight, sanitizedCategory)
+    const showcaseEntry = buildShowcaseEntry(normalizedInsight, sanitizedCategory)
     const persistedEntry = await showcaseStorage.upsert(showcaseEntry)
     response.json({
       ...persistedEntry,
@@ -992,6 +997,7 @@ app.post('/api/moderation/showcase/update', requireModerationAuth, async (reques
       complianceStatusLabel: nextComplianceStatus ? COMPLIANCE_LABELS[nextComplianceStatus] : null,
       complianceScore: scoreCandidate,
       rgaaBaseline: nextRgaaBaseline,
+      rgaaBaselineEdited: true,
       updatedAt: new Date().toISOString(),
     }
 
