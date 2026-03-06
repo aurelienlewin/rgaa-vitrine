@@ -28,6 +28,8 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - UI now highlights the March 2, 2026 RGAA 5 official article with explicit transition messaging.
 - UI controls now use larger interactive targets and reinforced focus handling for WCAG 2.2 alignment.
 - Form error handling now exposes `aria-invalid` and explicit error association (`aria-describedby`).
+- French locale wording has been corrected (accents, apostrophes, and typography) across UI, metadata, and API error messages.
+- Repeated action links in showcase cards now include specific `aria-label` values for clearer screen-reader context.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

@@ -56,11 +56,11 @@ function normalizeSubmittedUrl(rawValue) {
   }
 
   if (!['http:', 'https:'].includes(parsed.protocol)) {
-    throw new SiteInsightError('Seules les URL HTTP(S) sont autorisees.', 400)
+    throw new SiteInsightError('Seules les URL HTTP(S) sont autorisées.', 400)
   }
 
   if (parsed.username || parsed.password) {
-    throw new SiteInsightError("Les URL avec identifiants integres ne sont pas autorisees.", 400)
+    throw new SiteInsightError("Les URL avec identifiants intégrés ne sont pas autorisées.", 400)
   }
 
   return parsed
@@ -141,11 +141,11 @@ async function validatePublicHost(hostname) {
   const normalizedHost = hostname.toLowerCase()
 
   if (normalizedHost.endsWith('.local') || normalizedHost.endsWith('.internal')) {
-    throw new SiteInsightError('Hote non autorise.', 400)
+    throw new SiteInsightError('Hôte non autorisé.', 400)
   }
 
   if (isBlockedAddress(normalizedHost)) {
-    throw new SiteInsightError('Adresse locale ou privee non autorisee.', 400)
+    throw new SiteInsightError('Adresse locale ou privée non autorisée.', 400)
   }
 
   if (isIP(normalizedHost) !== 0) {
@@ -156,7 +156,7 @@ async function validatePublicHost(hostname) {
   try {
     resolved = await lookup(normalizedHost, { all: true, verbatim: true })
   } catch {
-    throw new SiteInsightError('Impossible de resoudre le nom de domaine.', 400)
+    throw new SiteInsightError('Impossible de résoudre le nom de domaine.', 400)
   }
 
   if (!Array.isArray(resolved) || resolved.length === 0) {
@@ -165,7 +165,7 @@ async function validatePublicHost(hostname) {
 
   for (const record of resolved) {
     if (isBlockedAddress(record.address)) {
-      throw new SiteInsightError('Domaine resolu vers une adresse non autorisee.', 400)
+      throw new SiteInsightError('Domaine résolu vers une adresse non autorisée.', 400)
     }
   }
 }
@@ -187,7 +187,7 @@ async function readBodyWithLimit(response, maxBytes) {
 
     byteLength += value.byteLength
     if (byteLength > maxBytes) {
-      throw new SiteInsightError('Le document est trop volumineux pour etre analyse.', 413)
+      throw new SiteInsightError('Le document est trop volumineux pour être analysé.', 413)
     }
 
     chunks.push(value)
@@ -219,13 +219,13 @@ async function fetchHtml(url) {
     })
 
     if (!response.ok) {
-      throw new SiteInsightError(`Le site a repondu avec le statut ${response.status}.`, 502)
+      throw new SiteInsightError(`Le site a répondu avec le statut ${response.status}.`, 502)
     }
 
     const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
     const isHtml = contentType.includes('text/html') || contentType.includes('application/xhtml+xml')
     if (!isHtml) {
-      throw new SiteInsightError('Le contenu cible nest pas une page HTML.', 422)
+      throw new SiteInsightError("Le contenu cible n'est pas une page HTML.", 422)
     }
 
     const html = await readBodyWithLimit(response, MAX_HTML_BYTES)
@@ -236,10 +236,10 @@ async function fetchHtml(url) {
     }
 
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new SiteInsightError('La recuperation du site a expire.', 504)
+      throw new SiteInsightError('La récupération du site a expiré.', 504)
     }
 
-    throw new SiteInsightError('Impossible de recuperer les metadonnees de ce site.', 502)
+    throw new SiteInsightError('Impossible de récupérer les métadonnées de ce site.', 502)
   } finally {
     clearTimeout(timeout)
   }

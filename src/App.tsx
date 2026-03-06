@@ -33,6 +33,16 @@ const showcaseCategories = [
   'Autre',
 ]
 
+const categoryLabels: Record<string, string> = {
+  Administration: 'Administration',
+  'E-commerce': 'E-commerce',
+  Media: 'Média',
+  Sante: 'Santé',
+  Education: 'Éducation',
+  Associatif: 'Associatif',
+  Autre: 'Autre',
+}
+
 const showcaseStatusFilterLabels: Record<ShowcaseStatusFilter, string> = {
   all: 'Tous les niveaux',
   full: 'Totalement conforme',
@@ -42,19 +52,19 @@ const showcaseStatusFilterLabels: Record<ShowcaseStatusFilter, string> = {
 
 const officialResources = [
   {
-    label: 'Article: RGAA 5 arrive fin 2026 (Etat)',
+    label: 'Article : RGAA 5 arrive fin 2026 (État)',
     url: 'https://design.numerique.gouv.fr/articles/2026-03-02-rgaa5/',
   },
   {
-    label: 'Guide du developpeur RGAA',
+    label: 'Guide du développeur RGAA',
     url: 'https://disic.github.io/guide-developpeur/',
   },
   {
-    label: 'Guide de l integrateur RGAA',
+    label: "Guide de l'intégrateur RGAA",
     url: 'https://disic.github.io/guide-integrateur/',
   },
   {
-    label: 'Memo dev',
+    label: 'Mémo dev',
     url: 'https://design.numerique.gouv.fr/outils/memo-dev/',
   },
   {
@@ -62,7 +72,7 @@ const officialResources = [
     url: 'https://design.numerique.gouv.fr/outils/checklist-dev/',
   },
   {
-    label: 'Bibliotheque de reference ARIA',
+    label: 'Bibliothèque de référence ARIA',
     url: 'https://www.info.gouv.fr/accessibilite/developpement/bibliotheque-de-reference-des-restitutions-des-composants-javascript-aria',
   },
   {
@@ -73,7 +83,7 @@ const officialResources = [
 
 const wcagResources = [
   {
-    label: 'WCAG 2 - Vue d ensemble (francais)',
+    label: "WCAG 2 - Vue d'ensemble (français)",
     url: 'https://www.w3.org/WAI/standards-guidelines/wcag/fr',
   },
   {
@@ -81,7 +91,7 @@ const wcagResources = [
     url: 'https://www.w3.org/WAI/standards-guidelines/wcag/new-in-22/',
   },
   {
-    label: 'WCAG 2.2 - Reference rapide (QuickRef)',
+    label: 'WCAG 2.2 - Référence rapide (QuickRef)',
     url: 'https://www.w3.org/WAI/WCAG22/quickref/',
   },
 ]
@@ -111,6 +121,10 @@ function normalizeText(value: string) {
     .toLowerCase()
 }
 
+function formatCategory(value: string) {
+  return categoryLabels[value] ?? value
+}
+
 function isShowcaseEntry(payload: unknown): payload is ShowcaseEntry {
   if (!payload || typeof payload !== 'object') {
     return false
@@ -137,12 +151,12 @@ async function readApiPayload(response: Response) {
     try {
       return JSON.parse(rawBody) as Record<string, unknown>
     } catch {
-      return { error: 'Reponse JSON invalide du serveur.' }
+      return { error: 'Réponse JSON invalide du serveur.' }
     }
   }
 
   const compactBody = rawBody.trim().replace(/\s+/g, ' ')
-  return { error: compactBody.slice(0, 220) || 'Reponse serveur non JSON.' }
+  return { error: compactBody.slice(0, 220) || 'Réponse serveur non JSON.' }
 }
 
 function App() {
@@ -195,7 +209,7 @@ function App() {
 
   useEffect(() => {
     setPoliteAnnouncement(
-      `${filteredShowcaseEntries.length} site(s) affiche(s) sur ${showcaseEntries.length} dans l annuaire.`,
+      `${filteredShowcaseEntries.length} site(s) affiché(s) sur ${showcaseEntries.length} dans l'annuaire.`,
     )
   }, [filteredShowcaseEntries.length, showcaseEntries.length])
 
@@ -207,18 +221,18 @@ function App() {
       const payload = await readApiPayload(response)
 
       if (!response.ok) {
-        throw new Error(typeof payload?.error === 'string' ? payload.error : 'Chargement annuaire impossible.')
+        throw new Error(typeof payload?.error === 'string' ? payload.error : "Chargement d'annuaire impossible.")
       }
 
       if (!Array.isArray(payload.entries)) {
-        throw new Error('Liste annuaire invalide.')
+        throw new Error("Liste d'annuaire invalide.")
       }
 
       const parsedEntries = payload.entries.filter(isShowcaseEntry)
       setShowcaseEntries(parsedEntries)
     } catch (error) {
       console.error('Unable to load showcase entries', error)
-      setErrorMessage(error instanceof Error ? error.message : 'Erreur de chargement de l annuaire.')
+      setErrorMessage(error instanceof Error ? error.message : "Erreur de chargement de l'annuaire.")
     } finally {
       setLoadingDirectory(false)
     }
@@ -249,16 +263,16 @@ function App() {
       }
 
       if (!isShowcaseEntry(payload)) {
-        throw new Error('Reponse serveur invalide.')
+        throw new Error('Réponse serveur invalide.')
       }
 
       setLastAddedEntry(payload)
       setInputUrl('')
       await loadShowcaseEntries()
-      setPoliteAnnouncement(`Site ajoute: ${payload.siteTitle}.`)
+      setPoliteAnnouncement(`Site ajouté : ${payload.siteTitle}.`)
     } catch (error) {
       setLastAddedEntry(null)
-      setErrorMessage(error instanceof Error ? error.message : 'Erreur reseau.')
+      setErrorMessage(error instanceof Error ? error.message : 'Erreur réseau.')
     } finally {
       setLoadingAdd(false)
     }
@@ -266,7 +280,7 @@ function App() {
 
   return (
     <>
-      <div className="skip-links" aria-label="Liens d evitement">
+      <div className="skip-links" aria-label="Liens d'évitement">
         <a href="#contenu" className="skip-link">
           Aller au contenu
         </a>
@@ -274,10 +288,10 @@ function App() {
           Aller aux filtres
         </a>
         <a href="#ajout-site" className="skip-link">
-          Aller au formulaire d ajout
+          Aller au formulaire d'ajout
         </a>
         <a href="#aide-accessibilite" className="skip-link">
-          Aller a l aide accessibilite
+          Aller à l'aide accessibilité
         </a>
       </div>
 
@@ -294,7 +308,7 @@ function App() {
                 href="#aide-accessibilite"
                 className="inline-flex min-h-11 items-center rounded-xl border border-sky-300 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-900"
               >
-                Aide accessibilite
+                Aide accessibilité
               </a>
             </div>
             <img
@@ -305,8 +319,8 @@ function App() {
             />
             <h1 className="sr-only">RGAA Vitrine</h1>
             <p className="mt-3 max-w-3xl text-base text-slate-700">
-              Une vitrine simple pour referencer et decouvrir les sites qui affichent leur conformite RGAA, avec
-              filtres et recherche accessibles a tous.
+              Une vitrine simple pour référencer et découvrir les sites qui affichent leur conformité RGAA, avec
+              filtres et recherche accessibles à tous.
             </p>
           </div>
         </header>
@@ -318,7 +332,7 @@ function App() {
             </h2>
             <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl bg-slate-100 px-4 py-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600">Sites references</dt>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600">Sites référencés</dt>
                 <dd className="mt-1 text-2xl font-bold text-slate-900">{directoryStats.total}</dd>
               </div>
               <div className="rounded-xl bg-emerald-50 px-4 py-3">
@@ -341,7 +355,7 @@ function App() {
               <h2 id="galerie-titre" className="text-xl font-semibold">
                 Rechercher et filtrer
               </h2>
-              <p className="text-slate-700">Trouvez rapidement un site par nom, categorie ou niveau de conformite.</p>
+              <p className="text-slate-700">Trouvez rapidement un site par nom, catégorie ou niveau de conformité.</p>
             </div>
 
             <div className="mt-4 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3">
@@ -354,14 +368,14 @@ function App() {
                   type="search"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Titre, URL, categorie..."
+                  placeholder="Titre, URL, catégorie..."
                   className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
                 />
               </div>
 
               <div>
                 <label htmlFor="filtre-statut" className="block text-sm font-medium">
-                  Niveau de conformite
+                  Niveau de conformité
                 </label>
                 <select
                   id="filtre-statut"
@@ -379,7 +393,7 @@ function App() {
 
               <div>
                 <label htmlFor="filtre-categorie" className="block text-sm font-medium">
-                  Categorie
+                  Catégorie
                 </label>
                 <select
                   id="filtre-categorie"
@@ -387,10 +401,10 @@ function App() {
                   onChange={(event) => setCategoryFilter(event.target.value)}
                   className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
                 >
-                  <option value="all">Toutes les categories</option>
+                  <option value="all">Toutes les catégories</option>
                   {showcaseCategories.map((category) => (
                     <option key={category} value={category}>
-                      {category}
+                      {formatCategory(category)}
                     </option>
                   ))}
                 </select>
@@ -398,13 +412,13 @@ function App() {
             </div>
 
             <p className="mt-3 text-sm text-slate-700">
-              {filteredShowcaseEntries.length} site(s) affiche(s) sur {showcaseEntries.length}.
+              {filteredShowcaseEntries.length} site(s) affiché(s) sur {showcaseEntries.length}.
             </p>
 
-            {loadingDirectory && <p className="mt-3 text-slate-700">Chargement de l annuaire...</p>}
+            {loadingDirectory && <p className="mt-3 text-slate-700">Chargement de l'annuaire...</p>}
 
             {!loadingDirectory && showcaseEntries.length === 0 && (
-              <p className="mt-3 text-slate-700">Aucun site reference pour le moment.</p>
+              <p className="mt-3 text-slate-700">Aucun site référencé pour le moment.</p>
             )}
 
             {!loadingDirectory && showcaseEntries.length > 0 && filteredShowcaseEntries.length === 0 && (
@@ -420,7 +434,7 @@ function App() {
                         {entry.thumbnailUrl ? (
                           <img
                             src={entry.thumbnailUrl}
-                            alt={`Apercu du site ${entry.siteTitle}`}
+                            alt={`Aperçu du site ${entry.siteTitle}`}
                             className="h-full w-full object-cover"
                             loading="lazy"
                             referrerPolicy="no-referrer"
@@ -433,14 +447,15 @@ function App() {
                       </div>
                       <div className="space-y-2 p-4">
                         <h3 className="text-lg font-semibold">{entry.siteTitle}</h3>
-                        <p className="text-xs text-slate-600">Categorie: {entry.category}</p>
-                        <p className="text-xs text-slate-600">Mise a jour: {formatDate(entry.updatedAt)}</p>
+                        <p className="text-xs text-slate-600">Catégorie : {formatCategory(entry.category)}</p>
+                        <p className="text-xs text-slate-600">Mise à jour : {formatDate(entry.updatedAt)}</p>
                         <p className="break-all text-xs text-slate-600">{entry.normalizedUrl}</p>
                         <p className="text-sm">
                           <a
                             href={entry.normalizedUrl}
                             target="_blank"
                             rel="noreferrer noopener"
+                            aria-label={`Visiter le site ${entry.siteTitle}`}
                             className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-3 py-2 font-semibold text-slate-900"
                           >
                             Visiter le site
@@ -452,13 +467,14 @@ function App() {
                               href={entry.accessibilityPageUrl}
                               target="_blank"
                               rel="noreferrer noopener"
+                              aria-label={`Ouvrir la déclaration d'accessibilité de ${entry.siteTitle}`}
                               className="inline-flex min-h-11 items-center rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 font-semibold text-emerald-900"
                             >
-                              Declaration accessibilite
+                              Déclaration d'accessibilité
                             </a>
                           ) : (
                             <span className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-600">
-                              Declaration non detectee
+                              Déclaration non détectée
                             </span>
                           )}
                         </p>
@@ -488,16 +504,16 @@ function App() {
 
           <section id="aide-accessibilite" className="mt-8 rounded-2xl border border-sky-200 bg-sky-50 p-6" aria-labelledby="aide-titre">
             <h2 id="aide-titre" className="text-xl font-semibold text-sky-900">
-              Aide accessibilite et reperes WCAG 2.2
+              Aide accessibilité et repères WCAG 2.2
             </h2>
             <p className="mt-2 text-sky-900">
               Cette vitrine suit les recommandations WCAG 2.2 pour un usage clavier, des cibles interactives plus
               confortables et des retours clairs pour toutes et tous.
             </p>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-sky-900">
-              <li>Focus clavier visible et non masque sur les controles interactifs.</li>
-              <li>Cibles pointeur suffisantes pour limiter les erreurs de selection.</li>
-              <li>Point d aide coherent et retrouve au meme endroit dans l interface.</li>
+              <li>Focus clavier visible et non masqué sur les contrôles interactifs.</li>
+              <li>Cibles pointeur suffisantes pour limiter les erreurs de sélection.</li>
+              <li>Point d'aide cohérent et retrouvé au même endroit dans l'interface.</li>
             </ul>
             <div className="mt-4 grid gap-3">
               {wcagResources.map((resource) => (
@@ -519,7 +535,7 @@ function App() {
               Ajouter un site
             </h2>
             <p id="url-help" className="mt-2 text-sm text-slate-700">
-              Ajoutez une URL pour enrichir l annuaire. Les metadonnees publiques seront recuperees automatiquement.
+              Ajoutez une URL pour enrichir l'annuaire. Les métadonnées publiques seront récupérées automatiquement.
             </p>
 
             <form className="mt-4 grid gap-4 md:grid-cols-[2fr_1fr_auto]" onSubmit={handleSubmit} noValidate>
@@ -543,7 +559,7 @@ function App() {
 
               <div>
                 <label htmlFor="categorie-site" className="block text-sm font-medium">
-                  Categorie
+                  Catégorie
                 </label>
                 <select
                   id="categorie-site"
@@ -554,7 +570,7 @@ function App() {
                 >
                   {showcaseCategories.map((category) => (
                     <option key={category} value={category}>
-                      {category}
+                      {formatCategory(category)}
                     </option>
                   ))}
                 </select>
@@ -577,7 +593,7 @@ function App() {
 
             {lastAddedEntry && !errorMessage && (
               <p className="mt-4 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800">
-                Site ajoute: <strong>{lastAddedEntry.siteTitle}</strong>
+                Site ajouté : <strong>{lastAddedEntry.siteTitle}</strong>
               </p>
             )}
           </section>
@@ -587,19 +603,19 @@ function App() {
               Ressources officielles RGAA
             </h2>
             <p className="mt-2 text-slate-700">
-              Pour les personnes concernees, les equipes produit et les passionnes, voici les references publiques
-              utilisees pour guider la qualite du repertoire.
+              Pour les personnes concernées, les équipes produit et les passionnés, voici les références publiques
+              utilisées pour guider la qualité du répertoire.
             </p>
             <aside
               className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4"
               aria-labelledby="rgaa5-focus-titre"
             >
               <h3 id="rgaa5-focus-titre" className="text-base font-semibold text-sky-900">
-                Point d attention: cap RGAA 5
+                Point d'attention : cap RGAA 5
               </h3>
               <p className="mt-1 text-sm text-sky-900">
-                L article officiel du 2 mars 2026 rappelle deux priorites: preparer la transition vers RGAA 5 d ici
-                fin 2026, et maintenir des maintenant les efforts de conformite RGAA 4.1.2.
+                L'article officiel du 2 mars 2026 rappelle deux priorités : préparer la transition vers RGAA 5 d'ici
+                fin 2026, et maintenir dès maintenant les efforts de conformité RGAA 4.1.2.
               </p>
               <p className="mt-2 text-sm">
                 <a
@@ -608,7 +624,7 @@ function App() {
                   rel="noreferrer noopener"
                   className="font-semibold text-sky-900"
                 >
-                  Lire l article \"L arrivee de RGAA 5 est annoncee\"
+                  Lire l'article "L'arrivée de RGAA 5 est annoncée"
                 </a>
               </p>
             </aside>
@@ -644,13 +660,13 @@ function App() {
                 referrerPolicy="no-referrer"
               />
               <p className="text-sm text-slate-800">
-                Cree et maintenu par{' '}
+                Créé et maintenu par{' '}
                 <a href={githubProfile.profileUrl} target="_blank" rel="noreferrer noopener">
                   {githubProfile.name} (@{githubProfile.login})
                 </a>
               </p>
               <a href="#aide-accessibilite" className="text-sm font-semibold text-slate-800 underline">
-                Aide accessibilite
+                Aide accessibilité
               </a>
             </div>
 
@@ -659,12 +675,12 @@ function App() {
               target="_blank"
               rel="noreferrer noopener"
               className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900"
-              aria-label="M offrir un cafe via Buy Me a Coffee"
+              aria-label="M'offrir un café via Buy Me a Coffee"
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
                 <path d="M3 5h14a1 1 0 0 1 1 1v2h2a2 2 0 0 1 2 2v1a4 4 0 0 1-4 4h-1.1a5 5 0 0 1-4.9 4H8a5 5 0 0 1-5-5V6a1 1 0 0 1 1-1Zm15 8h1a2 2 0 0 0 2-2v-1h-3v3Zm-4 6a1 1 0 1 1 0 2H7a1 1 0 1 1 0-2h7Z" />
               </svg>
-              M'offrir un cafe
+              M'offrir un café
             </a>
           </div>
         </footer>

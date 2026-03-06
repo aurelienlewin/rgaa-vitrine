@@ -203,7 +203,7 @@ class UpstashShowcaseStorage {
       return entry
     } catch (error) {
       console.error('Redis upsert failed', error)
-      throw new ShowcaseStorageError('Echec de persistence Redis.', 503)
+      throw new ShowcaseStorageError('Échec de persistance Redis.', 503)
     }
   }
 

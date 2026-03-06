@@ -42,7 +42,7 @@ app.use(
       sendJsonError(
         response,
         options.statusCode,
-        'Trop de requetes. Merci de reessayer dans quelques minutes.',
+        'Trop de requêtes. Merci de réessayer dans quelques minutes.',
       )
     },
   }),
@@ -104,12 +104,12 @@ app.post('/api/site-insight', async (request, response) => {
     }
 
     console.error('Unexpected error in /api/site-insight', error)
-    sendJsonError(response, 500, 'Erreur interne lors de lanalyse.')
+    sendJsonError(response, 500, "Erreur interne lors de l'analyse.")
   }
 })
 
 app.use('/api', (_request, response) => {
-  sendJsonError(response, 404, 'Endpoint API introuvable.')
+  sendJsonError(response, 404, "Point d'accès API introuvable.")
 })
 
 app.use((error, _request, response, next) => {
