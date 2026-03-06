@@ -181,6 +181,7 @@ Operational note:
 - Public showcase API includes cache headers (`Cache-Control`, `Last-Modified`) for crawler efficiency and reduced load.
 - Serverless API adapter now normalizes absolute/relative request URLs before Express routing, reducing production fallback mismatches on `/api/*`.
 - Host-level redirects must avoid cyclic `www`/apex rules, otherwise `/api/*` calls may fail and return non-API HTML payloads.
+- Vercel rewrites now force `/api/*` through the single `/api` function entrypoint with preserved logical path, preventing SPA HTML fallback on API routes.
 - Vercel Web Analytics is wired on frontend mount via `@vercel/analytics`.
 
 ## Getting Started

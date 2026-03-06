@@ -121,6 +121,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Vote registration now applies layered anti-abuse safeguards (client fingerprint + network fingerprint + hourly limiter) with localized feedback messages.
 - Vercel host redirects no longer force `www.annuaire-rgaa.fr -> annuaire-rgaa.fr` in-app config, preventing cyclic apex/www loops that broke `/api/showcase` and pre-analysis requests.
 - Frontend API payload parsing now detects HTML fallbacks explicitly and surfaces a clear routing error instead of generic “invalide” messages.
+- Vercel rewrite routing now proxies all `/api/*` requests through `/api` with a preserved logical path (`__rgaa_path`), fixing production cases where API subroutes fell back to `index.html`.
 - Vercel function glob now targets nested API handlers (`api/**/*.js`) so showcase/moderation subroutes share the same runtime limits.
 - Showcase vote-state reads now rely on a client vote index + TTL server cache, reducing Upstash command volume (no per-entry `SISMEMBER` burst on listing loads).
 - Redis persistence now writes compact payloads (short hash fields + unix timestamps) and hashed vote fingerprints (`h:*`) to reduce Upstash storage usage.
