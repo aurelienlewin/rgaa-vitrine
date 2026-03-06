@@ -39,6 +39,7 @@ const SUSPICIOUS_MARKETING_TOKENS = [
 ]
 const VOTE_FINGERPRINT_SALT = process.env.VOTE_FINGERPRINT_SALT ?? 'annuaire-rgaa-votes'
 const MAX_ARCHIVE_IMPORT_BYTES = 2_000_000
+const MAX_SHOWCASE_ENTRY_LIMIT = 500
 const PUBLIC_SUBMISSION_CATEGORY_FALLBACK = 'Autre'
 const PUBLIC_SUBMISSION_CATEGORIES = [
   'Administration',
@@ -297,6 +298,65 @@ function normalizeForMatch(value) {
     .toLowerCase()
 }
 
+function sanitizeSlugPart(value) {
+  return normalizeForMatch(value)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40)
+}
+
+function computeShortHash(value) {
+  let hash = 0
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0
+  }
+
+  return hash.toString(36).padStart(6, '0').slice(0, 6)
+}
+
+function buildShowcaseEntrySlug(normalizedUrl) {
+  try {
+    const parsed = new URL(normalizedUrl)
+    const hostSlug = sanitizeSlugPart(parsed.hostname.replace(/^www\./i, '')) || 'site'
+    const pathParts = parsed.pathname
+      .split('/')
+      .filter(Boolean)
+      .map((segment) => sanitizeSlugPart(segment))
+      .filter(Boolean)
+      .slice(0, 2)
+    const base = [hostSlug, ...pathParts].join('-').slice(0, 84).replace(/-+$/g, '')
+    return `${base || hostSlug}-${computeShortHash(normalizedUrl)}`
+  } catch {
+    return `site-${computeShortHash(normalizedUrl)}`
+  }
+}
+
+function extractShowcaseSlug(value) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim().toLowerCase()
+  if (!/^[a-z0-9-]{4,120}$/.test(trimmed)) {
+    return null
+  }
+
+  return trimmed
+}
+
+function withShowcasePublicMetadata(entry) {
+  if (!entry || typeof entry !== 'object' || typeof entry.normalizedUrl !== 'string') {
+    return entry
+  }
+
+  const slug = buildShowcaseEntrySlug(entry.normalizedUrl)
+  return {
+    ...entry,
+    slug,
+    profilePath: `/site/${slug}`,
+  }
+}
+
 function sanitizePublicSubmissionCategory(value) {
   const sanitizedCategory = sanitizeCategory(value)
   const normalized = normalizeForMatch(sanitizedCategory)
@@ -408,10 +468,32 @@ const voteLimiter = rateLimit({
 app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
   const baseUrl = resolvePublicAppUrl()
   let lastModified = new Date().toISOString()
+  let siteProfileEntries = []
 
   try {
-    const entries = await showcaseStorage.list({ limit: 500 })
+    const [entries, blockedUrls] = await Promise.all([
+      showcaseStorage.list({ limit: MAX_SHOWCASE_ENTRY_LIMIT }),
+      showcaseStorage.listSiteBlocklist(),
+    ])
+    const blockedSet = new Set(blockedUrls)
+    const visibleEntries = entries.filter((entry) => !blockedSet.has(entry.normalizedUrl))
     lastModified = readMostRecentUpdatedAt(entries)
+
+    const profileBySlug = new Map()
+    for (const entry of visibleEntries) {
+      const slug = buildShowcaseEntrySlug(entry.normalizedUrl)
+      const current = profileBySlug.get(slug)
+      if (!current || Date.parse(entry.updatedAt) > Date.parse(current.updatedAt)) {
+        profileBySlug.set(slug, entry)
+      }
+    }
+
+    siteProfileEntries = Array.from(profileBySlug.entries()).map(([slug, entry]) => ({
+      path: `/site/${slug}`,
+      lastModified: entry.updatedAt,
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    }))
   } catch (error) {
     if (error instanceof ShowcaseStorageError) {
       console.error('Sitemap uses fallback date because storage is unavailable', error.message)
@@ -463,6 +545,7 @@ app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
       changeFrequency: 'monthly',
       priority: 0.5,
     },
+    ...siteProfileEntries,
   ])
 
   response.setHeader('content-type', 'application/xml; charset=utf-8')
@@ -475,7 +558,8 @@ app.get(['/ai-context.json', '/api/ai-context'], async (_request, response) => {
   let entries = []
 
   try {
-    entries = await showcaseStorage.list({ limit: 500 })
+    entries = (await showcaseStorage.list({ limit: MAX_SHOWCASE_ENTRY_LIMIT }))
+      .map((entry) => withShowcasePublicMetadata(entry))
   } catch (error) {
     if (error instanceof ShowcaseStorageError) {
       console.error('AI context uses empty dataset because storage is unavailable', error.message)
@@ -505,11 +589,12 @@ app.get('/api/health', (_request, response) => {
 
 app.get('/api/showcase', async (request, response) => {
   try {
+    const slugFilter = extractShowcaseSlug(firstQueryValue(request.query.slug))
     const entries = await showcaseStorage.list({
       search: firstQueryValue(request.query.search),
       status: firstQueryValue(request.query.status),
       category: firstQueryValue(request.query.category),
-      limit: firstQueryValue(request.query.limit),
+      limit: slugFilter ? MAX_SHOWCASE_ENTRY_LIMIT : firstQueryValue(request.query.limit),
     })
     const siteBlocklist = new Set(await showcaseStorage.listSiteBlocklist())
     const voteBlocklist = new Set(await showcaseStorage.listVoteBlocklist())
@@ -522,13 +607,17 @@ app.get('/api/showcase', async (request, response) => {
       ...entry,
       hasUpvoted: clientVoteIndexId ? votedUrls.has(entry.normalizedUrl) : false,
       votesBlocked: voteBlocklist.has(entry.normalizedUrl),
-    }))
+    })).map((entry) => withShowcasePublicMetadata(entry))
+    const filteredEntries = slugFilter
+      ? entriesWithVoteState.filter((entry) => entry.slug === slugFilter)
+      : entriesWithVoteState
+    const lastModifiedSource = filteredEntries.length > 0 ? filteredEntries : entriesWithVoteState
 
     response.setHeader('cache-control', 'public, max-age=120, s-maxage=120, stale-while-revalidate=600')
-    response.setHeader('last-modified', readMostRecentUpdatedAt(entriesWithVoteState))
+    response.setHeader('last-modified', readMostRecentUpdatedAt(lastModifiedSource))
     response.json({
-      entries: entriesWithVoteState,
-      total: entriesWithVoteState.length,
+      entries: filteredEntries,
+      total: filteredEntries.length,
       storage: showcaseStorage.mode,
     })
   } catch (error) {
@@ -577,7 +666,7 @@ app.post('/api/showcase/upvote', voteLimiter, async (request, response) => {
     }
 
     response.json({
-      ...voteResult.entry,
+      ...withShowcasePublicMetadata(voteResult.entry),
       hasUpvoted: true,
       votesBlocked: false,
       alreadyVoted: voteResult.alreadyVoted,
@@ -633,7 +722,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
 
     if (existingEntry) {
       response.json({
-        ...existingEntry,
+        ...withShowcasePublicMetadata(existingEntry),
         submissionStatus: 'duplicate',
         preview: previewMode,
         message: 'Ce site est déjà référencé dans la vitrine.',
@@ -644,7 +733,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
     const existingPending = await showcaseStorage.getPendingByNormalizedUrl(normalizedInsight.normalizedUrl)
     if (existingPending) {
       response.status(202).json({
-        ...existingPending,
+        ...withShowcasePublicMetadata(existingPending),
         submissionStatus: 'pending',
         preview: previewMode,
         message: 'Ce site est déjà en attente de validation manuelle.',
@@ -670,7 +759,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
         : 'Pré-analyse terminée. Le site est prêt pour confirmation.'
 
       response.status(previewStatus === 'pending' ? 202 : 200).json({
-        ...normalizedInsight,
+        ...withShowcasePublicMetadata(normalizedInsight),
         category: sanitizedCategory,
         submissionStatus: previewStatus,
         preview: true,
@@ -692,7 +781,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       }
 
       response.status(202).json({
-        ...savedPendingSubmission,
+        ...withShowcasePublicMetadata(savedPendingSubmission),
         submissionStatus: 'pending',
         message:
           'Soumission reçue. Elle est enregistrée en file de validation manuelle avant publication.',
@@ -703,7 +792,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
     const showcaseEntry = buildShowcaseEntry(normalizedInsight, sanitizedCategory)
     const persistedEntry = await showcaseStorage.upsert(showcaseEntry)
     response.json({
-      ...persistedEntry,
+      ...withShowcasePublicMetadata(persistedEntry),
       submissionStatus: 'approved',
       message: 'Site publié dans la vitrine.',
     })
@@ -756,7 +845,7 @@ app.get('/api/moderation/showcase', requireModerationAuth, async (request, respo
     const siteBlocklist = new Set(await showcaseStorage.listSiteBlocklist())
     const voteBlocklist = new Set(await showcaseStorage.listVoteBlocklist())
     const entriesWithModerationState = entries.map((entry) => ({
-      ...entry,
+      ...withShowcasePublicMetadata(entry),
       siteBlocked: siteBlocklist.has(entry.normalizedUrl),
       votesBlocked: voteBlocklist.has(entry.normalizedUrl),
     }))
@@ -958,7 +1047,7 @@ app.post('/api/moderation/approve', requireModerationAuth, async (request, respo
     if (existingEntry) {
       await showcaseStorage.deletePendingById(submissionId)
       response.json({
-        ...existingEntry,
+        ...withShowcasePublicMetadata(existingEntry),
         submissionStatus: 'duplicate',
         message: 'Le site était déjà publié. La soumission en attente a été supprimée.',
       })
@@ -984,7 +1073,7 @@ app.post('/api/moderation/approve', requireModerationAuth, async (request, respo
     await showcaseStorage.deletePendingById(submissionId)
 
     response.json({
-      ...savedEntry,
+      ...withShowcasePublicMetadata(savedEntry),
       submissionStatus: 'approved',
       message: 'Soumission approuvée et publiée dans l’annuaire.',
       moderation: {
@@ -1107,7 +1196,7 @@ app.post('/api/moderation/showcase/update', requireModerationAuth, async (reques
 
     const persistedEntry = await showcaseStorage.upsert(updatedEntry)
     response.json({
-      ...persistedEntry,
+      ...withShowcasePublicMetadata(persistedEntry),
       message: 'Entrée mise à jour.',
     })
   } catch (error) {

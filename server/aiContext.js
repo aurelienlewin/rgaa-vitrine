@@ -55,6 +55,8 @@ function summarizeTopEntries(entries, maxItems = 20) {
   return entries.slice(0, maxItems).map((entry) => ({
     title: entry.siteTitle,
     url: entry.normalizedUrl,
+    slug: typeof entry.slug === 'string' ? entry.slug : null,
+    profilePath: typeof entry.profilePath === 'string' ? entry.profilePath : null,
     category: entry.category,
     complianceStatus: entry.complianceStatus,
     complianceStatusLabel: entry.complianceStatusLabel,
@@ -106,6 +108,11 @@ export function buildAiContextPayload({ baseUrl, entries }) {
         title: 'Déclaration d’accessibilité',
         description: 'Score, non-conformités et contact du service.',
       },
+      {
+        url: `${baseUrl}/site/{slug}`,
+        title: 'Fiche site référencé',
+        description: 'Page publique dédiée à un site référencé, avec liens sortants et métadonnées.',
+      },
     ],
     api: {
       policy:
@@ -117,9 +124,11 @@ export function buildAiContextPayload({ baseUrl, entries }) {
           format: 'application/json',
           authRequired: false,
           description: 'Liste des sites publiés dans la vitrine RGAA.',
-          parameters: ['search', 'status', 'category', 'limit'],
+          parameters: ['search', 'status', 'category', 'slug', 'limit'],
           sampleFields: [
             'normalizedUrl',
+            'slug',
+            'profilePath',
             'siteTitle',
             'thumbnailUrl',
             'accessibilityPageUrl',
