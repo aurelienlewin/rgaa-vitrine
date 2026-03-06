@@ -13,6 +13,8 @@ type ShowcaseEntry = {
   complianceStatus: ComplianceStatus
   complianceStatusLabel: string | null
   complianceScore: number | null
+  upvoteCount: number
+  hasUpvoted: boolean
   updatedAt: string
   category: string
 }
@@ -121,6 +123,7 @@ const skipLinksContainerClass =
   'fixed left-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:left-4 sm:top-4 sm:max-w-none'
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 shadow-lg ${focusRingClass}`
 const TILE_BATCH_SIZE = 24
+const CLIENT_VOTER_ID_STORAGE_KEY = 'annuaire-rgaa-voter-id'
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('fr-FR', {
@@ -164,6 +167,31 @@ function normalizeText(value: string) {
 
 function formatCategory(value: string) {
   return categoryLabels[value] ?? value
+}
+
+function toDomSafeIdSegment(value: string) {
+  return value.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 120)
+}
+
+function normalizeShowcaseEntry(entry: ShowcaseEntry): ShowcaseEntry {
+  return {
+    ...entry,
+    upvoteCount:
+      typeof entry.upvoteCount === 'number' && Number.isFinite(entry.upvoteCount) && entry.upvoteCount >= 0
+        ? Math.floor(entry.upvoteCount)
+        : 0,
+    hasUpvoted: entry.hasUpvoted === true,
+  }
+}
+
+function createClientVoterId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `voter_${crypto.randomUUID().replace(/-/g, '_')}`
+  }
+
+  const randomPart = Math.random().toString(36).slice(2)
+  const timestampPart = Date.now().toString(36)
+  return `voter_${timestampPart}_${randomPart}`.slice(0, 80)
 }
 
 function isShowcaseEntry(payload: unknown): payload is ShowcaseEntry {
@@ -230,6 +258,7 @@ function App() {
   const [statusFilter, setStatusFilter] = useState<ShowcaseStatusFilter>('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [visibleTilesCount, setVisibleTilesCount] = useState(TILE_BATCH_SIZE)
+  const [upvotePendingByUrl, setUpvotePendingByUrl] = useState<Record<string, boolean>>({})
   const [politeAnnouncement, setPoliteAnnouncement] = useState({ id: 0, message: '' })
   const [assertiveAnnouncement, setAssertiveAnnouncement] = useState({ id: 0, message: '' })
   const mainContentRef = useRef<HTMLElement | null>(null)
@@ -244,6 +273,7 @@ function App() {
   const submitInfoRef = useRef<HTMLParagraphElement | null>(null)
   const submitConfirmationRef = useRef<HTMLElement | null>(null)
   const tilesSentinelRef = useRef<HTMLDivElement | null>(null)
+  const clientVoterIdRef = useRef<string>('')
 
   const announcePolite = useCallback((message: string) => {
     setPoliteAnnouncement((current) => ({ id: current.id + 1, message }))
@@ -251,6 +281,28 @@ function App() {
 
   const announceAssertive = useCallback((message: string) => {
     setAssertiveAnnouncement((current) => ({ id: current.id + 1, message }))
+  }, [])
+
+  const getClientVoterId = useCallback(() => {
+    if (clientVoterIdRef.current) {
+      return clientVoterIdRef.current
+    }
+
+    let voterId = ''
+    try {
+      const stored = window.localStorage.getItem(CLIENT_VOTER_ID_STORAGE_KEY)
+      if (stored && /^[a-zA-Z0-9_-]{16,120}$/.test(stored)) {
+        voterId = stored
+      } else {
+        voterId = createClientVoterId()
+        window.localStorage.setItem(CLIENT_VOTER_ID_STORAGE_KEY, voterId)
+      }
+    } catch {
+      voterId = createClientVoterId()
+    }
+
+    clientVoterIdRef.current = voterId
+    return voterId
   }, [])
 
   const focusElement = useCallback((element: HTMLElement | null) => {
@@ -505,7 +557,8 @@ function App() {
     announcePolite('Chargement de l’annuaire en cours.')
 
     try {
-      const response = await fetch('/api/showcase')
+      const voterId = getClientVoterId()
+      const response = await fetch(`/api/showcase?clientVoterId=${encodeURIComponent(voterId)}`)
       const payload = await readApiPayload(response)
 
       if (!response.ok) {
@@ -516,7 +569,7 @@ function App() {
         throw new Error('Liste d’annuaire invalide.')
       }
 
-      const parsedEntries = payload.entries.filter(isShowcaseEntry)
+      const parsedEntries = payload.entries.filter(isShowcaseEntry).map((entry) => normalizeShowcaseEntry(entry))
       setShowcaseEntries(parsedEntries)
       announcePolite(`${parsedEntries.length} site(s) chargé(s) dans l’annuaire.`)
     } catch (error) {
@@ -527,7 +580,7 @@ function App() {
     } finally {
       setLoadingDirectory(false)
     }
-  }, [announceAssertive, announcePolite])
+  }, [announceAssertive, announcePolite, getClientVoterId])
 
   useEffect(() => {
     void loadShowcaseEntries()
@@ -564,6 +617,74 @@ function App() {
       urlInput?.focus()
     }, 0)
   }, [announcePolite])
+
+  const handleUpvote = useCallback(
+    async (entry: ShowcaseEntry) => {
+      if (entry.hasUpvoted) {
+        announcePolite(`Vote déjà pris en compte pour ${entry.siteTitle}.`)
+        return
+      }
+
+      if (upvotePendingByUrl[entry.normalizedUrl]) {
+        return
+      }
+
+      setUpvotePendingByUrl((current) => ({
+        ...current,
+        [entry.normalizedUrl]: true,
+      }))
+
+      try {
+        const response = await fetch('/api/showcase/upvote', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            normalizedUrl: entry.normalizedUrl,
+            clientVoterId: getClientVoterId(),
+          }),
+        })
+
+        const payload = await readApiPayload(response)
+        const apiPayload = payload as Record<string, unknown>
+        if (!response.ok) {
+          throw new Error(typeof apiPayload.error === 'string' ? apiPayload.error : 'Vote impossible.')
+        }
+
+        if (!isShowcaseEntry(payload)) {
+          throw new Error('Réponse vote invalide du serveur.')
+        }
+
+        const normalizedEntry = normalizeShowcaseEntry(payload)
+        setShowcaseEntries((current) =>
+          current.map((candidate) =>
+            candidate.normalizedUrl === normalizedEntry.normalizedUrl
+              ? {
+                  ...candidate,
+                  ...normalizedEntry,
+                  hasUpvoted: true,
+                }
+              : candidate,
+          ),
+        )
+
+        const responseMessage = typeof apiPayload.message === 'string' ? apiPayload.message : 'Vote enregistré.'
+        announcePolite(`${responseMessage} ${normalizedEntry.upvoteCount} vote(s) au total.`)
+      } catch (error) {
+        console.error('Unable to register upvote', error)
+        const fallback = error instanceof Error ? error.message : 'Erreur réseau lors du vote.'
+        announceAssertive(`Impossible d’enregistrer le vote pour ${entry.siteTitle}: ${fallback}`)
+      } finally {
+        setUpvotePendingByUrl((current) => {
+          const next = { ...current }
+          delete next[entry.normalizedUrl]
+          return next
+        })
+      }
+    },
+    [announceAssertive, announcePolite, getClientVoterId, upvotePendingByUrl],
+  )
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -605,7 +726,7 @@ function App() {
           throw new Error('Pré-analyse invalide du serveur.')
         }
 
-        setSubmissionPreviewEntry(payload)
+        setSubmissionPreviewEntry(normalizeShowcaseEntry(payload))
         setSubmissionPreviewStatus(submissionStatus)
         setIsSubmitConfirmationStep(true)
 
@@ -687,7 +808,7 @@ function App() {
       setIsSubmitConfirmationStep(false)
       setSubmissionPreviewEntry(null)
       setSubmissionPreviewStatus(null)
-      setLastAddedEntry(payload)
+      setLastAddedEntry(normalizeShowcaseEntry(payload))
       setInputUrl('')
       setWebsiteField('')
 
@@ -1016,6 +1137,32 @@ function App() {
                           )}
                           <span className="inline-flex min-h-8 items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
                             Score: {formatScore(entry.complianceScore)}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => void handleUpvote(entry)}
+                            disabled={upvotePendingByUrl[entry.normalizedUrl]}
+                            aria-pressed={entry.hasUpvoted}
+                            aria-describedby={`votes-${toDomSafeIdSegment(entry.normalizedUrl)}`}
+                            aria-label={`${
+                              entry.hasUpvoted ? 'Vote déjà enregistré pour' : 'Voter pour'
+                            } ${entry.siteTitle}. ${entry.upvoteCount} vote(s).`}
+                            className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold ${
+                              entry.hasUpvoted
+                                ? 'border-emerald-400 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100'
+                                : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50'
+                            } disabled:cursor-not-allowed disabled:opacity-70 ${focusRingClass}`}
+                          >
+                            <span aria-hidden="true">{entry.hasUpvoted ? '▲' : '△'}</span>
+                            <span>{entry.hasUpvoted ? 'Voté' : 'Soutenir ce site'}</span>
+                          </button>
+                          <span
+                            id={`votes-${toDomSafeIdSegment(entry.normalizedUrl)}`}
+                            className="inline-flex min-h-8 items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200"
+                          >
+                            {entry.upvoteCount} vote(s)
                           </span>
                         </div>
                       </div>

@@ -2,6 +2,7 @@ import { Redis } from '@upstash/redis'
 
 const SHOWCASE_INDEX_KEY = 'rgaa:vitrine:showcase:index'
 const SHOWCASE_ENTRY_PREFIX = 'rgaa:vitrine:showcase:entry:'
+const SHOWCASE_VOTES_PREFIX = 'rgaa:vitrine:showcase:votes:'
 const PENDING_INDEX_KEY = 'rgaa:vitrine:moderation:pending:index'
 const PENDING_ENTRY_PREFIX = 'rgaa:vitrine:moderation:pending:'
 const PENDING_BY_URL_HASH_KEY = 'rgaa:vitrine:moderation:pending:by-url'
@@ -41,6 +42,10 @@ function entryKeyFromId(entryId) {
   return `${SHOWCASE_ENTRY_PREFIX}${entryId}`
 }
 
+function votesKeyFromId(entryId) {
+  return `${SHOWCASE_VOTES_PREFIX}${entryId}`
+}
+
 function pendingKeyFromId(entryId) {
   return `${PENDING_ENTRY_PREFIX}${entryId}`
 }
@@ -56,6 +61,36 @@ function toNullableNumber(value) {
 
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function toNonNegativeInteger(value) {
+  const parsed = Number.parseInt(String(value ?? ''), 10)
+  if (Number.isNaN(parsed) || parsed < 0) {
+    return 0
+  }
+  return parsed
+}
+
+function normalizeVoteTokens(voterFingerprints) {
+  if (!voterFingerprints || typeof voterFingerprints !== 'object') {
+    return []
+  }
+
+  const values = Object.values(voterFingerprints)
+  const unique = new Set()
+
+  for (const value of values) {
+    if (typeof value !== 'string') {
+      continue
+    }
+    const trimmed = value.trim()
+    if (!trimmed) {
+      continue
+    }
+    unique.add(trimmed.slice(0, 160))
+  }
+
+  return Array.from(unique)
 }
 
 function parseStoredEntry(payload) {
@@ -80,6 +115,7 @@ function parseStoredEntry(payload) {
     complianceStatus: ALLOWED_STATUSES.has(complianceStatus ?? '') ? complianceStatus : null,
     complianceStatusLabel: toNullableString(payload.complianceStatusLabel),
     complianceScore: toNullableNumber(payload.complianceScore),
+    upvoteCount: toNonNegativeInteger(payload.upvoteCount),
     updatedAt,
     category: sanitizeCategory(payload.category),
   }
@@ -128,6 +164,7 @@ function serializeEntry(entry) {
     complianceStatus: entry.complianceStatus ?? '',
     complianceStatusLabel: entry.complianceStatusLabel ?? '',
     complianceScore: entry.complianceScore ?? '',
+    upvoteCount: toNonNegativeInteger(entry.upvoteCount),
     updatedAt: entry.updatedAt,
     category: entry.category,
   }
@@ -229,6 +266,7 @@ class InMemoryShowcaseStorage {
     this.mode = 'memory'
     this.entries = new Map()
     this.pendingEntries = new Map()
+    this.votesByUrl = new Map()
   }
 
   async upsert(entry) {
@@ -252,7 +290,66 @@ class InMemoryShowcaseStorage {
   }
 
   async deleteByNormalizedUrl(normalizedUrl) {
+    this.votesByUrl.delete(normalizedUrl)
     return this.entries.delete(normalizedUrl)
+  }
+
+  async hasVoted(normalizedUrl, voterFingerprints) {
+    const tokens = normalizeVoteTokens(voterFingerprints)
+    if (tokens.length === 0) {
+      return false
+    }
+
+    const set = this.votesByUrl.get(normalizedUrl)
+    if (!set) {
+      return false
+    }
+
+    return tokens.some((token) => set.has(token))
+  }
+
+  async registerUpvote(normalizedUrl, voterFingerprints) {
+    const entry = this.entries.get(normalizedUrl) ?? null
+    if (!entry) {
+      return null
+    }
+
+    const tokens = normalizeVoteTokens(voterFingerprints)
+    if (tokens.length === 0) {
+      throw new ShowcaseStorageError('Identifiant de vote invalide.', 400)
+    }
+
+    let set = this.votesByUrl.get(normalizedUrl)
+    if (!set) {
+      set = new Set()
+      this.votesByUrl.set(normalizedUrl, set)
+    }
+
+    const alreadyVoted = tokens.some((token) => set.has(token))
+    if (alreadyVoted) {
+      return {
+        accepted: false,
+        alreadyVoted: true,
+        entry,
+      }
+    }
+
+    for (const token of tokens) {
+      set.add(token)
+    }
+
+    const updatedEntry = {
+      ...entry,
+      upvoteCount: toNonNegativeInteger(entry.upvoteCount) + 1,
+    }
+
+    this.entries.set(normalizedUrl, updatedEntry)
+
+    return {
+      accepted: true,
+      alreadyVoted: false,
+      entry: updatedEntry,
+    }
   }
 
   async list(options = {}) {
@@ -444,12 +541,86 @@ class UpstashShowcaseStorage {
     const entryId = encodeEntryId(normalizedUrl)
 
     try {
-      await this.redis.multi().del(entryKeyFromId(entryId)).zrem(SHOWCASE_INDEX_KEY, entryId).exec()
+      await this.redis
+        .multi()
+        .del(entryKeyFromId(entryId))
+        .del(votesKeyFromId(entryId))
+        .zrem(SHOWCASE_INDEX_KEY, entryId)
+        .exec()
       this._invalidateShowcaseCache()
       return true
     } catch (error) {
       console.error('Redis deleteByNormalizedUrl failed', error)
       throw new ShowcaseStorageError('Suppression Redis indisponible.', 503)
+    }
+  }
+
+  async hasVoted(normalizedUrl, voterFingerprints) {
+    const tokens = normalizeVoteTokens(voterFingerprints)
+    if (tokens.length === 0) {
+      return false
+    }
+
+    const entryId = encodeEntryId(normalizedUrl)
+    const key = votesKeyFromId(entryId)
+
+    try {
+      for (const token of tokens) {
+        const isMember = await this.redis.sismember(key, token)
+        if (isMember === 1 || isMember === true) {
+          return true
+        }
+      }
+      return false
+    } catch (error) {
+      console.error('Redis hasVoted failed', error)
+      throw new ShowcaseStorageError('Lecture Redis des votes indisponible.', 503)
+    }
+  }
+
+  async registerUpvote(normalizedUrl, voterFingerprints) {
+    const entry = await this.getByNormalizedUrl(normalizedUrl)
+    if (!entry) {
+      return null
+    }
+
+    const tokens = normalizeVoteTokens(voterFingerprints)
+    if (tokens.length === 0) {
+      throw new ShowcaseStorageError('Identifiant de vote invalide.', 400)
+    }
+
+    const entryId = encodeEntryId(normalizedUrl)
+    const voteKey = votesKeyFromId(entryId)
+
+    try {
+      for (const token of tokens) {
+        const isMember = await this.redis.sismember(voteKey, token)
+        if (isMember === 1 || isMember === true) {
+          return {
+            accepted: false,
+            alreadyVoted: true,
+            entry,
+          }
+        }
+      }
+
+      await this.redis.sadd(voteKey, ...tokens)
+      const nextCount = toNonNegativeInteger(entry.upvoteCount) + 1
+      await this.redis.hset(entryKeyFromId(entryId), { upvoteCount: nextCount })
+
+      this._invalidateShowcaseCache()
+
+      return {
+        accepted: true,
+        alreadyVoted: false,
+        entry: {
+          ...entry,
+          upvoteCount: nextCount,
+        },
+      }
+    } catch (error) {
+      console.error('Redis registerUpvote failed', error)
+      throw new ShowcaseStorageError('Persistance Redis des votes indisponible.', 503)
     }
   }
 
@@ -605,6 +776,7 @@ export function createShowcaseStorage() {
 export function buildShowcaseEntry(siteInsight, rawCategory) {
   return {
     ...siteInsight,
+    upvoteCount: toNonNegativeInteger(siteInsight.upvoteCount),
     category: sanitizeCategory(rawCategory),
   }
 }

@@ -1,7 +1,7 @@
 import express from 'express'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
-import { timingSafeEqual } from 'node:crypto'
+import { createHash, timingSafeEqual } from 'node:crypto'
 import { buildSiteInsight, SiteInsightError, validatePublicHttpUrl } from './siteInsight.js'
 import { isGithubNotifierEnabled, notifyPendingModerationOnGithub } from './githubNotifier.js'
 import { buildSitemapXml, resolvePublicAppUrl } from './sitemap.js'
@@ -35,6 +35,7 @@ const SUSPICIOUS_MARKETING_TOKENS = [
   'guest post',
   'crypto airdrop',
 ]
+const VOTE_FINGERPRINT_SALT = process.env.VOTE_FINGERPRINT_SALT ?? 'annuaire-rgaa-votes'
 
 app.disable('x-powered-by')
 app.set('trust proxy', false)
@@ -145,6 +146,75 @@ function parseScoreForModeration(value) {
   return Math.round(parsed * 100) / 100
 }
 
+function extractClientVoterId(value) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  if (!/^[a-zA-Z0-9_-]{16,120}$/.test(trimmed)) {
+    return null
+  }
+
+  return trimmed
+}
+
+function readCandidateIp(rawValue) {
+  if (typeof rawValue !== 'string') {
+    return null
+  }
+
+  const first = rawValue.split(',')[0]?.trim()
+  if (!first || first.length > 100) {
+    return null
+  }
+
+  return first
+}
+
+function readRequestIp(request) {
+  return (
+    readCandidateIp(request.get('x-vercel-forwarded-for')) ||
+    readCandidateIp(request.get('cf-connecting-ip')) ||
+    readCandidateIp(request.get('x-forwarded-for')) ||
+    readCandidateIp(request.ip) ||
+    readCandidateIp(request.socket?.remoteAddress ?? '') ||
+    'unknown-ip'
+  )
+}
+
+function createFingerprint(value) {
+  return createHash('sha256').update(value).digest('hex').slice(0, 48)
+}
+
+function buildVoteFingerprints(request, clientVoterId, normalizedUrl) {
+  const userAgent = request.get('user-agent')?.trim().slice(0, 220) ?? 'unknown-ua'
+  const requestIp = readRequestIp(request)
+
+  const ipFingerprint = createFingerprint(
+    `${VOTE_FINGERPRINT_SALT}|${normalizedUrl}|ip|${requestIp}|ua|${userAgent}`,
+  )
+  const ipOnlyFingerprint = createFingerprint(`${VOTE_FINGERPRINT_SALT}|${normalizedUrl}|ip-only|${requestIp}`)
+
+  const fingerprints = {
+    ip: `ip:${ipFingerprint}`,
+    ipOnly: `ip-only:${ipOnlyFingerprint}`,
+  }
+
+  if (clientVoterId) {
+    const clientFingerprint = createFingerprint(
+      `${VOTE_FINGERPRINT_SALT}|${normalizedUrl}|client|${clientVoterId}`,
+    )
+    fingerprints.client = `client:${clientFingerprint}`
+  }
+
+  return fingerprints
+}
+
 function normalizeForMatch(value) {
   return String(value)
     .normalize('NFD')
@@ -241,6 +311,16 @@ const submissionLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     error: "Trop de soumissions. Merci de réessayer dans une heure.",
+  },
+})
+
+const voteLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 25,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Trop de votes. Merci de réessayer dans une heure.",
   },
 })
 
@@ -344,9 +424,30 @@ app.get('/api/showcase', async (request, response) => {
       category: firstQueryValue(request.query.category),
       limit: firstQueryValue(request.query.limit),
     })
+
+    const clientVoterId = extractClientVoterId(firstQueryValue(request.query.clientVoterId))
+    const entriesWithVoteState = []
+
+    for (const entry of entries) {
+      if (!clientVoterId) {
+        entriesWithVoteState.push({
+          ...entry,
+          hasUpvoted: false,
+        })
+        continue
+      }
+
+      const fingerprints = buildVoteFingerprints(request, clientVoterId, entry.normalizedUrl)
+      const hasUpvoted = await showcaseStorage.hasVoted(entry.normalizedUrl, fingerprints)
+      entriesWithVoteState.push({
+        ...entry,
+        hasUpvoted,
+      })
+    }
+
     response.json({
-      entries,
-      total: entries.length,
+      entries: entriesWithVoteState,
+      total: entriesWithVoteState.length,
       storage: showcaseStorage.mode,
     })
   } catch (error) {
@@ -357,6 +458,45 @@ app.get('/api/showcase', async (request, response) => {
 
     console.error('Unexpected error in /api/showcase', error)
     sendJsonError(response, 500, 'Erreur lors de la lecture de la vitrine.')
+  }
+})
+
+app.post('/api/showcase/upvote', voteLimiter, async (request, response) => {
+  const normalizedUrl = extractNormalizedUrl(request.body?.normalizedUrl)
+  if (!normalizedUrl) {
+    sendJsonError(response, 400, 'normalizedUrl est obligatoire.')
+    return
+  }
+
+  const clientVoterId = extractClientVoterId(request.body?.clientVoterId)
+  if (!clientVoterId) {
+    sendJsonError(response, 400, 'clientVoterId est obligatoire.')
+    return
+  }
+
+  try {
+    const fingerprints = buildVoteFingerprints(request, clientVoterId, normalizedUrl)
+    const voteResult = await showcaseStorage.registerUpvote(normalizedUrl, fingerprints)
+    if (!voteResult) {
+      sendJsonError(response, 404, 'Entrée introuvable dans l’annuaire.')
+      return
+    }
+
+    response.json({
+      ...voteResult.entry,
+      hasUpvoted: true,
+      alreadyVoted: voteResult.alreadyVoted,
+      upvoteAccepted: voteResult.accepted,
+      message: voteResult.accepted ? 'Vote enregistré.' : 'Vote déjà pris en compte.',
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/showcase/upvote', error)
+    sendJsonError(response, 500, 'Erreur interne lors de l’enregistrement du vote.')
   }
 })
 
