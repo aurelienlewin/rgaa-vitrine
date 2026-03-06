@@ -1396,7 +1396,7 @@ function ModerationPage() {
                             {entry.category}
                           </span>
                         </div>
-                        <p className="mt-2 break-all text-sm text-slate-700 dark:text-slate-300">{entry.normalizedUrl}</p>
+                        <p className="mt-2 wrap-anywhere text-sm text-slate-700 dark:text-slate-300">{entry.normalizedUrl}</p>
                         <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">Créée le: {formatDate(entry.createdAt)}</p>
                         <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">Dernière analyse: {formatDate(entry.updatedAt)}</p>
                         <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
@@ -1425,7 +1425,7 @@ function ModerationPage() {
                                   [entry.submissionId]: event.target.value,
                                 }))
                               }
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                             />
                           </div>
                           <button
@@ -1505,7 +1505,7 @@ function ModerationPage() {
                     >
                       <article>
                         <h3 className="text-lg font-semibold">{entry.siteTitle}</h3>
-                        <p className="mt-2 break-all text-sm text-slate-700 dark:text-slate-300">{entry.normalizedUrl}</p>
+                        <p className="mt-2 wrap-anywhere text-sm text-slate-700 dark:text-slate-300">{entry.normalizedUrl}</p>
                         <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                           Dernière mise à jour: {formatDate(entry.updatedAt)}
                         </p>
@@ -1544,7 +1544,7 @@ function ModerationPage() {
                               onChange={(event) =>
                                 handlePublishedDraftChange(entry.normalizedUrl, 'siteTitle', event.target.value)
                               }
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                             />
                           </div>
                           <div>
@@ -1786,7 +1786,7 @@ function ModerationPage() {
                   value={siteBlocklistInput}
                   onChange={(event) => setSiteBlocklistInput(event.target.value)}
                   placeholder="https://www.exemple.fr/"
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-rose-300 dark:border-rose-700 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-rose-300 dark:border-rose-700 user-invalid:border-rose-800 dark:user-invalid:border-rose-400 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 />
               </div>
               <button
@@ -1808,7 +1808,7 @@ function ModerationPage() {
                   const isRunning = runningBlocklistSiteUrl === blockedUrl
                   return (
                     <li key={blockedUrl} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-rose-200 dark:border-rose-800 bg-white dark:bg-slate-900 p-3">
-                      <span className="break-all text-sm text-slate-800 dark:text-slate-200">{blockedUrl}</span>
+                      <span className="wrap-anywhere text-sm text-slate-800 dark:text-slate-200">{blockedUrl}</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -1855,7 +1855,7 @@ function ModerationPage() {
                   value={voteBlocklistInput}
                   onChange={(event) => setVoteBlocklistInput(event.target.value)}
                   placeholder="https://www.exemple.fr/"
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-amber-300 dark:border-amber-700 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 />
               </div>
               <button
@@ -1877,7 +1877,7 @@ function ModerationPage() {
                   const isRunning = runningBlocklistVoteUrl === blockedUrl
                   return (
                     <li key={blockedUrl} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-900 p-3">
-                      <span className="break-all text-sm text-slate-800 dark:text-slate-200">{blockedUrl}</span>
+                      <span className="wrap-anywhere text-sm text-slate-800 dark:text-slate-200">{blockedUrl}</span>
                       <button
                         type="button"
                         onClick={() => {

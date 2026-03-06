@@ -221,7 +221,7 @@ function AccessibilityPage() {
               Audit de référence réalisé le <strong>{auditSummary.auditDate}</strong> sur la version en production
               auditée à la date du contrôle ({auditSummary.scope}).
             </p>
-            <p className="mt-2 break-all text-sm text-slate-700 dark:text-slate-300">
+            <p className="mt-2 wrap-anywhere text-sm text-slate-700 dark:text-slate-300">
               Page auditée: {auditSummary.auditedPage}
             </p>
             <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">

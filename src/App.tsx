@@ -1298,7 +1298,7 @@ function App() {
                         <h3 className="text-lg font-semibold">{entry.siteTitle}</h3>
                         <p className="text-sm text-slate-600 dark:text-slate-300">Catégorie : {formatCategory(entry.category)}</p>
                         <p className="text-sm text-slate-600 dark:text-slate-300">Mise à jour : {formatDate(entry.updatedAt)}</p>
-                        <p className="break-all text-sm text-slate-600 dark:text-slate-300">{entry.normalizedUrl}</p>
+                        <p className="wrap-anywhere text-sm text-slate-600 dark:text-slate-300">{entry.normalizedUrl}</p>
                         <p className="text-sm">
                           <a
                             href={entry.normalizedUrl}
@@ -1515,7 +1515,7 @@ function App() {
                   onInput={(event) => {
                     event.currentTarget.setCustomValidity('')
                   }}
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 />
               </div>
 
@@ -1577,7 +1577,7 @@ function App() {
                 <dl className="mt-3 grid gap-2 text-sm text-sky-900 dark:text-sky-100">
                   <div>
                     <dt className="font-semibold">URL</dt>
-                    <dd className="break-all">{inputUrl}</dd>
+                    <dd className="wrap-anywhere">{inputUrl}</dd>
                   </div>
                   <div>
                     <dt className="font-semibold">Catégorie</dt>
@@ -1605,7 +1605,7 @@ function App() {
                   </div>
                   <div>
                     <dt className="font-semibold">Déclaration d’accessibilité</dt>
-                    <dd className="break-all">{submissionPreviewEntry?.accessibilityPageUrl ?? 'Non détectée'}</dd>
+                    <dd className="wrap-anywhere">{submissionPreviewEntry?.accessibilityPageUrl ?? 'Non détectée'}</dd>
                   </div>
                 </dl>
                 <div className="mt-4 flex flex-wrap items-center gap-3">
