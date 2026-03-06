@@ -164,6 +164,35 @@ Send it via header:
 x-moderation-token: <MODERATION_API_TOKEN>
 ```
 
+### GitHub-native moderation notifications
+
+You can trigger free GitHub notifications each time a new submission enters manual review.
+
+Set these environment variables:
+
+```bash
+GITHUB_NOTIFY_REPO=owner/repo
+GITHUB_NOTIFY_TOKEN=github_pat_xxx
+```
+
+Optional:
+
+```bash
+GITHUB_NOTIFY_LABELS=moderation,annuaire-rgaa
+PUBLIC_APP_URL=https://rgaa-vitrine.org
+```
+
+Behavior:
+
+- On new `pending` moderation submission, the API creates one GitHub issue in `GITHUB_NOTIFY_REPO`.
+- GitHub notifications are then handled natively by your repo notification settings.
+- Notification failure does not block user submission flow.
+
+Recommended GitHub setup:
+
+1. Enable repository notifications for Issues (or Watch -> Custom -> Issues).
+2. Use a fine-grained PAT scoped to one repository with Issues write access.
+
 ## Deployment (Vercel)
 
 The repository includes native Vercel serverless endpoints in `api/`:
@@ -184,6 +213,8 @@ Ensure these environment variables are configured in Vercel project settings:
 or
 - `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
 - `MODERATION_API_TOKEN` (required to enable manual moderation API)
+- `GITHUB_NOTIFY_REPO` and `GITHUB_NOTIFY_TOKEN` (optional, enables GitHub issue notifications for pending moderation)
+- `GITHUB_NOTIFY_LABELS` and `PUBLIC_APP_URL` (optional)
 
 ## Scripts
 

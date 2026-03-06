@@ -26,6 +26,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - New frontend moderation page (`/moderation`) to authenticate and process pending submissions without curl.
 - New Redis-backed read-through cache (TTL in-memory layer) to reduce repeated Upstash queries on identical listing/moderation reads.
 - Local self-hosted dyslexia-friendly font assets are now bundled from `@fontsource` packages.
+- Optional GitHub-native moderation notifications: new pending submissions can open issues automatically in a target repository.
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
@@ -73,6 +74,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Added an explicit light/dark toggle (with persistence) in both main and moderation headers.
 - Tailwind `dark:` variant now follows a root `.dark` class to support manual mode switching while keeping system fallback.
 - Branding layout now keeps only the icon inside SVG; app title, baseline, and badge are rendered as Tailwind UI to prevent logo text clipping.
+- `GET /api/health` now reports whether GitHub issue notifications are enabled.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

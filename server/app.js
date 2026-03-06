@@ -3,6 +3,7 @@ import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import { timingSafeEqual } from 'node:crypto'
 import { buildSiteInsight, SiteInsightError } from './siteInsight.js'
+import { isGithubNotifierEnabled, notifyPendingModerationOnGithub } from './githubNotifier.js'
 import {
   buildPendingSubmission,
   buildShowcaseEntry,
@@ -182,6 +183,9 @@ app.get('/api/health', (_request, response) => {
     moderation: {
       enabled: Boolean(readModerationToken()),
     },
+    notifications: {
+      githubIssues: isGithubNotifierEnabled(),
+    },
   })
 })
 
@@ -261,6 +265,15 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
     if (manualReviewReason) {
       const pendingSubmission = buildPendingSubmission(insight, category, manualReviewReason)
       const savedPendingSubmission = await showcaseStorage.upsertPending(pendingSubmission)
+
+      if (isGithubNotifierEnabled()) {
+        try {
+          await notifyPendingModerationOnGithub(savedPendingSubmission)
+        } catch (notificationError) {
+          console.error('GitHub moderation notification failed', notificationError)
+        }
+      }
+
       response.status(202).json({
         ...savedPendingSubmission,
         submissionStatus: 'pending',
