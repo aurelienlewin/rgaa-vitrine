@@ -38,6 +38,24 @@ const SUSPICIOUS_MARKETING_TOKENS = [
   'crypto airdrop',
 ]
 const VOTE_FINGERPRINT_SALT = process.env.VOTE_FINGERPRINT_SALT ?? 'annuaire-rgaa-votes'
+const PUBLIC_SUBMISSION_CATEGORY_FALLBACK = 'Autre'
+const PUBLIC_SUBMISSION_CATEGORIES = [
+  'Administration',
+  'E-commerce',
+  'Media',
+  'Sante',
+  'Education',
+  'Associatif',
+  'Coopérative et services',
+  PUBLIC_SUBMISSION_CATEGORY_FALLBACK,
+]
+const PUBLIC_SUBMISSION_CATEGORY_BY_NORMALIZED = new Map(
+  PUBLIC_SUBMISSION_CATEGORIES.map((category) => [normalizeForMatch(category), category]),
+)
+PUBLIC_SUBMISSION_CATEGORY_BY_NORMALIZED.set(
+  normalizeForMatch('Cooperative et services'),
+  'Coopérative et services',
+)
 
 app.disable('x-powered-by')
 app.set('trust proxy', false)
@@ -269,6 +287,12 @@ function normalizeForMatch(value) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
+}
+
+function sanitizePublicSubmissionCategory(value) {
+  const sanitizedCategory = sanitizeCategory(value)
+  const normalized = normalizeForMatch(sanitizedCategory)
+  return PUBLIC_SUBMISSION_CATEGORY_BY_NORMALIZED.get(normalized) ?? PUBLIC_SUBMISSION_CATEGORY_FALLBACK
 }
 
 function requireModerationAuth(request, response, next) {
@@ -588,7 +612,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       return
     }
 
-    const sanitizedCategory = sanitizeCategory(category)
+    const sanitizedCategory = sanitizePublicSubmissionCategory(category)
     const existingEntry = await showcaseStorage.getByNormalizedUrl(normalizedInsight.normalizedUrl)
 
     if (existingEntry) {
