@@ -8,7 +8,9 @@ Describe what changed and why.
 - [ ] `npm run build`
 - [ ] Accessibility impact reviewed (keyboard/focus/labels)
 - [ ] Security impact reviewed (URL validation/remote fetch)
-- [ ] Docs updated if needed
+- [ ] Code docs updated if needed (README/CHANGELOG/inline docs)
+- [ ] GitHub docs/metadata updated if needed (PR text, templates, repo About)
+- [ ] Commits are grouped by topic and pushed
 
 ## Testing notes
 

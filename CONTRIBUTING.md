@@ -30,8 +30,10 @@ npm run build
 - [ ] Scope is clear and focused.
 - [ ] Accessibility impact is tested (keyboard and focus at minimum).
 - [ ] Security impact is considered for URL handling and remote fetch.
-- [ ] README/docs updated if behavior changed.
-- [ ] CHANGELOG updated when behavior/API/storage changes.
+- [ ] Code documentation updated when behavior changes (README and/or inline docs).
+- [ ] Project changelog updated when behavior/API/storage changes.
+- [ ] GitHub-facing documentation updated when needed (PR description, templates, About metadata).
+- [ ] Changes are committed by topic and pushed before requesting review.
 
 ## Commit style
 
