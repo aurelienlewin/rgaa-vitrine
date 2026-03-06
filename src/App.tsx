@@ -913,6 +913,9 @@ function App() {
               <a href="#aide-accessibilite" className={`text-sm font-semibold text-slate-800 dark:text-slate-200 underline ${focusRingClass}`}>
                 Aide accessibilité
               </a>
+              <a href="/moderation" className={`text-sm font-semibold text-slate-800 dark:text-slate-200 underline ${focusRingClass}`}>
+                Modération
+              </a>
             </div>
 
             <a

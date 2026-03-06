@@ -30,6 +30,7 @@ Planned public website: **https://rgaa-vitrine.org**
 - Muted text and status colors are tuned for stronger contrast in both light and dark themes.
 - Directory-first UX with filters, categories, and search at the core.
 - URL registration workflow with secure server-side metadata enrichment.
+- Dedicated moderation UI at `/moderation` for approving/rejecting pending submissions.
 - Annuaire listing cards designed for disabled people and accessibility enthusiasts.
 - RGAA awareness sections sourced from official French references.
 - WCAG 2.2 awareness and references embedded in the UI.
@@ -131,8 +132,8 @@ Local services:
 ### Manual moderation workflow
 
 1. A submission requiring human review is stored server-side as `pending`.
-2. A moderator lists pending entries with `GET /api/moderation/pending`.
-3. The moderator approves (`POST /api/moderation/approve`) or rejects (`POST /api/moderation/reject`) by `submissionId`.
+2. A moderator opens `/moderation`, enters the moderation token, and loads the pending queue.
+3. The moderator approves or rejects each entry from the UI (the page calls moderation APIs with `submissionId`).
 
 Endpoints are protected by `MODERATION_API_TOKEN`.
 
