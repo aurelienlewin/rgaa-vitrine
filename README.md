@@ -43,6 +43,7 @@ Planned public website: **https://rgaa-vitrine.org**
 - Tailwind CSS v4 via `@tailwindcss/vite`
 - Node + Express API
 - Upstash Redis (optional but recommended) for persistent showcase storage
+- API-side in-memory Redis cache (TTL-based) to reduce repeated Upstash reads
 
 ## Persistence (Redis)
 
@@ -66,6 +67,14 @@ KV_REST_API_TOKEN=...
 ```
 
 API scripts auto-load `.env.local` when present.
+
+Optional performance setting:
+
+```bash
+REDIS_CACHE_TTL_MS=15000
+```
+
+This enables short-lived server-side caching for Redis-backed listing/moderation reads to avoid unnecessary Upstash queries on repeated requests.
 
 You can check the active storage mode via:
 

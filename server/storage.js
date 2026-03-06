@@ -4,14 +4,27 @@ const SHOWCASE_INDEX_KEY = 'rgaa:vitrine:showcase:index'
 const SHOWCASE_ENTRY_PREFIX = 'rgaa:vitrine:showcase:entry:'
 const PENDING_INDEX_KEY = 'rgaa:vitrine:moderation:pending:index'
 const PENDING_ENTRY_PREFIX = 'rgaa:vitrine:moderation:pending:'
+const PENDING_BY_URL_HASH_KEY = 'rgaa:vitrine:moderation:pending:by-url'
 const MAX_STORED_ENTRIES = 500
 const MAX_PENDING_STORED_ENTRIES = 2000
 const MAX_LIST_LIMIT = 200
 const DEFAULT_LIST_LIMIT = 80
 const MAX_PENDING_LIST_LIMIT = 200
 const DEFAULT_PENDING_LIST_LIMIT = 80
+const DEFAULT_REDIS_CACHE_TTL_MS = 15_000
+const MIN_REDIS_CACHE_TTL_MS = 1_000
+const MAX_REDIS_CACHE_TTL_MS = 300_000
 
 const ALLOWED_STATUSES = new Set(['full', 'partial', 'none'])
+
+function resolveRedisCacheTtlMs() {
+  const rawValue = Number.parseInt(process.env.REDIS_CACHE_TTL_MS ?? '', 10)
+  if (Number.isNaN(rawValue)) {
+    return DEFAULT_REDIS_CACHE_TTL_MS
+  }
+
+  return Math.min(Math.max(rawValue, MIN_REDIS_CACHE_TTL_MS), MAX_REDIS_CACHE_TTL_MS)
+}
 
 function normalizeText(value) {
   return value
@@ -305,6 +318,45 @@ class UpstashShowcaseStorage {
   constructor(redis) {
     this.mode = 'redis'
     this.redis = redis
+    this.cacheTtlMs = resolveRedisCacheTtlMs()
+    this.showcaseCacheEntries = null
+    this.showcaseCacheByUrl = new Map()
+    this.showcaseCacheExpiresAt = 0
+    this.pendingCacheEntries = null
+    this.pendingCacheById = new Map()
+    this.pendingCacheExpiresAt = 0
+  }
+
+  _isShowcaseCacheFresh() {
+    return Array.isArray(this.showcaseCacheEntries) && Date.now() < this.showcaseCacheExpiresAt
+  }
+
+  _setShowcaseCache(entries) {
+    this.showcaseCacheEntries = entries
+    this.showcaseCacheByUrl = new Map(entries.map((entry) => [entry.normalizedUrl, entry]))
+    this.showcaseCacheExpiresAt = Date.now() + this.cacheTtlMs
+  }
+
+  _invalidateShowcaseCache() {
+    this.showcaseCacheEntries = null
+    this.showcaseCacheByUrl.clear()
+    this.showcaseCacheExpiresAt = 0
+  }
+
+  _isPendingCacheFresh() {
+    return Array.isArray(this.pendingCacheEntries) && Date.now() < this.pendingCacheExpiresAt
+  }
+
+  _setPendingCache(entries) {
+    this.pendingCacheEntries = entries
+    this.pendingCacheById = new Map(entries.map((entry) => [entry.submissionId, entry]))
+    this.pendingCacheExpiresAt = Date.now() + this.cacheTtlMs
+  }
+
+  _invalidatePendingCache() {
+    this.pendingCacheEntries = null
+    this.pendingCacheById.clear()
+    this.pendingCacheExpiresAt = 0
   }
 
   async upsert(entry) {
@@ -324,6 +376,7 @@ class UpstashShowcaseStorage {
         await this.redis.zremrangebyrank(SHOWCASE_INDEX_KEY, 0, overflow - 1)
       }
 
+      this._invalidateShowcaseCache()
       return entry
     } catch (error) {
       console.error('Redis upsert failed', error)
@@ -332,6 +385,13 @@ class UpstashShowcaseStorage {
   }
 
   async getByNormalizedUrl(normalizedUrl) {
+    if (this._isShowcaseCacheFresh()) {
+      const cachedEntry = this.showcaseCacheByUrl.get(normalizedUrl)
+      if (cachedEntry) {
+        return cachedEntry
+      }
+    }
+
     const entryId = encodeEntryId(normalizedUrl)
 
     try {
@@ -344,9 +404,16 @@ class UpstashShowcaseStorage {
   }
 
   async list(options = {}) {
+    if (this._isShowcaseCacheFresh()) {
+      const filtered = applyEntryFilters(this.showcaseCacheEntries, options)
+      const limit = parseLimit(options.limit)
+      return filtered.slice(0, limit)
+    }
+
     try {
       const entryIds = await this.redis.zrange(SHOWCASE_INDEX_KEY, 0, MAX_STORED_ENTRIES - 1, { rev: true })
       if (!Array.isArray(entryIds) || entryIds.length === 0) {
+        this._setShowcaseCache([])
         return []
       }
 
@@ -359,6 +426,7 @@ class UpstashShowcaseStorage {
         }
       }
 
+      this._setShowcaseCache(entries)
       const filtered = applyEntryFilters(entries, options)
       const limit = parseLimit(options.limit)
       return filtered.slice(0, limit)
@@ -373,9 +441,14 @@ class UpstashShowcaseStorage {
     const timestampScore = Date.parse(entry.createdAt) || Date.now()
 
     try {
+      const pendingByUrlField = {
+        [entry.normalizedUrl]: entry.submissionId,
+      }
+
       await this.redis
         .multi()
         .hset(key, serializePendingEntry(entry))
+        .hset(PENDING_BY_URL_HASH_KEY, pendingByUrlField)
         .zadd(PENDING_INDEX_KEY, { score: timestampScore, member: entry.submissionId })
         .exec()
 
@@ -391,6 +464,7 @@ class UpstashShowcaseStorage {
         await cleanup.exec()
       }
 
+      this._invalidatePendingCache()
       return entry
     } catch (error) {
       console.error('Redis upsertPending failed', error)
@@ -399,9 +473,20 @@ class UpstashShowcaseStorage {
   }
 
   async getPendingById(submissionId) {
+    if (this._isPendingCacheFresh()) {
+      const cachedEntry = this.pendingCacheById.get(submissionId)
+      if (cachedEntry) {
+        return cachedEntry
+      }
+    }
+
     try {
       const rawEntry = await this.redis.hgetall(pendingKeyFromId(submissionId))
-      return parsePendingEntry(rawEntry)
+      const parsed = parsePendingEntry(rawEntry)
+      if (parsed && this._isPendingCacheFresh()) {
+        this.pendingCacheById.set(parsed.submissionId, parsed)
+      }
+      return parsed
     } catch (error) {
       console.error('Redis getPendingById failed', error)
       throw new ShowcaseStorageError('Lecture Redis de modération indisponible.', 503)
@@ -409,13 +494,46 @@ class UpstashShowcaseStorage {
   }
 
   async getPendingByNormalizedUrl(normalizedUrl) {
-    const entries = await this.listPending({ limit: MAX_PENDING_STORED_ENTRIES })
-    return entries.find((entry) => entry.normalizedUrl === normalizedUrl) ?? null
+    if (this._isPendingCacheFresh()) {
+      const cachedEntry = this.pendingCacheEntries.find((entry) => entry.normalizedUrl === normalizedUrl)
+      if (cachedEntry) {
+        return cachedEntry
+      }
+    }
+
+    try {
+      const pendingSubmissionId = toNullableString(await this.redis.hget(PENDING_BY_URL_HASH_KEY, normalizedUrl))
+      if (!pendingSubmissionId) {
+        return null
+      }
+
+      const rawEntry = await this.redis.hgetall(pendingKeyFromId(pendingSubmissionId))
+      const parsed = parsePendingEntry(rawEntry)
+      if (!parsed) {
+        await this.redis.multi().hdel(PENDING_BY_URL_HASH_KEY, normalizedUrl).zrem(PENDING_INDEX_KEY, pendingSubmissionId).exec()
+        return null
+      }
+
+      if (this._isPendingCacheFresh()) {
+        this.pendingCacheById.set(parsed.submissionId, parsed)
+      }
+      return parsed
+    } catch (error) {
+      console.error('Redis getPendingByNormalizedUrl failed', error)
+      throw new ShowcaseStorageError('Lecture Redis de modération indisponible.', 503)
+    }
   }
 
   async deletePendingById(submissionId) {
     try {
-      await this.redis.multi().del(pendingKeyFromId(submissionId)).zrem(PENDING_INDEX_KEY, submissionId).exec()
+      const rawEntry = await this.redis.hgetall(pendingKeyFromId(submissionId))
+      const parsed = parsePendingEntry(rawEntry)
+      const cleanup = this.redis.multi().del(pendingKeyFromId(submissionId)).zrem(PENDING_INDEX_KEY, submissionId)
+      if (parsed?.normalizedUrl) {
+        cleanup.hdel(PENDING_BY_URL_HASH_KEY, parsed.normalizedUrl)
+      }
+      await cleanup.exec()
+      this._invalidatePendingCache()
       return true
     } catch (error) {
       console.error('Redis deletePendingById failed', error)
@@ -424,9 +542,15 @@ class UpstashShowcaseStorage {
   }
 
   async listPending(options = {}) {
+    if (this._isPendingCacheFresh()) {
+      const limit = parsePendingLimit(options.limit)
+      return this.pendingCacheEntries.slice(0, limit)
+    }
+
     try {
       const entryIds = await this.redis.zrange(PENDING_INDEX_KEY, 0, MAX_PENDING_STORED_ENTRIES - 1, { rev: true })
       if (!Array.isArray(entryIds) || entryIds.length === 0) {
+        this._setPendingCache([])
         return []
       }
 
@@ -439,6 +563,7 @@ class UpstashShowcaseStorage {
         }
       }
 
+      this._setPendingCache(entries)
       const limit = parsePendingLimit(options.limit)
       return entries.slice(0, limit)
     } catch (error) {

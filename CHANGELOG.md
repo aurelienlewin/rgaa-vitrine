@@ -24,6 +24,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Protected moderation API endpoints (`GET /api/moderation/pending`, `POST /api/moderation/approve`, `POST /api/moderation/reject`).
 - New `MODERATION_API_TOKEN` environment variable for admin-only validation actions.
 - New frontend moderation page (`/moderation`) to authenticate and process pending submissions without curl.
+- New Redis-backed read-through cache (TTL in-memory layer) to reduce repeated Upstash queries on identical listing/moderation reads.
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
@@ -61,6 +62,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Typography accessibility pass: replaced `text-xs` UI content with `text-sm` minimum for better readability.
 - Contrast pass: strengthened muted/status dark-theme text colors to improve WCAG 2.2 readability margins.
 - Main app footer now links to moderation page for authorized reviewers.
+- Pending moderation duplicate lookup now uses a dedicated Redis URL index (no full pending-list scan per submission).
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
