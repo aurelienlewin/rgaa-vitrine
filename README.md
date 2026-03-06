@@ -184,6 +184,7 @@ Operational note:
 - Site map page now lists an extract of published `/site/{slug}` links to strengthen crawlable internal discovery.
 - Public accessibility declaration page: `/accessibilite`
 - Auto-generated sitemap endpoint: `/sitemap.xml` (backed by API route `/api/sitemap`)
+- `sitemap.xml` is now served without caching (`no-store`) so newly published entries appear immediately after submission/moderation.
 - Sitemap now includes the public data endpoint (`/api/showcase`) for dataset discovery.
 - Sitemap now includes one public URL per referenced site profile (`/site/{slug}`).
 - AI crawler files: `/llms.txt`, `/llms-full.txt`, `/ai-context.json` (and `/api/ai-context`)

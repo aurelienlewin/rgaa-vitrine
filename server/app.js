@@ -549,7 +549,7 @@ app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
   ])
 
   response.setHeader('content-type', 'application/xml; charset=utf-8')
-  response.setHeader('cache-control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600')
+  response.setHeader('cache-control', 'no-store, max-age=0')
   response.status(200).send(sitemapXml)
 })
 

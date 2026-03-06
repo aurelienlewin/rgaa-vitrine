@@ -159,6 +159,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Showcase loading now accepts multiple API payload shapes (`{ entries }`, array, and legacy nested entries) to avoid false “Liste d’annuaire invalide”.
 - Canonical SEO hardening: Vercel host redirects now consolidate `www.annuaire-rgaa.fr` and legacy `.org` hosts to `https://annuaire-rgaa.fr`.
 - Homepage structured data now exposes a `SearchAction`, with URL-synced `?recherche=` support for crawlable search landing URLs.
+- `sitemap.xml` now bypasses HTTP caching (`Cache-Control: no-store`) so new published sites appear in sitemap immediately.
 - Secondary pages (`/plan-du-site`, `/accessibilite`) now expose `BreadcrumbList` structured data.
 - Open Graph and Twitter metadata now include URL/image-alt/secure image fields for richer sharing previews.
 - Sitemap now includes `/api/showcase`, and `robots.txt` explicitly blocks moderation paths from indexing.
