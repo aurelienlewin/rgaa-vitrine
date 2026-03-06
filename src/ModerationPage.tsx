@@ -226,6 +226,7 @@ function ModerationPage() {
   const [rejectReasons, setRejectReasons] = useState<Record<string, string>>({})
   const [isLoadingList, setIsLoadingList] = useState(false)
   const [isLoadingPublished, setIsLoadingPublished] = useState(false)
+  const [isModerationUnlocked, setIsModerationUnlocked] = useState(false)
   const [runningSubmissionId, setRunningSubmissionId] = useState<string | null>(null)
   const [runningPublishedUrl, setRunningPublishedUrl] = useState<string | null>(null)
   const [deleteConfirmationUrl, setDeleteConfirmationUrl] = useState<string | null>(null)
@@ -327,6 +328,18 @@ function ModerationPage() {
     },
     [moderationToken],
   )
+
+  const lockModerationView = useCallback(() => {
+    setIsModerationUnlocked(false)
+    setPendingEntries([])
+    setPublishedEntries([])
+    setSiteBlocklist([])
+    setVoteBlocklist([])
+    setPublishedDrafts({})
+    setPublishedFeedbackByUrl({})
+    setRejectReasons({})
+    setDeleteConfirmationUrl(null)
+  }, [])
 
   const loadPendingEntries = useCallback(async () => {
     if (!hasToken) {
@@ -546,14 +559,21 @@ function ModerationPage() {
       const pendingLoaded = await loadPendingEntries()
       const publishedLoaded = await loadPublishedEntries()
       const blocklistsLoaded = await loadBlocklists()
+      const unlocked = pendingLoaded || publishedLoaded || blocklistsLoaded
 
-      if (pendingLoaded || publishedLoaded || blocklistsLoaded) {
+      if (unlocked) {
+        setIsModerationUnlocked(true)
+        setAssertiveMessage('')
+        setPoliteMessage('Accès modération activé.')
         window.setTimeout(() => {
           focusPending()
         }, 0)
+        return
       }
+
+      lockModerationView()
     },
-    [focusPending, loadBlocklists, loadPendingEntries, loadPublishedEntries],
+    [focusPending, loadBlocklists, loadPendingEntries, loadPublishedEntries, lockModerationView],
   )
 
   const handleExportArchive = useCallback(async () => {
@@ -1173,18 +1193,22 @@ function ModerationPage() {
         <a href="#contenu-moderation" className={skipLinkClass} onClick={focusMain}>
           Aller au contenu
         </a>
-        <a href="#annuaire-publie" className={skipLinkClass} onClick={focusPublished}>
-          Aller à l’annuaire publié
-        </a>
-        <a href="#archive-donnees" className={skipLinkClass} onClick={focusArchive}>
-          Aller à l’archivage
-        </a>
-        <a href="#blocklist-sites" className={skipLinkClass} onClick={focusSiteBlocklist}>
-          Aller à la blocklist sites
-        </a>
-        <a href="#blocklist-votes" className={skipLinkClass} onClick={focusVoteBlocklist}>
-          Aller à la blocklist votes
-        </a>
+        {isModerationUnlocked && (
+          <>
+            <a href="#annuaire-publie" className={skipLinkClass} onClick={focusPublished}>
+              Aller à l’annuaire publié
+            </a>
+            <a href="#archive-donnees" className={skipLinkClass} onClick={focusArchive}>
+              Aller à l’archivage
+            </a>
+            <a href="#blocklist-sites" className={skipLinkClass} onClick={focusSiteBlocklist}>
+              Aller à la blocklist sites
+            </a>
+            <a href="#blocklist-votes" className={skipLinkClass} onClick={focusVoteBlocklist}>
+              Aller à la blocklist votes
+            </a>
+          </>
+        )}
         <a href="#pied-page" className={skipLinkClass} onClick={focusFooter}>
           Aller au pied de page
         </a>
@@ -1222,7 +1246,15 @@ function ModerationPage() {
                   id="token-moderation"
                   type={showToken ? 'text' : 'password'}
                   value={moderationToken}
-                  onChange={(event) => setModerationToken(event.target.value)}
+                  onChange={(event) => {
+                    const nextToken = event.target.value
+                    setModerationToken(nextToken)
+                    if (!nextToken.trim() && isModerationUnlocked) {
+                      lockModerationView()
+                      setPoliteMessage('Accès modération verrouillé.')
+                      setAssertiveMessage('')
+                    }
+                  }}
                   autoComplete="off"
                   required
                   spellCheck={false}
@@ -1262,97 +1294,108 @@ function ModerationPage() {
             )}
           </section>
 
-          <section
-            id="archive-donnees"
-            ref={archiveRef}
-            tabIndex={-1}
-            className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
-            aria-labelledby="archive-donnees-titre"
-          >
-            <h2 id="archive-donnees-titre" className="text-lg font-semibold">
-              Archivage et restauration
-            </h2>
-            <p className="mt-2 text-slate-700 dark:text-slate-300">
-              Exportez une archive complète lisible de la base, puis réimportez-la en fusion ou en remplacement.
-            </p>
-
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  void handleExportArchive()
-                }}
-                disabled={!hasToken || isExportingArchive || isImportingArchive}
-                className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-white dark:text-slate-950 disabled:opacity-60 ${focusRingClass}`}
-              >
-                {isExportingArchive ? 'Export en cours...' : 'Télécharger l’archive JSON'}
-              </button>
-            </div>
-
-            <form className="mt-4 grid gap-4 rounded-xl border border-slate-200 dark:border-slate-700 p-4" onSubmit={handleImportArchive}>
-              <div>
-                <label htmlFor="archive-import-file" className="block text-sm font-medium">
-                  Fichier d’archive JSON
-                </label>
-                <input
-                  ref={archiveImportInputRef}
-                  id="archive-import-file"
-                  type="file"
-                  accept=".json,application/json"
-                  required
-                  onChange={handleArchiveFileChange}
-                  aria-describedby="archive-import-help archive-import-selected"
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-                />
-                <p id="archive-import-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                  Format attendu: export natif Annuaire RGAA.
-                </p>
-                <p id="archive-import-selected" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                  {archiveImportFileName ? `Fichier sélectionné: ${archiveImportFileName}` : 'Aucun fichier sélectionné.'}
-                </p>
-              </div>
-
-              <fieldset className="rounded-xl border border-slate-200 dark:border-slate-700 p-3">
-                <legend className="px-1 text-sm font-semibold">Mode d’import</legend>
-                <div className="mt-2 flex flex-wrap gap-3">
-                  <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm ${focusRingClass}`}>
-                    <input
-                      type="radio"
-                      name="archive-import-mode"
-                      value="merge"
-                      checked={archiveImportMode === 'merge'}
-                      onChange={() => setArchiveImportMode('merge')}
-                    />
-                    Fusionner
-                  </label>
-                  <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm ${focusRingClass}`}>
-                    <input
-                      type="radio"
-                      name="archive-import-mode"
-                      value="replace"
-                      checked={archiveImportMode === 'replace'}
-                      onChange={() => setArchiveImportMode('replace')}
-                    />
-                    Remplacer toute la base
-                  </label>
-                </div>
-              </fieldset>
-
-              <p className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-900 dark:text-amber-100">
-                Le mode <strong>Remplacer</strong> écrase les données existantes avant import.
+          {!isModerationUnlocked && (
+            <section className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
+              <h2 className="text-lg font-semibold">Accès protégé</h2>
+              <p className="mt-2 text-slate-700 dark:text-slate-300">
+                Les tableaux de bord et contrôles de modération restent masqués tant qu’un jeton valide n’a pas été confirmé.
               </p>
+            </section>
+          )}
 
-              <button
-                type="submit"
-                disabled={!hasToken || !archiveImportFile || isImportingArchive || isExportingArchive}
-                className={`min-h-11 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass}`}
+          {isModerationUnlocked && (
+            <>
+              <section
+                id="archive-donnees"
+                ref={archiveRef}
+                tabIndex={-1}
+                className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
+                aria-labelledby="archive-donnees-titre"
               >
-                {isImportingArchive ? 'Import en cours...' : 'Importer l’archive'}
-              </button>
-            </form>
-          </section>
+                <h2 id="archive-donnees-titre" className="text-lg font-semibold">
+                  Archivage et restauration
+                </h2>
+                <p className="mt-2 text-slate-700 dark:text-slate-300">
+                  Exportez une archive complète lisible de la base, puis réimportez-la en fusion ou en remplacement.
+                </p>
 
-          <section id="soumissions-attente" ref={pendingRef} tabIndex={-1} className="mt-8">
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleExportArchive()
+                    }}
+                    disabled={!hasToken || isExportingArchive || isImportingArchive}
+                    className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-white dark:text-slate-950 disabled:opacity-60 ${focusRingClass}`}
+                  >
+                    {isExportingArchive ? 'Export en cours...' : 'Télécharger l’archive JSON'}
+                  </button>
+                </div>
+
+                <form className="mt-4 grid gap-4 rounded-xl border border-slate-200 dark:border-slate-700 p-4" onSubmit={handleImportArchive}>
+                  <div>
+                    <label htmlFor="archive-import-file" className="block text-sm font-medium">
+                      Fichier d’archive JSON
+                    </label>
+                    <input
+                      ref={archiveImportInputRef}
+                      id="archive-import-file"
+                      type="file"
+                      accept=".json,application/json"
+                      required
+                      onChange={handleArchiveFileChange}
+                      aria-describedby="archive-import-help archive-import-selected"
+                      className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                    />
+                    <p id="archive-import-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                      Format attendu: export natif Annuaire RGAA.
+                    </p>
+                    <p id="archive-import-selected" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                      {archiveImportFileName ? `Fichier sélectionné: ${archiveImportFileName}` : 'Aucun fichier sélectionné.'}
+                    </p>
+                  </div>
+
+                  <fieldset className="rounded-xl border border-slate-200 dark:border-slate-700 p-3">
+                    <legend className="px-1 text-sm font-semibold">Mode d’import</legend>
+                    <div className="mt-2 flex flex-wrap gap-3">
+                      <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm ${focusRingClass}`}>
+                        <input
+                          type="radio"
+                          name="archive-import-mode"
+                          value="merge"
+                          checked={archiveImportMode === 'merge'}
+                          onChange={() => setArchiveImportMode('merge')}
+                        />
+                        Fusionner
+                      </label>
+                      <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm ${focusRingClass}`}>
+                        <input
+                          type="radio"
+                          name="archive-import-mode"
+                          value="replace"
+                          checked={archiveImportMode === 'replace'}
+                          onChange={() => setArchiveImportMode('replace')}
+                        />
+                        Remplacer toute la base
+                      </label>
+                    </div>
+                  </fieldset>
+
+                  <p className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-900 dark:text-amber-100">
+                    Le mode <strong>Remplacer</strong> écrase les données existantes avant import.
+                  </p>
+
+                  <button
+                    type="submit"
+                    disabled={!hasToken || !archiveImportFile || isImportingArchive || isExportingArchive}
+                    className={`min-h-11 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass}`}
+                  >
+                    {isImportingArchive ? 'Import en cours...' : 'Importer l’archive'}
+                  </button>
+                </form>
+              </section>
+
+              <section id="soumissions-attente" ref={pendingRef} tabIndex={-1} className="mt-8">
             <h2 className="text-lg font-semibold">Soumissions en attente</h2>
             <p className="mt-2 text-slate-700 dark:text-slate-300">
               {pendingEntries.length} soumission(s) à traiter.
@@ -1442,15 +1485,15 @@ function ModerationPage() {
                 })}
               </ul>
             )}
-          </section>
+              </section>
 
-          <section
-            id="annuaire-publie"
-            ref={publishedRef}
-            tabIndex={-1}
-            className="mt-8"
-            aria-busy={isLoadingPublished}
-          >
+              <section
+                id="annuaire-publie"
+                ref={publishedRef}
+                tabIndex={-1}
+                className="mt-8"
+                aria-busy={isLoadingPublished}
+              >
             <h2 className="text-lg font-semibold">Annuaire publié (édition et suppression)</h2>
             <p className="mt-2 text-slate-700 dark:text-slate-300">
               {publishedEntries.length} entrée(s) publiées.
@@ -1740,15 +1783,15 @@ function ModerationPage() {
                 })}
               </ul>
             )}
-          </section>
+              </section>
 
-          <section
-            id="blocklist-sites"
-            ref={siteBlocklistSectionRef}
-            tabIndex={-1}
-            className="mt-8 rounded-2xl border border-rose-200 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/20 p-6"
-            aria-labelledby="blocklist-sites-titre"
-          >
+              <section
+                id="blocklist-sites"
+                ref={siteBlocklistSectionRef}
+                tabIndex={-1}
+                className="mt-8 rounded-2xl border border-rose-200 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/20 p-6"
+                aria-labelledby="blocklist-sites-titre"
+              >
             <h2 id="blocklist-sites-titre" className="text-lg font-semibold text-rose-900 dark:text-rose-100">
               Blocklist des sites
             </h2>
@@ -1809,15 +1852,15 @@ function ModerationPage() {
                 })
               )}
             </ul>
-          </section>
+              </section>
 
-          <section
-            id="blocklist-votes"
-            ref={voteBlocklistSectionRef}
-            tabIndex={-1}
-            className="mt-8 rounded-2xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20 p-6"
-            aria-labelledby="blocklist-votes-titre"
-          >
+              <section
+                id="blocklist-votes"
+                ref={voteBlocklistSectionRef}
+                tabIndex={-1}
+                className="mt-8 rounded-2xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20 p-6"
+                aria-labelledby="blocklist-votes-titre"
+              >
             <h2 id="blocklist-votes-titre" className="text-lg font-semibold text-amber-900 dark:text-amber-100">
               Blocage des votes
             </h2>
@@ -1878,7 +1921,9 @@ function ModerationPage() {
                 })
               )}
             </ul>
-          </section>
+              </section>
+            </>
+          )}
         </main>
 
         <SiteFooter id="pied-page" footerRef={footerRef} />
