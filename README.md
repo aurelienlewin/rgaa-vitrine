@@ -160,13 +160,17 @@ Operational note:
 ## SEO
 
 - Rich metadata: description, robots, canonical, hreflang
+- Canonical host redirects at edge (`www` + legacy `.org` to `annuaire-rgaa.fr`) to avoid duplicate indexing.
 - Open Graph + Twitter Cards
 - Structured data (JSON-LD): `WebSite`, `Organization`, `Person`, `CollectionPage`, `SiteNavigationElement`
+- Structured data now also exposes `SearchAction` on homepage and `BreadcrumbList` on key secondary pages.
 - Accessible public site map page: `/plan-du-site`
 - Public accessibility declaration page: `/accessibilite`
 - Auto-generated sitemap endpoint: `/sitemap.xml` (backed by API route `/api/sitemap`)
+- Sitemap now includes the public data endpoint (`/api/showcase`) for dataset discovery.
 - AI crawler files: `/llms.txt`, `/llms-full.txt`, `/ai-context.json` (and `/api/ai-context`)
 - `public/robots.txt`
+- Public showcase API includes cache headers (`Cache-Control`, `Last-Modified`) for crawler efficiency and reduced load.
 - Serverless API adapter now normalizes absolute/relative request URLs before Express routing, reducing production fallback mismatches on `/api/*`.
 
 ## Getting Started

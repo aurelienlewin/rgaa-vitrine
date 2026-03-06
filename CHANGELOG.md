@@ -135,6 +135,12 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Moderation form accessibility pass: token and blocklist URL inputs are explicitly required, editable URL fields are typed as URL, score input includes guidance text, and blocklist row actions expose contextual accessible labels.
 - Serverless API adapter now normalizes absolute/relative request URLs before dispatching to Express (`/api/*`, `/sitemap.xml`, `/ai-context.json`).
 - Showcase loading now accepts multiple API payload shapes (`{ entries }`, array, and legacy nested entries) to avoid false “Liste d’annuaire invalide”.
+- Canonical SEO hardening: Vercel host redirects now consolidate `www.annuaire-rgaa.fr` and legacy `.org` hosts to `https://annuaire-rgaa.fr`.
+- Homepage structured data now exposes a `SearchAction`, with URL-synced `?recherche=` support for crawlable search landing URLs.
+- Secondary pages (`/plan-du-site`, `/accessibilite`) now expose `BreadcrumbList` structured data.
+- Open Graph and Twitter metadata now include URL/image-alt/secure image fields for richer sharing previews.
+- Sitemap now includes `/api/showcase`, and `robots.txt` explicitly blocks moderation paths from indexing.
+- `GET /api/showcase` now returns cache-friendly headers (`Cache-Control`, `Last-Modified`) to improve crawl efficiency.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
