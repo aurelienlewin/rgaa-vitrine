@@ -358,18 +358,27 @@ function findAccessibilityPageUrl($, baseUrl) {
 function extractCompliance(text) {
   const normalized = normalizeForMatch(text)
 
-  let complianceStatus = null
-  if (normalized.includes('totalement conforme')) {
-    complianceStatus = 'full'
-  } else if (normalized.includes('partiellement conforme')) {
-    complianceStatus = 'partial'
-  } else if (normalized.includes('non conforme')) {
-    complianceStatus = 'none'
-  }
-
+  const explicitStatus = extractExplicitComplianceStatus(normalized)
   const complianceScore = extractComplianceScore(normalized)
+  const complianceStatus = resolveComplianceStatus(explicitStatus, complianceScore, normalized)
 
   return { complianceStatus, complianceScore }
+}
+
+function extractExplicitComplianceStatus(normalizedText) {
+  if (normalizedText.includes('totalement conforme')) {
+    return 'full'
+  }
+
+  if (normalizedText.includes('partiellement conforme')) {
+    return 'partial'
+  }
+
+  if (normalizedText.includes('non conforme')) {
+    return 'none'
+  }
+
+  return null
 }
 
 function parseScoreValue(rawValue) {
@@ -387,11 +396,72 @@ function parseScoreValue(rawValue) {
   return Math.round(parsed * 100) / 100
 }
 
+function parseComplianceStatusValue(rawValue) {
+  if (typeof rawValue !== 'string') {
+    return null
+  }
+
+  const normalized = normalizeForMatch(rawValue)
+  if (!normalized) {
+    return null
+  }
+
+  if (normalized === 'full' || normalized.includes('totalement conforme')) {
+    return 'full'
+  }
+
+  if (normalized === 'partial' || normalized.includes('partiellement conforme')) {
+    return 'partial'
+  }
+
+  if (normalized === 'none' || normalized.includes('non conforme')) {
+    return 'none'
+  }
+
+  return null
+}
+
+function resolveComplianceStatus(explicitStatus, score, normalizedText) {
+  if (explicitStatus) {
+    return explicitStatus
+  }
+
+  if (typeof score === 'number') {
+    if (score >= 100) {
+      return 'full'
+    }
+    if (score <= 0) {
+      return 'none'
+    }
+    return 'partial'
+  }
+
+  if (
+    normalizedText.includes('accessibilite') &&
+    normalizedText.includes('declaration') &&
+    normalizedText.includes('non-conformit')
+  ) {
+    return 'partial'
+  }
+
+  if (
+    normalizedText.includes('accessibilite') &&
+    (normalizedText.includes('conformite') || normalizedText.includes('rgaa')) &&
+    (normalizedText.includes('declaration') || normalizedText.includes('score'))
+  ) {
+    return 'partial'
+  }
+
+  return null
+}
+
 function extractComplianceScore(normalizedText) {
   const prioritizedPatterns = [
     /taux\s+moyen\s+de\s+conformite[^\d]{0,120}(\d{1,3}(?:[.,]\d{1,2})?)\s*%/,
     /taux(?:\s+\w+){0,4}\s+de\s+conformite[^\d]{0,120}(\d{1,3}(?:[.,]\d{1,2})?)\s*%/,
     /conformite[^\d]{0,120}taux[^\d]{0,120}(\d{1,3}(?:[.,]\d{1,2})?)\s*%/,
+    /score(?:\s+\w+){0,4}[^\d]{0,120}(\d{1,3}(?:[.,]\d{1,2})?)\s*%/,
+    /(\d{1,3}(?:[.,]\d{1,2})?)\s*%\s*(?:des\s+)?criteres[^\n]{0,80}respectes/,
   ]
 
   for (const pattern of prioritizedPatterns) {
@@ -427,6 +497,8 @@ function extractComplianceScore(normalizedText) {
         weight += 120
       } else if (line.includes('taux de conformite')) {
         weight += 90
+      } else if (line.includes('score')) {
+        weight += 85
       } else if (line.includes('taux') && line.includes('conformite')) {
         weight += 75
       } else if (line.includes('conformite')) {
@@ -519,6 +591,70 @@ function extractMetaInformation(html, baseUrl) {
   }
 }
 
+function extractComplianceFromMetaTags($) {
+  const statusMetaSelectors = [
+    'meta[name="rgaa:compliance-status"]',
+    'meta[name="rgaa:status"]',
+    'meta[name="accessibility:compliance-status"]',
+    'meta[name="accessibility:status"]',
+  ]
+
+  const scoreMetaSelectors = [
+    'meta[name="rgaa:compliance-score"]',
+    'meta[name="rgaa:score"]',
+    'meta[name="accessibility:compliance-score"]',
+    'meta[name="accessibility:score"]',
+  ]
+
+  let explicitStatus = null
+  for (const selector of statusMetaSelectors) {
+    const value = $(selector).attr('content')?.trim()
+    const parsed = parseComplianceStatusValue(value)
+    if (parsed) {
+      explicitStatus = parsed
+      break
+    }
+  }
+
+  let complianceScore = null
+  for (const selector of scoreMetaSelectors) {
+    const value = $(selector).attr('content')?.trim()
+    const parsed = parseScoreValue(value)
+    if (parsed !== null) {
+      complianceScore = parsed
+      break
+    }
+  }
+
+  return {
+    explicitStatus,
+    complianceScore,
+  }
+}
+
+function extractDocumentSignalText($) {
+  const parts = []
+
+  const bodyText = $.text()
+  if (bodyText) {
+    parts.push(bodyText)
+  }
+
+  const title = $('title').first().text()
+  if (title) {
+    parts.push(title)
+  }
+
+  $('meta[content]').each((_, element) => {
+    const content = $(element).attr('content')?.trim()
+    if (content) {
+      parts.push(content)
+    }
+  })
+
+  return parts.join('\n')
+}
+
 async function extractComplianceFromAccessibilityPage(accessibilityPageUrl) {
   if (!accessibilityPageUrl) {
     return {
@@ -531,8 +667,23 @@ async function extractComplianceFromAccessibilityPage(accessibilityPageUrl) {
   await validatePublicHost(parsed.hostname)
 
   const { html } = await fetchHtml(accessibilityPageUrl)
-  const text = load(html).text()
-  return extractCompliance(text)
+  const $ = load(html)
+  const signalText = extractDocumentSignalText($)
+  const normalizedSignalText = normalizeForMatch(signalText)
+  const textBased = extractCompliance(signalText)
+  const metaBased = extractComplianceFromMetaTags($)
+
+  const complianceScore = textBased.complianceScore ?? metaBased.complianceScore
+  const complianceStatus = resolveComplianceStatus(
+    textBased.complianceStatus ?? metaBased.explicitStatus,
+    complianceScore,
+    normalizedSignalText,
+  )
+
+  return {
+    complianceStatus,
+    complianceScore,
+  }
 }
 
 export async function buildSiteInsight(inputUrl) {

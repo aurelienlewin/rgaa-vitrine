@@ -130,6 +130,7 @@ Based on production audit data from `../audit/out/20260306-141236/audit.resume.j
 - `11.12` submission confirmation step with clear ability to review and modify entered data before sending.
 - `12.4` consistent exposure of `Plan du site` / `Accessibilité` navigation links across pages.
 - Compliance-score retrieval now recognizes broader wording patterns and decimal French percentages (e.g. `96,51 %`) on accessibility statements.
+- Compliance retrieval now also reads declarative meta hints (`rgaa:compliance-status`, `rgaa:compliance-score`) and SPA shell signals when accessibility pages expose little static body text.
 
 ## SEO
 

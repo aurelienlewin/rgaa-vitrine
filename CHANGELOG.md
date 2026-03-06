@@ -109,6 +109,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Moderation message focus timing is now deferred to ensure reliable keyboard focus on freshly rendered feedback blocks.
 - Frontend bootstrap now guards `window/document` usage for SSR-safe execution paths.
 - Submission confirmation flow now moves focus to the \"Vérification avant envoi\" panel on trigger, then to in-progress status feedback during final send.
+- Site insight compliance retrieval now consumes metadata hints (`rgaa:compliance-status`, `rgaa:compliance-score`) and stronger SPA-page textual signals to avoid false manual-review downgrades.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
