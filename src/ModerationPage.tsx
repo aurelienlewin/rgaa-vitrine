@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 import ThemeToggle from './ThemeToggle'
 import { applySeo } from './seo'
 
@@ -51,6 +51,8 @@ type PublishedEntryFeedback = {
   tone: 'info' | 'success' | 'error'
   message: string
 }
+
+type ArchiveImportMode = 'merge' | 'replace'
 
 const moderationCategories = [
   'Administration',
@@ -181,6 +183,33 @@ async function readApiPayload(response: Response) {
   return { error: compactBody.slice(0, 220) || 'Réponse serveur non JSON.' }
 }
 
+function readFilenameFromDisposition(disposition: string | null) {
+  if (!disposition) {
+    return null
+  }
+
+  const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i)
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1]).replace(/[/\\]/g, '_')
+    } catch {
+      // fallback on standard filename parsing below
+    }
+  }
+
+  const quotedMatch = disposition.match(/filename="([^"]+)"/i)
+  if (quotedMatch?.[1]) {
+    return quotedMatch[1].replace(/[/\\]/g, '_')
+  }
+
+  const plainMatch = disposition.match(/filename=([^;]+)/i)
+  if (plainMatch?.[1]) {
+    return plainMatch[1].trim().replace(/[/\\]/g, '_')
+  }
+
+  return null
+}
+
 function ModerationPage() {
   const [moderationToken, setModerationToken] = useState('')
   const [pendingEntries, setPendingEntries] = useState<PendingSubmission[]>([])
@@ -202,11 +231,18 @@ function ModerationPage() {
   const [politeMessage, setPoliteMessage] = useState('')
   const [assertiveMessage, setAssertiveMessage] = useState('')
   const [showToken, setShowToken] = useState(false)
+  const [isExportingArchive, setIsExportingArchive] = useState(false)
+  const [isImportingArchive, setIsImportingArchive] = useState(false)
+  const [archiveImportMode, setArchiveImportMode] = useState<ArchiveImportMode>('merge')
+  const [archiveImportFile, setArchiveImportFile] = useState<File | null>(null)
+  const [archiveImportFileName, setArchiveImportFileName] = useState('')
   const mainRef = useRef<HTMLElement | null>(null)
   const pendingRef = useRef<HTMLElement | null>(null)
   const publishedRef = useRef<HTMLElement | null>(null)
+  const archiveRef = useRef<HTMLElement | null>(null)
   const tokenInputRef = useRef<HTMLInputElement | null>(null)
   const messageRef = useRef<HTMLParagraphElement | null>(null)
+  const archiveImportInputRef = useRef<HTMLInputElement | null>(null)
   const pendingApproveButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const publishedSaveButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const publishedDeleteButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
@@ -249,6 +285,10 @@ function ModerationPage() {
 
   const focusPublished = useCallback(() => {
     focusElement(publishedRef.current)
+  }, [focusElement])
+
+  const focusArchive = useCallback(() => {
+    focusElement(archiveRef.current)
   }, [focusElement])
 
   const focusSiteBlocklist = useCallback(() => {
@@ -508,6 +548,155 @@ function ModerationPage() {
       }
     },
     [focusPending, loadBlocklists, loadPendingEntries, loadPublishedEntries],
+  )
+
+  const handleExportArchive = useCallback(async () => {
+    if (!hasToken) {
+      setAssertiveMessage('Veuillez saisir un jeton de modération.')
+      setPoliteMessage('')
+      focusTokenInput()
+      return
+    }
+
+    setIsExportingArchive(true)
+    setAssertiveMessage('')
+    setPoliteMessage('Préparation de l’archive en cours...')
+
+    try {
+      const response = await fetch('/api/moderation/archive', {
+        headers: buildAuthHeaders(false),
+      })
+
+      if (!response.ok) {
+        const payload = await readApiPayload(response)
+        throw new Error(typeof payload.error === 'string' ? payload.error : 'Export impossible.')
+      }
+
+      const archiveBlob = await response.blob()
+      if (archiveBlob.size <= 0) {
+        throw new Error('Archive vide reçue du serveur.')
+      }
+
+      const responseFilename = readFilenameFromDisposition(response.headers.get('content-disposition'))
+      const fallbackFilename = `annuaire-rgaa-archive-${new Date()
+        .toISOString()
+        .replace(/[-:]/g, '')
+        .replace(/\.\d{3}Z$/, 'Z')}.json`
+      const archiveFilename = responseFilename || fallbackFilename
+
+      const downloadUrl = window.URL.createObjectURL(archiveBlob)
+      const downloadAnchor = document.createElement('a')
+      downloadAnchor.href = downloadUrl
+      downloadAnchor.download = archiveFilename
+      downloadAnchor.rel = 'noopener'
+      document.body.append(downloadAnchor)
+      downloadAnchor.click()
+      downloadAnchor.remove()
+      window.URL.revokeObjectURL(downloadUrl)
+
+      setPoliteMessage(`Archive exportée: ${archiveFilename}`)
+      setAssertiveMessage('')
+      focusArchive()
+    } catch (error) {
+      const localizedMessage = error instanceof Error ? error.message : 'Erreur lors de l’export.'
+      setAssertiveMessage(localizedMessage)
+      setPoliteMessage('')
+      focusMessage()
+    } finally {
+      setIsExportingArchive(false)
+    }
+  }, [buildAuthHeaders, focusArchive, focusMessage, focusTokenInput, hasToken])
+
+  const handleArchiveFileChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null
+    setArchiveImportFile(file)
+    setArchiveImportFileName(file?.name ?? '')
+  }, [])
+
+  const handleImportArchive = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+
+      if (!hasToken) {
+        setAssertiveMessage('Veuillez saisir un jeton de modération.')
+        setPoliteMessage('')
+        focusTokenInput()
+        return
+      }
+
+      if (!archiveImportFile) {
+        setAssertiveMessage('Veuillez sélectionner un fichier d’archive JSON.')
+        setPoliteMessage('')
+        focusElement(archiveImportInputRef.current)
+        return
+      }
+
+      setIsImportingArchive(true)
+      setAssertiveMessage('')
+      setPoliteMessage('Import de l’archive en cours...')
+
+      try {
+        const archiveRawText = await archiveImportFile.text()
+        let parsedArchive: unknown = null
+        try {
+          parsedArchive = JSON.parse(archiveRawText)
+        } catch {
+          throw new Error('Fichier JSON invalide.')
+        }
+
+        const response = await fetch('/api/moderation/archive/import', {
+          method: 'POST',
+          headers: buildAuthHeaders(true),
+          body: JSON.stringify({
+            mode: archiveImportMode,
+            archive: parsedArchive,
+          }),
+        })
+        const payload = await readApiPayload(response)
+
+        if (!response.ok) {
+          throw new Error(typeof payload.error === 'string' ? payload.error : 'Import impossible.')
+        }
+
+        await Promise.all([loadPendingEntries(), loadPublishedEntries(), loadBlocklists()])
+
+        const message =
+          toNullableString(payload.message) ??
+          (archiveImportMode === 'replace'
+            ? 'Archive importée en mode remplacement.'
+            : 'Archive importée en mode fusion.')
+        setPoliteMessage(message)
+        setAssertiveMessage('')
+
+        setArchiveImportFile(null)
+        setArchiveImportFileName('')
+        if (archiveImportInputRef.current) {
+          archiveImportInputRef.current.value = ''
+        }
+
+        focusArchive()
+      } catch (error) {
+        const localizedMessage = error instanceof Error ? error.message : 'Erreur lors de l’import.'
+        setAssertiveMessage(localizedMessage)
+        setPoliteMessage('')
+        focusMessage()
+      } finally {
+        setIsImportingArchive(false)
+      }
+    },
+    [
+      archiveImportFile,
+      archiveImportMode,
+      buildAuthHeaders,
+      focusArchive,
+      focusElement,
+      focusMessage,
+      focusTokenInput,
+      hasToken,
+      loadBlocklists,
+      loadPendingEntries,
+      loadPublishedEntries,
+    ],
   )
 
   const handlePublishedDraftChange = useCallback(
@@ -981,6 +1170,9 @@ function ModerationPage() {
         <a href="#annuaire-publie" className={skipLinkClass} onClick={focusPublished}>
           Aller à l’annuaire publié
         </a>
+        <a href="#archive-donnees" className={skipLinkClass} onClick={focusArchive}>
+          Aller à l’archivage
+        </a>
         <a href="#blocklist-sites" className={skipLinkClass} onClick={focusSiteBlocklist}>
           Aller à la blocklist sites
         </a>
@@ -1084,6 +1276,96 @@ function ModerationPage() {
                 {assertiveMessage || politeMessage}
               </p>
             )}
+          </section>
+
+          <section
+            id="archive-donnees"
+            ref={archiveRef}
+            tabIndex={-1}
+            className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
+            aria-labelledby="archive-donnees-titre"
+          >
+            <h2 id="archive-donnees-titre" className="text-lg font-semibold">
+              Archivage et restauration
+            </h2>
+            <p className="mt-2 text-slate-700 dark:text-slate-300">
+              Exportez une archive complète lisible de la base, puis réimportez-la en fusion ou en remplacement.
+            </p>
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  void handleExportArchive()
+                }}
+                disabled={!hasToken || isExportingArchive || isImportingArchive}
+                className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-white dark:text-slate-950 disabled:opacity-60 ${focusRingClass}`}
+              >
+                {isExportingArchive ? 'Export en cours...' : 'Télécharger l’archive JSON'}
+              </button>
+            </div>
+
+            <form className="mt-4 grid gap-4 rounded-xl border border-slate-200 dark:border-slate-700 p-4" onSubmit={handleImportArchive}>
+              <div>
+                <label htmlFor="archive-import-file" className="block text-sm font-medium">
+                  Fichier d’archive JSON
+                </label>
+                <input
+                  ref={archiveImportInputRef}
+                  id="archive-import-file"
+                  type="file"
+                  accept=".json,application/json"
+                  required
+                  onChange={handleArchiveFileChange}
+                  aria-describedby="archive-import-help archive-import-selected"
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                />
+                <p id="archive-import-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                  Format attendu: export natif Annuaire RGAA.
+                </p>
+                <p id="archive-import-selected" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                  {archiveImportFileName ? `Fichier sélectionné: ${archiveImportFileName}` : 'Aucun fichier sélectionné.'}
+                </p>
+              </div>
+
+              <fieldset className="rounded-xl border border-slate-200 dark:border-slate-700 p-3">
+                <legend className="px-1 text-sm font-semibold">Mode d’import</legend>
+                <div className="mt-2 flex flex-wrap gap-3">
+                  <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm ${focusRingClass}`}>
+                    <input
+                      type="radio"
+                      name="archive-import-mode"
+                      value="merge"
+                      checked={archiveImportMode === 'merge'}
+                      onChange={() => setArchiveImportMode('merge')}
+                    />
+                    Fusionner
+                  </label>
+                  <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm ${focusRingClass}`}>
+                    <input
+                      type="radio"
+                      name="archive-import-mode"
+                      value="replace"
+                      checked={archiveImportMode === 'replace'}
+                      onChange={() => setArchiveImportMode('replace')}
+                    />
+                    Remplacer toute la base
+                  </label>
+                </div>
+              </fieldset>
+
+              <p className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-900 dark:text-amber-100">
+                Le mode <strong>Remplacer</strong> écrase les données existantes avant import.
+              </p>
+
+              <button
+                type="submit"
+                disabled={!hasToken || !archiveImportFile || isImportingArchive || isExportingArchive}
+                className={`min-h-11 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass}`}
+              >
+                {isImportingArchive ? 'Import en cours...' : 'Importer l’archive'}
+              </button>
+            </form>
           </section>
 
           <section id="soumissions-attente" ref={pendingRef} tabIndex={-1} className="mt-8">
