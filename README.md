@@ -47,6 +47,15 @@ UPSTASH_REDIS_REST_URL=...
 UPSTASH_REDIS_REST_TOKEN=...
 ```
 
+Alternative compatible names are also supported:
+
+```bash
+KV_REST_API_URL=...
+KV_REST_API_TOKEN=...
+```
+
+API scripts auto-load `.env.local` when present.
+
 You can check the active storage mode via:
 
 - `GET /api/health`

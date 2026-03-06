@@ -21,6 +21,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Reframed UX from \"single-site result\" to \"big filterable listing\".
 - Registration flow wording now emphasizes adding a site to the directory (not auditing).
 - Simplified information architecture to prioritize browsing/filtering over submission.
+- Redis config now accepts `KV_REST_API_URL`/`KV_REST_API_TOKEN` aliases in addition to `UPSTASH_*`.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

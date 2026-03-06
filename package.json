@@ -6,11 +6,11 @@
   "scripts": {
     "dev": "concurrently -k \"npm:dev:api\" \"npm:dev:web\"",
     "dev:web": "vite",
-    "dev:api": "node --watch server/index.js",
+    "dev:api": "node --env-file-if-exists=.env.local --watch server/index.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start:api": "node server/index.js"
+    "start:api": "node --env-file-if-exists=.env.local server/index.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.1",
