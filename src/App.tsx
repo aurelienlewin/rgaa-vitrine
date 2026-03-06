@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, MouseEvent as ReactMouseEvent, RefObject } from 'react'
+import ThemeToggle from './ThemeToggle'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
 
@@ -448,12 +449,17 @@ function App() {
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Annuaire public RGAA</p>
-              <a
-                href="#aide-accessibilite"
-                className={`inline-flex min-h-11 items-center rounded-xl border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 px-4 py-2 text-sm font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
-              >
-                Aide accessibilité
-              </a>
+              <div className="flex flex-wrap items-center gap-2">
+                <ThemeToggle
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                />
+                <a
+                  href="#aide-accessibilite"
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 px-4 py-2 text-sm font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
+                >
+                  Aide accessibilité
+                </a>
+              </div>
             </div>
             <img
               src="/logo-rgaa-vitrine.svg"

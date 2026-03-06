@@ -9,6 +9,9 @@ import '@fontsource/lexend/700.css'
 import './index.css'
 import App from './App.tsx'
 import ModerationPage from './ModerationPage.tsx'
+import { initializeTheme } from './theme'
+
+initializeTheme()
 
 const isModerationRoute = window.location.pathname.startsWith('/moderation')
 const RootComponent = isModerationRoute ? ModerationPage : App

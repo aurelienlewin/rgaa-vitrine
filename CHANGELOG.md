@@ -70,6 +70,8 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Tailwind color palette tokens (slate/sky/emerald/amber/rose) are now remapped to a higher-contrast low-vision scheme in light and dark modes.
 - Links now expose stronger hover and visited-state distinction to improve orientation for low-vision browsing.
 - Compliance badges now include stronger border contrast in addition to color coding.
+- Added an explicit light/dark toggle (with persistence) in both main and moderation headers.
+- Tailwind `dark:` variant now follows a root `.dark` class to support manual mode switching while keeping system fallback.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

@@ -25,6 +25,7 @@ Planned public website: **https://rgaa-vitrine.org**
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
 - High-contrast color system tuned for low-vision navigation in both light and dark modes (including stronger visited-link and status semantics).
+- Persistent light/dark mode toggle available on both directory and moderation screens.
 - Dark mode styling is consistently applied through Tailwind `dark:` variants to avoid mixed-theme rendering.
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
 - UI typography avoids tiny text; informational content and metadata are rendered at `text-sm` or above.

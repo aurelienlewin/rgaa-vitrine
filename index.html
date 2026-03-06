@@ -64,6 +64,22 @@
     </script>
     <script>
       (function () {
+        try {
+          var rawPreference = window.localStorage.getItem('annuaire-rgaa-theme');
+          var preference = rawPreference === 'light' || rawPreference === 'dark' ? rawPreference : 'system';
+          var systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var resolvedTheme = preference === 'system' ? (systemDark ? 'dark' : 'light') : preference;
+          var root = document.documentElement;
+          root.setAttribute('data-theme', resolvedTheme);
+          root.classList.toggle('dark', resolvedTheme === 'dark');
+          root.style.colorScheme = resolvedTheme;
+        } catch (_) {
+          // Keep default CSS preference when storage is unavailable.
+        }
+      })();
+    </script>
+    <script>
+      (function () {
         var url = window.location.origin + window.location.pathname;
         var canonical = document.querySelector('link[rel="canonical"]');
         var ogUrl = document.querySelector('meta[property="og:url"]');

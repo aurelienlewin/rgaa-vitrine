@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import ThemeToggle from './ThemeToggle'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
 
@@ -280,9 +281,14 @@ function ModerationPage() {
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h1 className="text-xl font-semibold">Modération Annuaire RGAA</h1>
-              <a href="/" className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}>
-                Retour à l’annuaire
-              </a>
+              <div className="flex flex-wrap items-center gap-2">
+                <ThemeToggle
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                />
+                <a href="/" className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}>
+                  Retour à l’annuaire
+                </a>
+              </div>
             </div>
             <p className="mt-2 text-slate-700 dark:text-slate-300">
               Validez ou rejetez les soumissions en attente sans passer par `curl`.
