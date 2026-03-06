@@ -34,15 +34,15 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "destination": "/api?__rgaa_path=/api/$1"
     },
     {
       "source": "/sitemap.xml",
-      "destination": "/api/sitemap"
+      "destination": "/api?__rgaa_path=/api/sitemap"
     },
     {
       "source": "/ai-context.json",
-      "destination": "/api/ai-context"
+      "destination": "/api?__rgaa_path=/api/ai-context"
     },
     {
       "source": "/(.*\\..*)",

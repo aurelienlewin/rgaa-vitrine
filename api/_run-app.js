@@ -5,23 +5,34 @@ function normalizePathAndQuery(rawUrl) {
     return '/api'
   }
 
-  let candidate = rawUrl.trim()
+  const candidate = rawUrl.trim()
 
-  // Some platforms may provide an absolute URL instead of a path.
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(candidate)) {
-    try {
-      const parsed = new URL(candidate)
-      candidate = `${parsed.pathname}${parsed.search}`
-    } catch {
-      return '/api'
+  try {
+    const parsed = new URL(candidate, 'http://localhost')
+    const rewrittenPath = parsed.searchParams.get('__rgaa_path')
+
+    if (typeof rewrittenPath === 'string' && rewrittenPath.trim()) {
+      parsed.searchParams.delete('__rgaa_path')
+
+      let normalizedPath = rewrittenPath.trim()
+      if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(normalizedPath)) {
+        normalizedPath = new URL(normalizedPath).pathname
+      }
+      if (!normalizedPath.startsWith('/')) {
+        normalizedPath = `/${normalizedPath}`
+      }
+      normalizedPath = normalizedPath.replace(/^\/{2,}/, '/')
+
+      const query = parsed.searchParams.toString()
+      return query ? `${normalizedPath}?${query}` : normalizedPath
     }
-  }
 
-  if (!candidate.startsWith('/')) {
-    candidate = `/${candidate}`
+    const pathname = parsed.pathname.startsWith('/') ? parsed.pathname : `/${parsed.pathname}`
+    const query = parsed.search
+    return `${pathname.replace(/^\/{2,}/, '/')}${query}`
+  } catch {
+    return '/api'
   }
-
-  return candidate.replace(/^\/{2,}/, '/')
 }
 
 export default function runApiApp(request, response) {
