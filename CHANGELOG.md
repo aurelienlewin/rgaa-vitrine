@@ -25,6 +25,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - New `MODERATION_API_TOKEN` environment variable for admin-only validation actions.
 - New frontend moderation page (`/moderation`) to authenticate and process pending submissions without curl.
 - New Redis-backed read-through cache (TTL in-memory layer) to reduce repeated Upstash queries on identical listing/moderation reads.
+- Local self-hosted dyslexia-friendly font assets are now bundled from `@fontsource` packages.
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.

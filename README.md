@@ -45,6 +45,7 @@ Planned public website: **https://rgaa-vitrine.org**
 - Node + Express API
 - Upstash Redis (optional but recommended) for persistent showcase storage
 - API-side in-memory Redis cache (TTL-based) to reduce repeated Upstash reads
+- Local self-hosted fonts via `@fontsource` (`opendyslexic`, `atkinson-hyperlegible`, `lexend`)
 
 ## Persistence (Redis)
 

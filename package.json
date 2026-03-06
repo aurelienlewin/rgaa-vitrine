@@ -13,6 +13,9 @@
     "start:api": "node --env-file-if-exists=.env.local server/index.js"
   },
   "dependencies": {
+    "@fontsource/atkinson-hyperlegible": "^5.2.8",
+    "@fontsource/lexend": "^5.2.11",
+    "@fontsource/opendyslexic": "^5.2.5",
     "@tailwindcss/vite": "^4.2.1",
     "@upstash/redis": "^1.36.3",
     "cheerio": "^1.2.0",
