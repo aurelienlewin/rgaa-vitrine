@@ -458,7 +458,7 @@ function App() {
             <img
               src="/logo-rgaa-vitrine.svg"
               alt="Logo Annuaire RGAA"
-              className="mt-2 h-auto w-full max-w-md"
+              className="mt-2 h-auto w-full"
               loading="eager"
             />
             <h1 className="sr-only">Annuaire RGAA</h1>
