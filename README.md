@@ -136,10 +136,12 @@ You can check the active storage mode via:
 - DNS resolution checks before remote fetch
 - Response timeout and maximum HTML size limits
 - Global rate limiting on API endpoints + stricter hourly limiter for submissions
+- Dedicated moderation-auth hardening: `MODERATION_API_TOKEN` must be strong (minimum `32` chars) and failed moderation auth attempts are throttled.
 - Dedicated vote anti-abuse controls: one-vote safeguards per user/browser fingerprint + per network fingerprint, plus hourly vote rate limiting
 - Forwarded IP headers are now validated as real IPs before contributing to anti-abuse vote fingerprints.
 - Moderation-enforced site blocklist now prevents new submissions on blocked URLs.
 - Moderation-enforced vote blocking now disables upvotes for selected URLs.
+- GitHub notifier hardening: explicit notifier token env vars only, strict public-HTTPS validation for custom GitHub API base URL, and short outbound timeout.
 - Domain-level deduplication via canonical URL normalization (e.g. `www` variants collapse)
 - Honeypot field validation to reduce automated spam submissions
 - Automatic spam/marketing signal rejection (quality filter)
@@ -296,12 +298,12 @@ Public profile pages:
 
 Notes:
 
-- `complianceScore` accepte les décimales (ex: `96.51`) et est normalisé entre `0` et `100`.
-- `rgaaBaseline` accepte `4.1` ou `5.0-ready` pour contrôler le badge RGAA affiché publiquement.
-- `thumbnailUrl` et `accessibilityPageUrl` sont optionnels; envoyer `null` (ou chaîne vide côté UI) pour les vider.
-- Les URL éditées sont validées côté serveur (HTTP/HTTPS public uniquement).
-- `mode: "merge"` fusionne l’archive avec l’existant; `mode: "replace"` remplace d’abord toute la base.
-- L’archive exportée est un JSON lisible (entrées, file d’attente, blocklists, empreintes de vote, index votes client).
+- `complianceScore` accepts decimals (example: `96.51`) and is normalized between `0` and `100`.
+- `rgaaBaseline` accepts `4.1` or `5.0-ready` to control the public RGAA badge.
+- `thumbnailUrl` and `accessibilityPageUrl` are optional; send `null` (or an empty UI value) to clear them.
+- Edited URLs are validated server-side (public HTTP/HTTPS only).
+- `mode: "merge"` merges archive content with current storage; `mode: "replace"` clears storage before importing.
+- Exported archive payload is readable JSON (entries, pending queue, blocklists, vote fingerprints, client vote indexes).
 
 `POST /api/showcase/upvote` body:
 
@@ -340,6 +342,8 @@ Set it in local/Vercel environment:
 MODERATION_API_TOKEN=replace-with-a-long-random-token
 ```
 
+Security requirement: use at least `32` characters.
+
 Send it via header:
 
 ```bash
@@ -370,6 +374,8 @@ Optional:
 ```bash
 GITHUB_NOTIFY_LABELS=moderation,annuaire-rgaa
 PUBLIC_APP_URL=https://annuaire-rgaa.fr
+# For GitHub Enterprise/API proxy only (must be public HTTPS, no localhost/private hosts)
+# GITHUB_API_URL=https://github.example.com/api/v3
 ```
 
 Behavior:
@@ -377,11 +383,13 @@ Behavior:
 - On new `pending` moderation submission, the API creates one GitHub issue in `GITHUB_NOTIFY_REPO`.
 - GitHub notifications are then handled natively by your repo notification settings.
 - Notification failure does not block user submission flow.
+- The notifier does not read `GITHUB_TOKEN`; use `GITHUB_NOTIFY_TOKEN` or `RGAA_NOTIFY_TOKEN` explicitly.
 
 Recommended GitHub setup:
 
 1. Enable repository notifications for Issues (or Watch -> Custom -> Issues).
 2. Use a fine-grained PAT scoped to one repository with Issues write access.
+3. Keep `GITHUB_API_URL` unset unless required by GitHub Enterprise routing.
 
 ## Deployment (Vercel)
 
@@ -403,6 +411,7 @@ or
 - `MODERATION_API_TOKEN` (required to enable manual moderation API)
 - `GITHUB_NOTIFY_REPO` and `GITHUB_NOTIFY_TOKEN` (optional, enables GitHub issue notifications for pending moderation)
 - `GITHUB_NOTIFY_LABELS` and `PUBLIC_APP_URL` (optional)
+- `GITHUB_API_URL` (optional, GitHub Enterprise/API gateway only; must be a public HTTPS URL)
 
 ## Scripts
 

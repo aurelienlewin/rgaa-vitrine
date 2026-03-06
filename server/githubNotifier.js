@@ -1,8 +1,104 @@
+import { isIP } from 'node:net'
+
+const DEFAULT_GITHUB_API_BASE_URL = 'https://api.github.com'
+const GITHUB_NOTIFY_TIMEOUT_MS = 8_000
+
+function isPrivateIpLiteral(host) {
+  const version = isIP(host)
+  if (version === 4) {
+    const parts = host.split('.').map((part) => Number.parseInt(part, 10))
+    if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) {
+      return true
+    }
+
+    const [a, b] = parts
+    return (
+      a === 10 ||
+      a === 127 ||
+      a === 0 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      a >= 224
+    )
+  }
+
+  if (version === 6) {
+    const normalized = host.toLowerCase()
+    return (
+      normalized === '::1' ||
+      normalized === '::' ||
+      normalized.startsWith('fc') ||
+      normalized.startsWith('fd') ||
+      normalized.startsWith('fe8') ||
+      normalized.startsWith('fe9') ||
+      normalized.startsWith('fea') ||
+      normalized.startsWith('feb')
+    )
+  }
+
+  return false
+}
+
+function parseGithubApiBaseUrl(rawValue) {
+  const candidate =
+    typeof rawValue === 'string' && rawValue.trim()
+      ? rawValue.trim()
+      : DEFAULT_GITHUB_API_BASE_URL
+
+  let parsed
+  try {
+    parsed = new URL(candidate)
+  } catch {
+    return {
+      valid: false,
+      reason: 'invalid GITHUB_API_URL (expected an absolute HTTPS URL).',
+    }
+  }
+
+  if (parsed.protocol !== 'https:') {
+    return {
+      valid: false,
+      reason: 'invalid GITHUB_API_URL protocol (HTTPS required).',
+    }
+  }
+
+  if (parsed.username || parsed.password) {
+    return {
+      valid: false,
+      reason: 'invalid GITHUB_API_URL (credentials in URL are not allowed).',
+    }
+  }
+
+  const hostname = parsed.hostname.trim().toLowerCase()
+  if (
+    !hostname ||
+    hostname === 'localhost' ||
+    hostname.endsWith('.localhost') ||
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.internal') ||
+    isPrivateIpLiteral(hostname)
+  ) {
+    return {
+      valid: false,
+      reason: 'invalid GITHUB_API_URL host (public HTTPS host required).',
+    }
+  }
+
+  parsed.hash = ''
+  parsed.search = ''
+  const normalizedPath = parsed.pathname.replace(/\/+$/, '')
+
+  return {
+    valid: true,
+    url: `${parsed.origin}${normalizedPath}`,
+  }
+}
+
 function readGithubNotifierConfig() {
   const token = (
     process.env.GITHUB_NOTIFY_TOKEN ??
     process.env.RGAA_NOTIFY_TOKEN ??
-    process.env.GITHUB_TOKEN ??
     ''
   ).trim()
   const repo = (process.env.GITHUB_NOTIFY_REPO ?? process.env.RGAA_NOTIFY_REPO ?? '').trim()
@@ -23,14 +119,18 @@ function readGithubNotifierConfig() {
     .slice(0, 8)
 
   const appBaseUrl = (process.env.PUBLIC_APP_URL ?? process.env.APP_BASE_URL ?? '').trim().replace(/\/+$/, '')
-  const apiBaseUrl = (process.env.GITHUB_API_URL ?? 'https://api.github.com').trim().replace(/\/+$/, '')
+  const apiBaseUrlResult = parseGithubApiBaseUrl(process.env.GITHUB_API_URL)
+  if (!apiBaseUrlResult.valid) {
+    console.error(`GitHub notifier disabled: ${apiBaseUrlResult.reason}`)
+    return null
+  }
 
   return {
     token,
     repo,
     labels,
     appBaseUrl,
-    apiBaseUrl,
+    apiBaseUrl: apiBaseUrlResult.url,
   }
 }
 
@@ -119,7 +219,7 @@ export async function notifyPendingModerationOnGithub(entry) {
 
   const { title, body } = buildIssuePayload(entry)
 
-  const response = await fetch(`${githubNotifierConfig.apiBaseUrl}/repos/${githubNotifierConfig.repo}/issues`, {
+  const fetchOptions = {
     method: 'POST',
     headers: {
       authorization: `Bearer ${githubNotifierConfig.token}`,
@@ -133,7 +233,21 @@ export async function notifyPendingModerationOnGithub(entry) {
       body,
       labels: githubNotifierConfig.labels,
     }),
-  })
+  }
+
+  if (typeof AbortSignal?.timeout === 'function') {
+    fetchOptions.signal = AbortSignal.timeout(GITHUB_NOTIFY_TIMEOUT_MS)
+  }
+
+  let response
+  try {
+    response = await fetch(`${githubNotifierConfig.apiBaseUrl}/repos/${githubNotifierConfig.repo}/issues`, fetchOptions)
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`GitHub notifier timeout after ${GITHUB_NOTIFY_TIMEOUT_MS}ms`)
+    }
+    throw error
+  }
 
   const payload = await readJsonSafely(response)
 

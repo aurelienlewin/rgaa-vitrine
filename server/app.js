@@ -40,6 +40,7 @@ const SUSPICIOUS_MARKETING_TOKENS = [
 const VOTE_FINGERPRINT_SALT = process.env.VOTE_FINGERPRINT_SALT ?? 'annuaire-rgaa-votes'
 const MAX_ARCHIVE_IMPORT_BYTES = 2_000_000
 const MAX_SHOWCASE_ENTRY_LIMIT = 500
+const MIN_MODERATION_TOKEN_LENGTH = 32
 const PUBLIC_SUBMISSION_CATEGORY_FALLBACK = 'Autre'
 const PUBLIC_SUBMISSION_CATEGORIES = [
   'Administration',
@@ -70,6 +71,10 @@ function readModerationToken() {
 
   const trimmed = value.trim()
   return trimmed || null
+}
+
+function isStrongModerationToken(token) {
+  return typeof token === 'string' && token.length >= MIN_MODERATION_TOKEN_LENGTH
 }
 
 function sendJsonError(response, statusCode, message) {
@@ -374,9 +379,17 @@ function requireModerationAuth(request, response, next) {
     return
   }
 
+  if (!isStrongModerationToken(configuredToken)) {
+    sendJsonError(
+      response,
+      503,
+      `Modération indisponible: MODERATION_API_TOKEN doit contenir au moins ${MIN_MODERATION_TOKEN_LENGTH} caractères.`,
+    )
+    return
+  }
+
   const providedToken =
     request.get('x-moderation-token')?.trim() ||
-    request.get('x-admin-token')?.trim() ||
     parseAuthorizationToken(request)
 
   if (!providedToken || !safeTokenEquals(providedToken, configuredToken)) {
@@ -464,6 +477,19 @@ const voteLimiter = rateLimit({
     error: "Trop de votes. Merci de réessayer dans une heure.",
   },
 })
+
+const moderationAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 25,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: {
+    error: 'Trop de tentatives d’accès modération. Réessayez dans quelques minutes.',
+  },
+})
+
+app.use('/api/moderation', moderationAuthLimiter)
 
 app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
   const baseUrl = resolvePublicAppUrl()

@@ -305,7 +305,7 @@ function persistStoredModerationSession(token: string, rememberAcrossBrowser: bo
 
 function ModerationPage() {
   const [moderationToken, setModerationToken] = useState('')
-  const [rememberModerationSession, setRememberModerationSession] = useState(true)
+  const [rememberModerationSession, setRememberModerationSession] = useState(false)
   const [hasStoredModerationSession, setHasStoredModerationSession] = useState(false)
   const [pendingEntries, setPendingEntries] = useState<PendingSubmission[]>([])
   const [publishedEntries, setPublishedEntries] = useState<ShowcaseEntry[]>([])
@@ -451,7 +451,7 @@ function ModerationPage() {
     clearModerationSession(true)
     setAssertiveMessage('')
     setPoliteMessage('Session modération fermée.')
-    setRememberModerationSession(true)
+    setRememberModerationSession(false)
     window.setTimeout(() => {
       focusTokenInput()
     }, 0)
