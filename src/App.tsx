@@ -14,10 +14,33 @@ type SiteInsight = {
   updatedAt: string
 }
 
+type ShowcaseEntry = SiteInsight & {
+  category: string
+}
+
+type ShowcaseStatusFilter = 'all' | Exclude<ComplianceStatus, null>
+
 const statusClassByValue: Record<Exclude<ComplianceStatus, null>, string> = {
   full: 'bg-emerald-100 text-emerald-900',
   partial: 'bg-amber-100 text-amber-900',
   none: 'bg-rose-100 text-rose-900',
+}
+
+const showcaseCategories = [
+  'Administration',
+  'E-commerce',
+  'Media',
+  'Sante',
+  'Education',
+  'Associatif',
+  'Autre',
+]
+
+const showcaseStatusFilterLabels: Record<ShowcaseStatusFilter, string> = {
+  all: 'Tous les niveaux',
+  full: 'Totalement conforme',
+  partial: 'Partiellement conforme',
+  none: 'Non conforme',
 }
 
 const rgaaValues = [
@@ -83,16 +106,50 @@ function formatDate(value: string) {
   }).format(new Date(value))
 }
 
+function normalizeText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
 function App() {
   const [inputUrl, setInputUrl] = useState('')
+  const [inputCategory, setInputCategory] = useState(showcaseCategories[0])
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [insight, setInsight] = useState<SiteInsight | null>(null)
+  const [showcaseEntries, setShowcaseEntries] = useState<ShowcaseEntry[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<ShowcaseStatusFilter>('all')
+  const [categoryFilter, setCategoryFilter] = useState('all')
 
   const loadingMessage = useMemo(
     () => (loading ? 'Analyse en cours de l URL...' : 'Analyse terminee.'),
     [loading],
   )
+
+  const filteredShowcaseEntries = useMemo(() => {
+    const normalizedQuery = normalizeText(searchQuery.trim())
+
+    return showcaseEntries.filter((entry) => {
+      const statusMatch = statusFilter === 'all' || entry.complianceStatus === statusFilter
+      const categoryMatch = categoryFilter === 'all' || entry.category === categoryFilter
+
+      if (!statusMatch || !categoryMatch) {
+        return false
+      }
+
+      if (!normalizedQuery) {
+        return true
+      }
+
+      const searchable = normalizeText(
+        `${entry.siteTitle} ${entry.normalizedUrl} ${entry.category} ${entry.complianceStatusLabel ?? ''}`,
+      )
+      return searchable.includes(normalizedQuery)
+    })
+  }, [categoryFilter, searchQuery, showcaseEntries, statusFilter])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -114,7 +171,27 @@ function App() {
         throw new Error(typeof payload?.error === 'string' ? payload.error : 'Analyse impossible.')
       }
 
-      setInsight(payload as SiteInsight)
+      const parsedInsight = payload as SiteInsight
+      setInsight(parsedInsight)
+
+      const nextEntry: ShowcaseEntry = {
+        ...parsedInsight,
+        category: inputCategory,
+      }
+
+      setShowcaseEntries((previousEntries) => {
+        const existingIndex = previousEntries.findIndex(
+          (entry) => entry.normalizedUrl === nextEntry.normalizedUrl,
+        )
+
+        if (existingIndex === -1) {
+          return [nextEntry, ...previousEntries]
+        }
+
+        const updatedEntries = [...previousEntries]
+        updatedEntries[existingIndex] = nextEntry
+        return updatedEntries
+      })
     } catch (error) {
       setInsight(null)
       setErrorMessage(error instanceof Error ? error.message : 'Erreur reseau.')
@@ -150,8 +227,8 @@ function App() {
               Entrez l adresse du site a valoriser. Exemple: <span className="font-medium">https://www.exemple.fr</span>
             </p>
 
-            <form className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end" onSubmit={handleSubmit} noValidate>
-              <div className="flex-1">
+            <form className="mt-4 grid gap-4 md:grid-cols-[2fr_1fr_auto]" onSubmit={handleSubmit} noValidate>
+              <div>
                 <label htmlFor="url" className="block text-sm font-medium">
                   URL du site
                 </label>
@@ -168,10 +245,29 @@ function App() {
                 />
               </div>
 
+              <div>
+                <label htmlFor="categorie-site" className="block text-sm font-medium">
+                  Categorie
+                </label>
+                <select
+                  id="categorie-site"
+                  name="categorie"
+                  value={inputCategory}
+                  onChange={(event) => setInputCategory(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-base shadow-sm"
+                >
+                  {showcaseCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
-                className="rounded-xl bg-slate-900 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-slate-900 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:self-end"
               >
                 {loading ? 'Analyse...' : 'Afficher la vitrine'}
               </button>
@@ -297,6 +393,136 @@ function App() {
                   </div>
                 </div>
               </article>
+            )}
+          </section>
+
+          <section className="mt-8" aria-labelledby="galerie-titre">
+            <div className="flex flex-col gap-2">
+              <h2 id="galerie-titre" className="text-xl font-semibold">
+                Galerie des vitrines
+              </h2>
+              <p className="text-slate-700">
+                Recherchez et filtrez les sites analyses par categorie et niveau de conformite.
+              </p>
+            </div>
+
+            <div className="mt-4 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3">
+              <div>
+                <label htmlFor="recherche-vitrine" className="block text-sm font-medium">
+                  Recherche
+                </label>
+                <input
+                  id="recherche-vitrine"
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Titre, URL, categorie..."
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="filtre-statut" className="block text-sm font-medium">
+                  Filtre conformite
+                </label>
+                <select
+                  id="filtre-statut"
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value as ShowcaseStatusFilter)}
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
+                >
+                  {Object.entries(showcaseStatusFilterLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="filtre-categorie" className="block text-sm font-medium">
+                  Filtre categorie
+                </label>
+                <select
+                  id="filtre-categorie"
+                  value={categoryFilter}
+                  onChange={(event) => setCategoryFilter(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
+                >
+                  <option value="all">Toutes les categories</option>
+                  {showcaseCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <p className="mt-3 text-sm text-slate-700">
+              {filteredShowcaseEntries.length} vitrine(s) affichee(s) sur {showcaseEntries.length}.
+            </p>
+
+            {showcaseEntries.length === 0 && (
+              <p className="mt-3 text-slate-700">
+                Aucune vitrine enregistree pour le moment. Analysez un site pour alimenter la galerie.
+              </p>
+            )}
+
+            {showcaseEntries.length > 0 && filteredShowcaseEntries.length === 0 && (
+              <p className="mt-3 text-slate-700">Aucun site ne correspond aux filtres actuels.</p>
+            )}
+
+            {filteredShowcaseEntries.length > 0 && (
+              <ul id="liste-vitrines" className="mt-4 grid gap-4 md:grid-cols-2">
+                {filteredShowcaseEntries.map((entry) => (
+                  <li key={entry.normalizedUrl} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <article>
+                      <div className="h-40 bg-slate-100">
+                        {entry.thumbnailUrl ? (
+                          <img
+                            src={entry.thumbnailUrl}
+                            alt={`Apercu du site ${entry.siteTitle}`}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center px-3 text-center text-sm text-slate-600">
+                            Aucune vignette disponible
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-2 p-4">
+                        <h3 className="text-lg font-semibold">{entry.siteTitle}</h3>
+                        <p className="text-xs text-slate-600">Categorie: {entry.category}</p>
+                        <p className="text-xs text-slate-600">Mise a jour: {formatDate(entry.updatedAt)}</p>
+                        <p className="text-sm">
+                          <a href={entry.normalizedUrl} target="_blank" rel="noreferrer noopener" className="break-all">
+                            {entry.normalizedUrl}
+                          </a>
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {entry.complianceStatus ? (
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusClassByValue[entry.complianceStatus]}`}
+                            >
+                              {entry.complianceStatusLabel}
+                            </span>
+                          ) : (
+                            <span className="inline-flex rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-800">
+                              Niveau inconnu
+                            </span>
+                          )}
+                          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800">
+                            Score: {entry.complianceScore !== null ? `${entry.complianceScore}%` : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    </article>
+                  </li>
+                ))}
+              </ul>
             )}
           </section>
 
