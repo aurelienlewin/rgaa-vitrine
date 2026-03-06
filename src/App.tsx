@@ -644,11 +644,19 @@ function App() {
         throw new Error(typeof payload?.error === 'string' ? payload.error : 'Chargement d’annuaire impossible.')
       }
 
-      if (!Array.isArray(payload.entries)) {
+      const responseEntries = Array.isArray(payload.entries)
+        ? payload.entries
+        : Array.isArray(payload)
+          ? payload
+          : Array.isArray((payload as { data?: { entries?: unknown } }).data?.entries)
+            ? (payload as { data: { entries: unknown[] } }).data.entries
+            : null
+
+      if (!responseEntries) {
         throw new Error('Liste d’annuaire invalide.')
       }
 
-      const parsedEntries = payload.entries.filter(isShowcaseEntry).map((entry) => normalizeShowcaseEntry(entry))
+      const parsedEntries = responseEntries.filter(isShowcaseEntry).map((entry) => normalizeShowcaseEntry(entry))
       setShowcaseEntries(parsedEntries)
       announcePolite(`${parsedEntries.length} site(s) chargé(s) dans l’annuaire.`)
     } catch (error) {
