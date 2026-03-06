@@ -27,6 +27,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Reddit-like upvote on each directory tile with accessible button state (`aria-pressed`) and live vocal feedback.
 - Each directory tile now includes an explicit RGAA baseline badge (`RGAA 4.1` or `RGAA 5.0 prêt`) with readable explanation text.
 - Submission flow now includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
+- Confirmation CTA now lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.
 - Add-site flow now exposes a visible category dropdown (including `Coopérative et services`) without custom free-text entry.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
