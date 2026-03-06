@@ -2,6 +2,8 @@
 
 > Showcase and celebrate RGAA compliance in French web ecosystems.
 
+![RGAA Vitrine logo](./public/logo-rgaa-vitrine.svg)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 [![Vite](https://img.shields.io/badge/Vite-7.x-646CFF.svg)](https://vite.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-v4-06B6D4.svg)](https://tailwindcss.com/)

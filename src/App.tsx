@@ -221,7 +221,13 @@ function App() {
         <header className="border-b border-slate-200 bg-white">
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
             <p className="text-sm font-semibold uppercase tracking-wide text-slate-600">Vitrine FR</p>
-            <h1 className="mt-1 text-3xl font-bold">Fierte RGAA</h1>
+            <img
+              src="/logo-rgaa-vitrine.svg"
+              alt="Logo RGAA Vitrine"
+              className="mt-2 h-auto w-full max-w-md"
+              loading="eager"
+            />
+            <h1 className="sr-only">Fierte RGAA</h1>
             <p className="mt-3 max-w-3xl text-base text-slate-700">
               Valorisez votre conformite accessibilite. Saisissez une URL pour afficher le titre du site,
               une vignette, la page accessibilite detectee et le niveau de conformite lorsque disponible.
