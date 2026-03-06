@@ -140,6 +140,7 @@ function SiteProfilePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [copyMessage, setCopyMessage] = useState('')
+  const [politeAnnouncement, setPoliteAnnouncement] = useState({ id: 0, message: '' })
   const mainRef = useRef<HTMLElement | null>(null)
   const backlinkSectionRef = useRef<HTMLElement | null>(null)
   const relatedSectionRef = useRef<HTMLElement | null>(null)
@@ -196,6 +197,10 @@ function SiteProfilePage() {
     return `${createAbsoluteUrl('/api/showcase')}?slug=${encodeURIComponent(resolvedSlug)}`
   }, [resolvedSlug])
   const backlinkSnippet = `<a href="${profileUrl}">Référencé sur Annuaire RGAA</a>`
+
+  const announcePolite = useCallback((message: string) => {
+    setPoliteAnnouncement((previous) => ({ id: previous.id + 1, message }))
+  }, [])
 
   useEffect(() => {
     if (entry) {
@@ -365,13 +370,16 @@ function SiteProfilePage() {
         }
 
         if (!cancelled) {
-          setEntry(normalizeShowcaseEntry(firstEntry))
+          const normalizedEntry = normalizeShowcaseEntry(firstEntry)
+          setEntry(normalizedEntry)
+          announcePolite(`Chargement terminé. Fiche ouverte: ${normalizedEntry.siteTitle}.`)
         }
       } catch (error) {
         if (!cancelled) {
           const localizedMessage = error instanceof Error ? error.message : 'Erreur de chargement.'
           setEntry(null)
           setErrorMessage(localizedMessage)
+          announcePolite('Chargement terminé avec erreur sur la fiche demandée.')
         }
       } finally {
         if (!cancelled) {
@@ -385,7 +393,7 @@ function SiteProfilePage() {
     return () => {
       cancelled = true
     }
-  }, [slug])
+  }, [announcePolite, slug])
 
   useEffect(() => {
     if (!entry) {
@@ -430,6 +438,11 @@ function SiteProfilePage() {
 
         if (!cancelled) {
           setRelatedEntries(candidates)
+          announcePolite(
+            candidates.length > 0
+              ? `${candidates.length} fiche${candidates.length > 1 ? 's' : ''} associée${candidates.length > 1 ? 's' : ''} chargée${candidates.length > 1 ? 's' : ''}.`
+              : 'Chargement terminé. Aucune fiche associée disponible.',
+          )
         }
       } catch (error) {
         if (!cancelled) {
@@ -437,6 +450,7 @@ function SiteProfilePage() {
           setRelatedErrorMessage(
             error instanceof Error ? error.message : 'Chargement des fiches associées impossible.',
           )
+          announcePolite('Chargement des fiches associées terminé avec erreur.')
         }
       } finally {
         if (!cancelled) {
@@ -450,7 +464,7 @@ function SiteProfilePage() {
     return () => {
       cancelled = true
     }
-  }, [entry])
+  }, [announcePolite, entry])
 
   useEffect(() => {
     if (copyMessage) {
@@ -469,6 +483,11 @@ function SiteProfilePage() {
 
   return (
     <>
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true" lang="fr">
+        {politeAnnouncement.message}
+        <span aria-hidden="true">{politeAnnouncement.id}</span>
+      </div>
+
       <div
         className={skipLinksContainerClass}
         aria-label="Liens d’évitement"

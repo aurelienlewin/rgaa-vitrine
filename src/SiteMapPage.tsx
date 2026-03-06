@@ -162,6 +162,7 @@ function SiteMapPage() {
   const [profileEntries, setProfileEntries] = useState<ShowcaseEntry[]>([])
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(true)
   const [profileErrorMessage, setProfileErrorMessage] = useState<string | null>(null)
+  const [politeAnnouncement, setPoliteAnnouncement] = useState({ id: 0, message: '' })
   const mainContentRef = useRef<HTMLElement | null>(null)
   const primaryNavRef = useRef<HTMLElement | null>(null)
   const profileSectionRef = useRef<HTMLElement | null>(null)
@@ -189,6 +190,10 @@ function SiteMapPage() {
     },
     [focusElement],
   )
+
+  const announcePolite = useCallback((message: string) => {
+    setPoliteAnnouncement((previous) => ({ id: previous.id + 1, message }))
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -231,13 +236,19 @@ function SiteMapPage() {
         const nextEntries = Array.from(uniqueByProfilePath.values())
         if (!cancelled) {
           setProfileEntries(nextEntries)
+          announcePolite(
+            nextEntries.length > 0
+              ? `Chargement terminé. ${nextEntries.length} fiche${nextEntries.length > 1 ? 's' : ''} publique${nextEntries.length > 1 ? 's' : ''} disponible${nextEntries.length > 1 ? 's' : ''}.`
+              : 'Chargement terminé. Aucune fiche publique publiée pour le moment.',
+          )
         }
       } catch (error) {
         if (!cancelled) {
           setProfileEntries([])
-          setProfileErrorMessage(
-            error instanceof Error ? error.message : 'Chargement des fiches impossible.',
-          )
+          const localizedMessage =
+            error instanceof Error ? error.message : 'Chargement des fiches impossible.'
+          setProfileErrorMessage(localizedMessage)
+          announcePolite(`Chargement des fiches publiques terminé avec erreur: ${localizedMessage}`)
         }
       } finally {
         if (!cancelled) {
@@ -251,7 +262,7 @@ function SiteMapPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [announcePolite])
 
   const profileLinksForSeo = useMemo(
     () => profileEntries.slice(0, 30).map((entry) => createAbsoluteUrl(entry.profilePath ?? '/')),
@@ -347,6 +358,11 @@ function SiteMapPage() {
 
   return (
     <>
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true" lang="fr">
+        {politeAnnouncement.message}
+        <span aria-hidden="true">{politeAnnouncement.id}</span>
+      </div>
+
       <div
         className={skipLinksContainerClass}
         aria-label="Liens d’évitement"
