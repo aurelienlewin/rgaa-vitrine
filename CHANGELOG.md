@@ -63,6 +63,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Contrast pass: strengthened muted/status dark-theme text colors to improve WCAG 2.2 readability margins.
 - Main app footer now links to moderation page for authorized reviewers.
 - Pending moderation duplicate lookup now uses a dedicated Redis URL index (no full pending-list scan per submission).
+- Default app font stack now prioritizes dyslexia-friendly families (`OpenDyslexic`, `Atkinson Hyperlegible`, `Lexend`), with robust fallback fonts.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
