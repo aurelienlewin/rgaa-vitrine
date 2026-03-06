@@ -76,6 +76,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Tailwind `dark:` variant now follows a root `.dark` class to support manual mode switching while keeping system fallback.
 - Branding layout now keeps only the icon inside SVG; app title, baseline, and badge are rendered as Tailwind UI to prevent logo text clipping.
 - `GET /api/health` now reports whether GitHub issue notifications are enabled.
+- Footer now displays a discreet build stamp (`version + UTC timestamp`) to help spot stale cached deployments.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

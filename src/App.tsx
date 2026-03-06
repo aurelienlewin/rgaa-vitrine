@@ -108,6 +108,11 @@ const supportProfile = {
   buyMeACoffeeUrl: 'https://buymeacoffee.com/aurelienlewin',
 }
 
+const buildVersion = import.meta.env.VITE_BUILD_VERSION ?? '0.0.0'
+const buildTimestampRaw = import.meta.env.VITE_BUILD_TIMESTAMP ?? 'unknown'
+const buildTimestampDisplay =
+  buildTimestampRaw !== 'unknown' ? buildTimestampRaw.replace('T', ' ').replace('Z', ' UTC') : buildTimestampRaw
+
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 shadow-lg -translate-y-[220%] transition-transform duration-150 motion-reduce:transition-none focus-visible:translate-y-0 ${focusRingClass}`
@@ -936,18 +941,26 @@ function App() {
               </a>
             </div>
 
-            <a
-              href={supportProfile.buyMeACoffeeUrl}
-              target="_blank"
-              rel="noreferrer noopener"
-              className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 px-4 py-2 text-sm font-semibold text-amber-900 dark:text-amber-100 ${focusRingClass}`}
-              aria-label="M’offrir un café via Buy Me a Coffee"
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
-                <path d="M3 5h14a1 1 0 0 1 1 1v2h2a2 2 0 0 1 2 2v1a4 4 0 0 1-4 4h-1.1a5 5 0 0 1-4.9 4H8a5 5 0 0 1-5-5V6a1 1 0 0 1 1-1Zm15 8h1a2 2 0 0 0 2-2v-1h-3v3Zm-4 6a1 1 0 1 1 0 2H7a1 1 0 1 1 0-2h7Z" />
-              </svg>
-              M’offrir un café
-            </a>
+            <div className="flex flex-col items-start gap-2 md:items-end">
+              <a
+                href={supportProfile.buyMeACoffeeUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 px-4 py-2 text-sm font-semibold text-amber-900 dark:text-amber-100 ${focusRingClass}`}
+                aria-label="M’offrir un café via Buy Me a Coffee"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+                  <path d="M3 5h14a1 1 0 0 1 1 1v2h2a2 2 0 0 1 2 2v1a4 4 0 0 1-4 4h-1.1a5 5 0 0 1-4.9 4H8a5 5 0 0 1-5-5V6a1 1 0 0 1 1-1Zm15 8h1a2 2 0 0 0 2-2v-1h-3v3Zm-4 6a1 1 0 1 1 0 2H7a1 1 0 1 1 0-2h7Z" />
+                </svg>
+                M’offrir un café
+              </a>
+              <p
+                className="text-sm text-slate-600 dark:text-slate-300"
+                aria-label={`Version ${buildVersion}, build ${buildTimestampDisplay}`}
+              >
+                v{buildVersion} · {buildTimestampDisplay}
+              </p>
+            </div>
           </div>
         </footer>
       </div>

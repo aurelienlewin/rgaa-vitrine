@@ -27,6 +27,7 @@ Planned public website: **https://rgaa-vitrine.org**
 - High-contrast color system tuned for low-vision navigation in both light and dark modes (including stronger visited-link and status semantics).
 - Persistent light/dark mode toggle available on both directory and moderation screens.
 - Dark mode styling is consistently applied through Tailwind `dark:` variants to avoid mixed-theme rendering.
+- Discreet footer build stamp (`version + UTC timestamp`) helps detect stale cache quickly.
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
 - UI typography avoids tiny text; informational content and metadata are rendered at `text-sm` or above.
 - Muted text and status colors are tuned for stronger contrast in both light and dark themes.
