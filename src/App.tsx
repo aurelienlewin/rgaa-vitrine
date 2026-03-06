@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
@@ -182,6 +182,40 @@ function App() {
     })
   }, [categoryFilter, searchQuery, showcaseEntries, statusFilter])
 
+  async function loadShowcaseEntries() {
+    try {
+      const response = await fetch('/api/showcase')
+      const payload = await readApiPayload(response)
+
+      if (!response.ok) {
+        throw new Error(typeof payload?.error === 'string' ? payload.error : 'Chargement vitrine impossible.')
+      }
+
+      if (!Array.isArray(payload.entries)) {
+        throw new Error('Liste vitrine invalide.')
+      }
+
+      const parsedEntries = payload.entries.filter((entry) => {
+        return (
+          typeof entry === 'object' &&
+          entry !== null &&
+          typeof entry.normalizedUrl === 'string' &&
+          typeof entry.siteTitle === 'string' &&
+          typeof entry.updatedAt === 'string' &&
+          typeof entry.category === 'string'
+        )
+      }) as ShowcaseEntry[]
+
+      setShowcaseEntries(parsedEntries)
+    } catch (error) {
+      console.error('Unable to load showcase entries', error)
+    }
+  }
+
+  useEffect(() => {
+    void loadShowcaseEntries()
+  }, [])
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrorMessage(null)
@@ -193,7 +227,7 @@ function App() {
         headers: {
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ url: inputUrl }),
+        body: JSON.stringify({ url: inputUrl, category: inputCategory }),
       })
 
       const payload = await readApiPayload(response)
@@ -212,25 +246,7 @@ function App() {
 
       const parsedInsight = payload as unknown as SiteInsight
       setInsight(parsedInsight)
-
-      const nextEntry: ShowcaseEntry = {
-        ...parsedInsight,
-        category: inputCategory,
-      }
-
-      setShowcaseEntries((previousEntries) => {
-        const existingIndex = previousEntries.findIndex(
-          (entry) => entry.normalizedUrl === nextEntry.normalizedUrl,
-        )
-
-        if (existingIndex === -1) {
-          return [nextEntry, ...previousEntries]
-        }
-
-        const updatedEntries = [...previousEntries]
-        updatedEntries[existingIndex] = nextEntry
-        return updatedEntries
-      })
+      await loadShowcaseEntries()
     } catch (error) {
       setInsight(null)
       setErrorMessage(error instanceof Error ? error.message : 'Erreur reseau.')
