@@ -20,6 +20,62 @@ const statusClassByValue: Record<Exclude<ComplianceStatus, null>, string> = {
   none: 'bg-rose-100 text-rose-900',
 }
 
+const rgaaValues = [
+  'Inclure toutes les personnes, sans discrimination de handicap ou de contexte d usage.',
+  'Permettre une autonomie reelle en navigation clavier, lecteur d ecran et zoom.',
+  'Publier une information claire sur le niveau de conformite et les limites connues.',
+]
+
+const rgaaRules = [
+  'Utiliser une structure HTML semantique avant d ajouter ARIA.',
+  'Garantir un focus visible, un ordre de tabulation coherent et aucun piege clavier.',
+  'Associer chaque champ de formulaire a une etiquette explicite.',
+  'Ne jamais transmettre une information uniquement par la couleur ou la forme.',
+  'Conserver une page utilisable sans styles et avec agrandissement des caracteres.',
+  'Controler les mises a jour dynamiques avec une strategie focus ou aria-live adaptee.',
+]
+
+const rgaaAwareness = [
+  'Verifier chaque livraison avec des tests rapides: titre de page, lang, validite HTML, clavier.',
+  'Tester des composants riches avec des technologies d assistance de reference.',
+  'Documenter en PR les choix accessibilite, limites et preuves de verification.',
+]
+
+const officialResources = [
+  {
+    label: 'Guide du developpeur RGAA',
+    url: 'https://disic.github.io/guide-developpeur/',
+    summary:
+      'Bonnes pratiques JavaScript/ARIA: tabulation, acces clavier, changements de contexte, motifs de conception.',
+  },
+  {
+    label: 'Guide de l integrateur RGAA',
+    url: 'https://disic.github.io/guide-integrateur/',
+    summary: 'Regles structurelles: gabarit, navigation, contenus, tableaux, liens, formulaires, focus, images.',
+  },
+  {
+    label: 'Memo dev',
+    url: 'https://design.numerique.gouv.fr/outils/memo-dev/',
+    summary: 'Resume operationnel des recommandations techniques prioritaires a appliquer en implementation.',
+  },
+  {
+    label: 'Checklist dev',
+    url: 'https://design.numerique.gouv.fr/outils/checklist-dev/',
+    summary: 'Controle rapide avant livraison: titre, lang, HTML valide, clavier, semantique, etiquettes.',
+  },
+  {
+    label: 'Bibliotheque de reference ARIA',
+    url: 'https://www.info.gouv.fr/accessibilite/developpement/bibliotheque-de-reference-des-restitutions-des-composants-javascript-aria',
+    summary: 'Reference de restitution des composants JS ARIA avec technologies d assistance.',
+  },
+  {
+    label: 'Guide des composants JavaScript accessibles',
+    url: 'https://www.info.gouv.fr/accessibilite/developpement/le-guide-des-composants-javascript-accessibles',
+    summary:
+      'Tutoriels et correctifs de composants (accordion, tabs, menu, modal, slider, etc.) selon frameworks.',
+  },
+]
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('fr-FR', {
     dateStyle: 'long',
@@ -242,6 +298,76 @@ function App() {
                 </div>
               </article>
             )}
+          </section>
+
+          <section
+            className="mt-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+            aria-labelledby="rgaa-culture-titre"
+          >
+            <h2 id="rgaa-culture-titre" className="text-xl font-semibold">
+              Valeurs et culture RGAA
+            </h2>
+            <p className="mt-2 text-slate-700">
+              Cette vitrine diffuse aussi les fondamentaux RGAA pour renforcer la qualite, la confiance et la
+              sensibilisation des equipes.
+            </p>
+
+            <div className="mt-6 grid gap-6 md:grid-cols-3">
+              <article aria-labelledby="valeurs-titre">
+                <h3 id="valeurs-titre" className="text-lg font-semibold">
+                  Valeurs
+                </h3>
+                <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-800">
+                  {rgaaValues.map((value) => (
+                    <li key={value}>{value}</li>
+                  ))}
+                </ul>
+              </article>
+
+              <article aria-labelledby="regles-titre">
+                <h3 id="regles-titre" className="text-lg font-semibold">
+                  Regles prioritaires
+                </h3>
+                <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-800">
+                  {rgaaRules.map((rule) => (
+                    <li key={rule}>{rule}</li>
+                  ))}
+                </ul>
+              </article>
+
+              <article aria-labelledby="sensibilisation-titre">
+                <h3 id="sensibilisation-titre" className="text-lg font-semibold">
+                  Sensibilisation
+                </h3>
+                <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-800">
+                  {rgaaAwareness.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+            </div>
+          </section>
+
+          <section className="mt-8" aria-labelledby="sources-titre">
+            <h2 id="sources-titre" className="text-xl font-semibold">
+              Sources officielles de reference
+            </h2>
+            <p className="mt-2 text-slate-700">
+              Les recommandations affichees sur cette page sont alignees sur les ressources officielles suivantes.
+            </p>
+            <ul className="mt-4 grid gap-3">
+              {officialResources.map((resource) => (
+                <li key={resource.url} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <h3 className="text-base font-semibold">{resource.label}</h3>
+                  <p className="mt-1 text-sm text-slate-700">{resource.summary}</p>
+                  <p className="mt-2 text-sm">
+                    <a href={resource.url} target="_blank" rel="noreferrer noopener">
+                      {resource.url}
+                    </a>
+                  </p>
+                </li>
+              ))}
+            </ul>
           </section>
         </main>
       </div>
