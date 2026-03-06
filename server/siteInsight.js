@@ -4,6 +4,7 @@ import { load } from 'cheerio'
 
 const MAX_HTML_BYTES = 800_000
 const FETCH_TIMEOUT_MS = 7000
+const MAX_REDIRECTS = 5
 
 const COMPLIANCE_LABELS = {
   full: 'Totalement conforme',
@@ -203,20 +204,40 @@ async function readBodyWithLimit(response, maxBytes) {
   return new TextDecoder().decode(merged)
 }
 
-async function fetchHtml(url) {
+function isRedirectStatus(statusCode) {
+  return statusCode >= 300 && statusCode < 400
+}
+
+async function fetchHtml(url, redirectCount = 0) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
   try {
     const response = await fetch(url, {
       method: 'GET',
-      redirect: 'follow',
+      redirect: 'manual',
       signal: controller.signal,
       headers: {
         'user-agent': 'Annuaire-RGAA/1.0 (+https://example.invalid)',
         accept: 'text/html,application/xhtml+xml',
       },
     })
+
+    if (isRedirectStatus(response.status)) {
+      if (redirectCount >= MAX_REDIRECTS) {
+        throw new SiteInsightError('Trop de redirections lors de la récupération du site.', 502)
+      }
+
+      const locationHeader = response.headers.get('location')?.trim() ?? ''
+      const nextUrl = toAbsoluteUrl(locationHeader, url)
+      if (!nextUrl) {
+        throw new SiteInsightError('Redirection invalide vers une URL non prise en charge.', 502)
+      }
+
+      const nextParsedUrl = new URL(nextUrl)
+      await validatePublicHost(nextParsedUrl.hostname)
+      return fetchHtml(nextUrl, redirectCount + 1)
+    }
 
     if (!response.ok) {
       throw new SiteInsightError(`Le site a répondu avec le statut ${response.status}.`, 502)
@@ -229,7 +250,7 @@ async function fetchHtml(url) {
     }
 
     const html = await readBodyWithLimit(response, MAX_HTML_BYTES)
-    return { finalUrl: response.url, html }
+    return { finalUrl: url, html }
   } catch (error) {
     if (error instanceof SiteInsightError) {
       throw error

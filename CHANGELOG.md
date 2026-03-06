@@ -75,6 +75,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
+- Hardened metadata fetch SSRF guardrails by validating every redirect hop before following it.
 
 ## [2026-03-06]
 

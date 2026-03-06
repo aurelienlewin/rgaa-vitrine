@@ -89,6 +89,7 @@ You can check the active storage mode via:
 
 - Strict URL validation (`http/https` only)
 - SSRF protections (localhost/private/internal targets blocked)
+- Redirect-by-redirect SSRF validation (each HTTP redirection target is revalidated before fetch)
 - DNS resolution checks before remote fetch
 - Response timeout and maximum HTML size limits
 - Global rate limiting on API endpoints + stricter hourly limiter for submissions
