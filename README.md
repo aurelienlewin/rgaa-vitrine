@@ -1,50 +1,87 @@
-# Vitrine Fierte RGAA
+# RGAA Vitrine
 
-Application Vite + React (FR) pour valoriser la conformite accessibilite d'un site a partir de son URL.
+> Showcase and celebrate RGAA compliance in French web ecosystems.
 
-## Stack
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+[![Vite](https://img.shields.io/badge/Vite-7.x-646CFF.svg)](https://vite.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-v4-06B6D4.svg)](https://tailwindcss.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org/)
+
+RGAA Vitrine is an open-source French-first project that lets organizations publish a
+public "pride card" for accessibility maturity: site metadata, detected accessibility
+statement page, and best-effort compliance score/status extraction.
+
+Planned public website: **https://rgaa-vitrine.org**
+
+## Highlights
+
+- French UI focused on accessibility clarity.
+- URL analysis workflow with secure server-side metadata extraction.
+- Vitrine gallery with categories, search, and filters.
+- RGAA awareness sections sourced from official French references.
+- Embedded skill: `rgaa-official-recommendations`.
+
+## Tech Stack
+
 - Vite + React + TypeScript
 - Tailwind CSS v4 via `@tailwindcss/vite`
-- API Node/Express securisee pour extraction metadonnees
+- Node + Express API
 
-## Fonctionnalites
-- Saisie URL et analyse automatisee
-- Affichage titre du site, vignette (`og:image`/`twitter:image`)
-- Detection d'une page accessibilite
-- Extraction best-effort d'un niveau de conformite et d'un score (%), si presents
-- Galerie vitrine avec categories
-- Recherche plein texte (titre, URL, categorie)
-- Filtres par categorie et niveau de conformite
-- Interface front entierement en francais et orientee accessibilite clavier/focus
+## Security by default
+
+- Strict URL validation (`http/https` only)
+- SSRF protections (localhost/private/internal targets blocked)
+- DNS resolution checks before remote fetch
+- Response timeout and maximum HTML size limits
+- Rate limiting on API endpoints
+- No execution of remote page scripts
 
 ## SEO
-- Balises meta enrichies: description, robots, canonical, hreflang, Open Graph, Twitter Card.
-- Donnees structurees JSON-LD (`WebSite` + `Organization` + `Person`).
-- `robots.txt` pour l autorisation d indexation.
 
-## Securite API
-- Validation stricte des URL HTTP(S)
-- Blocage des hotes locaux/prives (protection SSRF)
-- Timeout reseau + limite de taille du HTML
-- Limitation de debit sur endpoint API
-- Aucune execution de contenu distant
+- Rich metadata: description, robots, canonical, hreflang
+- Open Graph + Twitter Cards
+- Structured data (JSON-LD): `WebSite`, `Organization`, `Person`
+- `public/robots.txt`
 
-## Demarrage
+## Getting Started
+
 ```bash
 npm install
 npm run dev
 ```
 
-- Front: http://127.0.0.1:5173
-- API: http://127.0.0.1:8787
+Local services:
 
-## Commandes
+- Frontend: `http://127.0.0.1:5173`
+- API: `http://127.0.0.1:8787`
+
+## Scripts
+
 ```bash
+npm run dev
 npm run lint
 npm run build
 npm run preview
+npm run start:api
 ```
 
-## Skill RGAA embarque
+## Open Source
+
+- License: [MIT](./LICENSE)
+- Contributing guide: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- Code of Conduct: [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
+- Security policy: [SECURITY.md](./SECURITY.md)
+
+## RGAA Sources Embedded
+
 - `skill/rgaa-official-recommendations/SKILL.md`
 - `skill/rgaa-official-recommendations/references/official-developer-recommendations.md`
+
+Official references include:
+
+- https://disic.github.io/guide-developpeur/
+- https://disic.github.io/guide-integrateur/
+- https://design.numerique.gouv.fr/outils/memo-dev/
+- https://design.numerique.gouv.fr/outils/checklist-dev/
+- https://www.info.gouv.fr/accessibilite/developpement/bibliotheque-de-reference-des-restitutions-des-composants-javascript-aria
+- https://www.info.gouv.fr/accessibilite/developpement/le-guide-des-composants-javascript-accessibles
