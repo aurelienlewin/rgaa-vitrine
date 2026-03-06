@@ -16,6 +16,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Official RGAA 5 awareness article added to project references and embedded skill sources.
 - Dedicated WCAG 2.2 skill with official W3C references and review checklist.
 - New in-app WCAG 2.2 help section with links to W3C FR guidance.
+- Vercel-native serverless API entrypoints added under `api/` for production deployments.
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
@@ -33,6 +34,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Styling now relies on Tailwind CSS v4 native patterns (`@theme` design tokens and utility-based focus/skip-link behavior) instead of custom component CSS classes.
 - User feedback has been split into localized vocal channels: `aria-live=\"polite\"` for status and `aria-live=\"assertive\"` for errors, with dedicated directory/form error rendering.
 - Logo has been fully redesigned in SVG with richer visual identity and embedded accessibility semantics (`role=\"img\"`, `title`, `desc`, high-contrast text).
+- Backend app setup has been centralized in `server/app.js` and shared by local runtime + serverless handlers.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

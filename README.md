@@ -97,6 +97,22 @@ Local services:
 - `GET /api/showcase` returns persisted showcase entries (supports `search`, `status`, `category`, `limit`)
 - `GET /api/health` returns service status and active storage mode
 
+## Deployment (Vercel)
+
+The repository includes native Vercel serverless endpoints in `api/`:
+
+- `api/site-insight.js`
+- `api/showcase.js`
+- `api/health.js`
+
+This avoids production `NOT_FOUND` responses on `/api/*` routes when the frontend is deployed as a Vite app.
+
+Ensure these environment variables are configured in Vercel project settings:
+
+- `KV_REST_API_URL` and `KV_REST_API_TOKEN`
+or
+- `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
+
 ## Scripts
 
 ```bash
