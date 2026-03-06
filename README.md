@@ -26,6 +26,8 @@ Planned public website: **https://rgaa-vitrine.org**
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
 - Dark mode styling is consistently applied through Tailwind `dark:` variants to avoid mixed-theme rendering.
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
+- UI typography avoids tiny text; informational content and metadata are rendered at `text-sm` or above.
+- Muted text and status colors are tuned for stronger contrast in both light and dark themes.
 - Directory-first UX with filters, categories, and search at the core.
 - URL registration workflow with secure server-side metadata enrichment.
 - Annuaire listing cards designed for disabled people and accessibility enthusiasts.

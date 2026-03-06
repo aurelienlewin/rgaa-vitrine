@@ -57,6 +57,8 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Logo SVG viewport now includes extra vertical safe area (`viewBox` + overflow) to prevent baseline clipping in strict renderers.
 - `/api/site-insight` now stores non-auto-publishable submissions as `pending` (HTTP `202`) instead of rejecting them directly.
 - `/api/health` now exposes whether moderation is enabled.
+- Typography accessibility pass: replaced `text-xs` UI content with `text-sm` minimum for better readability.
+- Contrast pass: strengthened muted/status dark-theme text colors to improve WCAG 2.2 readability margins.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

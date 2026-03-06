@@ -447,7 +447,7 @@ function App() {
         <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">Annuaire public RGAA</p>
+              <p className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Annuaire public RGAA</p>
               <a
                 href="#aide-accessibilite"
                 className={`inline-flex min-h-11 items-center rounded-xl border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 px-4 py-2 text-sm font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
@@ -476,19 +476,19 @@ function App() {
             </h2>
             <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">Sites référencés</dt>
+                <dt className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Sites référencés</dt>
                 <dd className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">{directoryStats.total}</dd>
               </div>
               <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 px-4 py-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-200">Totalement conformes</dt>
+                <dt className="text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-100">Totalement conformes</dt>
                 <dd className="mt-1 text-2xl font-bold text-emerald-900 dark:text-emerald-100">{directoryStats.full}</dd>
               </div>
               <div className="rounded-xl bg-amber-50 dark:bg-amber-950/40 px-4 py-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">Partiellement conformes</dt>
+                <dt className="text-sm font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-100">Partiellement conformes</dt>
                 <dd className="mt-1 text-2xl font-bold text-amber-900 dark:text-amber-100">{directoryStats.partial}</dd>
               </div>
               <div className="rounded-xl bg-rose-50 dark:bg-rose-950/40 px-4 py-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-200">Non conformes</dt>
+                <dt className="text-sm font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-100">Non conformes</dt>
                 <dd className="mt-1 text-2xl font-bold text-rose-900 dark:text-rose-100">{directoryStats.none}</dd>
               </div>
             </dl>
@@ -507,7 +507,7 @@ function App() {
                 Rechercher et filtrer
               </h2>
               <p className="text-slate-700 dark:text-slate-300">Trouvez rapidement un site par nom, catégorie ou niveau de conformité.</p>
-              <p id="recherche-aide" className="text-sm text-slate-600 dark:text-slate-400">
+              <p id="recherche-aide" className="text-sm text-slate-600 dark:text-slate-300">
                 Astuce clavier: appuyez sur Échap dans la recherche pour effacer la saisie.
               </p>
             </div>
@@ -639,16 +639,16 @@ function App() {
                             referrerPolicy="no-referrer"
                           />
                         ) : (
-                          <div className="flex h-full items-center justify-center px-3 text-center text-sm text-slate-600 dark:text-slate-400">
+                          <div className="flex h-full items-center justify-center px-3 text-center text-sm text-slate-600 dark:text-slate-300">
                             Aucune vignette disponible
                           </div>
                         )}
                       </div>
                       <div className="space-y-2 p-4">
                         <h3 className="text-lg font-semibold">{entry.siteTitle}</h3>
-                        <p className="text-xs text-slate-600 dark:text-slate-400">Catégorie : {formatCategory(entry.category)}</p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400">Mise à jour : {formatDate(entry.updatedAt)}</p>
-                        <p className="break-all text-xs text-slate-600 dark:text-slate-400">{entry.normalizedUrl}</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-300">Catégorie : {formatCategory(entry.category)}</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-300">Mise à jour : {formatDate(entry.updatedAt)}</p>
+                        <p className="break-all text-sm text-slate-600 dark:text-slate-300">{entry.normalizedUrl}</p>
                         <p className="text-sm">
                           <a
                             href={entry.normalizedUrl}
@@ -672,7 +672,7 @@ function App() {
                               Déclaration d’accessibilité
                             </a>
                           ) : (
-                            <span className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-600 dark:text-slate-400">
+                            <span className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-600 dark:text-slate-300">
                               Déclaration non détectée
                             </span>
                           )}
@@ -680,16 +680,16 @@ function App() {
                         <div className="flex flex-wrap items-center gap-2">
                           {entry.complianceStatus ? (
                             <span
-                              className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-xs font-semibold ${statusClassByValue[entry.complianceStatus]}`}
+                              className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${statusClassByValue[entry.complianceStatus]}`}
                             >
                               {entry.complianceStatusLabel}
                             </span>
                           ) : (
-                            <span className="inline-flex min-h-8 items-center rounded-full bg-slate-200 dark:bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-800 dark:text-slate-200">
+                            <span className="inline-flex min-h-8 items-center rounded-full bg-slate-200 dark:bg-slate-700 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
                               Niveau inconnu
                             </span>
                           )}
-                          <span className="inline-flex min-h-8 items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-800 dark:text-slate-200">
+                          <span className="inline-flex min-h-8 items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
                             Score: {entry.complianceScore !== null ? `${entry.complianceScore}%` : 'N/A'}
                           </span>
                         </div>
