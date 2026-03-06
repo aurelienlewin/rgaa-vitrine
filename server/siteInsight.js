@@ -225,7 +225,7 @@ async function fetchHtml(url) {
     const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
     const isHtml = contentType.includes('text/html') || contentType.includes('application/xhtml+xml')
     if (!isHtml) {
-      throw new SiteInsightError("Le contenu cible n'est pas une page HTML.", 422)
+      throw new SiteInsightError('Le contenu cible n’est pas une page HTML.', 422)
     }
 
     const html = await readBodyWithLimit(response, MAX_HTML_BYTES)

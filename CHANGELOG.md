@@ -40,6 +40,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - URL normalization now canonicalizes listings at domain level (dedupe across `www`/path variants).
 - Frontend submission flow now supports `approved`, `duplicate`, and `pending` outcomes with localized feedback.
 - Added explicit browser metadata for light/dark color scheme support (`meta color-scheme` + themed `theme-color`).
+- French contractions now consistently use typographic apostrophes (`’`) in UI and API user-facing messages.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

@@ -57,7 +57,7 @@ function findSuspiciousMarketingToken(siteInsight) {
 
 function getManualReviewReason(siteInsight) {
   if (!siteInsight.accessibilityPageUrl) {
-    return "Aucune déclaration d'accessibilité détectée."
+    return 'Aucune déclaration d’accessibilité détectée.'
   }
 
   if (!AUTO_PUBLISH_STATUSES.has(siteInsight.complianceStatus ?? '')) {
@@ -196,12 +196,12 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
     }
 
     console.error('Unexpected error in /api/site-insight', error)
-    sendJsonError(response, 500, "Erreur interne lors de l'analyse.")
+    sendJsonError(response, 500, 'Erreur interne lors de l’analyse.')
   }
 })
 
 app.use('/api', (_request, response) => {
-  sendJsonError(response, 404, "Point d'accès API introuvable.")
+  sendJsonError(response, 404, 'Point d’accès API introuvable.')
 })
 
 app.use((error, _request, response, next) => {

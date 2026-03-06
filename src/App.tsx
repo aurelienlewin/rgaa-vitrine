@@ -60,7 +60,7 @@ const officialResources = [
     url: 'https://disic.github.io/guide-developpeur/',
   },
   {
-    label: "Guide de l'intégrateur RGAA",
+    label: "Guide de l’intégrateur RGAA",
     url: 'https://disic.github.io/guide-integrateur/',
   },
   {
@@ -83,7 +83,7 @@ const officialResources = [
 
 const wcagResources = [
   {
-    label: "WCAG 2 - Vue d'ensemble (français)",
+    label: "WCAG 2 - Vue d’ensemble (français)",
     url: 'https://www.w3.org/WAI/standards-guidelines/wcag/fr',
   },
   {
@@ -238,33 +238,33 @@ function App() {
   useEffect(() => {
     setPoliteAnnouncement((current) => ({
       id: current.id + 1,
-      message: `${filteredShowcaseEntries.length} site(s) affiché(s) sur ${showcaseEntries.length} dans l'annuaire.`,
+      message: `${filteredShowcaseEntries.length} site(s) affiché(s) sur ${showcaseEntries.length} dans l’annuaire.`,
     }))
   }, [filteredShowcaseEntries.length, showcaseEntries.length])
 
   const loadShowcaseEntries = useCallback(async () => {
     setDirectoryErrorMessage(null)
     setLoadingDirectory(true)
-    announcePolite("Chargement de l'annuaire en cours.")
+    announcePolite('Chargement de l’annuaire en cours.')
 
     try {
       const response = await fetch('/api/showcase')
       const payload = await readApiPayload(response)
 
       if (!response.ok) {
-        throw new Error(typeof payload?.error === 'string' ? payload.error : "Chargement d'annuaire impossible.")
+        throw new Error(typeof payload?.error === 'string' ? payload.error : 'Chargement d’annuaire impossible.')
       }
 
       if (!Array.isArray(payload.entries)) {
-        throw new Error("Liste d'annuaire invalide.")
+        throw new Error('Liste d’annuaire invalide.')
       }
 
       const parsedEntries = payload.entries.filter(isShowcaseEntry)
       setShowcaseEntries(parsedEntries)
-      announcePolite(`${parsedEntries.length} site(s) chargé(s) dans l'annuaire.`)
+      announcePolite(`${parsedEntries.length} site(s) chargé(s) dans l’annuaire.`)
     } catch (error) {
       console.error('Unable to load showcase entries', error)
-      const localizedMessage = error instanceof Error ? error.message : "Erreur de chargement de l'annuaire."
+      const localizedMessage = error instanceof Error ? error.message : 'Erreur de chargement de l’annuaire.'
       setDirectoryErrorMessage(localizedMessage)
       announceAssertive(localizedMessage)
     } finally {
@@ -350,7 +350,7 @@ function App() {
 
   return (
     <>
-      <div className="fixed left-4 top-4 z-60 flex flex-wrap gap-2" aria-label="Liens d'évitement">
+      <div className="fixed left-4 top-4 z-60 flex flex-wrap gap-2" aria-label="Liens d’évitement">
         <a href="#contenu" className={skipLinkClass}>
           Aller au contenu
         </a>
@@ -358,10 +358,10 @@ function App() {
           Aller aux filtres
         </a>
         <a href="#ajout-site" className={skipLinkClass}>
-          Aller au formulaire d'ajout
+          Aller au formulaire d’ajout
         </a>
         <a href="#aide-accessibilite" className={skipLinkClass}>
-          Aller à l'aide accessibilité
+          Aller à l’aide accessibilité
         </a>
       </div>
 
@@ -490,7 +490,7 @@ function App() {
               {filteredShowcaseEntries.length} site(s) affiché(s) sur {showcaseEntries.length}.
             </p>
 
-            {loadingDirectory && <p className="mt-3 text-slate-700">Chargement de l'annuaire...</p>}
+            {loadingDirectory && <p className="mt-3 text-slate-700">Chargement de l’annuaire...</p>}
 
             {!loadingDirectory && showcaseEntries.length === 0 && (
               <p className="mt-3 text-slate-700">Aucun site référencé pour le moment.</p>
@@ -548,10 +548,10 @@ function App() {
                               href={entry.accessibilityPageUrl}
                               target="_blank"
                               rel="noreferrer noopener"
-                              aria-label={`Ouvrir la déclaration d'accessibilité de ${entry.siteTitle}`}
+                              aria-label={`Ouvrir la déclaration d’accessibilité de ${entry.siteTitle}`}
                               className={`inline-flex min-h-11 items-center rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 font-semibold text-emerald-900 ${focusRingClass}`}
                             >
-                              Déclaration d'accessibilité
+                              Déclaration d’accessibilité
                             </a>
                           ) : (
                             <span className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-600">
@@ -594,7 +594,7 @@ function App() {
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-sky-900">
               <li>Focus clavier visible et non masqué sur les contrôles interactifs.</li>
               <li>Cibles pointeur suffisantes pour limiter les erreurs de sélection.</li>
-              <li>Point d'aide cohérent et retrouvé au même endroit dans l'interface.</li>
+              <li>Point d’aide cohérent et retrouvé au même endroit dans l’interface.</li>
             </ul>
             <div className="mt-4 grid gap-3">
               {wcagResources.map((resource) => (
@@ -616,7 +616,7 @@ function App() {
               Ajouter un site
             </h2>
             <p id="url-help" className="mt-2 text-sm text-slate-700">
-              Ajoutez une URL pour enrichir l'annuaire. Les métadonnées publiques seront récupérées automatiquement.
+              Ajoutez une URL pour enrichir l’annuaire. Les métadonnées publiques seront récupérées automatiquement.
             </p>
 
             <form className="mt-4 grid gap-4 md:grid-cols-[2fr_1fr_auto]" onSubmit={handleSubmit} noValidate>
@@ -714,10 +714,10 @@ function App() {
               aria-labelledby="rgaa5-focus-titre"
             >
               <h3 id="rgaa5-focus-titre" className="text-base font-semibold text-sky-900">
-                Point d'attention : cap RGAA 5
+                Point d’attention : cap RGAA 5
               </h3>
               <p className="mt-1 text-sm text-sky-900">
-                L'article officiel du 2 mars 2026 rappelle deux priorités : préparer la transition vers RGAA 5 d'ici
+                L’article officiel du 2 mars 2026 rappelle deux priorités : préparer la transition vers RGAA 5 d’ici
                 fin 2026, et maintenir dès maintenant les efforts de conformité RGAA 4.1.2.
               </p>
               <p className="mt-2 text-sm">
@@ -727,7 +727,7 @@ function App() {
                   rel="noreferrer noopener"
                   className={`font-semibold text-sky-900 ${focusRingClass}`}
                 >
-                  Lire l'article "L'arrivée de RGAA 5 est annoncée"
+                  Lire l’article "L’arrivée de RGAA 5 est annoncée"
                 </a>
               </p>
             </aside>
@@ -778,12 +778,12 @@ function App() {
               target="_blank"
               rel="noreferrer noopener"
               className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 ${focusRingClass}`}
-              aria-label="M'offrir un café via Buy Me a Coffee"
+              aria-label="M’offrir un café via Buy Me a Coffee"
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
                 <path d="M3 5h14a1 1 0 0 1 1 1v2h2a2 2 0 0 1 2 2v1a4 4 0 0 1-4 4h-1.1a5 5 0 0 1-4.9 4H8a5 5 0 0 1-5-5V6a1 1 0 0 1 1-1Zm15 8h1a2 2 0 0 0 2-2v-1h-3v3Zm-4 6a1 1 0 1 1 0 2H7a1 1 0 1 1 0-2h7Z" />
               </svg>
-              M'offrir un café
+              M’offrir un café
             </a>
           </div>
         </footer>
