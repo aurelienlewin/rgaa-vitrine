@@ -128,6 +128,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Category inputs are now open text with suggestions in both submission and moderation flows, and include a dedicated `Coopérative et services` suggestion.
 - Moderation update flow now allows explicit per-site override of the RGAA baseline badge (`4.1` or `5.0-ready`).
 - Existing showcase entries now resolve to `RGAA 4.1` by default; `RGAA 5.0 prêt` appears only after explicit moderation override.
+- Add-site category control now uses a visible select list (including `Coopérative et services`) with optional custom-text override for broader taxonomy.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
