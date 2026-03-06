@@ -59,6 +59,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Node + Express API
 - Upstash Redis (optional but recommended) for persistent showcase storage
 - API-side in-memory Redis cache (TTL-based) to reduce repeated Upstash reads
+- Vote-state retrieval optimized for Redis limits (client vote index + TTL cache), avoiding per-tile membership bursts
 - Local self-hosted fonts via `@fontsource` (`opendyslexic`, `atkinson-hyperlegible`, `lexend`)
 
 ## Persistence (Redis)
@@ -90,7 +91,7 @@ Optional performance setting:
 REDIS_CACHE_TTL_MS=15000
 ```
 
-This enables short-lived server-side caching for Redis-backed listing/moderation reads to avoid unnecessary Upstash queries on repeated requests.
+This enables short-lived server-side caching for Redis-backed listing/moderation reads and vote-state hydration, to avoid unnecessary Upstash queries on repeated requests.
 
 Optional vote hardening setting:
 

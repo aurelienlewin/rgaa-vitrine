@@ -191,6 +191,14 @@ function createFingerprint(value) {
   return createHash('sha256').update(value).digest('hex').slice(0, 48)
 }
 
+function buildClientVoteIndexId(clientVoterId) {
+  if (!clientVoterId) {
+    return null
+  }
+
+  return `client:${createFingerprint(`${VOTE_FINGERPRINT_SALT}|client-index|${clientVoterId}`)}`
+}
+
 function buildVoteFingerprints(request, clientVoterId, normalizedUrl) {
   const userAgent = request.get('user-agent')?.trim().slice(0, 220) ?? 'unknown-ua'
   const requestIp = readRequestIp(request)
@@ -426,24 +434,12 @@ app.get('/api/showcase', async (request, response) => {
     })
 
     const clientVoterId = extractClientVoterId(firstQueryValue(request.query.clientVoterId))
-    const entriesWithVoteState = []
-
-    for (const entry of entries) {
-      if (!clientVoterId) {
-        entriesWithVoteState.push({
-          ...entry,
-          hasUpvoted: false,
-        })
-        continue
-      }
-
-      const fingerprints = buildVoteFingerprints(request, clientVoterId, entry.normalizedUrl)
-      const hasUpvoted = await showcaseStorage.hasVoted(entry.normalizedUrl, fingerprints)
-      entriesWithVoteState.push({
-        ...entry,
-        hasUpvoted,
-      })
-    }
+    const clientVoteIndexId = buildClientVoteIndexId(clientVoterId)
+    const votedUrls = clientVoteIndexId ? await showcaseStorage.listClientVotedUrls(clientVoteIndexId) : new Set()
+    const entriesWithVoteState = entries.map((entry) => ({
+      ...entry,
+      hasUpvoted: clientVoteIndexId ? votedUrls.has(entry.normalizedUrl) : false,
+    }))
 
     response.json({
       entries: entriesWithVoteState,
@@ -476,7 +472,8 @@ app.post('/api/showcase/upvote', voteLimiter, async (request, response) => {
 
   try {
     const fingerprints = buildVoteFingerprints(request, clientVoterId, normalizedUrl)
-    const voteResult = await showcaseStorage.registerUpvote(normalizedUrl, fingerprints)
+    const clientVoteIndexId = buildClientVoteIndexId(clientVoterId)
+    const voteResult = await showcaseStorage.registerUpvote(normalizedUrl, fingerprints, clientVoteIndexId)
     if (!voteResult) {
       sendJsonError(response, 404, 'Entrée introuvable dans l’annuaire.')
       return

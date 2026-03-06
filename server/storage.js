@@ -3,6 +3,7 @@ import { Redis } from '@upstash/redis'
 const SHOWCASE_INDEX_KEY = 'rgaa:vitrine:showcase:index'
 const SHOWCASE_ENTRY_PREFIX = 'rgaa:vitrine:showcase:entry:'
 const SHOWCASE_VOTES_PREFIX = 'rgaa:vitrine:showcase:votes:'
+const SHOWCASE_CLIENT_VOTES_PREFIX = 'rgaa:vitrine:showcase:votes:client:'
 const PENDING_INDEX_KEY = 'rgaa:vitrine:moderation:pending:index'
 const PENDING_ENTRY_PREFIX = 'rgaa:vitrine:moderation:pending:'
 const PENDING_BY_URL_HASH_KEY = 'rgaa:vitrine:moderation:pending:by-url'
@@ -15,6 +16,7 @@ const DEFAULT_PENDING_LIST_LIMIT = 80
 const DEFAULT_REDIS_CACHE_TTL_MS = 15_000
 const MIN_REDIS_CACHE_TTL_MS = 1_000
 const MAX_REDIS_CACHE_TTL_MS = 300_000
+const CLIENT_VOTES_REDIS_TTL_SECONDS = 180 * 24 * 60 * 60
 
 const ALLOWED_STATUSES = new Set(['full', 'partial', 'none'])
 
@@ -44,6 +46,10 @@ function entryKeyFromId(entryId) {
 
 function votesKeyFromId(entryId) {
   return `${SHOWCASE_VOTES_PREFIX}${entryId}`
+}
+
+function clientVotesKeyFromId(clientVoteIndexId) {
+  return `${SHOWCASE_CLIENT_VOTES_PREFIX}${clientVoteIndexId}`
 }
 
 function pendingKeyFromId(entryId) {
@@ -91,6 +97,19 @@ function normalizeVoteTokens(voterFingerprints) {
   }
 
   return Array.from(unique)
+}
+
+function normalizeClientVoteIndexId(clientVoteIndexId) {
+  if (typeof clientVoteIndexId !== 'string') {
+    return null
+  }
+
+  const trimmed = clientVoteIndexId.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  return trimmed.slice(0, 120)
 }
 
 function parseStoredEntry(payload) {
@@ -267,6 +286,7 @@ class InMemoryShowcaseStorage {
     this.entries = new Map()
     this.pendingEntries = new Map()
     this.votesByUrl = new Map()
+    this.votesByClient = new Map()
   }
 
   async upsert(entry) {
@@ -291,7 +311,20 @@ class InMemoryShowcaseStorage {
 
   async deleteByNormalizedUrl(normalizedUrl) {
     this.votesByUrl.delete(normalizedUrl)
+    for (const votedUrls of this.votesByClient.values()) {
+      votedUrls.delete(normalizedUrl)
+    }
     return this.entries.delete(normalizedUrl)
+  }
+
+  async listClientVotedUrls(clientVoteIndexId) {
+    const normalizedClientVoteIndexId = normalizeClientVoteIndexId(clientVoteIndexId)
+    if (!normalizedClientVoteIndexId) {
+      return new Set()
+    }
+
+    const votedUrls = this.votesByClient.get(normalizedClientVoteIndexId)
+    return votedUrls ? new Set(votedUrls) : new Set()
   }
 
   async hasVoted(normalizedUrl, voterFingerprints) {
@@ -308,13 +341,14 @@ class InMemoryShowcaseStorage {
     return tokens.some((token) => set.has(token))
   }
 
-  async registerUpvote(normalizedUrl, voterFingerprints) {
+  async registerUpvote(normalizedUrl, voterFingerprints, clientVoteIndexId) {
     const entry = this.entries.get(normalizedUrl) ?? null
     if (!entry) {
       return null
     }
 
     const tokens = normalizeVoteTokens(voterFingerprints)
+    const normalizedClientVoteIndexId = normalizeClientVoteIndexId(clientVoteIndexId)
     if (tokens.length === 0) {
       throw new ShowcaseStorageError('Identifiant de vote invalide.', 400)
     }
@@ -327,6 +361,11 @@ class InMemoryShowcaseStorage {
 
     const alreadyVoted = tokens.some((token) => set.has(token))
     if (alreadyVoted) {
+      if (normalizedClientVoteIndexId) {
+        const votedUrls = this.votesByClient.get(normalizedClientVoteIndexId) ?? new Set()
+        votedUrls.add(normalizedUrl)
+        this.votesByClient.set(normalizedClientVoteIndexId, votedUrls)
+      }
       return {
         accepted: false,
         alreadyVoted: true,
@@ -336,6 +375,12 @@ class InMemoryShowcaseStorage {
 
     for (const token of tokens) {
       set.add(token)
+    }
+
+    if (normalizedClientVoteIndexId) {
+      const votedUrls = this.votesByClient.get(normalizedClientVoteIndexId) ?? new Set()
+      votedUrls.add(normalizedUrl)
+      this.votesByClient.set(normalizedClientVoteIndexId, votedUrls)
     }
 
     const updatedEntry = {
@@ -426,6 +471,7 @@ class UpstashShowcaseStorage {
     this.pendingCacheEntries = null
     this.pendingCacheById = new Map()
     this.pendingCacheExpiresAt = 0
+    this.clientVotesCacheById = new Map()
   }
 
   _isShowcaseCacheFresh() {
@@ -458,6 +504,27 @@ class UpstashShowcaseStorage {
     this.pendingCacheEntries = null
     this.pendingCacheById.clear()
     this.pendingCacheExpiresAt = 0
+  }
+
+  _getCachedClientVotedUrls(clientVoteIndexId) {
+    const cached = this.clientVotesCacheById.get(clientVoteIndexId)
+    if (!cached) {
+      return null
+    }
+
+    if (Date.now() >= cached.expiresAt) {
+      this.clientVotesCacheById.delete(clientVoteIndexId)
+      return null
+    }
+
+    return new Set(cached.urls)
+  }
+
+  _setClientVotesCache(clientVoteIndexId, votedUrlsSet) {
+    this.clientVotesCacheById.set(clientVoteIndexId, {
+      urls: Array.from(votedUrlsSet),
+      expiresAt: Date.now() + this.cacheTtlMs,
+    })
   }
 
   async upsert(entry) {
@@ -548,10 +615,45 @@ class UpstashShowcaseStorage {
         .zrem(SHOWCASE_INDEX_KEY, entryId)
         .exec()
       this._invalidateShowcaseCache()
+      for (const [clientVoteIndexId, cached] of this.clientVotesCacheById.entries()) {
+        if (!cached.urls.includes(normalizedUrl)) {
+          continue
+        }
+
+        const nextSet = new Set(cached.urls)
+        nextSet.delete(normalizedUrl)
+        this._setClientVotesCache(clientVoteIndexId, nextSet)
+      }
       return true
     } catch (error) {
       console.error('Redis deleteByNormalizedUrl failed', error)
       throw new ShowcaseStorageError('Suppression Redis indisponible.', 503)
+    }
+  }
+
+  async listClientVotedUrls(clientVoteIndexId) {
+    const normalizedClientVoteIndexId = normalizeClientVoteIndexId(clientVoteIndexId)
+    if (!normalizedClientVoteIndexId) {
+      return new Set()
+    }
+
+    const cached = this._getCachedClientVotedUrls(normalizedClientVoteIndexId)
+    if (cached) {
+      return cached
+    }
+
+    const key = clientVotesKeyFromId(normalizedClientVoteIndexId)
+
+    try {
+      const rawUrls = await this.redis.smembers(key)
+      const votedUrls = new Set(
+        Array.isArray(rawUrls) ? rawUrls.filter((value) => typeof value === 'string' && value.trim()) : [],
+      )
+      this._setClientVotesCache(normalizedClientVoteIndexId, votedUrls)
+      return votedUrls
+    } catch (error) {
+      console.error('Redis listClientVotedUrls failed', error)
+      throw new ShowcaseStorageError('Lecture Redis des votes client indisponible.', 503)
     }
   }
 
@@ -578,13 +680,17 @@ class UpstashShowcaseStorage {
     }
   }
 
-  async registerUpvote(normalizedUrl, voterFingerprints) {
+  async registerUpvote(normalizedUrl, voterFingerprints, clientVoteIndexId) {
     const entry = await this.getByNormalizedUrl(normalizedUrl)
     if (!entry) {
       return null
     }
 
     const tokens = normalizeVoteTokens(voterFingerprints)
+    const normalizedClientVoteIndexId = normalizeClientVoteIndexId(clientVoteIndexId)
+    const clientVoteKey = normalizedClientVoteIndexId
+      ? clientVotesKeyFromId(normalizedClientVoteIndexId)
+      : null
     if (tokens.length === 0) {
       throw new ShowcaseStorageError('Identifiant de vote invalide.', 400)
     }
@@ -596,6 +702,15 @@ class UpstashShowcaseStorage {
       for (const token of tokens) {
         const isMember = await this.redis.sismember(voteKey, token)
         if (isMember === 1 || isMember === true) {
+          if (clientVoteKey) {
+            await this.redis.sadd(clientVoteKey, normalizedUrl)
+            await this.redis.expire(clientVoteKey, CLIENT_VOTES_REDIS_TTL_SECONDS)
+            const cachedClientVotes =
+              this._getCachedClientVotedUrls(normalizedClientVoteIndexId) ?? new Set()
+            cachedClientVotes.add(normalizedUrl)
+            this._setClientVotesCache(normalizedClientVoteIndexId, cachedClientVotes)
+          }
+
           return {
             accepted: false,
             alreadyVoted: true,
@@ -604,9 +719,22 @@ class UpstashShowcaseStorage {
         }
       }
 
-      await this.redis.sadd(voteKey, ...tokens)
+      const writeOperations = this.redis.multi().sadd(voteKey, ...tokens)
+      if (clientVoteKey) {
+        writeOperations.sadd(clientVoteKey, normalizedUrl)
+      }
+
       const nextCount = toNonNegativeInteger(entry.upvoteCount) + 1
-      await this.redis.hset(entryKeyFromId(entryId), { upvoteCount: nextCount })
+      writeOperations.hset(entryKeyFromId(entryId), { upvoteCount: nextCount })
+      await writeOperations.exec()
+
+      if (clientVoteKey) {
+        await this.redis.expire(clientVoteKey, CLIENT_VOTES_REDIS_TTL_SECONDS)
+        const cachedClientVotes =
+          this._getCachedClientVotedUrls(normalizedClientVoteIndexId) ?? new Set()
+        cachedClientVotes.add(normalizedUrl)
+        this._setClientVotesCache(normalizedClientVoteIndexId, cachedClientVotes)
+      }
 
       this._invalidateShowcaseCache()
 
