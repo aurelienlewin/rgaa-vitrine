@@ -175,6 +175,14 @@ GITHUB_NOTIFY_REPO=owner/repo
 GITHUB_NOTIFY_TOKEN=github_pat_xxx
 ```
 
+If you store values in GitHub Actions secrets/variables, use these fallback names instead
+(GitHub blocks secret/variable names starting with `GITHUB_`):
+
+```bash
+RGAA_NOTIFY_REPO=owner/repo
+RGAA_NOTIFY_TOKEN=github_pat_xxx
+```
+
 Optional:
 
 ```bash

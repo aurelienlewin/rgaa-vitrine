@@ -27,6 +27,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - New Redis-backed read-through cache (TTL in-memory layer) to reduce repeated Upstash queries on identical listing/moderation reads.
 - Local self-hosted dyslexia-friendly font assets are now bundled from `@fontsource` packages.
 - Optional GitHub-native moderation notifications: new pending submissions can open issues automatically in a target repository.
+- Added GitHub Actions-compatible notifier env fallbacks: `RGAA_NOTIFY_REPO` and `RGAA_NOTIFY_TOKEN`.
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.

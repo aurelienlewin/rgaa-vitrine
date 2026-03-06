@@ -1,6 +1,11 @@
 function readGithubNotifierConfig() {
-  const token = (process.env.GITHUB_NOTIFY_TOKEN ?? process.env.GITHUB_TOKEN ?? '').trim()
-  const repo = (process.env.GITHUB_NOTIFY_REPO ?? '').trim()
+  const token = (
+    process.env.GITHUB_NOTIFY_TOKEN ??
+    process.env.RGAA_NOTIFY_TOKEN ??
+    process.env.GITHUB_TOKEN ??
+    ''
+  ).trim()
+  const repo = (process.env.GITHUB_NOTIFY_REPO ?? process.env.RGAA_NOTIFY_REPO ?? '').trim()
 
   if (!token || !repo) {
     return null
