@@ -7,6 +7,9 @@ description: Apply official RGAA developer recommendations from info.gouv.fr/acc
 
 Use this skill when a task requires strict alignment with official French RGAA development guidance.
 
+Project note (`annuaire-rgaa`): after any production accessibility audit, cross-check the local
+remediation checklist in `skill/agent.md` before finalizing.
+
 When a task explicitly asks for WCAG 2.2 compliance or evidence, also load:
 - `skill/wcag-22-official-guidelines/SKILL.md`
 

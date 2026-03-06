@@ -7,6 +7,9 @@ description: Apply official WCAG 2.2 guidance (W3C WAI) for implementation and r
 
 Use this skill for any accessibility implementation/review that must align with WCAG 2.2.
 
+Project note (`annuaire-rgaa`): combine this skill with the local regression checklist in
+`skill/agent.md` when remediating criteria found in production audits.
+
 ## Mandatory Sources
 
 Always rely on `references/wcag-22-official-summary.md`, which consolidates:

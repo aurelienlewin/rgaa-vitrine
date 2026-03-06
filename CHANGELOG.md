@@ -34,6 +34,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - New skip-link target for direct keyboard access to footer content (`Aller au pied de page`).
 - AI crawler discovery assets: `llms.txt`, `llms-full.txt`, and public `ai-context.json` summary endpoint.
 - New public accessibility declaration page (`/accessibilite`) with audit score, non-conformities list, contact channel, and legal recourse information.
+- Audit-driven remediation pass for previously non-conform criteria from production JSON report (`20260306-141236`).
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
@@ -89,6 +90,11 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Homepage structured data now includes a `Dataset` entity that points to public JSON distributions (`/api/showcase`, `/ai-context.json`).
 - Main navigation and site map now expose the accessibility declaration page for consistent user access.
 - Sitemap now references `/accessibilite` for public indexing coverage.
+- Submission flow now includes a review/confirmation step so data can be modified before final send.
+- Skip-link layout has been adjusted to avoid narrow-viewport horizontal overflow.
+- Theme toggle now relies on explicit accessible labels without tooltip-only `title` behavior.
+- Navigation consistency improved across pages for `Plan du site` and `Accessibilité` discovery.
+- Contrast and color-pair styling has been strengthened for interface components and link rendering.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

@@ -22,6 +22,7 @@ Planned public website: **https://rgaa-vitrine.org**
 - Programmatic focus management on skip-link targets and dynamic feedback blocks (errors/status).
 - Keyboard filter ergonomics: `Échap` clears search input and a dedicated reset button restores all filters.
 - Explicit filter CTA with a `Rechercher` button for clear submit action and predictable keyboard flow.
+- Submission flow now includes a confirmation step, allowing users to review and edit URL/category before final send.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
 - High-contrast color system tuned for low-vision navigation in both light and dark modes (including stronger visited-link and status semantics).
@@ -37,6 +38,7 @@ Planned public website: **https://rgaa-vitrine.org**
 - Directory-first UX with filters, categories, and search at the core.
 - URL registration workflow with secure server-side metadata enrichment.
 - Dedicated moderation UI at `/moderation` for approving/rejecting pending submissions.
+- Public accessibility declaration page at `/accessibilite` including score, non-conformities, and contact.
 - Annuaire listing cards designed for disabled people and accessibility enthusiasts.
 - RGAA awareness sections sourced from official French references.
 - WCAG 2.2 awareness and references embedded in the UI.
@@ -110,6 +112,18 @@ The UI now adapts automatically to operating-system and browser accessibility pr
 - Reduced motion (`prefers-reduced-motion`)
 - Increased contrast (`prefers-contrast: more`)
 - Forced colors / high-contrast modes (`forced-colors: active`)
+
+## Accessibility Remediation Traceability
+
+Based on production audit data from `../audit/out/20260306-141236/audit.resume.json`, the app now includes targeted remediations for previously non-conform criteria:
+
+- `3.3` improved interface contrast tuning (component boundaries and visual states).
+- `10.5` explicit foreground/background CSS pairing for links.
+- `10.11` reduced horizontal overflow risk on narrow viewports (`320px`) via skip-link layout adjustments.
+- `10.13` removal of tooltip-only `title` behavior on interactive controls.
+- `11.11` explicit URL format suggestions and validation guidance in the submission form.
+- `11.12` submission confirmation step with clear ability to review and modify entered data before sending.
+- `12.4` consistent exposure of `Plan du site` / `Accessibilité` navigation links across pages.
 
 ## SEO
 
