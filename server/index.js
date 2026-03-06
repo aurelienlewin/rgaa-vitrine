@@ -83,7 +83,7 @@ app.post('/api/site-insight', async (request, response) => {
   const category = request.body?.category
 
   if (typeof url !== 'string') {
-    sendJsonError(response, 400, 'Le champ url est obligatoire.')
+    sendJsonError(response, 400, 'Le champ URL est obligatoire.')
     return
   }
 

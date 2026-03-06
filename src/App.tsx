@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
@@ -168,13 +168,23 @@ function App() {
   const [inputCategory, setInputCategory] = useState(showcaseCategories[0])
   const [loadingAdd, setLoadingAdd] = useState(false)
   const [loadingDirectory, setLoadingDirectory] = useState(true)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [directoryErrorMessage, setDirectoryErrorMessage] = useState<string | null>(null)
+  const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null)
   const [lastAddedEntry, setLastAddedEntry] = useState<ShowcaseEntry | null>(null)
   const [showcaseEntries, setShowcaseEntries] = useState<ShowcaseEntry[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<ShowcaseStatusFilter>('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
-  const [politeAnnouncement, setPoliteAnnouncement] = useState('')
+  const [politeAnnouncement, setPoliteAnnouncement] = useState({ id: 0, message: '' })
+  const [assertiveAnnouncement, setAssertiveAnnouncement] = useState({ id: 0, message: '' })
+
+  const announcePolite = useCallback((message: string) => {
+    setPoliteAnnouncement((current) => ({ id: current.id + 1, message }))
+  }, [])
+
+  const announceAssertive = useCallback((message: string) => {
+    setAssertiveAnnouncement((current) => ({ id: current.id + 1, message }))
+  }, [])
 
   const filteredShowcaseEntries = useMemo(() => {
     const normalizedQuery = normalizeText(searchQuery.trim())
@@ -212,13 +222,16 @@ function App() {
   }, [showcaseEntries])
 
   useEffect(() => {
-    setPoliteAnnouncement(
-      `${filteredShowcaseEntries.length} site(s) affiché(s) sur ${showcaseEntries.length} dans l'annuaire.`,
-    )
+    setPoliteAnnouncement((current) => ({
+      id: current.id + 1,
+      message: `${filteredShowcaseEntries.length} site(s) affiché(s) sur ${showcaseEntries.length} dans l'annuaire.`,
+    }))
   }, [filteredShowcaseEntries.length, showcaseEntries.length])
 
-  async function loadShowcaseEntries() {
+  const loadShowcaseEntries = useCallback(async () => {
+    setDirectoryErrorMessage(null)
     setLoadingDirectory(true)
+    announcePolite("Chargement de l'annuaire en cours.")
 
     try {
       const response = await fetch('/api/showcase')
@@ -234,22 +247,27 @@ function App() {
 
       const parsedEntries = payload.entries.filter(isShowcaseEntry)
       setShowcaseEntries(parsedEntries)
+      announcePolite(`${parsedEntries.length} site(s) chargé(s) dans l'annuaire.`)
     } catch (error) {
       console.error('Unable to load showcase entries', error)
-      setErrorMessage(error instanceof Error ? error.message : "Erreur de chargement de l'annuaire.")
+      const localizedMessage = error instanceof Error ? error.message : "Erreur de chargement de l'annuaire."
+      setDirectoryErrorMessage(localizedMessage)
+      announceAssertive(localizedMessage)
     } finally {
       setLoadingDirectory(false)
     }
-  }
+  }, [announceAssertive, announcePolite])
 
   useEffect(() => {
     void loadShowcaseEntries()
-  }, [])
+  }, [loadShowcaseEntries])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setErrorMessage(null)
+    setSubmitErrorMessage(null)
+    setLastAddedEntry(null)
     setLoadingAdd(true)
+    announcePolite("Analyse du site en cours.")
 
     try {
       const response = await fetch('/api/site-insight', {
@@ -273,10 +291,12 @@ function App() {
       setLastAddedEntry(payload)
       setInputUrl('')
       await loadShowcaseEntries()
-      setPoliteAnnouncement(`Site ajouté : ${payload.siteTitle}.`)
+      announcePolite(`Site ajouté : ${payload.siteTitle}.`)
     } catch (error) {
       setLastAddedEntry(null)
-      setErrorMessage(error instanceof Error ? error.message : 'Erreur réseau.')
+      const localizedMessage = error instanceof Error ? error.message : 'Erreur réseau.'
+      setSubmitErrorMessage(localizedMessage)
+      announceAssertive(localizedMessage)
     } finally {
       setLoadingAdd(false)
     }
@@ -299,8 +319,13 @@ function App() {
         </a>
       </div>
 
-      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-        {politeAnnouncement}
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true" lang="fr">
+        {politeAnnouncement.message}
+        <span aria-hidden="true">{politeAnnouncement.id}</span>
+      </div>
+      <div className="sr-only" role="alert" aria-live="assertive" aria-atomic="true" lang="fr">
+        {assertiveAnnouncement.message}
+        <span aria-hidden="true">{assertiveAnnouncement.id}</span>
       </div>
 
       <div className="min-h-screen bg-brand-surface text-brand-ink">
@@ -429,6 +454,12 @@ function App() {
               <p className="mt-3 text-slate-700">Aucun site ne correspond aux filtres actuels.</p>
             )}
 
+            {directoryErrorMessage && (
+              <p className="mt-4 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800" role="alert">
+                {directoryErrorMessage}
+              </p>
+            )}
+
             {filteredShowcaseEntries.length > 0 && (
               <ul id="liste-vitrines" className="mt-4 grid gap-4 md:grid-cols-2">
                 {filteredShowcaseEntries.map((entry) => (
@@ -553,8 +584,8 @@ function App() {
                   type="url"
                   autoComplete="url"
                   required
-                  aria-invalid={Boolean(errorMessage)}
-                  aria-describedby={errorMessage ? 'url-help url-error' : 'url-help'}
+                  aria-invalid={Boolean(submitErrorMessage)}
+                  aria-describedby={submitErrorMessage ? 'url-help url-error' : 'url-help'}
                   value={inputUrl}
                   onChange={(event) => setInputUrl(event.target.value)}
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-base shadow-sm ${focusRingClass}`}
@@ -589,13 +620,13 @@ function App() {
               </button>
             </form>
 
-            {errorMessage && (
+            {submitErrorMessage && (
               <p id="url-error" className="mt-4 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800" role="alert">
-                {errorMessage}
+                {submitErrorMessage}
               </p>
             )}
 
-            {lastAddedEntry && !errorMessage && (
+            {lastAddedEntry && !submitErrorMessage && (
               <p className="mt-4 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800">
                 Site ajouté : <strong>{lastAddedEntry.siteTitle}</strong>
               </p>

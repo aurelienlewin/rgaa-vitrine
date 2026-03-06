@@ -19,7 +19,7 @@ Planned public website: **https://rgaa-vitrine.org**
 
 - Simple French UI focused on listing discovery first.
 - Multiple skip links for keyboard navigation (`contenu`, `filtres`, `ajout`, `aide`).
-- Polite live region announcements for dynamic feedback.
+- Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - Directory-first UX with filters, categories, and search at the core.
 - URL registration workflow with secure server-side metadata enrichment.
 - Vitrine listing cards designed for disabled people and accessibility enthusiasts.
