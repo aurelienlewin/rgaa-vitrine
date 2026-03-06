@@ -12,6 +12,9 @@ Application Vite + React (FR) pour valoriser la conformite accessibilite d'un si
 - Affichage titre du site, vignette (`og:image`/`twitter:image`)
 - Detection d'une page accessibilite
 - Extraction best-effort d'un niveau de conformite et d'un score (%), si presents
+- Galerie vitrine avec categories
+- Recherche plein texte (titre, URL, categorie)
+- Filtres par categorie et niveau de conformite
 - Interface front entierement en francais et orientee accessibilite clavier/focus
 
 ## Securite API
