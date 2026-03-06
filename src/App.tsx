@@ -99,6 +99,13 @@ const officialResources = [
   },
 ]
 
+const githubProfile = {
+  name: 'Aurélien Lewin',
+  login: 'aurelienlewin',
+  avatarUrl: 'https://avatars.githubusercontent.com/u/45093822?v=4',
+  profileUrl: 'https://github.com/aurelienlewin',
+}
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('fr-FR', {
     dateStyle: 'long',
@@ -596,6 +603,28 @@ function App() {
             </ul>
           </section>
         </main>
+
+        <footer
+          role="contentinfo"
+          className="mt-12 border-t border-slate-200 bg-white"
+          aria-label="Informations de bas de page"
+        >
+          <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-6 sm:px-6 lg:px-8">
+            <img
+              src={githubProfile.avatarUrl}
+              alt={`Avatar GitHub de ${githubProfile.name}`}
+              className="h-12 w-12 rounded-full border border-slate-300"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+            />
+            <p className="text-sm text-slate-800">
+              Cree et maintenu par{' '}
+              <a href={githubProfile.profileUrl} target="_blank" rel="noreferrer noopener">
+                {githubProfile.name} (@{githubProfile.login})
+              </a>
+            </p>
+          </div>
+        </footer>
       </div>
     </>
   )
