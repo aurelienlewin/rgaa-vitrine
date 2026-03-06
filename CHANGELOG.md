@@ -32,6 +32,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Repeated action links in showcase cards now include specific `aria-label` values for clearer screen-reader context.
 - Styling now relies on Tailwind CSS v4 native patterns (`@theme` design tokens and utility-based focus/skip-link behavior) instead of custom component CSS classes.
 - User feedback has been split into localized vocal channels: `aria-live=\"polite\"` for status and `aria-live=\"assertive\"` for errors, with dedicated directory/form error rendering.
+- Logo has been fully redesigned in SVG with richer visual identity and embedded accessibility semantics (`role=\"img\"`, `title`, `desc`, high-contrast text).
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
