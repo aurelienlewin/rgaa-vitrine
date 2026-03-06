@@ -33,6 +33,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Reusable frontend SEO manager for per-page metadata updates (title, description, canonical, Open Graph, Twitter, JSON-LD).
 - New skip-link target for direct keyboard access to footer content (`Aller au pied de page`).
 - AI crawler discovery assets: `llms.txt`, `llms-full.txt`, and public `ai-context.json` summary endpoint.
+- New public accessibility declaration page (`/accessibilite`) with audit score, non-conformities list, contact channel, and legal recourse information.
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
@@ -86,6 +87,8 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Footer UX now uses a responsive Tailwind grid with separated project info, quick navigation, and support actions.
 - Sitemap and site map page now expose AI-oriented discovery resources (`ai-context`, `llms` files) for machine consumption.
 - Homepage structured data now includes a `Dataset` entity that points to public JSON distributions (`/api/showcase`, `/ai-context.json`).
+- Main navigation and site map now expose the accessibility declaration page for consistent user access.
+- Sitemap now references `/accessibilite` for public indexing coverage.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

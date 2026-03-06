@@ -5,6 +5,7 @@ Annuaire francophone de sites web qui publient des informations de conformité R
 ## Canonique
 - URL principale: https://rgaa-vitrine.org/
 - Plan du site: https://rgaa-vitrine.org/plan-du-site
+- Déclaration d’accessibilité: https://rgaa-vitrine.org/accessibilite
 - Sitemap XML: https://rgaa-vitrine.org/sitemap.xml
 - Contexte IA JSON: https://rgaa-vitrine.org/ai-context.json
 

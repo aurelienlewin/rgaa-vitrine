@@ -219,6 +219,12 @@ app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
       priority: 0.8,
     },
     {
+      path: '/accessibilite',
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
+    {
       path: '/ai-context.json',
       lastModified,
       changeFrequency: 'daily',

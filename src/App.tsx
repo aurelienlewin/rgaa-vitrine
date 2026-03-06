@@ -576,6 +576,12 @@ function App() {
                 >
                   Plan du site
                 </a>
+                <a
+                  href="/accessibilite"
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                >
+                  Accessibilité
+                </a>
               </div>
             </div>
             <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -1082,6 +1088,14 @@ function App() {
                     className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                   >
                     Plan du site
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/accessibilite"
+                    className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  >
+                    Accessibilité
                   </a>
                 </li>
                 <li>

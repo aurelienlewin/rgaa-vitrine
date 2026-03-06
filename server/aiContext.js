@@ -100,6 +100,11 @@ export function buildAiContextPayload({ baseUrl, entries }) {
         title: 'Plan du site',
         description: 'Vue d’ensemble des pages et ressources techniques publiques.',
       },
+      {
+        url: `${baseUrl}/accessibilite`,
+        title: 'Déclaration d’accessibilité',
+        description: 'Score, non-conformités et contact du service.',
+      },
     ],
     api: {
       policy:

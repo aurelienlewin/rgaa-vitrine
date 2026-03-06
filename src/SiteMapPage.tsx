@@ -24,6 +24,11 @@ const primaryPages: SiteLink[] = [
     label: 'Plan du site',
     description: 'Vue d’ensemble des pages et sections publiques.',
   },
+  {
+    href: '/accessibilite',
+    label: 'Déclaration d’accessibilité',
+    description: 'Score d’accessibilité, liste des non-conformités et contact.',
+  },
 ]
 
 const directorySections: SiteLink[] = [
@@ -139,6 +144,7 @@ function SiteMapPage() {
             url: [
               createAbsoluteUrl('/'),
               createAbsoluteUrl('/plan-du-site'),
+              createAbsoluteUrl('/accessibilite'),
               createAbsoluteUrl('/sitemap.xml'),
               createAbsoluteUrl('/ai-context.json'),
               createAbsoluteUrl('/llms.txt'),

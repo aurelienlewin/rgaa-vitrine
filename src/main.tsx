@@ -10,6 +10,7 @@ import './index.css'
 import App from './App.tsx'
 import ModerationPage from './ModerationPage.tsx'
 import SiteMapPage from './SiteMapPage.tsx'
+import AccessibilityPage from './AccessibilityPage.tsx'
 import { initializeTheme } from './theme'
 
 initializeTheme()
@@ -25,8 +26,15 @@ function normalizePathname(pathname: string) {
 const currentPathname = normalizePathname(window.location.pathname)
 const isModerationRoute = currentPathname.startsWith('/moderation')
 const isSiteMapRoute = currentPathname === '/plan-du-site'
+const isAccessibilityRoute = currentPathname === '/accessibilite'
 
-const RootComponent = isModerationRoute ? ModerationPage : isSiteMapRoute ? SiteMapPage : App
+const RootComponent = isModerationRoute
+  ? ModerationPage
+  : isSiteMapRoute
+    ? SiteMapPage
+    : isAccessibilityRoute
+      ? AccessibilityPage
+      : App
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

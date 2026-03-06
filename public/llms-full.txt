@@ -12,6 +12,7 @@ Annuaire RGAA est une application web orientée accessibilité numérique, en fr
 ## URLs de référence
 - Site: https://rgaa-vitrine.org/
 - Plan du site: https://rgaa-vitrine.org/plan-du-site
+- Déclaration d’accessibilité: https://rgaa-vitrine.org/accessibilite
 - Sitemap XML: https://rgaa-vitrine.org/sitemap.xml
 - Fichier robots: https://rgaa-vitrine.org/robots.txt
 - Contexte IA JSON: https://rgaa-vitrine.org/ai-context.json
