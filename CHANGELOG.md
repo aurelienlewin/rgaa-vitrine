@@ -47,6 +47,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Directory filters now expose explicit control relationships (`aria-controls`) and helper guidance for keyboard-only users.
 - Directory filters now include an explicit `Rechercher` CTA (search form submit) with focus return to results summary.
 - SVG logo baseline clipping has been fixed by adding vertical canvas padding and rebalancing text block positioning.
+- App branding has been renamed to `Annuaire RGAA` (including metadata, UI labels, package name, and crawler user-agent).
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
@@ -54,7 +55,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 ## [2026-03-06]
 
 ### Added
-- Initial open-source release of RGAA Vitrine.
+- Initial open-source release of Annuaire RGAA.
 - French accessible UI with URL analysis and showcase gallery.
 - SEO metadata, JSON-LD, robots directives.
 - Embedded official RGAA recommendations skill.

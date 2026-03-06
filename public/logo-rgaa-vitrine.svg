@@ -7,9 +7,9 @@
   role="img"
   aria-labelledby="logoTitle logoDesc"
 >
-  <title id="logoTitle">Logo RGAA Vitrine</title>
+  <title id="logoTitle">Logo Annuaire RGAA</title>
   <desc id="logoDesc">
-    Logo RGAA Vitrine avec icône de vitrine tricolore, coche de conformité et signature textuelle.
+    Logo Annuaire RGAA avec icône de vitrine tricolore, coche de conformité et signature textuelle.
   </desc>
 
   <defs>
@@ -68,7 +68,7 @@
 
   <g transform="translate(286 44)">
     <text x="0" y="56" fill="#121B2E" font-size="64" font-family="Marianne, Segoe UI, Arial, sans-serif" font-weight="800" letter-spacing="0.4">
-      RGAA Vitrine
+      Annuaire RGAA
     </text>
 
     <text x="0" y="95" fill="#334155" font-size="24" font-family="Marianne, Segoe UI, Arial, sans-serif" font-weight="600">

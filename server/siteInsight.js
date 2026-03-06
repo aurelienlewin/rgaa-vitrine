@@ -213,7 +213,7 @@ async function fetchHtml(url) {
       redirect: 'follow',
       signal: controller.signal,
       headers: {
-        'user-agent': 'RGAA-Pride-Vitrine/1.0 (+https://example.invalid)',
+        'user-agent': 'Annuaire-RGAA/1.0 (+https://example.invalid)',
         accept: 'text/html,application/xhtml+xml',
       },
     })

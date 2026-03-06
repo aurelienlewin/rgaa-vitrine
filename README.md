@@ -1,15 +1,15 @@
-# RGAA Vitrine
+# Annuaire RGAA
 
 > Showcase and celebrate RGAA compliance in French web ecosystems.
 
-![RGAA Vitrine logo](./public/logo-rgaa-vitrine.svg)
+![Annuaire RGAA logo](./public/logo-rgaa-vitrine.svg)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 [![Vite](https://img.shields.io/badge/Vite-7.x-646CFF.svg)](https://vite.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-v4-06B6D4.svg)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org/)
 
-RGAA Vitrine is an open-source French-first directory that lets organizations publish a
+Annuaire RGAA is an open-source French-first directory that lets organizations publish a
 public RGAA pride listing: site metadata, detected accessibility statement page, and
 declared compliance indicators.
 
@@ -26,7 +26,7 @@ Planned public website: **https://rgaa-vitrine.org**
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
 - Directory-first UX with filters, categories, and search at the core.
 - URL registration workflow with secure server-side metadata enrichment.
-- Vitrine listing cards designed for disabled people and accessibility enthusiasts.
+- Annuaire listing cards designed for disabled people and accessibility enthusiasts.
 - RGAA awareness sections sourced from official French references.
 - WCAG 2.2 awareness and references embedded in the UI.
 - Tailwind CSS v4 native features used directly (`@theme` tokens + utility-first focus/skip-link patterns).

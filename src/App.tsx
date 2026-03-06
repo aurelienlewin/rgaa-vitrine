@@ -457,11 +457,11 @@ function App() {
             </div>
             <img
               src="/logo-rgaa-vitrine.svg"
-              alt="Logo RGAA Vitrine"
+              alt="Logo Annuaire RGAA"
               className="mt-2 h-auto w-full max-w-md"
               loading="eager"
             />
-            <h1 className="sr-only">RGAA Vitrine</h1>
+            <h1 className="sr-only">Annuaire RGAA</h1>
             <p className="mt-3 max-w-3xl text-base text-slate-700">
               Une vitrine simple pour référencer et découvrir les sites qui affichent leur conformité RGAA, avec
               filtres et recherche accessibles à tous.
