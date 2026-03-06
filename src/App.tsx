@@ -107,6 +107,10 @@ const supportProfile = {
   buyMeACoffeeUrl: 'https://buymeacoffee.com/aurelienlewin',
 }
 
+const focusRingClass =
+  'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus focus-visible:ring-2 focus-visible:ring-white'
+const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white px-3 py-2 text-slate-900 shadow-lg -translate-y-[220%] transition-transform duration-150 focus-visible:translate-y-0 ${focusRingClass}`
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('fr-FR', {
     dateStyle: 'long',
@@ -280,17 +284,17 @@ function App() {
 
   return (
     <>
-      <div className="skip-links" aria-label="Liens d'évitement">
-        <a href="#contenu" className="skip-link">
+      <div className="fixed left-4 top-4 z-60 flex flex-wrap gap-2" aria-label="Liens d'évitement">
+        <a href="#contenu" className={skipLinkClass}>
           Aller au contenu
         </a>
-        <a href="#filtres-annuaire" className="skip-link">
+        <a href="#filtres-annuaire" className={skipLinkClass}>
           Aller aux filtres
         </a>
-        <a href="#ajout-site" className="skip-link">
+        <a href="#ajout-site" className={skipLinkClass}>
           Aller au formulaire d'ajout
         </a>
-        <a href="#aide-accessibilite" className="skip-link">
+        <a href="#aide-accessibilite" className={skipLinkClass}>
           Aller à l'aide accessibilité
         </a>
       </div>
@@ -299,14 +303,14 @@ function App() {
         {politeAnnouncement}
       </div>
 
-      <div className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="min-h-screen bg-brand-surface text-brand-ink">
         <header className="border-b border-slate-200 bg-white">
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-semibold uppercase tracking-wide text-slate-600">Annuaire public RGAA</p>
               <a
                 href="#aide-accessibilite"
-                className="inline-flex min-h-11 items-center rounded-xl border border-sky-300 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-900"
+                className={`inline-flex min-h-11 items-center rounded-xl border border-sky-300 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-900 ${focusRingClass}`}
               >
                 Aide accessibilité
               </a>
@@ -369,7 +373,7 @@ function App() {
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Titre, URL, catégorie..."
-                  className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm ${focusRingClass}`}
                 />
               </div>
 
@@ -381,7 +385,7 @@ function App() {
                   id="filtre-statut"
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value as ShowcaseStatusFilter)}
-                  className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm ${focusRingClass}`}
                 >
                   {Object.entries(showcaseStatusFilterLabels).map(([value, label]) => (
                     <option key={value} value={value}>
@@ -399,7 +403,7 @@ function App() {
                   id="filtre-categorie"
                   value={categoryFilter}
                   onChange={(event) => setCategoryFilter(event.target.value)}
-                  className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm ${focusRingClass}`}
                 >
                   <option value="all">Toutes les catégories</option>
                   {showcaseCategories.map((category) => (
@@ -456,7 +460,7 @@ function App() {
                             target="_blank"
                             rel="noreferrer noopener"
                             aria-label={`Visiter le site ${entry.siteTitle}`}
-                            className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-3 py-2 font-semibold text-slate-900"
+                            className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-3 py-2 font-semibold text-slate-900 ${focusRingClass}`}
                           >
                             Visiter le site
                           </a>
@@ -468,7 +472,7 @@ function App() {
                               target="_blank"
                               rel="noreferrer noopener"
                               aria-label={`Ouvrir la déclaration d'accessibilité de ${entry.siteTitle}`}
-                              className="inline-flex min-h-11 items-center rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 font-semibold text-emerald-900"
+                              className={`inline-flex min-h-11 items-center rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 font-semibold text-emerald-900 ${focusRingClass}`}
                             >
                               Déclaration d'accessibilité
                             </a>
@@ -522,7 +526,7 @@ function App() {
                   href={resource.url}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="inline-flex min-h-11 items-center rounded-xl border border-sky-300 bg-white px-4 py-2 font-semibold text-sky-900"
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-sky-300 bg-white px-4 py-2 font-semibold text-sky-900 ${focusRingClass}`}
                 >
                   {resource.label}
                 </a>
@@ -553,7 +557,7 @@ function App() {
                   aria-describedby={errorMessage ? 'url-help url-error' : 'url-help'}
                   value={inputUrl}
                   onChange={(event) => setInputUrl(event.target.value)}
-                  className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-base shadow-sm"
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-base shadow-sm ${focusRingClass}`}
                 />
               </div>
 
@@ -566,7 +570,7 @@ function App() {
                   name="categorie"
                   value={inputCategory}
                   onChange={(event) => setInputCategory(event.target.value)}
-                  className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-base shadow-sm"
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-base shadow-sm ${focusRingClass}`}
                 >
                   {showcaseCategories.map((category) => (
                     <option key={category} value={category}>
@@ -579,7 +583,7 @@ function App() {
               <button
                 type="submit"
                 disabled={loadingAdd}
-                className="min-h-11 rounded-xl bg-slate-900 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:self-end"
+                className={`min-h-11 rounded-xl bg-slate-900 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:self-end ${focusRingClass}`}
               >
                 {loadingAdd ? 'Ajout...' : 'Ajouter'}
               </button>
@@ -622,7 +626,7 @@ function App() {
                   href="https://design.numerique.gouv.fr/articles/2026-03-02-rgaa5/"
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="font-semibold text-sky-900"
+                  className={`font-semibold text-sky-900 ${focusRingClass}`}
                 >
                   Lire l'article "L'arrivée de RGAA 5 est annoncée"
                 </a>
@@ -635,7 +639,7 @@ function App() {
                     href={resource.url}
                     target="_blank"
                     rel="noreferrer noopener"
-                    className="inline-flex min-h-11 items-center font-semibold"
+                    className={`inline-flex min-h-11 items-center font-semibold ${focusRingClass}`}
                   >
                     {resource.label}
                   </a>
@@ -661,11 +665,11 @@ function App() {
               />
               <p className="text-sm text-slate-800">
                 Créé et maintenu par{' '}
-                <a href={githubProfile.profileUrl} target="_blank" rel="noreferrer noopener">
+                <a href={githubProfile.profileUrl} target="_blank" rel="noreferrer noopener" className={focusRingClass}>
                   {githubProfile.name} (@{githubProfile.login})
                 </a>
               </p>
-              <a href="#aide-accessibilite" className="text-sm font-semibold text-slate-800 underline">
+              <a href="#aide-accessibilite" className={`text-sm font-semibold text-slate-800 underline ${focusRingClass}`}>
                 Aide accessibilité
               </a>
             </div>
@@ -674,7 +678,7 @@ function App() {
               href={supportProfile.buyMeACoffeeUrl}
               target="_blank"
               rel="noreferrer noopener"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900"
+              className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 ${focusRingClass}`}
               aria-label="M'offrir un café via Buy Me a Coffee"
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">

@@ -1,62 +1,39 @@
 @import "tailwindcss";
 
-:root {
-  color: #0f172a;
-  background-color: #f8fafc;
-  font-family: "Marianne", "Segoe UI", "Noto Sans", sans-serif;
+@theme {
+  --font-sans: "Marianne", "Segoe UI", "Noto Sans", sans-serif;
+  --color-brand-ink: #0f172a;
+  --color-brand-surface: #f8fafc;
+  --color-brand-link: #0036cc;
+  --color-brand-focus: #005fcc;
 }
 
-* {
-  box-sizing: border-box;
-}
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  line-height: 1.5;
-}
+  body {
+    margin: 0;
+    min-width: 320px;
+    line-height: 1.5;
+    color: var(--color-brand-ink);
+    background-color: var(--color-brand-surface);
+    font-family: var(--font-sans);
+  }
 
-a {
-  color: #0036cc;
-}
+  a {
+    color: var(--color-brand-link);
+  }
 
-a:hover {
-  text-decoration: underline;
-}
+  a:hover {
+    text-decoration: underline;
+  }
 
-:focus-visible {
-  outline: 3px solid #005fcc;
-  outline-offset: 3px;
-  box-shadow: 0 0 0 2px #ffffff;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-.skip-link {
-  position: relative;
-  top: 0;
-  transform: translateY(-180%);
-  border-radius: 0.5rem;
-  background: #ffffff;
-  color: #0f172a;
-  padding: 0.65rem 0.9rem;
-  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.2);
-}
-
-.skip-link:focus-visible {
-  transform: translateY(0);
-}
-
-.skip-links {
-  position: fixed;
-  top: 1rem;
-  left: 1rem;
-  z-index: 60;
-  display: flex;
-  gap: 0.5rem;
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }

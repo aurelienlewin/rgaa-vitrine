@@ -30,6 +30,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Form error handling now exposes `aria-invalid` and explicit error association (`aria-describedby`).
 - French locale wording has been corrected (accents, apostrophes, and typography) across UI, metadata, and API error messages.
 - Repeated action links in showcase cards now include specific `aria-label` values for clearer screen-reader context.
+- Styling now relies on Tailwind CSS v4 native patterns (`@theme` design tokens and utility-based focus/skip-link behavior) instead of custom component CSS classes.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

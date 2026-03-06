@@ -25,6 +25,7 @@ Planned public website: **https://rgaa-vitrine.org**
 - Vitrine listing cards designed for disabled people and accessibility enthusiasts.
 - RGAA awareness sections sourced from official French references.
 - WCAG 2.2 awareness and references embedded in the UI.
+- Tailwind CSS v4 native features used directly (`@theme` tokens + utility-first focus/skip-link patterns).
 - Embedded skills: `rgaa-official-recommendations`, `wcag-22-official-guidelines`.
 
 ## Tech Stack
