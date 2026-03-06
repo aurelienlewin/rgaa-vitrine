@@ -20,3 +20,4 @@ https://github.com/aurelienlewin
 - Keep DNS/IP validation for private/local targets.
 - Keep request timeout and response size limits.
 - Avoid rendering untrusted HTML from analyzed websites.
+- Never commit secrets (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `.env` files).

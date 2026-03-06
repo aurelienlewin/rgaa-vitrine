@@ -31,6 +31,7 @@ npm run build
 - [ ] Accessibility impact is tested (keyboard and focus at minimum).
 - [ ] Security impact is considered for URL handling and remote fetch.
 - [ ] README/docs updated if behavior changed.
+- [ ] CHANGELOG updated when behavior/API/storage changes.
 
 ## Commit style
 

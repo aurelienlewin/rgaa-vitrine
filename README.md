@@ -28,6 +28,26 @@ Planned public website: **https://rgaa-vitrine.org**
 - Vite + React + TypeScript
 - Tailwind CSS v4 via `@tailwindcss/vite`
 - Node + Express API
+- Upstash Redis (optional but recommended) for persistent showcase storage
+
+## Persistence (Redis)
+
+The API supports two storage modes:
+
+- `redis` when Upstash env variables are configured
+- `memory` fallback when Redis config is missing (non-persistent)
+
+Create a local env file from `.env.example` and configure:
+
+```bash
+UPSTASH_REDIS_REST_URL=...
+UPSTASH_REDIS_REST_TOKEN=...
+```
+
+You can check the active storage mode via:
+
+- `GET /api/health`
+- `GET /api/showcase`
 
 ## Security by default
 
@@ -56,6 +76,12 @@ Local services:
 
 - Frontend: `http://127.0.0.1:5173`
 - API: `http://127.0.0.1:8787`
+
+## API endpoints
+
+- `POST /api/site-insight` analyzes a site and persists one showcase entry
+- `GET /api/showcase` returns persisted showcase entries (supports `search`, `status`, `category`, `limit`)
+- `GET /api/health` returns service status and active storage mode
 
 ## Scripts
 
