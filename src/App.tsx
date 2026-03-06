@@ -202,6 +202,7 @@ function App() {
   const filtersSectionRef = useRef<HTMLElement | null>(null)
   const formSectionRef = useRef<HTMLElement | null>(null)
   const helpSectionRef = useRef<HTMLElement | null>(null)
+  const footerRef = useRef<HTMLElement | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const resultsSummaryRef = useRef<HTMLParagraphElement | null>(null)
   const directoryErrorRef = useRef<HTMLParagraphElement | null>(null)
@@ -502,6 +503,9 @@ function App() {
         </a>
         <a href="#aide-accessibilite" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, helpSectionRef)}>
           Aller à l’aide accessibilité
+        </a>
+        <a href="#pied-page" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, footerRef)}>
+          Aller au pied de page
         </a>
       </div>
 
@@ -985,42 +989,84 @@ function App() {
         </main>
 
         <footer
+          id="pied-page"
+          ref={footerRef}
+          tabIndex={-1}
           role="contentinfo"
           className="mt-12 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
           aria-label="Informations de bas de page"
         >
-          <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <img
-                src={githubProfile.avatarUrl}
-                alt={`Avatar GitHub de ${githubProfile.name}`}
-                className="h-12 w-12 rounded-full border border-slate-300 dark:border-slate-600"
-                loading="lazy"
-                referrerPolicy="no-referrer"
-              />
-              <p className="text-sm text-slate-800 dark:text-slate-200">
-                Créé et maintenu par{' '}
-                <a href={githubProfile.profileUrl} target="_blank" rel="noreferrer noopener" className={focusRingClass}>
-                  {githubProfile.name} (@{githubProfile.login})
-                </a>
+          <div className="mx-auto grid max-w-5xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1.4fr_1fr_1fr] lg:py-8 lg:px-8">
+            <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4">
+              <p className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                Projet
               </p>
-              <a href="#aide-accessibilite" className={`text-sm font-semibold text-slate-800 dark:text-slate-200 underline ${focusRingClass}`}>
-                Aide accessibilité
-              </a>
-              <a href="/plan-du-site" className={`text-sm font-semibold text-slate-800 dark:text-slate-200 underline ${focusRingClass}`}>
-                Plan du site
-              </a>
-              <a href="/moderation" className={`text-sm font-semibold text-slate-800 dark:text-slate-200 underline ${focusRingClass}`}>
-                Modération
-              </a>
-            </div>
+              <div className="mt-3 flex items-center gap-3">
+                <img
+                  src={githubProfile.avatarUrl}
+                  alt={`Avatar GitHub de ${githubProfile.name}`}
+                  className="h-12 w-12 rounded-full border border-slate-300 dark:border-slate-600"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+                <p className="text-sm text-slate-800 dark:text-slate-200">
+                  Créé et maintenu par{' '}
+                  <a
+                    href={githubProfile.profileUrl}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className={`font-semibold underline ${focusRingClass}`}
+                  >
+                    {githubProfile.name} (@{githubProfile.login})
+                  </a>
+                </p>
+              </div>
+            </section>
 
-            <div className="flex flex-col items-start gap-2 md:items-end">
+            <nav
+              className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4"
+              aria-label="Navigation rapide du pied de page"
+            >
+              <p className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                Navigation rapide
+              </p>
+              <ul className="mt-3 grid gap-2">
+                <li>
+                  <a
+                    href="#aide-accessibilite"
+                    className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  >
+                    Aide accessibilité
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/plan-du-site"
+                    className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  >
+                    Plan du site
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/moderation"
+                    className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  >
+                    Modération
+                  </a>
+                </li>
+              </ul>
+            </nav>
+
+            <section className="rounded-2xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 p-4">
+              <p className="text-sm font-semibold uppercase tracking-wide text-amber-900 dark:text-amber-100">
+                Soutien
+              </p>
               <a
                 href={supportProfile.buyMeACoffeeUrl}
                 target="_blank"
                 rel="noreferrer noopener"
-                className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 px-4 py-2 text-sm font-semibold text-amber-900 dark:text-amber-100 ${focusRingClass}`}
+                className={`mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-amber-900 dark:text-amber-100 ${focusRingClass}`}
                 aria-label="M’offrir un café via Buy Me a Coffee"
               >
                 <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
@@ -1029,12 +1075,12 @@ function App() {
                 M’offrir un café
               </a>
               <p
-                className="text-sm text-slate-600 dark:text-slate-300"
+                className="mt-3 text-sm text-slate-700 dark:text-slate-200"
                 aria-label={`Version ${buildVersion}, build ${buildTimestampDisplay}`}
               >
                 v{buildVersion} · {buildTimestampDisplay}
               </p>
-            </div>
+            </section>
           </div>
         </footer>
       </div>

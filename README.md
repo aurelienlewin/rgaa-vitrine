@@ -18,7 +18,7 @@ Planned public website: **https://rgaa-vitrine.org**
 ## Highlights
 
 - Simple French UI focused on listing discovery first.
-- Multiple skip links for keyboard navigation (`contenu`, `filtres`, `ajout`, `aide`).
+- Multiple skip links for keyboard navigation (`contenu`, `filtres`, `ajout`, `aide`, `pied de page`).
 - Programmatic focus management on skip-link targets and dynamic feedback blocks (errors/status).
 - Keyboard filter ergonomics: `Échap` clears search input and a dedicated reset button restores all filters.
 - Explicit filter CTA with a `Rechercher` button for clear submit action and predictable keyboard flow.
@@ -28,6 +28,7 @@ Planned public website: **https://rgaa-vitrine.org**
 - Persistent light/dark mode toggle available on both directory and moderation screens.
 - Dark mode styling is consistently applied through Tailwind `dark:` variants to avoid mixed-theme rendering.
 - Discreet footer build stamp (`version + UTC timestamp`) helps detect stale cache quickly.
+- Footer now uses a clearer three-column information architecture (`Projet`, `Navigation rapide`, `Soutien`) on large screens.
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
 - UI typography avoids tiny text; informational content and metadata are rendered at `text-sm` or above.
 - Muted text and status colors are tuned for stronger contrast in both light and dark themes.

@@ -31,6 +31,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Public site map page (`/plan-du-site`) with dedicated skip links and semantic navigation landmarks.
 - Automatic sitemap generation endpoint (`/sitemap.xml`) exposed in local API and Vercel serverless routing.
 - Reusable frontend SEO manager for per-page metadata updates (title, description, canonical, Open Graph, Twitter, JSON-LD).
+- New skip-link target for direct keyboard access to footer content (`Aller au pied de page`).
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
@@ -81,6 +82,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - `GET /api/health` now reports whether GitHub issue notifications are enabled.
 - Footer now displays a discreet build stamp (`version + UTC timestamp`) to help spot stale cached deployments.
 - Moderation view now enforces explicit `noindex,nofollow,noarchive` robots policy through the shared SEO layer.
+- Footer UX now uses a responsive Tailwind grid with separated project info, quick navigation, and support actions.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
