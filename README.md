@@ -66,6 +66,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Upstash Redis (optional but recommended) for persistent showcase storage
 - API-side in-memory Redis cache (TTL-based) to reduce repeated Upstash reads
 - Vote-state retrieval optimized for Redis limits (client vote index + TTL cache), avoiding per-tile membership bursts
+- Redis payloads are compacted on write (short field names, epoch timestamps, hashed vote fingerprints) to lower Upstash storage footprint
 - Local self-hosted fonts via `@fontsource` (`opendyslexic`, `atkinson-hyperlegible`, `lexend`)
 
 ## Persistence (Redis)
@@ -98,6 +99,13 @@ REDIS_CACHE_TTL_MS=15000
 ```
 
 This enables short-lived server-side caching for Redis-backed listing/moderation reads and vote-state hydration, to avoid unnecessary Upstash queries on repeated requests.
+
+Storage optimization notes:
+
+- Pending lookup no longer persists a separate URL index hash: submission IDs are deterministic from normalized URLs.
+- New writes use compact Redis hash fields and unix timestamps to reduce bytes stored per entry.
+- Vote fingerprint tokens are stored as short hashed tokens (`h:*`) to reduce set memory usage.
+- Backward compatibility is preserved for previously stored legacy records and vote tokens.
 
 Optional vote hardening setting:
 

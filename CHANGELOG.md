@@ -123,6 +123,8 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Frontend API payload parsing now detects HTML fallbacks explicitly and surfaces a clear routing error instead of generic “invalide” messages.
 - Vercel function glob now targets nested API handlers (`api/**/*.js`) so showcase/moderation subroutes share the same runtime limits.
 - Showcase vote-state reads now rely on a client vote index + TTL server cache, reducing Upstash command volume (no per-entry `SISMEMBER` burst on listing loads).
+- Redis persistence now writes compact payloads (short hash fields + unix timestamps) and hashed vote fingerprints (`h:*`) to reduce Upstash storage usage.
+- Pending-by-URL Redis hash writes have been removed; pending lookup now derives deterministic submission IDs from normalized URLs.
 - Focus management has been reworked across home and moderation actions: focus now stays local for in-place actions, moves to contextual summaries on view changes, and redirects to the next logical control when edited/deleted rows disappear.
 - Public showcase now exposes moderation vote availability state (`votesBlocked`) and disables voting on blocked URLs.
 - Site submissions are now rejected when the normalized URL is in moderation blocklist.
