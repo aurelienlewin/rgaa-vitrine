@@ -68,7 +68,7 @@ if (canUseDom) {
     <StrictMode>
       <Suspense
         fallback={
-          <div className="min-h-screen bg-brand-surface px-4 py-6 text-brand-ink">
+          <div className="min-h-screen bg-brand-surface px-4 py-6 text-brand-ink" role="status" aria-live="polite">
             Chargement…
           </div>
         }

@@ -34,3 +34,7 @@ Use this list as a rapid regression filter before running a full RGAA review.
 - In editable moderation forms, keep user input intact on server error; do not clear fields unless action succeeded.
 - Preserve keyboard and skip-link access to all major moderation zones (`pending`, `published`, `blocklists`).
 - Favor short-lived server cache for repeated moderation reads to reduce external quota pressure.
+- In moderation forms, prefer native input semantics (`type="url"`, `required`, `inputmode`) before custom validation.
+- Always pair numeric moderation fields with explicit format/range help text and `aria-describedby`.
+- Route-level loading fallback should be announced (`role="status"` + `aria-live="polite"`) to avoid silent waits.
+- For repeated list actions (blocklist entries), include URL-specific accessible labels to avoid ambiguous “Retirer” controls in screen readers.

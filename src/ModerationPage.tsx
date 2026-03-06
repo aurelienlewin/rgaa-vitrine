@@ -1048,6 +1048,7 @@ function ModerationPage() {
                   value={moderationToken}
                   onChange={(event) => setModerationToken(event.target.value)}
                   autoComplete="off"
+                  required
                   spellCheck={false}
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 />
@@ -1339,13 +1340,18 @@ function ModerationPage() {
                                 publishedScoreInputRefs.current[entry.normalizedUrl] = element
                               }}
                               id={`score-${itemId}`}
+                              type="text"
                               inputMode="decimal"
                               value={draft.complianceScore}
                               onChange={(event) =>
                                 handlePublishedDraftChange(entry.normalizedUrl, 'complianceScore', event.target.value)
                               }
+                              aria-describedby={`score-help-${itemId}`}
                               className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                             />
+                            <p id={`score-help-${itemId}`} className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                              Valeur attendue entre 0 et 100 (décimales autorisées).
+                            </p>
                           </div>
                           <div className="md:col-span-2">
                             <label htmlFor={`thumb-${itemId}`} className="block text-sm font-medium">
@@ -1353,6 +1359,8 @@ function ModerationPage() {
                             </label>
                             <input
                               id={`thumb-${itemId}`}
+                              type="url"
+                              inputMode="url"
                               value={draft.thumbnailUrl}
                               onChange={(event) =>
                                 handlePublishedDraftChange(entry.normalizedUrl, 'thumbnailUrl', event.target.value)
@@ -1366,6 +1374,8 @@ function ModerationPage() {
                             </label>
                             <input
                               id={`a11y-${itemId}`}
+                              type="url"
+                              inputMode="url"
                               value={draft.accessibilityPageUrl}
                               onChange={(event) =>
                                 handlePublishedDraftChange(
@@ -1489,6 +1499,8 @@ function ModerationPage() {
                   ref={siteBlocklistInputRef}
                   id="blocklist-site-url"
                   type="url"
+                  inputMode="url"
+                  required
                   value={siteBlocklistInput}
                   onChange={(event) => setSiteBlocklistInput(event.target.value)}
                   placeholder="https://www.exemple.fr/"
@@ -1520,6 +1532,7 @@ function ModerationPage() {
                         onClick={() => {
                           void handleSetSiteBlocked(blockedUrl, false)
                         }}
+                        aria-label={`Retirer ${blockedUrl} de la blocklist des sites`}
                         disabled={isRunning}
                         className={`min-h-11 rounded-xl border border-rose-300 dark:border-rose-700 px-4 py-2 text-sm font-semibold text-rose-900 dark:text-rose-100 disabled:opacity-60 ${focusRingClass}`}
                       >
@@ -1555,6 +1568,8 @@ function ModerationPage() {
                   ref={voteBlocklistInputRef}
                   id="blocklist-vote-url"
                   type="url"
+                  inputMode="url"
+                  required
                   value={voteBlocklistInput}
                   onChange={(event) => setVoteBlocklistInput(event.target.value)}
                   placeholder="https://www.exemple.fr/"
@@ -1586,6 +1601,7 @@ function ModerationPage() {
                         onClick={() => {
                           void handleSetVotesBlocked(blockedUrl, false)
                         }}
+                        aria-label={`Réactiver les votes pour ${blockedUrl}`}
                         disabled={isRunning}
                         className={`min-h-11 rounded-xl border border-amber-300 dark:border-amber-700 px-4 py-2 text-sm font-semibold text-amber-900 dark:text-amber-100 disabled:opacity-60 ${focusRingClass}`}
                       >

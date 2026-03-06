@@ -131,6 +131,8 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Add-site category control now uses a visible select list (including `Coopérative et services`) with no public custom-text override.
 - `/api/site-insight` now normalizes public category values to the moderator-approved set and falls back to `Autre` for unknown values.
 - Vercel API deployment now uses consolidated handlers (`api/index.js` + `api/[...slug].js`) to stay under Hobby serverless function limits.
+- Route lazy-loading fallback now exposes a polite live status for assistive technologies.
+- Moderation form accessibility pass: token and blocklist URL inputs are explicitly required, editable URL fields are typed as URL, score input includes guidance text, and blocklist row actions expose contextual accessible labels.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

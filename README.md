@@ -37,6 +37,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Footer version now resolves from release tags first (with package version fallback) to stay aligned with published GitHub releases.
 - Footer now uses a clearer three-column information architecture (`Projet`, `Navigation rapide`, `Soutien`) on large screens.
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
+- Route lazy-loading fallback is announced as status (`aria-live="polite"`) to avoid silent loading states.
 - UI typography avoids tiny text; informational content and metadata are rendered at `text-sm` or above.
 - Muted text and status colors are tuned for stronger contrast in both light and dark themes.
 - Default typography now prioritizes `Atkinson Hyperlegible` for broad readability, with `OpenDyslexic` and `Lexend` as accessible fallbacks.
@@ -47,6 +48,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Dedicated moderation UI at `/moderation` for approving/rejecting pending submissions.
 - Dedicated moderation UI now supports published entry editing and deletion (title, category, score, status, RGAA baseline badge, vignette, accessibility URL).
 - Moderation now includes editable site blocklist and vote-blocklist controls, plus a single action to delete and block a published site.
+- Moderation forms now strengthen input assistance (`required`, typed URL fields, explicit score guidance) and row-level action labels for assistive technologies.
 - Public accessibility declaration page at `/accessibilite` including score, non-conformities, and contact.
 - Annuaire listing cards designed for disabled people and accessibility enthusiasts.
 - RGAA awareness sections sourced from official French references.
