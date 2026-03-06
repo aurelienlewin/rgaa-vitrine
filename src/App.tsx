@@ -149,16 +149,28 @@ function App() {
   const [inputCategory, setInputCategory] = useState(showcaseCategories[0])
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [insight, setInsight] = useState<SiteInsight | null>(null)
+  const [lastAddedEntry, setLastAddedEntry] = useState<ShowcaseEntry | null>(null)
   const [showcaseEntries, setShowcaseEntries] = useState<ShowcaseEntry[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<ShowcaseStatusFilter>('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
 
   const loadingMessage = useMemo(
-    () => (loading ? 'Analyse en cours de l URL...' : 'Analyse terminee.'),
+    () => (loading ? 'Ajout du site en cours...' : 'Ajout termine.'),
     [loading],
   )
+
+  const directoryStats = useMemo(() => {
+    const full = showcaseEntries.filter((entry) => entry.complianceStatus === 'full').length
+    const partial = showcaseEntries.filter((entry) => entry.complianceStatus === 'partial').length
+    const none = showcaseEntries.filter((entry) => entry.complianceStatus === 'none').length
+    return {
+      total: showcaseEntries.length,
+      full,
+      partial,
+      none,
+    }
+  }, [showcaseEntries])
 
   const filteredShowcaseEntries = useMemo(() => {
     const normalizedQuery = normalizeText(searchQuery.trim())
@@ -239,16 +251,17 @@ function App() {
       if (
         typeof payload.normalizedUrl !== 'string' ||
         typeof payload.siteTitle !== 'string' ||
-        typeof payload.updatedAt !== 'string'
+        typeof payload.updatedAt !== 'string' ||
+        typeof payload.category !== 'string'
       ) {
         throw new Error('Reponse serveur invalide.')
       }
 
-      const parsedInsight = payload as unknown as SiteInsight
-      setInsight(parsedInsight)
+      const parsedEntry = payload as unknown as ShowcaseEntry
+      setLastAddedEntry(parsedEntry)
       await loadShowcaseEntries()
     } catch (error) {
-      setInsight(null)
+      setLastAddedEntry(null)
       setErrorMessage(error instanceof Error ? error.message : 'Erreur reseau.')
     } finally {
       setLoading(false)
@@ -273,19 +286,47 @@ function App() {
             />
             <h1 className="sr-only">Fierte RGAA</h1>
             <p className="mt-3 max-w-3xl text-base text-slate-700">
-              Valorisez votre conformite accessibilite. Saisissez une URL pour afficher le titre du site,
-              une vignette, la page accessibilite detectee et le niveau de conformite lorsque disponible.
+              Un grand annuaire filtreable pour mettre en avant les sites engages en accessibilite numerique
+              et valoriser leur conformite RGAA.
             </p>
           </div>
         </header>
 
         <main id="contenu" className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-          <section aria-labelledby="formulaire-titre" className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section aria-labelledby="annuaire-titre" className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 id="annuaire-titre" className="text-xl font-semibold">
+              Annuaire RGAA
+            </h2>
+            <p className="mt-2 text-slate-700">
+              Parcourez la liste, cherchez par mot-cle, filtrez par categorie et par niveau de conformite.
+            </p>
+            <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl bg-slate-100 px-4 py-3">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600">Total references</dt>
+                <dd className="mt-1 text-2xl font-bold text-slate-900">{directoryStats.total}</dd>
+              </div>
+              <div className="rounded-xl bg-emerald-50 px-4 py-3">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Totalement conformes</dt>
+                <dd className="mt-1 text-2xl font-bold text-emerald-900">{directoryStats.full}</dd>
+              </div>
+              <div className="rounded-xl bg-amber-50 px-4 py-3">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-amber-700">Partiellement conformes</dt>
+                <dd className="mt-1 text-2xl font-bold text-amber-900">{directoryStats.partial}</dd>
+              </div>
+              <div className="rounded-xl bg-rose-50 px-4 py-3">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-rose-700">Non conformes</dt>
+                <dd className="mt-1 text-2xl font-bold text-rose-900">{directoryStats.none}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section aria-labelledby="formulaire-titre" className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 id="formulaire-titre" className="text-xl font-semibold">
-              Analyser un site
+              Ajouter un site a l annuaire
             </h2>
             <p id="url-help" className="mt-2 text-sm text-slate-700">
-              Entrez l adresse du site a valoriser. Exemple: <span className="font-medium">https://www.exemple.fr</span>
+              Entrez l URL du site a referencer. Les metadonnees publiques seront recuperees automatiquement.
+              Exemple: <span className="font-medium">https://www.exemple.fr</span>
             </p>
 
             <form className="mt-4 grid gap-4 md:grid-cols-[2fr_1fr_auto]" onSubmit={handleSubmit} noValidate>
@@ -330,7 +371,7 @@ function App() {
                 disabled={loading}
                 className="rounded-xl bg-slate-900 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:self-end"
               >
-                {loading ? 'Analyse...' : 'Afficher la vitrine'}
+                {loading ? 'Ajout...' : 'Ajouter a la vitrine'}
               </button>
             </form>
 
@@ -343,117 +384,14 @@ function App() {
                 {errorMessage}
               </p>
             )}
-          </section>
 
-          <section className="mt-8" aria-labelledby="resultat-titre">
-            <h2 id="resultat-titre" className="text-xl font-semibold">
-              Resultat
-            </h2>
-
-            {!insight && !errorMessage && (
-              <p className="mt-3 text-slate-700">
-                Aucun resultat pour l instant. Lancez une analyse pour afficher la carte de fierte RGAA.
+            {lastAddedEntry && !errorMessage && (
+              <p className="mt-4 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800">
+                Site ajoute: <strong>{lastAddedEntry.siteTitle}</strong>{' '}
+                <a href={lastAddedEntry.normalizedUrl} target="_blank" rel="noreferrer noopener">
+                  ({lastAddedEntry.normalizedUrl})
+                </a>
               </p>
-            )}
-
-            {insight && (
-              <article className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <div className="grid gap-0 md:grid-cols-[1fr_2fr]">
-                  <div className="border-b border-slate-200 bg-slate-100 p-4 md:border-b-0 md:border-r">
-                    {insight.thumbnailUrl ? (
-                      <img
-                        src={insight.thumbnailUrl}
-                        alt={`Apercu du site ${insight.siteTitle}`}
-                        className="h-48 w-full rounded-lg object-cover"
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-slate-400 bg-white px-3 text-center text-sm text-slate-600">
-                        Aucune vignette disponible
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-5">
-                    <h3 className="text-2xl font-bold">{insight.siteTitle}</h3>
-                    <p className="mt-1 text-sm text-slate-700">
-                      Analyse effectuee le {formatDate(insight.updatedAt)}
-                    </p>
-
-                    <dl className="mt-5 space-y-4">
-                      <div>
-                        <dt className="text-sm font-semibold text-slate-700">URL analysee</dt>
-                        <dd>
-                          <a
-                            className="break-all"
-                            href={insight.normalizedUrl}
-                            target="_blank"
-                            rel="noreferrer noopener"
-                          >
-                            {insight.normalizedUrl}
-                          </a>
-                        </dd>
-                      </div>
-
-                      <div>
-                        <dt className="text-sm font-semibold text-slate-700">Page accessibilite detectee</dt>
-                        <dd>
-                          {insight.accessibilityPageUrl ? (
-                            <a
-                              className="break-all"
-                              href={insight.accessibilityPageUrl}
-                              target="_blank"
-                              rel="noreferrer noopener"
-                            >
-                              {insight.accessibilityPageUrl}
-                            </a>
-                          ) : (
-                            <span>Non detectee automatiquement.</span>
-                          )}
-                        </dd>
-                      </div>
-
-                      <div>
-                        <dt className="text-sm font-semibold text-slate-700">Niveau de conformite</dt>
-                        <dd className="mt-1">
-                          {insight.complianceStatus ? (
-                            <span
-                              className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${statusClassByValue[insight.complianceStatus]}`}
-                            >
-                              {insight.complianceStatusLabel}
-                            </span>
-                          ) : (
-                            <span>Information indisponible.</span>
-                          )}
-                        </dd>
-                      </div>
-
-                      <div>
-                        <dt className="text-sm font-semibold text-slate-700">Score de conformite</dt>
-                        <dd>
-                          {insight.complianceScore !== null ? (
-                            <div className="mt-2">
-                              <label htmlFor="score-progress" className="sr-only">
-                                Score de conformite
-                              </label>
-                              <progress
-                                id="score-progress"
-                                max={100}
-                                value={insight.complianceScore}
-                                className="h-3 w-full overflow-hidden rounded-full"
-                              />
-                              <p className="mt-1 text-sm">{insight.complianceScore}%</p>
-                            </div>
-                          ) : (
-                            <span>Score non trouve.</span>
-                          )}
-                        </dd>
-                      </div>
-                    </dl>
-                  </div>
-                </div>
-              </article>
             )}
           </section>
 
@@ -463,7 +401,7 @@ function App() {
                 Galerie des vitrines
               </h2>
               <p className="text-slate-700">
-                Recherchez et filtrez les sites analyses par categorie et niveau de conformite.
+                Recherchez et filtrez les sites references par categorie et niveau de conformite.
               </p>
             </div>
 
@@ -526,7 +464,7 @@ function App() {
 
             {showcaseEntries.length === 0 && (
               <p className="mt-3 text-slate-700">
-                Aucune vitrine enregistree pour le moment. Analysez un site pour alimenter la galerie.
+                Aucune vitrine enregistree pour le moment. Ajoutez des sites pour enrichir l annuaire.
               </p>
             )}
 

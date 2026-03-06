@@ -9,17 +9,18 @@
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-v4-06B6D4.svg)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org/)
 
-RGAA Vitrine is an open-source French-first project that lets organizations publish a
-public "pride card" for accessibility maturity: site metadata, detected accessibility
-statement page, and best-effort compliance score/status extraction.
+RGAA Vitrine is an open-source French-first directory that lets organizations publish a
+public RGAA pride listing: site metadata, detected accessibility statement page, and
+declared compliance indicators.
 
 Planned public website: **https://rgaa-vitrine.org**
 
 ## Highlights
 
 - French UI focused on accessibility clarity.
-- URL analysis workflow with secure server-side metadata extraction.
-- Vitrine gallery with categories, search, and filters.
+- Directory-first UX with filters, categories, and search at the core.
+- URL registration workflow with secure server-side metadata extraction.
+- Vitrine listing cards designed for discovery and comparison.
 - RGAA awareness sections sourced from official French references.
 - Embedded skill: `rgaa-official-recommendations`.
 

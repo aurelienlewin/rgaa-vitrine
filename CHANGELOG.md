@@ -10,11 +10,14 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Redis persistence wiring for showcase entries via Upstash Redis (`@upstash/redis`).
 - New `GET /api/showcase` endpoint with optional filters (`search`, `status`, `category`, `limit`).
 - `.env.example` for Redis configuration.
+- Directory-first UI blocks with showcase KPIs (total / full / partial / none).
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
 - Frontend now loads showcase entries from API persistence instead of in-memory-only state.
 - `GET /api/health` now exposes active storage mode (`redis` or `memory`).
+- Reframed UX from \"single-site result\" to \"big filterable listing\".
+- Registration flow wording now emphasizes adding a site to the directory (not auditing).
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
