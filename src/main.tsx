@@ -1,19 +1,38 @@
-import { StrictMode } from 'react'
+import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
-import '@fontsource/opendyslexic/400.css'
-import '@fontsource/opendyslexic/700.css'
-import '@fontsource/atkinson-hyperlegible/400.css'
-import '@fontsource/atkinson-hyperlegible/700.css'
-import '@fontsource/lexend/400.css'
-import '@fontsource/lexend/700.css'
+import '@fontsource/atkinson-hyperlegible/latin-400.css'
+import '@fontsource/atkinson-hyperlegible/latin-700.css'
 import './index.css'
 import App from './App.tsx'
-import ModerationPage from './ModerationPage.tsx'
-import SiteMapPage from './SiteMapPage.tsx'
-import AccessibilityPage from './AccessibilityPage.tsx'
 import { initializeTheme } from './theme'
 
 initializeTheme()
+
+const ModerationPage = lazy(() => import('./ModerationPage.tsx'))
+const SiteMapPage = lazy(() => import('./SiteMapPage.tsx'))
+const AccessibilityPage = lazy(() => import('./AccessibilityPage.tsx'))
+
+function loadSecondaryFonts() {
+  return Promise.all([
+    import('@fontsource/opendyslexic/latin-400.css'),
+    import('@fontsource/opendyslexic/latin-700.css'),
+    import('@fontsource/lexend/latin-400.css'),
+    import('@fontsource/lexend/latin-700.css'),
+  ])
+}
+
+function scheduleSecondaryFontsLoad() {
+  const load = () => {
+    void loadSecondaryFonts()
+  }
+
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(load, { timeout: 1800 })
+    return
+  }
+
+  window.setTimeout(load, 1000)
+}
 
 function normalizePathname(pathname: string) {
   if (pathname === '/') {
@@ -36,8 +55,18 @@ const RootComponent = isModerationRoute
       ? AccessibilityPage
       : App
 
+scheduleSecondaryFontsLoad()
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <RootComponent />
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-brand-surface px-4 py-6 text-brand-ink">
+          Chargement…
+        </div>
+      }
+    >
+      <RootComponent />
+    </Suspense>
   </StrictMode>,
 )

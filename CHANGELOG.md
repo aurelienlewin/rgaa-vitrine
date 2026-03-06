@@ -102,6 +102,8 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Accessibility-score extraction now supports broader French wording and decimal percentages (ex: `96,51 %`) from accessibility statements.
 - Moderation UI now allows administrators to edit and delete published entries (title, category, status, score, vignette, accessibility URL).
 - README now documents moderation update/delete payloads and Vercel handlers for published entries management routes.
+- Frontend now lazy-loads non-home routes (`/moderation`, `/plan-du-site`, `/accessibilite`) to reduce initial JS bytes on homepage.
+- Secondary font families (`OpenDyslexic`, `Lexend`) are deferred after first paint while keeping `Atkinson Hyperlegible` in critical path.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

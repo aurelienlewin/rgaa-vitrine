@@ -45,6 +45,8 @@ Planned public website: **https://annuaire-rgaa.fr**
 - WCAG 2.2 awareness and references embedded in the UI.
 - Tailwind CSS v4 native features used directly (`@theme` tokens + utility-first focus/skip-link patterns).
 - Embedded skills: `rgaa-official-recommendations`, `wcag-22-official-guidelines`.
+- Frontend route bundles are split (`/moderation`, `/plan-du-site`, `/accessibilite`) to reduce initial JavaScript on homepage load.
+- Secondary local fonts (`OpenDyslexic`, `Lexend`) are now loaded after first paint (idle callback), keeping critical render path lighter.
 
 ## Tech Stack
 
