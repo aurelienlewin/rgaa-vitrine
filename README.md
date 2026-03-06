@@ -105,8 +105,7 @@ Local services:
 
 - `200` + `submissionStatus: "approved"` when published
 - `200` + `submissionStatus: "duplicate"` when site already exists
-- `202` + `submissionStatus: "pending"` when manual review is required
-- `4xx` when rejected by validation/anti-abuse rules
+- `4xx` when rejected by validation/anti-abuse rules (including non-publishable submissions)
 
 ## Deployment (Vercel)
 

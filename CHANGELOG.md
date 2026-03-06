@@ -17,7 +17,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Dedicated WCAG 2.2 skill with official W3C references and review checklist.
 - New in-app WCAG 2.2 help section with links to W3C FR guidance.
 - Vercel-native serverless API entrypoints added under `api/` for production deployments.
-- Anti-abuse submission guardrails: honeypot field, stricter submission rate limit, spam/marketing signal checks, and manual-review workflow.
+- Anti-abuse submission guardrails: honeypot field, stricter submission rate limit, spam/marketing signal checks, and non-publishable submission rejection.
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.

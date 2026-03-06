@@ -169,10 +169,11 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
 
     const manualReviewReason = getManualReviewReason(insight)
     if (manualReviewReason) {
-      response.status(202).json({
-        submissionStatus: 'pending',
-        message: `Soumission reçue, en attente de vérification humaine. Motif: ${manualReviewReason}`,
-      })
+      sendJsonError(
+        response,
+        422,
+        `Soumission non publiable automatiquement. Motif: ${manualReviewReason}`,
+      )
       return
     }
 
