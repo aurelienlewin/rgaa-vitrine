@@ -296,6 +296,12 @@ async function readApiPayload(response: Response) {
   }
 
   const compactBody = rawBody.trim().replace(/\s+/g, ' ')
+  if (/<!doctype html|<html[\s>]/i.test(compactBody)) {
+    return {
+      error:
+        'Réponse HTML reçue à la place de JSON API. Vérifiez le routage des endpoints /api/*.',
+    }
+  }
   return { error: compactBody.slice(0, 220) || 'Réponse serveur non JSON.' }
 }
 
@@ -684,6 +690,10 @@ function App() {
         throw new Error(typeof payload?.error === 'string' ? payload.error : 'Chargement d’annuaire impossible.')
       }
 
+      if (typeof payload.error === 'string') {
+        throw new Error(payload.error)
+      }
+
       const responseEntries = Array.isArray(payload.entries)
         ? payload.entries
         : Array.isArray(payload)
@@ -860,6 +870,10 @@ function App() {
           throw new Error(typeof payload?.error === 'string' ? payload.error : 'Pré-analyse impossible.')
         }
 
+        if (typeof payload.error === 'string') {
+          throw new Error(payload.error)
+        }
+
         if (!submissionStatus || !isShowcaseEntry(payload)) {
           throw new Error('Pré-analyse invalide du serveur.')
         }
@@ -907,6 +921,10 @@ function App() {
 
       if (!response.ok) {
         throw new Error(typeof payload?.error === 'string' ? payload.error : 'Ajout impossible.')
+      }
+
+      if (typeof payload.error === 'string') {
+        throw new Error(payload.error)
       }
 
       if (submissionStatus === 'pending' || response.status === 202) {

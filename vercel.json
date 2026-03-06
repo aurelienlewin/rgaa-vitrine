@@ -13,17 +13,6 @@
       "has": [
         {
           "type": "host",
-          "value": "www.annuaire-rgaa.fr"
-        }
-      ],
-      "destination": "https://annuaire-rgaa.fr/$1",
-      "permanent": true
-    },
-    {
-      "source": "/(.*)",
-      "has": [
-        {
-          "type": "host",
           "value": "annuaire-rgaa.org"
         }
       ],
