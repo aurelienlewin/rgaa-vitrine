@@ -126,6 +126,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Moderation UI now includes accessible editors for site blocklist and vote blocklist.
 - Showcase and moderation tiles now expose an RGAA baseline indicator (`RGAA 4.1` or `RGAA 5.0 prêt`) with explicit explanatory text and backend detection.
 - Category inputs are now open text with suggestions in both submission and moderation flows, and include a dedicated `Coopérative et services` suggestion.
+- Moderation update flow now allows explicit per-site override of the RGAA baseline badge (`4.1` or `5.0-ready`).
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

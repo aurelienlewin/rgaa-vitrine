@@ -45,7 +45,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Score is treated as a compass, not the goal: priority is to unblock customer journeys and deliver usable UX for everyone.
 - URL registration workflow with secure server-side metadata enrichment.
 - Dedicated moderation UI at `/moderation` for approving/rejecting pending submissions.
-- Dedicated moderation UI now supports published entry editing and deletion (title, category, score, status, vignette, accessibility URL).
+- Dedicated moderation UI now supports published entry editing and deletion (title, category, score, status, RGAA baseline badge, vignette, accessibility URL).
 - Moderation now includes editable site blocklist and vote-blocklist controls, plus a single action to delete and block a published site.
 - Public accessibility declaration page at `/accessibilite` including score, non-conformities, and contact.
 - Annuaire listing cards designed for disabled people and accessibility enthusiasts.
@@ -218,6 +218,7 @@ Local services:
   "category": "Administration",
   "complianceStatus": "partial",
   "complianceScore": 96.51,
+  "rgaaBaseline": "4.1",
   "thumbnailUrl": "https://www.impots.gouv.fr/example-image.jpg",
   "accessibilityPageUrl": "https://www.impots.gouv.fr/accessibilite"
 }
@@ -234,6 +235,7 @@ Local services:
 Notes:
 
 - `complianceScore` accepte les décimales (ex: `96.51`) et est normalisé entre `0` et `100`.
+- `rgaaBaseline` accepte `4.1` ou `5.0-ready` pour contrôler le badge RGAA affiché publiquement.
 - `thumbnailUrl` et `accessibilityPageUrl` sont optionnels; envoyer `null` (ou chaîne vide côté UI) pour les vider.
 - Les URL éditées sont validées côté serveur (HTTP/HTTPS public uniquement).
 

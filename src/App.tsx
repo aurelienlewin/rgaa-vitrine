@@ -987,9 +987,8 @@ function App() {
                 </span>
               </div>
             </div>
-            <p className="mt-4 max-w-3xl text-base text-slate-700 dark:text-slate-300">
-              Une vitrine simple pour référencer et découvrir les sites qui affichent leur conformité RGAA, avec
-              filtres et recherche accessibles à tous.
+            <p className="mt-4 max-w-4xl text-base text-slate-700 dark:text-slate-300">
+              Une vitrine simple pour référencer et découvrir les sites qui affichent leur conformité RGAA, avec filtres et recherche accessibles à tous.
             </p>
           </div>
         </header>
