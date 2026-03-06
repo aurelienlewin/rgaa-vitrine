@@ -19,6 +19,8 @@ Planned public website: **https://rgaa-vitrine.org**
 
 - Simple French UI focused on listing discovery first.
 - Multiple skip links for keyboard navigation (`contenu`, `filtres`, `ajout`, `aide`).
+- Programmatic focus management on skip-link targets and dynamic feedback blocks (errors/status).
+- Keyboard filter ergonomics: `Échap` clears search input and a dedicated reset button restores all filters.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
 - Directory-first UX with filters, categories, and search at the core.

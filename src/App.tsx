@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { FormEvent, MouseEvent as ReactMouseEvent, RefObject } from 'react'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
 
@@ -191,6 +191,14 @@ function App() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [politeAnnouncement, setPoliteAnnouncement] = useState({ id: 0, message: '' })
   const [assertiveAnnouncement, setAssertiveAnnouncement] = useState({ id: 0, message: '' })
+  const mainContentRef = useRef<HTMLElement | null>(null)
+  const filtersSectionRef = useRef<HTMLElement | null>(null)
+  const formSectionRef = useRef<HTMLElement | null>(null)
+  const helpSectionRef = useRef<HTMLElement | null>(null)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const directoryErrorRef = useRef<HTMLParagraphElement | null>(null)
+  const submitErrorRef = useRef<HTMLParagraphElement | null>(null)
+  const submitInfoRef = useRef<HTMLParagraphElement | null>(null)
 
   const announcePolite = useCallback((message: string) => {
     setPoliteAnnouncement((current) => ({ id: current.id + 1, message }))
@@ -199,6 +207,37 @@ function App() {
   const announceAssertive = useCallback((message: string) => {
     setAssertiveAnnouncement((current) => ({ id: current.id + 1, message }))
   }, [])
+
+  const focusElement = useCallback((element: HTMLElement | null) => {
+    if (!element) {
+      return
+    }
+    element.focus({ preventScroll: true })
+    element.scrollIntoView({ block: 'start' })
+  }, [])
+
+  const handleSkipLinkClick = useCallback(
+    (event: ReactMouseEvent<HTMLAnchorElement>, ref: RefObject<HTMLElement | null>) => {
+      const href = event.currentTarget.getAttribute('href')
+      if (!href || !href.startsWith('#')) {
+        return
+      }
+
+      window.setTimeout(() => {
+        const fallbackTarget = document.getElementById(href.slice(1))
+        focusElement(ref.current ?? fallbackTarget)
+      }, 0)
+    },
+    [focusElement],
+  )
+
+  const handleResetFilters = useCallback(() => {
+    setSearchQuery('')
+    setStatusFilter('all')
+    setCategoryFilter('all')
+    announcePolite('Filtres réinitialisés.')
+    searchInputRef.current?.focus()
+  }, [announcePolite])
 
   const filteredShowcaseEntries = useMemo(() => {
     const normalizedQuery = normalizeText(searchQuery.trim())
@@ -276,6 +315,24 @@ function App() {
     void loadShowcaseEntries()
   }, [loadShowcaseEntries])
 
+  useEffect(() => {
+    if (directoryErrorMessage) {
+      focusElement(directoryErrorRef.current)
+    }
+  }, [directoryErrorMessage, focusElement])
+
+  useEffect(() => {
+    if (submitErrorMessage) {
+      focusElement(submitErrorRef.current)
+    }
+  }, [submitErrorMessage, focusElement])
+
+  useEffect(() => {
+    if (submitInfoMessage) {
+      focusElement(submitInfoRef.current)
+    }
+  }, [submitInfoMessage, focusElement])
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSubmitErrorMessage(null)
@@ -351,16 +408,16 @@ function App() {
   return (
     <>
       <div className="fixed left-4 top-4 z-60 flex flex-wrap gap-2" aria-label="Liens d’évitement">
-        <a href="#contenu" className={skipLinkClass}>
+        <a href="#contenu" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, mainContentRef)}>
           Aller au contenu
         </a>
-        <a href="#filtres-annuaire" className={skipLinkClass}>
+        <a href="#filtres-annuaire" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, filtersSectionRef)}>
           Aller aux filtres
         </a>
-        <a href="#ajout-site" className={skipLinkClass}>
+        <a href="#ajout-site" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, formSectionRef)}>
           Aller au formulaire d’ajout
         </a>
-        <a href="#aide-accessibilite" className={skipLinkClass}>
+        <a href="#aide-accessibilite" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, helpSectionRef)}>
           Aller à l’aide accessibilité
         </a>
       </div>
@@ -400,7 +457,7 @@ function App() {
           </div>
         </header>
 
-        <main id="contenu" className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <main id="contenu" ref={mainContentRef} tabIndex={-1} className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           <section aria-labelledby="annuaire-titre" className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 id="annuaire-titre" className="text-xl font-semibold">
               Annuaire
@@ -425,12 +482,22 @@ function App() {
             </dl>
           </section>
 
-          <section id="filtres-annuaire" className="mt-8" aria-labelledby="galerie-titre" aria-busy={loadingDirectory}>
+          <section
+            id="filtres-annuaire"
+            ref={filtersSectionRef}
+            tabIndex={-1}
+            className="mt-8"
+            aria-labelledby="galerie-titre"
+            aria-busy={loadingDirectory}
+          >
             <div className="flex flex-col gap-2">
               <h2 id="galerie-titre" className="text-xl font-semibold">
                 Rechercher et filtrer
               </h2>
               <p className="text-slate-700">Trouvez rapidement un site par nom, catégorie ou niveau de conformité.</p>
+              <p id="recherche-aide" className="text-sm text-slate-600">
+                Astuce clavier: appuyez sur Échap dans la recherche pour effacer la saisie.
+              </p>
             </div>
 
             <div className="mt-4 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3">
@@ -439,11 +506,20 @@ function App() {
                   Recherche
                 </label>
                 <input
+                  ref={searchInputRef}
                   id="recherche-vitrine"
                   type="search"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape' && searchQuery) {
+                      setSearchQuery('')
+                      announcePolite('Recherche effacée.')
+                    }
+                  }}
                   placeholder="Titre, URL, catégorie..."
+                  aria-controls="liste-vitrines"
+                  aria-describedby="recherche-aide"
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm ${focusRingClass}`}
                 />
               </div>
@@ -456,6 +532,7 @@ function App() {
                   id="filtre-statut"
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value as ShowcaseStatusFilter)}
+                  aria-controls="liste-vitrines"
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm ${focusRingClass}`}
                 >
                   {Object.entries(showcaseStatusFilterLabels).map(([value, label]) => (
@@ -474,6 +551,7 @@ function App() {
                   id="filtre-categorie"
                   value={categoryFilter}
                   onChange={(event) => setCategoryFilter(event.target.value)}
+                  aria-controls="liste-vitrines"
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm ${focusRingClass}`}
                 >
                   <option value="all">Toutes les catégories</option>
@@ -484,6 +562,16 @@ function App() {
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900 ${focusRingClass}`}
+              >
+                Réinitialiser les filtres
+              </button>
             </div>
 
             <p className="mt-3 text-sm text-slate-700">
@@ -501,7 +589,12 @@ function App() {
             )}
 
             {directoryErrorMessage && (
-              <p className="mt-4 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800" role="alert">
+              <p
+                ref={directoryErrorRef}
+                tabIndex={-1}
+                className="mt-4 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800"
+                role="alert"
+              >
                 {directoryErrorMessage}
               </p>
             )}
@@ -583,7 +676,13 @@ function App() {
             )}
           </section>
 
-          <section id="aide-accessibilite" className="mt-8 rounded-2xl border border-sky-200 bg-sky-50 p-6" aria-labelledby="aide-titre">
+          <section
+            id="aide-accessibilite"
+            ref={helpSectionRef}
+            tabIndex={-1}
+            className="mt-8 rounded-2xl border border-sky-200 bg-sky-50 p-6"
+            aria-labelledby="aide-titre"
+          >
             <h2 id="aide-titre" className="text-xl font-semibold text-sky-900">
               Aide accessibilité et repères WCAG 2.2
             </h2>
@@ -611,7 +710,13 @@ function App() {
             </div>
           </section>
 
-          <section id="ajout-site" className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" aria-labelledby="formulaire-titre">
+          <section
+            id="ajout-site"
+            ref={formSectionRef}
+            tabIndex={-1}
+            className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+            aria-labelledby="formulaire-titre"
+          >
             <h2 id="formulaire-titre" className="text-xl font-semibold">
               Ajouter un site
             </h2>
@@ -683,13 +788,25 @@ function App() {
             </form>
 
             {submitErrorMessage && (
-              <p id="url-error" className="mt-4 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800" role="alert">
+              <p
+                id="url-error"
+                ref={submitErrorRef}
+                tabIndex={-1}
+                className="mt-4 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800"
+                role="alert"
+              >
                 {submitErrorMessage}
               </p>
             )}
 
             {submitInfoMessage && !submitErrorMessage && (
-              <p className="mt-4 rounded-lg border border-sky-300 bg-sky-50 p-3 text-sm text-sky-900" role="status" aria-live="polite">
+              <p
+                ref={submitInfoRef}
+                tabIndex={-1}
+                className="mt-4 rounded-lg border border-sky-300 bg-sky-50 p-3 text-sm text-sky-900"
+                role="status"
+                aria-live="polite"
+              >
                 {submitInfoMessage}
               </p>
             )}

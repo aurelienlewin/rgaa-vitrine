@@ -19,6 +19,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Vercel-native serverless API entrypoints added under `api/` for production deployments.
 - Anti-abuse submission guardrails: honeypot field, stricter submission rate limit, spam/marketing signal checks, and non-publishable submission rejection.
 - Adaptive accessibility preferences support for low-vision contexts (`dark mode`, `reduced motion`, `high contrast`, `forced colors`).
+- Keyboard shortcuts for filtering UX (`Échap` to clear search, explicit filters reset action).
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
@@ -41,6 +42,9 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Frontend submission flow now supports `approved`, `duplicate`, and `pending` outcomes with localized feedback.
 - Added explicit browser metadata for light/dark color scheme support (`meta color-scheme` + themed `theme-color`).
 - French contractions now consistently use typographic apostrophes (`’`) in UI and API user-facing messages.
+- Keyboard navigation has been hardened with reliable skip-link focus targets (`main` and landmark sections now receive programmatic focus).
+- Dynamic error/status feedback blocks now receive focus when displayed to improve keyboard and screen-reader discoverability.
+- Directory filters now expose explicit control relationships (`aria-controls`) and helper guidance for keyboard-only users.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
