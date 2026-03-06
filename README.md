@@ -79,7 +79,7 @@ You can check the active storage mode via:
 - Domain-level deduplication via canonical URL normalization (e.g. `www` variants collapse)
 - Honeypot field validation to reduce automated spam submissions
 - Automatic spam/marketing signal rejection (quality filter)
-- Manual-review mode for low-trust submissions (not auto-published)
+- Manual-review queue for non-auto-publishable submissions (pending until moderator action)
 - No execution of remote page scripts
 
 ## Accessibility Preferences
@@ -115,12 +115,36 @@ Local services:
 - `POST /api/site-insight` registers/enriches one site entry in the directory
 - `GET /api/showcase` returns persisted showcase entries (supports `search`, `status`, `category`, `limit`)
 - `GET /api/health` returns service status and active storage mode
+- `GET /api/moderation/pending` returns pending moderation entries (protected)
+- `POST /api/moderation/approve` approves one pending submission (protected)
+- `POST /api/moderation/reject` rejects one pending submission (protected)
 
 `POST /api/site-insight` behavior:
 
 - `200` + `submissionStatus: "approved"` when published
 - `200` + `submissionStatus: "duplicate"` when site already exists
-- `4xx` when rejected by validation/anti-abuse rules (including non-publishable submissions)
+- `202` + `submissionStatus: "pending"` when the site requires manual review
+- `4xx` when rejected by validation/anti-abuse rules (spam, invalid input, etc.)
+
+### Manual moderation workflow
+
+1. A submission requiring human review is stored server-side as `pending`.
+2. A moderator lists pending entries with `GET /api/moderation/pending`.
+3. The moderator approves (`POST /api/moderation/approve`) or rejects (`POST /api/moderation/reject`) by `submissionId`.
+
+Endpoints are protected by `MODERATION_API_TOKEN`.
+
+Set it in local/Vercel environment:
+
+```bash
+MODERATION_API_TOKEN=replace-with-a-long-random-token
+```
+
+Send it via header:
+
+```bash
+x-moderation-token: <MODERATION_API_TOKEN>
+```
 
 ## Deployment (Vercel)
 
@@ -129,6 +153,9 @@ The repository includes native Vercel serverless endpoints in `api/`:
 - `api/site-insight.js`
 - `api/showcase.js`
 - `api/health.js`
+- `api/moderation/pending.js`
+- `api/moderation/approve.js`
+- `api/moderation/reject.js`
 
 This avoids production `NOT_FOUND` responses on `/api/*` routes when the frontend is deployed as a Vite app.
 
@@ -137,6 +164,7 @@ Ensure these environment variables are configured in Vercel project settings:
 - `KV_REST_API_URL` and `KV_REST_API_TOKEN`
 or
 - `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
+- `MODERATION_API_TOKEN` (required to enable manual moderation API)
 
 ## Scripts
 

@@ -1,8 +1,10 @@
 import express from 'express'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
+import { timingSafeEqual } from 'node:crypto'
 import { buildSiteInsight, SiteInsightError } from './siteInsight.js'
 import {
+  buildPendingSubmission,
   buildShowcaseEntry,
   createShowcaseStorage,
   ShowcaseStorageError,
@@ -27,6 +29,16 @@ const SUSPICIOUS_MARKETING_TOKENS = [
 app.disable('x-powered-by')
 app.set('trust proxy', false)
 
+function readModerationToken() {
+  const value = process.env.MODERATION_API_TOKEN
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  return trimmed || null
+}
+
 function sendJsonError(response, statusCode, message) {
   response.status(statusCode).json({ error: message })
 }
@@ -38,11 +50,73 @@ function firstQueryValue(value) {
   return value
 }
 
+function parseAuthorizationToken(request) {
+  const authorization = request.get('authorization')
+  if (typeof authorization !== 'string') {
+    return null
+  }
+
+  const [scheme, token] = authorization.split(' ')
+  if (!scheme || !token || scheme.toLowerCase() !== 'bearer') {
+    return null
+  }
+
+  return token.trim() || null
+}
+
+function safeTokenEquals(left, right) {
+  const leftBuffer = Buffer.from(left, 'utf8')
+  const rightBuffer = Buffer.from(right, 'utf8')
+
+  if (leftBuffer.length !== rightBuffer.length) {
+    return false
+  }
+
+  return timingSafeEqual(leftBuffer, rightBuffer)
+}
+
+function extractSubmissionId(value) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed || trimmed.length > 200) {
+    return null
+  }
+
+  return trimmed
+}
+
 function normalizeForMatch(value) {
   return String(value)
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
+}
+
+function requireModerationAuth(request, response, next) {
+  const configuredToken = readModerationToken()
+  if (!configuredToken) {
+    sendJsonError(
+      response,
+      503,
+      'Modération indisponible: définissez MODERATION_API_TOKEN pour activer la validation manuelle.',
+    )
+    return
+  }
+
+  const providedToken =
+    request.get('x-moderation-token')?.trim() ||
+    request.get('x-admin-token')?.trim() ||
+    parseAuthorizationToken(request)
+
+  if (!providedToken || !safeTokenEquals(providedToken, configuredToken)) {
+    sendJsonError(response, 401, 'Accès modération refusé.')
+    return
+  }
+
+  next()
 }
 
 function findSuspiciousMarketingToken(siteInsight) {
@@ -102,7 +176,13 @@ const submissionLimiter = rateLimit({
 })
 
 app.get('/api/health', (_request, response) => {
-  response.json({ ok: true, storage: showcaseStorage.mode })
+  response.json({
+    ok: true,
+    storage: showcaseStorage.mode,
+    moderation: {
+      enabled: Boolean(readModerationToken()),
+    },
+  })
 })
 
 app.get('/api/showcase', async (request, response) => {
@@ -157,6 +237,16 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       return
     }
 
+    const existingPending = await showcaseStorage.getPendingByNormalizedUrl(insight.normalizedUrl)
+    if (existingPending) {
+      response.status(202).json({
+        ...existingPending,
+        submissionStatus: 'pending',
+        message: 'Ce site est déjà en attente de validation manuelle.',
+      })
+      return
+    }
+
     const suspiciousToken = findSuspiciousMarketingToken(insight)
     if (suspiciousToken) {
       sendJsonError(
@@ -169,11 +259,14 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
 
     const manualReviewReason = getManualReviewReason(insight)
     if (manualReviewReason) {
-      sendJsonError(
-        response,
-        422,
-        `Soumission non publiable automatiquement. Motif: ${manualReviewReason}`,
-      )
+      const pendingSubmission = buildPendingSubmission(insight, category, manualReviewReason)
+      const savedPendingSubmission = await showcaseStorage.upsertPending(pendingSubmission)
+      response.status(202).json({
+        ...savedPendingSubmission,
+        submissionStatus: 'pending',
+        message:
+          'Soumission reçue. Elle est enregistrée en file de validation manuelle avant publication.',
+      })
       return
     }
 
@@ -197,6 +290,126 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
 
     console.error('Unexpected error in /api/site-insight', error)
     sendJsonError(response, 500, 'Erreur interne lors de l’analyse.')
+  }
+})
+
+app.get('/api/moderation/pending', requireModerationAuth, async (request, response) => {
+  try {
+    const pendingEntries = await showcaseStorage.listPending({
+      limit: firstQueryValue(request.query.limit),
+    })
+
+    response.json({
+      entries: pendingEntries,
+      total: pendingEntries.length,
+      storage: showcaseStorage.mode,
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/pending', error)
+    sendJsonError(response, 500, 'Erreur interne lors de la lecture de la file de modération.')
+  }
+})
+
+app.post('/api/moderation/approve', requireModerationAuth, async (request, response) => {
+  const submissionId = extractSubmissionId(request.body?.submissionId)
+  if (!submissionId) {
+    sendJsonError(response, 400, 'submissionId est obligatoire.')
+    return
+  }
+
+  try {
+    const pendingEntry = await showcaseStorage.getPendingById(submissionId)
+    if (!pendingEntry) {
+      sendJsonError(response, 404, 'Soumission en attente introuvable.')
+      return
+    }
+
+    const existingEntry = await showcaseStorage.getByNormalizedUrl(pendingEntry.normalizedUrl)
+    if (existingEntry) {
+      await showcaseStorage.deletePendingById(submissionId)
+      response.json({
+        ...existingEntry,
+        submissionStatus: 'duplicate',
+        message: 'Le site était déjà publié. La soumission en attente a été supprimée.',
+      })
+      return
+    }
+
+    const approvedEntry = buildShowcaseEntry(
+      {
+        normalizedUrl: pendingEntry.normalizedUrl,
+        siteTitle: pendingEntry.siteTitle,
+        thumbnailUrl: pendingEntry.thumbnailUrl,
+        accessibilityPageUrl: pendingEntry.accessibilityPageUrl,
+        complianceStatus: pendingEntry.complianceStatus,
+        complianceStatusLabel: pendingEntry.complianceStatusLabel,
+        complianceScore: pendingEntry.complianceScore,
+        updatedAt: new Date().toISOString(),
+      },
+      pendingEntry.category,
+    )
+
+    const savedEntry = await showcaseStorage.upsert(approvedEntry)
+    await showcaseStorage.deletePendingById(submissionId)
+
+    response.json({
+      ...savedEntry,
+      submissionStatus: 'approved',
+      message: 'Soumission approuvée et publiée dans l’annuaire.',
+      moderation: {
+        submissionId,
+      },
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/approve', error)
+    sendJsonError(response, 500, 'Erreur interne lors de la validation.')
+  }
+})
+
+app.post('/api/moderation/reject', requireModerationAuth, async (request, response) => {
+  const submissionId = extractSubmissionId(request.body?.submissionId)
+  if (!submissionId) {
+    sendJsonError(response, 400, 'submissionId est obligatoire.')
+    return
+  }
+
+  const rawReason = request.body?.reason
+  const reason = typeof rawReason === 'string' && rawReason.trim() ? rawReason.trim().slice(0, 300) : null
+
+  try {
+    const pendingEntry = await showcaseStorage.getPendingById(submissionId)
+    if (!pendingEntry) {
+      sendJsonError(response, 404, 'Soumission en attente introuvable.')
+      return
+    }
+
+    await showcaseStorage.deletePendingById(submissionId)
+    response.json({
+      submissionStatus: 'rejected',
+      submissionId,
+      normalizedUrl: pendingEntry.normalizedUrl,
+      message: reason
+        ? `Soumission rejetée: ${reason}`
+        : 'Soumission rejetée et supprimée de la file de modération.',
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/reject', error)
+    sendJsonError(response, 500, 'Erreur interne lors du rejet.')
   }
 })
 

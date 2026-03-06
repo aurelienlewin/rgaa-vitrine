@@ -20,6 +20,9 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Anti-abuse submission guardrails: honeypot field, stricter submission rate limit, spam/marketing signal checks, and non-publishable submission rejection.
 - Adaptive accessibility preferences support for low-vision contexts (`dark mode`, `reduced motion`, `high contrast`, `forced colors`).
 - Keyboard shortcuts for filtering UX (`Échap` to clear search, explicit filters reset action).
+- Persistent manual moderation queue for non-auto-publishable submissions (`pending` state in memory/Redis).
+- Protected moderation API endpoints (`GET /api/moderation/pending`, `POST /api/moderation/approve`, `POST /api/moderation/reject`).
+- New `MODERATION_API_TOKEN` environment variable for admin-only validation actions.
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
@@ -52,6 +55,8 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Dark-mode rendering now relies on explicit Tailwind `dark:` variants and tokenized base colors instead of brittle utility overrides, preventing mixed light/dark surfaces.
 - Global `:focus-visible` base styles have been reinforced for WCAG 2.2 keyboard focus visibility across all interactive controls.
 - Logo SVG viewport now includes extra vertical safe area (`viewBox` + overflow) to prevent baseline clipping in strict renderers.
+- `/api/site-insight` now stores non-auto-publishable submissions as `pending` (HTTP `202`) instead of rejecting them directly.
+- `/api/health` now exposes whether moderation is enabled.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
