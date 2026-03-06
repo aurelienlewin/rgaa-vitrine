@@ -167,6 +167,7 @@ Operational note:
 - Auto-generated sitemap endpoint: `/sitemap.xml` (backed by API route `/api/sitemap`)
 - AI crawler files: `/llms.txt`, `/llms-full.txt`, `/ai-context.json` (and `/api/ai-context`)
 - `public/robots.txt`
+- Serverless API adapter now normalizes absolute/relative request URLs before Express routing, reducing production fallback mismatches on `/api/*`.
 
 ## Getting Started
 
