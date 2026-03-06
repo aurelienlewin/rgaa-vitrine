@@ -24,3 +24,13 @@ When remediating this project after a production audit, verify at minimum:
 - `12.4` `Plan du site` access remains consistently available across pages.
 
 Use this list as a rapid regression filter before running a full RGAA review.
+
+## Operational lessons learned (2026-03-06)
+
+- Treat compliance score as a signal, not an objective: prioritize unblocking customer journeys and UX continuity.
+- For moderation actions that mutate lists (approve/reject/delete/block), move focus to the next logical control.
+- Keep global and local live feedback (`polite`/`assertive`) synchronized with action outcomes.
+- For blocked capabilities (example: votes blocked), expose unavailability with visible text and semantic disabled state.
+- In editable moderation forms, keep user input intact on server error; do not clear fields unless action succeeded.
+- Preserve keyboard and skip-link access to all major moderation zones (`pending`, `published`, `blocklists`).
+- Favor short-lived server cache for repeated moderation reads to reduce external quota pressure.

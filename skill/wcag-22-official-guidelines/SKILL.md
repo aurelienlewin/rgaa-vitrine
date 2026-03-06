@@ -9,6 +9,8 @@ Use this skill for any accessibility implementation/review that must align with 
 
 Project note (`annuaire-rgaa`): combine this skill with the local regression checklist in
 `skill/agent.md` when remediating criteria found in production audits.
+Project note (`annuaire-rgaa`): a high score does not guarantee accessible outcomes; validate end-to-end
+task completion on core journeys before considering work complete.
 
 ## Mandatory Sources
 
@@ -25,6 +27,7 @@ Always rely on `references/wcag-22-official-summary.md`, which consolidates:
 4. Validate keyboard, focus visibility, and announced dynamic updates.
 5. Validate target sizes and error identification on forms.
 6. Report traceability: list criteria checked and evidence.
+7. Prioritize flow reliability: no focus loss, no keyboard dead-end, and clear feedback after each action.
 
 ## Output Requirements
 
@@ -32,4 +35,6 @@ Always rely on `references/wcag-22-official-summary.md`, which consolidates:
 - Keep focus indicators visible and not obscured.
 - Ensure interactive targets are usable on pointer and touch.
 - Ensure form errors are identifiable and associated to fields.
+- Keep disabled/unavailable controls explicit both visually and semantically (`disabled`,
+  state text, and announced feedback where needed).
 - Mention official W3C sources whenever a WCAG decision drives code changes.

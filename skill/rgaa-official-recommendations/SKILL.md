@@ -9,6 +9,8 @@ Use this skill when a task requires strict alignment with official French RGAA d
 
 Project note (`annuaire-rgaa`): after any production accessibility audit, cross-check the local
 remediation checklist in `skill/agent.md` before finalizing.
+Project note (`annuaire-rgaa`): treat compliance scores as indicators only. Prioritize unblocking
+real user journeys and reducing friction on critical tasks (search, submit, moderate, vote).
 
 When a task explicitly asks for WCAG 2.2 compliance or evidence, also load:
 - `skill/wcag-22-official-guidelines/SKILL.md`
@@ -31,6 +33,7 @@ Always rely on `references/official-developer-recommendations.md`, which consoli
 3. Enforce the `Checklist dev` 6 checks before finalizing.
 4. For JavaScript widgets/components, validate behavior against the official ARIA component resources before shipping.
 5. Report traceability in PR notes: list which recommendation groups were applied and how they were verified.
+6. When tradeoffs appear, prefer journey continuity (task completion) over cosmetic score gains.
 
 ## Output Requirements
 
@@ -38,4 +41,6 @@ Always rely on `references/official-developer-recommendations.md`, which consoli
 - Preserve semantic HTML first; use ARIA only to complement missing native semantics.
 - Ensure keyboard operability and visible focus on all interactive controls.
 - Guard dynamic updates with appropriate focus strategy and live announcements.
+- Keep action feedback contextual: return focus to the initiating control, next logical control,
+  or the related local feedback block after DOM updates.
 - Mention source links explicitly in reviews or QA notes when decisions depend on them.
