@@ -161,6 +161,10 @@ class InMemoryShowcaseStorage {
     return entry
   }
 
+  async getByNormalizedUrl(normalizedUrl) {
+    return this.entries.get(normalizedUrl) ?? null
+  }
+
   async list(options = {}) {
     const entries = this.#sortedEntries()
     const filtered = applyEntryFilters(entries, options)
@@ -204,6 +208,18 @@ class UpstashShowcaseStorage {
     } catch (error) {
       console.error('Redis upsert failed', error)
       throw new ShowcaseStorageError('Échec de persistance Redis.', 503)
+    }
+  }
+
+  async getByNormalizedUrl(normalizedUrl) {
+    const entryId = encodeEntryId(normalizedUrl)
+
+    try {
+      const rawEntry = await this.redis.hgetall(entryKeyFromId(entryId))
+      return parseStoredEntry(rawEntry)
+    } catch (error) {
+      console.error('Redis getByNormalizedUrl failed', error)
+      throw new ShowcaseStorageError('Lecture Redis indisponible.', 503)
     }
   }
 

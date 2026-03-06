@@ -261,6 +261,18 @@ function toAbsoluteUrl(candidate, baseUrl) {
   }
 }
 
+function canonicalizeListingUrl(rawUrl) {
+  const parsed = new URL(rawUrl)
+  const protocol = parsed.protocol === 'https:' ? 'https:' : parsed.protocol
+  const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '')
+  const isDefaultPort =
+    (protocol === 'https:' && parsed.port === '443') ||
+    (protocol === 'http:' && parsed.port === '80')
+  const portSegment = parsed.port && !isDefaultPort ? `:${parsed.port}` : ''
+
+  return `${protocol}//${hostname}${portSegment}/`
+}
+
 function findAccessibilityPageUrl($, baseUrl) {
   let bestMatch = null
 
@@ -374,7 +386,7 @@ export async function buildSiteInsight(inputUrl) {
   }
 
   return {
-    normalizedUrl: homepage.finalUrl,
+    normalizedUrl: canonicalizeListingUrl(homepage.finalUrl),
     siteTitle: metadata.siteTitle,
     thumbnailUrl: metadata.thumbnailUrl,
     accessibilityPageUrl: metadata.accessibilityPageUrl,

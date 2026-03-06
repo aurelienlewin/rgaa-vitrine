@@ -143,6 +143,18 @@ function isShowcaseEntry(payload: unknown): payload is ShowcaseEntry {
   )
 }
 
+function readSubmissionStatus(payload: Record<string, unknown>) {
+  const rawStatus = payload.submissionStatus
+  if (rawStatus === 'approved' || rawStatus === 'duplicate' || rawStatus === 'pending') {
+    return rawStatus
+  }
+  return null
+}
+
+function readSubmissionMessage(payload: Record<string, unknown>) {
+  return typeof payload.message === 'string' ? payload.message : null
+}
+
 async function readApiPayload(response: Response) {
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
   const rawBody = await response.text()
@@ -166,10 +178,12 @@ async function readApiPayload(response: Response) {
 function App() {
   const [inputUrl, setInputUrl] = useState('')
   const [inputCategory, setInputCategory] = useState(showcaseCategories[0])
+  const [websiteField, setWebsiteField] = useState('')
   const [loadingAdd, setLoadingAdd] = useState(false)
   const [loadingDirectory, setLoadingDirectory] = useState(true)
   const [directoryErrorMessage, setDirectoryErrorMessage] = useState<string | null>(null)
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null)
+  const [submitInfoMessage, setSubmitInfoMessage] = useState<string | null>(null)
   const [lastAddedEntry, setLastAddedEntry] = useState<ShowcaseEntry | null>(null)
   const [showcaseEntries, setShowcaseEntries] = useState<ShowcaseEntry[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -265,6 +279,7 @@ function App() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSubmitErrorMessage(null)
+    setSubmitInfoMessage(null)
     setLastAddedEntry(null)
     setLoadingAdd(true)
     announcePolite("Analyse du site en cours.")
@@ -275,13 +290,39 @@ function App() {
         headers: {
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ url: inputUrl, category: inputCategory }),
+        body: JSON.stringify({ url: inputUrl, category: inputCategory, website: websiteField }),
       })
 
       const payload = await readApiPayload(response)
+      const submissionStatus = readSubmissionStatus(payload)
+      const submissionMessage = readSubmissionMessage(payload)
 
       if (!response.ok) {
         throw new Error(typeof payload?.error === 'string' ? payload.error : 'Ajout impossible.')
+      }
+
+      if (submissionStatus === 'pending' || response.status === 202) {
+        const pendingMessage =
+          submissionMessage ??
+          "Soumission reçue, en attente de vérification humaine avant publication dans la vitrine."
+        setInputUrl('')
+        setWebsiteField('')
+        setSubmitInfoMessage(pendingMessage)
+        announcePolite(pendingMessage)
+        return
+      }
+
+      if (submissionStatus === 'duplicate') {
+        if (!isShowcaseEntry(payload)) {
+          throw new Error('Réponse serveur invalide.')
+        }
+
+        const duplicateMessage = submissionMessage ?? 'Ce site est déjà référencé dans la vitrine.'
+        setInputUrl('')
+        setWebsiteField('')
+        setSubmitInfoMessage(duplicateMessage)
+        announcePolite(duplicateMessage)
+        return
       }
 
       if (!isShowcaseEntry(payload)) {
@@ -290,8 +331,13 @@ function App() {
 
       setLastAddedEntry(payload)
       setInputUrl('')
+      setWebsiteField('')
+
+      const successMessage = submissionMessage ?? `Site ajouté : ${payload.siteTitle}.`
+      announcePolite(successMessage)
+      setSubmitInfoMessage(null)
+
       await loadShowcaseEntries()
-      announcePolite(`Site ajouté : ${payload.siteTitle}.`)
     } catch (error) {
       setLastAddedEntry(null)
       const localizedMessage = error instanceof Error ? error.message : 'Erreur réseau.'
@@ -574,6 +620,22 @@ function App() {
             </p>
 
             <form className="mt-4 grid gap-4 md:grid-cols-[2fr_1fr_auto]" onSubmit={handleSubmit} noValidate>
+              <div className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden">
+                <label htmlFor="website" className="block text-sm font-medium">
+                  Site web
+                </label>
+                <input
+                  id="website"
+                  name="website"
+                  type="text"
+                  value={websiteField}
+                  onChange={(event) => setWebsiteField(event.target.value)}
+                  autoComplete="off"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                />
+              </div>
+
               <div>
                 <label htmlFor="url" className="block text-sm font-medium">
                   URL du site
@@ -623,6 +685,12 @@ function App() {
             {submitErrorMessage && (
               <p id="url-error" className="mt-4 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800" role="alert">
                 {submitErrorMessage}
+              </p>
+            )}
+
+            {submitInfoMessage && !submitErrorMessage && (
+              <p className="mt-4 rounded-lg border border-sky-300 bg-sky-50 p-3 text-sm text-sky-900" role="status" aria-live="polite">
+                {submitInfoMessage}
               </p>
             )}
 

@@ -69,7 +69,11 @@ You can check the active storage mode via:
 - SSRF protections (localhost/private/internal targets blocked)
 - DNS resolution checks before remote fetch
 - Response timeout and maximum HTML size limits
-- Rate limiting on API endpoints
+- Global rate limiting on API endpoints + stricter hourly limiter for submissions
+- Domain-level deduplication via canonical URL normalization (e.g. `www` variants collapse)
+- Honeypot field validation to reduce automated spam submissions
+- Automatic spam/marketing signal rejection (quality filter)
+- Manual-review mode for low-trust submissions (not auto-published)
 - No execution of remote page scripts
 
 ## SEO
@@ -96,6 +100,13 @@ Local services:
 - `POST /api/site-insight` registers/enriches one site entry in the directory
 - `GET /api/showcase` returns persisted showcase entries (supports `search`, `status`, `category`, `limit`)
 - `GET /api/health` returns service status and active storage mode
+
+`POST /api/site-insight` behavior:
+
+- `200` + `submissionStatus: "approved"` when published
+- `200` + `submissionStatus: "duplicate"` when site already exists
+- `202` + `submissionStatus: "pending"` when manual review is required
+- `4xx` when rejected by validation/anti-abuse rules
 
 ## Deployment (Vercel)
 

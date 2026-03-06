@@ -10,6 +10,19 @@ import {
 
 const app = express()
 const showcaseStorage = createShowcaseStorage()
+const AUTO_PUBLISH_STATUSES = new Set(['full', 'partial'])
+const SUSPICIOUS_MARKETING_TOKENS = [
+  'casino',
+  'bet',
+  'paris sportif',
+  'porn',
+  'viagra',
+  'seo',
+  'backlink',
+  'linkbuilding',
+  'guest post',
+  'crypto airdrop',
+]
 
 app.disable('x-powered-by')
 app.set('trust proxy', false)
@@ -23,6 +36,35 @@ function firstQueryValue(value) {
     return value[0]
   }
   return value
+}
+
+function normalizeForMatch(value) {
+  return String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+function findSuspiciousMarketingToken(siteInsight) {
+  const title = typeof siteInsight.siteTitle === 'string' ? siteInsight.siteTitle.trim() : ''
+  if (title.length < 3 || title.length > 120) {
+    return 'title-length'
+  }
+
+  const haystack = normalizeForMatch(`${siteInsight.siteTitle} ${siteInsight.normalizedUrl}`)
+  return SUSPICIOUS_MARKETING_TOKENS.find((token) => haystack.includes(token)) ?? null
+}
+
+function getManualReviewReason(siteInsight) {
+  if (!siteInsight.accessibilityPageUrl) {
+    return "Aucune déclaration d'accessibilité détectée."
+  }
+
+  if (!AUTO_PUBLISH_STATUSES.has(siteInsight.complianceStatus ?? '')) {
+    return "Niveau de conformité insuffisant pour publication automatique."
+  }
+
+  return null
 }
 
 app.use(
@@ -48,6 +90,16 @@ app.use(
 )
 
 app.use(express.json({ limit: '2kb' }))
+
+const submissionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Trop de soumissions. Merci de réessayer dans une heure.",
+  },
+})
 
 app.get('/api/health', (_request, response) => {
   response.json({ ok: true, storage: showcaseStorage.mode })
@@ -77,20 +129,60 @@ app.get('/api/showcase', async (request, response) => {
   }
 })
 
-app.post('/api/site-insight', async (request, response) => {
+app.post('/api/site-insight', submissionLimiter, async (request, response) => {
   const url = request.body?.url
   const category = request.body?.category
+  const honeypot = request.body?.website
 
   if (typeof url !== 'string') {
     sendJsonError(response, 400, 'Le champ URL est obligatoire.')
     return
   }
 
+  if (typeof honeypot === 'string' && honeypot.trim()) {
+    sendJsonError(response, 400, 'Soumission invalide.')
+    return
+  }
+
   try {
     const insight = await buildSiteInsight(url)
+    const existingEntry = await showcaseStorage.getByNormalizedUrl(insight.normalizedUrl)
+
+    if (existingEntry) {
+      response.json({
+        ...existingEntry,
+        submissionStatus: 'duplicate',
+        message: 'Ce site est déjà référencé dans la vitrine.',
+      })
+      return
+    }
+
+    const suspiciousToken = findSuspiciousMarketingToken(insight)
+    if (suspiciousToken) {
+      sendJsonError(
+        response,
+        422,
+        'Soumission rejetée: le site ne correspond pas aux critères qualité de la vitrine RGAA.',
+      )
+      return
+    }
+
+    const manualReviewReason = getManualReviewReason(insight)
+    if (manualReviewReason) {
+      response.status(202).json({
+        submissionStatus: 'pending',
+        message: `Soumission reçue, en attente de vérification humaine. Motif: ${manualReviewReason}`,
+      })
+      return
+    }
+
     const showcaseEntry = buildShowcaseEntry(insight, category)
     const persistedEntry = await showcaseStorage.upsert(showcaseEntry)
-    response.json(persistedEntry)
+    response.json({
+      ...persistedEntry,
+      submissionStatus: 'approved',
+      message: 'Site publié dans la vitrine.',
+    })
   } catch (error) {
     if (error instanceof SiteInsightError) {
       sendJsonError(response, error.statusCode, error.message)
