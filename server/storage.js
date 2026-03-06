@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis'
+import { createHash } from 'node:crypto'
 
 const SHOWCASE_INDEX_KEY = 'rgaa:vitrine:showcase:index'
 const SHOWCASE_ENTRY_PREFIX = 'rgaa:vitrine:showcase:entry:'
@@ -24,6 +25,13 @@ const ALLOWED_STATUSES = new Set(['full', 'partial', 'none'])
 const ALLOWED_RGAA_BASELINES = new Set(['4.1', '5.0-ready'])
 const ARCHIVE_FORMAT = 'annuaire-rgaa-archive'
 const ARCHIVE_VERSION = 1
+const STORAGE_COMPACT_VERSION = 2
+const COMPACT_VOTE_TOKEN_PREFIX = 'h:'
+const COMPLIANCE_LABEL_BY_STATUS = {
+  full: 'Totalement conforme',
+  partial: 'Partiellement conforme',
+  none: 'Non conforme',
+}
 
 function resolveRedisCacheTtlMs() {
   const rawValue = Number.parseInt(process.env.REDIS_CACHE_TTL_MS ?? '', 10)
@@ -45,6 +53,19 @@ function encodeEntryId(normalizedUrl) {
   return Buffer.from(normalizedUrl, 'utf8').toString('base64url')
 }
 
+function decodeEntryId(entryId) {
+  if (typeof entryId !== 'string' || !entryId.trim()) {
+    return null
+  }
+
+  try {
+    const decoded = Buffer.from(entryId, 'base64url').toString('utf8')
+    return normalizeUrlCandidate(decoded)
+  } catch {
+    return null
+  }
+}
+
 function entryKeyFromId(entryId) {
   return `${SHOWCASE_ENTRY_PREFIX}${entryId}`
 }
@@ -63,6 +84,54 @@ function pendingKeyFromId(entryId) {
 
 function toNullableString(value) {
   return value === null || value === undefined ? null : String(value)
+}
+
+function toNullableField(payload, compactKey, legacyKey) {
+  if (!payload || typeof payload !== 'object') {
+    return null
+  }
+
+  if (Object.hasOwn(payload, compactKey)) {
+    return toNullableString(payload[compactKey])
+  }
+
+  if (legacyKey && Object.hasOwn(payload, legacyKey)) {
+    return toNullableString(payload[legacyKey])
+  }
+
+  return null
+}
+
+function toNullableNumberField(payload, compactKey, legacyKey) {
+  if (!payload || typeof payload !== 'object') {
+    return null
+  }
+
+  if (Object.hasOwn(payload, compactKey)) {
+    return toNullableNumber(payload[compactKey])
+  }
+
+  if (legacyKey && Object.hasOwn(payload, legacyKey)) {
+    return toNullableNumber(payload[legacyKey])
+  }
+
+  return null
+}
+
+function toBooleanField(payload, compactKey, legacyKey) {
+  if (!payload || typeof payload !== 'object') {
+    return false
+  }
+
+  if (Object.hasOwn(payload, compactKey)) {
+    return toBoolean(payload[compactKey])
+  }
+
+  if (legacyKey && Object.hasOwn(payload, legacyKey)) {
+    return toBoolean(payload[legacyKey])
+  }
+
+  return false
 }
 
 function toNullableNumber(value) {
@@ -113,6 +182,10 @@ function normalizeRgaaBaseline(value) {
 }
 
 function normalizeVoteTokens(voterFingerprints) {
+  return normalizeRawVoteTokens(voterFingerprints).map(compactVoteToken)
+}
+
+function normalizeRawVoteTokens(voterFingerprints) {
   if (!voterFingerprints || typeof voterFingerprints !== 'object') {
     return []
   }
@@ -134,6 +207,78 @@ function normalizeVoteTokens(voterFingerprints) {
   return Array.from(unique)
 }
 
+function compactVoteToken(token) {
+  if (typeof token !== 'string') {
+    return null
+  }
+
+  const trimmed = token.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  if (trimmed.startsWith(COMPACT_VOTE_TOKEN_PREFIX)) {
+    return trimmed.slice(0, 80)
+  }
+
+  const digest = createHash('sha256').update(trimmed, 'utf8').digest('base64url').slice(0, 27)
+  return `${COMPACT_VOTE_TOKEN_PREFIX}${digest}`
+}
+
+function normalizeStoredVoteToken(token) {
+  const compact = compactVoteToken(token)
+  return compact ? compact : null
+}
+
+function buildVoteTokenCandidates(voterFingerprints) {
+  const compact = normalizeVoteTokens(voterFingerprints)
+  const raw = normalizeRawVoteTokens(voterFingerprints)
+  const candidates = new Set([...compact, ...raw])
+  return Array.from(candidates)
+}
+
+function parseStoredTimestamp(value) {
+  if (value === null || value === undefined || value === '') {
+    return null
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return new Date(value * 1000).toISOString()
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) {
+      return null
+    }
+
+    if (/^\d{10,13}$/.test(trimmed)) {
+      const numeric = Number(trimmed)
+      if (Number.isFinite(numeric) && numeric > 0) {
+        const seconds = trimmed.length > 10 ? numeric / 1000 : numeric
+        return new Date(seconds * 1000).toISOString()
+      }
+    }
+
+    const parsed = Date.parse(trimmed)
+    if (!Number.isNaN(parsed)) {
+      return new Date(parsed).toISOString()
+    }
+
+    return null
+  }
+
+  return null
+}
+
+function serializeTimestamp(value) {
+  const timestamp = Date.parse(String(value ?? ''))
+  if (Number.isNaN(timestamp) || timestamp <= 0) {
+    return Math.floor(Date.now() / 1000)
+  }
+  return Math.floor(timestamp / 1000)
+}
+
 function sortNormalizedUrlList(values) {
   return Array.from(values).sort((left, right) => left.localeCompare(right, 'fr'))
 }
@@ -151,73 +296,96 @@ function normalizeClientVoteIndexId(clientVoteIndexId) {
   return trimmed.slice(0, 120)
 }
 
-function parseStoredEntry(payload) {
+function parseStoredEntry(payload, context = {}) {
   if (!payload || typeof payload !== 'object') {
     return null
   }
 
-  const normalizedUrl = toNullableString(payload.normalizedUrl)
-  const siteTitle = toNullableString(payload.siteTitle)
-  const updatedAt = toNullableString(payload.updatedAt)
+  const normalizedUrl =
+    normalizeUrlCandidate(context.normalizedUrl) ??
+    normalizeUrlCandidate(decodeEntryId(context.entryId)) ??
+    normalizeUrlCandidate(toNullableField(payload, 'u', 'normalizedUrl'))
+  const siteTitle = toNullableField(payload, 't', 'siteTitle')
+  const updatedAt =
+    parseStoredTimestamp(toNullableField(payload, 'ts', null)) ??
+    parseStoredTimestamp(toNullableField(payload, 'updatedAt', 'updatedAt'))
 
   if (!normalizedUrl || !siteTitle || !updatedAt) {
     return null
   }
 
-  const complianceStatus = toNullableString(payload.complianceStatus)
-  const rgaaBaselineEdited = toBoolean(payload.rgaaBaselineEdited)
-  const persistedRgaaBaseline = normalizeRgaaBaseline(payload.rgaaBaseline)
+  const complianceStatus = toNullableField(payload, 'cs', 'complianceStatus')
+  const rgaaBaselineEdited = toBooleanField(payload, 're', 'rgaaBaselineEdited')
+  const persistedRgaaBaseline = normalizeRgaaBaseline(toNullableField(payload, 'rb', 'rgaaBaseline'))
+  const complianceStatusLabel =
+    toNullableField(payload, 'cl', 'complianceStatusLabel') ??
+    COMPLIANCE_LABEL_BY_STATUS[complianceStatus ?? ''] ??
+    null
   const entry = {
     normalizedUrl,
     siteTitle,
-    thumbnailUrl: toNullableString(payload.thumbnailUrl),
-    accessibilityPageUrl: toNullableString(payload.accessibilityPageUrl),
+    thumbnailUrl: toNullableField(payload, 'th', 'thumbnailUrl'),
+    accessibilityPageUrl: toNullableField(payload, 'ap', 'accessibilityPageUrl'),
     complianceStatus: ALLOWED_STATUSES.has(complianceStatus ?? '') ? complianceStatus : null,
-    complianceStatusLabel: toNullableString(payload.complianceStatusLabel),
-    complianceScore: toNullableNumber(payload.complianceScore),
+    complianceStatusLabel,
+    complianceScore: toNullableNumberField(payload, 'sc', 'complianceScore'),
     rgaaBaseline: rgaaBaselineEdited ? persistedRgaaBaseline : '4.1',
     rgaaBaselineEdited,
-    upvoteCount: toNonNegativeInteger(payload.upvoteCount),
+    upvoteCount: toNonNegativeInteger(toNullableNumberField(payload, 'uv', 'upvoteCount')),
     updatedAt,
-    category: sanitizeCategory(payload.category),
+    category: sanitizeCategory(toNullableField(payload, 'cg', 'category')),
   }
 
   return entry
 }
 
-function parsePendingEntry(payload) {
+function parsePendingEntry(payload, context = {}) {
   if (!payload || typeof payload !== 'object') {
     return null
   }
 
-  const submissionId = toNullableString(payload.submissionId)
-  const normalizedUrl = toNullableString(payload.normalizedUrl)
-  const siteTitle = toNullableString(payload.siteTitle)
-  const updatedAt = toNullableString(payload.updatedAt)
-  const createdAt = toNullableString(payload.createdAt)
+  const submissionId =
+    toNullableString(context.submissionId) ??
+    toNullableField(payload, 'sid', 'submissionId') ??
+    (normalizeUrlCandidate(context.normalizedUrl) ? encodeEntryId(context.normalizedUrl) : null)
+  const normalizedUrl =
+    normalizeUrlCandidate(context.normalizedUrl) ??
+    normalizeUrlCandidate(decodeEntryId(submissionId)) ??
+    normalizeUrlCandidate(toNullableField(payload, 'u', 'normalizedUrl'))
+  const siteTitle = toNullableField(payload, 't', 'siteTitle')
+  const updatedAt =
+    parseStoredTimestamp(toNullableField(payload, 'ts', null)) ??
+    parseStoredTimestamp(toNullableField(payload, 'updatedAt', 'updatedAt'))
+  const createdAt =
+    parseStoredTimestamp(toNullableField(payload, 'ct', null)) ??
+    parseStoredTimestamp(toNullableField(payload, 'createdAt', 'createdAt'))
 
   if (!submissionId || !normalizedUrl || !siteTitle || !updatedAt || !createdAt) {
     return null
   }
 
-  const complianceStatus = toNullableString(payload.complianceStatus)
-  const rgaaBaselineEdited = toBoolean(payload.rgaaBaselineEdited)
-  const persistedRgaaBaseline = normalizeRgaaBaseline(payload.rgaaBaseline)
+  const complianceStatus = toNullableField(payload, 'cs', 'complianceStatus')
+  const rgaaBaselineEdited = toBooleanField(payload, 're', 'rgaaBaselineEdited')
+  const persistedRgaaBaseline = normalizeRgaaBaseline(toNullableField(payload, 'rb', 'rgaaBaseline'))
+  const complianceStatusLabel =
+    toNullableField(payload, 'cl', 'complianceStatusLabel') ??
+    COMPLIANCE_LABEL_BY_STATUS[complianceStatus ?? ''] ??
+    null
   return {
     submissionId,
     normalizedUrl,
     siteTitle,
-    thumbnailUrl: toNullableString(payload.thumbnailUrl),
-    accessibilityPageUrl: toNullableString(payload.accessibilityPageUrl),
+    thumbnailUrl: toNullableField(payload, 'th', 'thumbnailUrl'),
+    accessibilityPageUrl: toNullableField(payload, 'ap', 'accessibilityPageUrl'),
     complianceStatus: ALLOWED_STATUSES.has(complianceStatus ?? '') ? complianceStatus : null,
-    complianceStatusLabel: toNullableString(payload.complianceStatusLabel),
-    complianceScore: toNullableNumber(payload.complianceScore),
+    complianceStatusLabel,
+    complianceScore: toNullableNumberField(payload, 'sc', 'complianceScore'),
     rgaaBaseline: rgaaBaselineEdited ? persistedRgaaBaseline : '4.1',
     rgaaBaselineEdited,
     updatedAt,
     createdAt,
-    reviewReason: toNullableString(payload.reviewReason),
-    category: sanitizeCategory(payload.category),
+    reviewReason: toNullableField(payload, 'rr', 'reviewReason'),
+    category: sanitizeCategory(toNullableField(payload, 'cg', 'category')),
   }
 }
 
@@ -241,14 +409,11 @@ function normalizeVoteTokenList(values) {
 
   const set = new Set()
   for (const value of values) {
-    if (typeof value !== 'string') {
+    const token = normalizeStoredVoteToken(value)
+    if (!token) {
       continue
     }
-    const trimmed = value.trim()
-    if (!trimmed) {
-      continue
-    }
-    set.add(trimmed.slice(0, 160))
+    set.add(token)
   }
 
   return Array.from(set)
@@ -431,39 +596,70 @@ function buildArchivePayload(storageMode, data) {
 }
 
 function serializeEntry(entry) {
-  return {
-    normalizedUrl: entry.normalizedUrl,
-    siteTitle: entry.siteTitle,
-    thumbnailUrl: entry.thumbnailUrl ?? '',
-    accessibilityPageUrl: entry.accessibilityPageUrl ?? '',
-    complianceStatus: entry.complianceStatus ?? '',
-    complianceStatusLabel: entry.complianceStatusLabel ?? '',
-    complianceScore: entry.complianceScore ?? '',
-    rgaaBaseline: normalizeRgaaBaseline(entry.rgaaBaseline),
-    rgaaBaselineEdited: toBoolean(entry.rgaaBaselineEdited),
-    upvoteCount: toNonNegativeInteger(entry.upvoteCount),
-    updatedAt: entry.updatedAt,
-    category: entry.category,
+  const payload = {
+    _v: STORAGE_COMPACT_VERSION,
+    t: entry.siteTitle,
+    ts: serializeTimestamp(entry.updatedAt),
+    cg: sanitizeCategory(entry.category),
+    uv: toNonNegativeInteger(entry.upvoteCount),
   }
+
+  if (entry.thumbnailUrl) {
+    payload.th = entry.thumbnailUrl
+  }
+  if (entry.accessibilityPageUrl) {
+    payload.ap = entry.accessibilityPageUrl
+  }
+  if (entry.complianceStatus && ALLOWED_STATUSES.has(entry.complianceStatus)) {
+    payload.cs = entry.complianceStatus
+  }
+  if (entry.complianceStatusLabel) {
+    payload.cl = entry.complianceStatusLabel
+  }
+  if (typeof entry.complianceScore === 'number' && Number.isFinite(entry.complianceScore)) {
+    payload.sc = Math.round(entry.complianceScore * 100) / 100
+  }
+  if (toBoolean(entry.rgaaBaselineEdited)) {
+    payload.re = true
+    payload.rb = normalizeRgaaBaseline(entry.rgaaBaseline)
+  }
+
+  return payload
 }
 
 function serializePendingEntry(entry) {
-  return {
-    submissionId: entry.submissionId,
-    normalizedUrl: entry.normalizedUrl,
-    siteTitle: entry.siteTitle,
-    thumbnailUrl: entry.thumbnailUrl ?? '',
-    accessibilityPageUrl: entry.accessibilityPageUrl ?? '',
-    complianceStatus: entry.complianceStatus ?? '',
-    complianceStatusLabel: entry.complianceStatusLabel ?? '',
-    complianceScore: entry.complianceScore ?? '',
-    rgaaBaseline: normalizeRgaaBaseline(entry.rgaaBaseline),
-    rgaaBaselineEdited: toBoolean(entry.rgaaBaselineEdited),
-    updatedAt: entry.updatedAt,
-    createdAt: entry.createdAt,
-    reviewReason: entry.reviewReason ?? '',
-    category: entry.category,
+  const payload = {
+    _v: STORAGE_COMPACT_VERSION,
+    t: entry.siteTitle,
+    ts: serializeTimestamp(entry.updatedAt),
+    ct: serializeTimestamp(entry.createdAt),
+    cg: sanitizeCategory(entry.category),
   }
+
+  if (entry.thumbnailUrl) {
+    payload.th = entry.thumbnailUrl
+  }
+  if (entry.accessibilityPageUrl) {
+    payload.ap = entry.accessibilityPageUrl
+  }
+  if (entry.complianceStatus && ALLOWED_STATUSES.has(entry.complianceStatus)) {
+    payload.cs = entry.complianceStatus
+  }
+  if (entry.complianceStatusLabel) {
+    payload.cl = entry.complianceStatusLabel
+  }
+  if (typeof entry.complianceScore === 'number' && Number.isFinite(entry.complianceScore)) {
+    payload.sc = Math.round(entry.complianceScore * 100) / 100
+  }
+  if (toBoolean(entry.rgaaBaselineEdited)) {
+    payload.re = true
+    payload.rb = normalizeRgaaBaseline(entry.rgaaBaseline)
+  }
+  if (entry.reviewReason) {
+    payload.rr = entry.reviewReason
+  }
+
+  return payload
 }
 
 function applyEntryFilters(entries, options) {
@@ -626,7 +822,7 @@ class InMemoryShowcaseStorage {
   }
 
   async hasVoted(normalizedUrl, voterFingerprints) {
-    const tokens = normalizeVoteTokens(voterFingerprints)
+    const tokens = buildVoteTokenCandidates(voterFingerprints)
     if (tokens.length === 0) {
       return false
     }
@@ -645,9 +841,10 @@ class InMemoryShowcaseStorage {
       return null
     }
 
-    const tokens = normalizeVoteTokens(voterFingerprints)
+    const writeTokens = normalizeVoteTokens(voterFingerprints)
+    const checkTokens = buildVoteTokenCandidates(voterFingerprints)
     const normalizedClientVoteIndexId = normalizeClientVoteIndexId(clientVoteIndexId)
-    if (tokens.length === 0) {
+    if (writeTokens.length === 0 || checkTokens.length === 0) {
       throw new ShowcaseStorageError('Identifiant de vote invalide.', 400)
     }
 
@@ -657,7 +854,7 @@ class InMemoryShowcaseStorage {
       this.votesByUrl.set(normalizedUrl, set)
     }
 
-    const alreadyVoted = tokens.some((token) => set.has(token))
+    const alreadyVoted = checkTokens.some((token) => set.has(token))
     if (alreadyVoted) {
       if (normalizedClientVoteIndexId) {
         const votedUrls = this.votesByClient.get(normalizedClientVoteIndexId) ?? new Set()
@@ -671,7 +868,7 @@ class InMemoryShowcaseStorage {
       }
     }
 
-    for (const token of tokens) {
+    for (const token of writeTokens) {
       set.add(token)
     }
 
@@ -723,12 +920,7 @@ class InMemoryShowcaseStorage {
   }
 
   async getPendingByNormalizedUrl(normalizedUrl) {
-    for (const entry of this.pendingEntries.values()) {
-      if (entry.normalizedUrl === normalizedUrl) {
-        return entry
-      }
-    }
-    return null
+    return this.pendingEntries.get(encodeEntryId(normalizedUrl)) ?? null
   }
 
   async deletePendingById(submissionId) {
@@ -1079,7 +1271,7 @@ class UpstashShowcaseStorage {
 
     try {
       const rawEntry = await this.redis.hgetall(entryKeyFromId(entryId))
-      return parseStoredEntry(rawEntry)
+      return parseStoredEntry(rawEntry, { entryId, normalizedUrl })
     } catch (error) {
       console.error('Redis getByNormalizedUrl failed', error)
       throw new ShowcaseStorageError('Lecture Redis indisponible.', 503)
@@ -1103,7 +1295,7 @@ class UpstashShowcaseStorage {
       const entries = []
       for (const entryId of entryIds) {
         const rawEntry = await this.redis.hgetall(entryKeyFromId(entryId))
-        const parsed = parseStoredEntry(rawEntry)
+        const parsed = parseStoredEntry(rawEntry, { entryId })
         if (parsed) {
           entries.push(parsed)
         }
@@ -1269,7 +1461,7 @@ class UpstashShowcaseStorage {
   }
 
   async hasVoted(normalizedUrl, voterFingerprints) {
-    const tokens = normalizeVoteTokens(voterFingerprints)
+    const tokens = buildVoteTokenCandidates(voterFingerprints)
     if (tokens.length === 0) {
       return false
     }
@@ -1297,12 +1489,13 @@ class UpstashShowcaseStorage {
       return null
     }
 
-    const tokens = normalizeVoteTokens(voterFingerprints)
+    const writeTokens = normalizeVoteTokens(voterFingerprints)
+    const checkTokens = buildVoteTokenCandidates(voterFingerprints)
     const normalizedClientVoteIndexId = normalizeClientVoteIndexId(clientVoteIndexId)
     const clientVoteKey = normalizedClientVoteIndexId
       ? clientVotesKeyFromId(normalizedClientVoteIndexId)
       : null
-    if (tokens.length === 0) {
+    if (writeTokens.length === 0 || checkTokens.length === 0) {
       throw new ShowcaseStorageError('Identifiant de vote invalide.', 400)
     }
 
@@ -1310,7 +1503,7 @@ class UpstashShowcaseStorage {
     const voteKey = votesKeyFromId(entryId)
 
     try {
-      for (const token of tokens) {
+      for (const token of checkTokens) {
         const isMember = await this.redis.sismember(voteKey, token)
         if (isMember === 1 || isMember === true) {
           if (clientVoteKey) {
@@ -1330,7 +1523,7 @@ class UpstashShowcaseStorage {
         }
       }
 
-      const writeOperations = this.redis.multi().sadd(voteKey, ...tokens)
+      const writeOperations = this.redis.multi().sadd(voteKey, ...writeTokens)
       if (clientVoteKey) {
         writeOperations.sadd(clientVoteKey, normalizedUrl)
       }
@@ -1368,14 +1561,9 @@ class UpstashShowcaseStorage {
     const timestampScore = Date.parse(entry.createdAt) || Date.now()
 
     try {
-      const pendingByUrlField = {
-        [entry.normalizedUrl]: entry.submissionId,
-      }
-
       await this.redis
         .multi()
         .hset(key, serializePendingEntry(entry))
-        .hset(PENDING_BY_URL_HASH_KEY, pendingByUrlField)
         .zadd(PENDING_INDEX_KEY, { score: timestampScore, member: entry.submissionId })
         .exec()
 
@@ -1409,7 +1597,7 @@ class UpstashShowcaseStorage {
 
     try {
       const rawEntry = await this.redis.hgetall(pendingKeyFromId(submissionId))
-      const parsed = parsePendingEntry(rawEntry)
+      const parsed = parsePendingEntry(rawEntry, { submissionId })
       if (parsed && this._isPendingCacheFresh()) {
         this.pendingCacheById.set(parsed.submissionId, parsed)
       }
@@ -1429,15 +1617,11 @@ class UpstashShowcaseStorage {
     }
 
     try {
-      const pendingSubmissionId = toNullableString(await this.redis.hget(PENDING_BY_URL_HASH_KEY, normalizedUrl))
-      if (!pendingSubmissionId) {
-        return null
-      }
-
+      const pendingSubmissionId = encodeEntryId(normalizedUrl)
       const rawEntry = await this.redis.hgetall(pendingKeyFromId(pendingSubmissionId))
-      const parsed = parsePendingEntry(rawEntry)
+      const parsed = parsePendingEntry(rawEntry, { submissionId: pendingSubmissionId, normalizedUrl })
       if (!parsed) {
-        await this.redis.multi().hdel(PENDING_BY_URL_HASH_KEY, normalizedUrl).zrem(PENDING_INDEX_KEY, pendingSubmissionId).exec()
+        await this.redis.zrem(PENDING_INDEX_KEY, pendingSubmissionId)
         return null
       }
 
@@ -1453,13 +1637,7 @@ class UpstashShowcaseStorage {
 
   async deletePendingById(submissionId) {
     try {
-      const rawEntry = await this.redis.hgetall(pendingKeyFromId(submissionId))
-      const parsed = parsePendingEntry(rawEntry)
-      const cleanup = this.redis.multi().del(pendingKeyFromId(submissionId)).zrem(PENDING_INDEX_KEY, submissionId)
-      if (parsed?.normalizedUrl) {
-        cleanup.hdel(PENDING_BY_URL_HASH_KEY, parsed.normalizedUrl)
-      }
-      await cleanup.exec()
+      await this.redis.multi().del(pendingKeyFromId(submissionId)).zrem(PENDING_INDEX_KEY, submissionId).exec()
       this._invalidatePendingCache()
       return true
     } catch (error) {
@@ -1484,7 +1662,7 @@ class UpstashShowcaseStorage {
       const entries = []
       for (const entryId of entryIds) {
         const rawEntry = await this.redis.hgetall(pendingKeyFromId(entryId))
-        const parsed = parsePendingEntry(rawEntry)
+        const parsed = parsePendingEntry(rawEntry, { submissionId: entryId })
         if (parsed) {
           entries.push(parsed)
         }
