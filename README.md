@@ -160,7 +160,7 @@ Operational note:
 ## SEO
 
 - Rich metadata: description, robots, canonical, hreflang
-- Canonical host redirects at edge (`www` + legacy `.org` to `annuaire-rgaa.fr`) to avoid duplicate indexing.
+- Legacy `.org` host redirects at edge to `annuaire-rgaa.fr` to avoid duplicate indexing.
 - Open Graph + Twitter Cards
 - Structured data (JSON-LD): `WebSite`, `Organization`, `Person`, `CollectionPage`, `SiteNavigationElement`
 - Structured data now also exposes `SearchAction` on homepage and `BreadcrumbList` on key secondary pages.
@@ -172,6 +172,7 @@ Operational note:
 - `public/robots.txt`
 - Public showcase API includes cache headers (`Cache-Control`, `Last-Modified`) for crawler efficiency and reduced load.
 - Serverless API adapter now normalizes absolute/relative request URLs before Express routing, reducing production fallback mismatches on `/api/*`.
+- Host-level redirects must avoid cyclic `www`/apex rules, otherwise `/api/*` calls may fail and return non-API HTML payloads.
 
 ## Getting Started
 

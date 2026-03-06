@@ -118,6 +118,8 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Footer build version now resolves from release tags first (then package version), preventing stale `0.0.0` display when releases are published.
 - `GET /api/showcase` now accepts `clientVoterId` and returns per-entry vote state (`hasUpvoted`) for the current visitor.
 - Vote registration now applies layered anti-abuse safeguards (client fingerprint + network fingerprint + hourly limiter) with localized feedback messages.
+- Vercel host redirects no longer force `www.annuaire-rgaa.fr -> annuaire-rgaa.fr` in-app config, preventing cyclic apex/www loops that broke `/api/showcase` and pre-analysis requests.
+- Frontend API payload parsing now detects HTML fallbacks explicitly and surfaces a clear routing error instead of generic “invalide” messages.
 - Vercel function glob now targets nested API handlers (`api/**/*.js`) so showcase/moderation subroutes share the same runtime limits.
 - Showcase vote-state reads now rely on a client vote index + TTL server cache, reducing Upstash command volume (no per-entry `SISMEMBER` burst on listing loads).
 - Focus management has been reworked across home and moderation actions: focus now stays local for in-place actions, moves to contextual summaries on view changes, and redirects to the next logical control when edited/deleted rows disappear.
