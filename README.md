@@ -175,6 +175,8 @@ Remediations now implemented:
 - Stronger inline link visibility and permanent underline in the accessibility declaration for criteria `3.1` and `10.6`.
 - Additional wrapping hardening (`wrap-anywhere`) on long declaration content to reduce reflow risk (`10.11`).
 - Accessibility declaration data refreshed to the latest completed review scope and criteria set.
+- Functional non-script fallback in `index.html` (`/plan-du-site`, `/accessibilite`, `/sitemap.xml`, `/api/showcase`) for criterion `7.2`.
+- Stronger contrast tokens for status badges and key header/form controls to reduce `3.2`/`3.3` regressions.
 
 Operational note:
 

@@ -49,3 +49,4 @@ Use this list as a rapid regression filter before running a full RGAA review.
 - Keep declaration non-conformity entries de-duplicated by criterion, and add impacted-page coverage to retain traceability.
 - For script alternatives (`7.2`), provide direct fallback navigation to public pages/datasets in `<noscript>`.
 - For contrast regressions, prefer explicit component tokens (status badges, bordered controls) over inherited color assumptions.
+- Avoid relying on low-opacity disabled states as the only differentiation signal; keep explicit border/text/background contrast on inactive controls.

@@ -1061,7 +1061,7 @@ function App() {
               <p className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Annuaire public RGAA</p>
               <div className="flex flex-wrap items-center gap-2">
                 <ThemeToggle
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 />
                 <a
                   href="#aide-accessibilite"
@@ -1071,19 +1071,19 @@ function App() {
                 </a>
                 <a
                   href="/plan-du-site"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 >
                   Plan du site
                 </a>
                 <a
                   href="/accessibilite"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 >
                   Accessibilité
                 </a>
                 <a
                   href="/moderation"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 >
                   Modération
                 </a>
@@ -1187,7 +1187,7 @@ function App() {
                     placeholder="Titre, URL, catégorie..."
                     aria-controls="liste-vitrines"
                     aria-describedby="recherche-aide"
-                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                   />
                 </div>
 
@@ -1200,7 +1200,7 @@ function App() {
                     value={statusFilter}
                     onChange={(event) => setStatusFilter(event.target.value as ShowcaseStatusFilter)}
                     aria-controls="liste-vitrines"
-                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                   >
                     {Object.entries(showcaseStatusFilterLabels).map(([value, label]) => (
                       <option key={value} value={value}>
@@ -1219,7 +1219,7 @@ function App() {
                     value={categoryFilter}
                     onChange={(event) => setCategoryFilter(event.target.value)}
                     aria-controls="liste-vitrines"
-                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                   >
                     <option value="all">Toutes les catégories</option>
                     {availableCategoryOptions.map((category) => (
@@ -1241,7 +1241,7 @@ function App() {
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 >
                   Réinitialiser les filtres
                 </button>
@@ -1321,7 +1321,7 @@ function App() {
                             rel="noopener external"
                             referrerPolicy="strict-origin-when-cross-origin"
                             aria-label={`Visiter le site ${entry.siteTitle}`}
-                            className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                            className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 px-3 py-2 font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                           >
                             Visiter le site
                           </a>
@@ -1339,7 +1339,7 @@ function App() {
                               Déclaration d’accessibilité
                             </a>
                           ) : (
-                            <span className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-600 dark:text-slate-300">
+                            <span className="inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-600 dark:text-slate-300">
                               Déclaration non détectée
                             </span>
                           )}
@@ -1352,7 +1352,7 @@ function App() {
                               {entry.complianceStatusLabel}
                             </span>
                           ) : (
-                            <span className="inline-flex min-h-8 items-center rounded-full bg-slate-200 dark:bg-slate-700 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                            <span className="inline-flex min-h-8 items-center rounded-full bg-slate-200 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-50">
                               Niveau inconnu
                             </span>
                           )}
@@ -1392,7 +1392,7 @@ function App() {
                                 ? 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                                 : entry.hasUpvoted
                                 ? 'border-emerald-400 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100'
-                                : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50'
+                                : 'border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50'
                             } disabled:cursor-not-allowed disabled:opacity-70 ${focusRingClass}`}
                           >
                             <span aria-hidden="true">{entry.votesBlocked ? '◌' : entry.hasUpvoted ? '▲' : '△'}</span>
@@ -1421,7 +1421,7 @@ function App() {
                   ref={loadMoreButtonRef}
                   type="button"
                   onClick={() => handleLoadMoreTiles('button')}
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 >
                   Charger {Math.min(TILE_BATCH_SIZE, filteredShowcaseEntries.length - visibleShowcaseEntries.length)} carte(s) de plus
                 </button>
@@ -1532,7 +1532,7 @@ function App() {
                   onInput={(event) => {
                     event.currentTarget.setCustomValidity('')
                   }}
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 />
               </div>
 
@@ -1550,7 +1550,7 @@ function App() {
                     setSubmissionPreviewEntry(null)
                     setSubmissionPreviewStatus(null)
                   }}
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 >
                   {showcaseCategories.map((category) => (
                     <option key={category} value={category}>
@@ -1641,7 +1641,7 @@ function App() {
                     type="button"
                     onClick={handleCancelSubmissionConfirmation}
                     disabled={isSubmissionBusy}
-                    className={`min-h-11 rounded-xl border border-slate-300 dark:border-slate-600 px-5 py-2.5 font-semibold text-slate-900 dark:text-slate-50 disabled:cursor-not-allowed disabled:opacity-60 ${focusRingClass}`}
+                    className={`min-h-11 rounded-xl border border-slate-600 dark:border-slate-600 px-5 py-2.5 font-semibold text-slate-900 dark:text-slate-50 disabled:cursor-not-allowed disabled:opacity-60 ${focusRingClass}`}
                   >
                     Modifier les informations
                   </button>
