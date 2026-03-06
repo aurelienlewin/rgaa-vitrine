@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
-import ThemeToggle from './ThemeToggle'
 import { applySeo, createAbsoluteUrl } from './seo'
 import { readSiteSlugFromPath, resolveShowcaseProfilePath } from './siteProfiles'
+import SecondaryPageHeader from './SecondaryPageHeader'
+import SiteFooter from './SiteFooter'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
 
@@ -481,36 +482,16 @@ function SiteProfilePage() {
         <a href="#fiches-associees" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, relatedSectionRef)}>
           Aller aux fiches associées
         </a>
-        <a href="#pied-de-page" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, footerRef)}>
+        <a href="#pied-page" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, footerRef)}>
           Aller au pied de page
         </a>
       </div>
 
       <div className="min-h-screen bg-brand-surface text-brand-ink">
-        <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-          <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h1 className="text-2xl font-bold">Fiche annuaire</h1>
-              <div className="flex flex-wrap items-center gap-2">
-                <ThemeToggle
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-                />
-                <a
-                  href="/"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}
-                >
-                  Retour à l’annuaire
-                </a>
-                <a
-                  href="/plan-du-site"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}
-                >
-                  Plan du site
-                </a>
-              </div>
-            </div>
-          </div>
-        </header>
+        <SecondaryPageHeader
+          title="Fiche annuaire"
+          description="Consultez les informations publiques d’un site référencé et ses liens utiles d’accessibilité."
+        />
 
         <main
           id="contenu-fiche"
@@ -669,38 +650,7 @@ function SiteProfilePage() {
           )}
         </main>
 
-        <footer
-          id="pied-de-page"
-          ref={footerRef}
-          tabIndex={-1}
-          className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
-        >
-          <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-            <h2 className="text-lg font-semibold">Continuer la navigation</h2>
-            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-              <li>
-                <a href="/" className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}>
-                  Retour à l’accueil
-                </a>
-              </li>
-              <li>
-                <a href="/plan-du-site" className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}>
-                  Plan du site
-                </a>
-              </li>
-              <li>
-                <a href="/accessibilite" className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}>
-                  Déclaration d’accessibilité
-                </a>
-              </li>
-              <li>
-                <a href={profileApiUrl} className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}>
-                  Données publiques de cette fiche
-                </a>
-              </li>
-            </ul>
-          </div>
-        </footer>
+        <SiteFooter id="pied-page" footerRef={footerRef} />
       </div>
     </>
   )

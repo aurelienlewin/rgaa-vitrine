@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
-import ThemeToggle from './ThemeToggle'
 import { applySeo, createAbsoluteUrl } from './seo'
+import SecondaryPageHeader from './SecondaryPageHeader'
+import SiteFooter from './SiteFooter'
 
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
@@ -68,6 +69,7 @@ function AccessibilityPage() {
   const reportRef = useRef<HTMLElement | null>(null)
   const contactRef = useRef<HTMLElement | null>(null)
   const legalRef = useRef<HTMLElement | null>(null)
+  const footerRef = useRef<HTMLElement | null>(null)
 
   const focusElement = useCallback((element: HTMLElement | null) => {
     if (!element) {
@@ -155,43 +157,21 @@ function AccessibilityPage() {
         <a href="#voies-recours" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, legalRef)}>
           Aller aux recours
         </a>
+        <a href="#pied-page" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, footerRef)}>
+          Aller au pied de page
+        </a>
       </div>
 
       <div className="min-h-screen bg-brand-surface text-brand-ink">
-        <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-          <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h1 className="text-2xl font-bold">Déclaration d’accessibilité</h1>
-              <div className="flex flex-wrap items-center gap-2">
-                <ThemeToggle
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-                />
-                <a
-                  href="/"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}
-                >
-                  Retour à l’annuaire
-                </a>
-                <a
-                  href="/plan-du-site"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}
-                >
-                  Plan du site
-                </a>
-                <a
-                  href="/accessibilite"
-                  aria-current="page"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}
-                >
-                  Accessibilité
-                </a>
-              </div>
-            </div>
-            <p className="mt-2 max-w-3xl text-slate-700 dark:text-slate-300">
+        <SecondaryPageHeader
+          title="Déclaration d’accessibilité"
+          description={
+            <>
               Cette déclaration s’applique au site <strong>https://annuaire-rgaa.fr/</strong>.
-            </p>
-          </div>
-        </header>
+            </>
+          }
+          currentPath="/accessibilite"
+        />
 
         <main
           id="contenu-accessibilite"
@@ -329,6 +309,8 @@ function AccessibilityPage() {
             </ul>
           </section>
         </main>
+
+        <SiteFooter id="pied-page" footerRef={footerRef} />
       </div>
     </>
   )

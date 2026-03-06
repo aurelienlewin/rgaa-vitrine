@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
-import ThemeToggle from './ThemeToggle'
 import { applySeo, createAbsoluteUrl } from './seo'
 import { resolveShowcaseProfilePath } from './siteProfiles'
+import SecondaryPageHeader from './SecondaryPageHeader'
+import SiteFooter from './SiteFooter'
 
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
@@ -169,6 +170,7 @@ function SiteMapPage() {
   const mainContentRef = useRef<HTMLElement | null>(null)
   const primaryNavRef = useRef<HTMLElement | null>(null)
   const profileSectionRef = useRef<HTMLElement | null>(null)
+  const footerRef = useRef<HTMLElement | null>(null)
 
   const focusElement = useCallback((element: HTMLElement | null) => {
     if (!element) {
@@ -375,44 +377,21 @@ function SiteMapPage() {
         >
           Aller aux fiches publiées
         </a>
+        <a
+          href="#pied-page"
+          className={skipLinkClass}
+          onClick={(event) => handleSkipLinkClick(event, footerRef)}
+        >
+          Aller au pied de page
+        </a>
       </div>
 
       <div className="min-h-screen bg-brand-surface text-brand-ink">
-        <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-          <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h1 className="text-2xl font-bold">Plan du site</h1>
-              <div className="flex flex-wrap items-center gap-2">
-                <ThemeToggle
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-                />
-                <a
-                  href="/"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}
-                >
-                  Retour à l’annuaire
-                </a>
-                <a
-                  href="/plan-du-site"
-                  aria-current="page"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}
-                >
-                  Plan du site
-                </a>
-                <a
-                  href="/accessibilite"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}
-                >
-                  Accessibilité
-                </a>
-              </div>
-            </div>
-            <p className="mt-2 max-w-3xl text-slate-700 dark:text-slate-300">
-              Cette page liste les entrées publiques et techniques de l’annuaire RGAA pour simplifier la navigation
-              clavier, l’orientation et l’indexation.
-            </p>
-          </div>
-        </header>
+        <SecondaryPageHeader
+          title="Plan du site"
+          description="Cette page liste les entrées publiques et techniques de l’annuaire RGAA pour simplifier la navigation clavier, l’orientation et l’indexation."
+          currentPath="/plan-du-site"
+        />
 
         <main
           id="contenu-plan"
@@ -552,6 +531,8 @@ function SiteMapPage() {
             </ul>
           </section>
         </main>
+
+        <SiteFooter id="pied-page" footerRef={footerRef} />
       </div>
     </>
   )

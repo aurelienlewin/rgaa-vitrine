@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
-import ThemeToggle from './ThemeToggle'
 import { applySeo } from './seo'
+import SecondaryPageHeader from './SecondaryPageHeader'
+import SiteFooter from './SiteFooter'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
 type RgaaBaseline = '4.1' | '5.0-ready'
@@ -253,6 +254,7 @@ function ModerationPage() {
   const voteBlocklistSectionRef = useRef<HTMLElement | null>(null)
   const siteBlocklistInputRef = useRef<HTMLInputElement | null>(null)
   const voteBlocklistInputRef = useRef<HTMLInputElement | null>(null)
+  const footerRef = useRef<HTMLElement | null>(null)
 
   const hasToken = useMemo(() => moderationToken.trim().length > 0, [moderationToken])
   const availableModerationCategoryOptions = useMemo(() => {
@@ -297,6 +299,10 @@ function ModerationPage() {
 
   const focusVoteBlocklist = useCallback(() => {
     focusElement(voteBlocklistSectionRef.current)
+  }, [focusElement])
+
+  const focusFooter = useCallback(() => {
+    focusElement(footerRef.current)
   }, [focusElement])
 
   const focusTokenInput = useCallback(() => {
@@ -1179,6 +1185,9 @@ function ModerationPage() {
         <a href="#blocklist-votes" className={skipLinkClass} onClick={focusVoteBlocklist}>
           Aller à la blocklist votes
         </a>
+        <a href="#pied-page" className={skipLinkClass} onClick={focusFooter}>
+          Aller au pied de page
+        </a>
       </div>
 
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true" lang="fr">
@@ -1189,36 +1198,11 @@ function ModerationPage() {
       </div>
 
       <div className="min-h-screen bg-brand-surface text-brand-ink">
-        <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-          <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h1 className="text-xl font-semibold">Modération Annuaire RGAA</h1>
-              <div className="flex flex-wrap items-center gap-2">
-                <ThemeToggle
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-                />
-                <a href="/" className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}>
-                  Retour à l’annuaire
-                </a>
-                <a
-                  href="/plan-du-site"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}
-                >
-                  Plan du site
-                </a>
-                <a
-                  href="/accessibilite"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}
-                >
-                  Accessibilité
-                </a>
-              </div>
-            </div>
-            <p className="mt-2 text-slate-700 dark:text-slate-300">
-              Validez ou rejetez les soumissions en attente sans passer par `curl`.
-            </p>
-          </div>
-        </header>
+        <SecondaryPageHeader
+          title="Modération Annuaire RGAA"
+          description="Validez ou rejetez les soumissions en attente sans passer par `curl`."
+          currentPath="/moderation"
+        />
 
         <main
           id="contenu-moderation"
@@ -1896,6 +1880,8 @@ function ModerationPage() {
             </ul>
           </section>
         </main>
+
+        <SiteFooter id="pied-page" footerRef={footerRef} />
       </div>
     </>
   )
