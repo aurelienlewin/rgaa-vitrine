@@ -124,6 +124,26 @@ function normalizeText(value: string) {
     .toLowerCase()
 }
 
+async function readApiPayload(response: Response) {
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
+  const rawBody = await response.text()
+
+  if (!rawBody.trim()) {
+    return {}
+  }
+
+  if (contentType.includes('application/json')) {
+    try {
+      return JSON.parse(rawBody) as Record<string, unknown>
+    } catch {
+      return { error: 'Reponse JSON invalide du serveur.' }
+    }
+  }
+
+  const compactBody = rawBody.trim().replace(/\s+/g, ' ')
+  return { error: compactBody.slice(0, 220) || 'Reponse serveur non JSON.' }
+}
+
 function App() {
   const [inputUrl, setInputUrl] = useState('')
   const [inputCategory, setInputCategory] = useState(showcaseCategories[0])
@@ -176,13 +196,21 @@ function App() {
         body: JSON.stringify({ url: inputUrl }),
       })
 
-      const payload = await response.json()
+      const payload = await readApiPayload(response)
 
       if (!response.ok) {
         throw new Error(typeof payload?.error === 'string' ? payload.error : 'Analyse impossible.')
       }
 
-      const parsedInsight = payload as SiteInsight
+      if (
+        typeof payload.normalizedUrl !== 'string' ||
+        typeof payload.siteTitle !== 'string' ||
+        typeof payload.updatedAt !== 'string'
+      ) {
+        throw new Error('Reponse serveur invalide.')
+      }
+
+      const parsedInsight = payload as unknown as SiteInsight
       setInsight(parsedInsight)
 
       const nextEntry: ShowcaseEntry = {
