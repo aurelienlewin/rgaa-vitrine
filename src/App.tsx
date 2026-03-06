@@ -41,6 +41,14 @@ const showcaseCategories = [
   'Coopérative et services',
   'Autre',
 ]
+const publicSubmissionCategoryFallback = 'Autre'
+const publicSubmissionCategoryByNormalized = new Map(
+  showcaseCategories.map((category) => [normalizeText(category), category]),
+)
+publicSubmissionCategoryByNormalized.set(
+  normalizeText('Cooperative et services'),
+  'Coopérative et services',
+)
 
 const categoryLabels: Record<string, string> = {
   Administration: 'Administration',
@@ -213,6 +221,11 @@ function normalizeCategoryInput(value: string) {
   return trimmed.slice(0, 60)
 }
 
+function normalizePublicSubmissionCategory(value: string) {
+  const normalized = normalizeText(value.trim())
+  return publicSubmissionCategoryByNormalized.get(normalized) ?? publicSubmissionCategoryFallback
+}
+
 function toDomSafeIdSegment(value: string) {
   return value.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 120)
 }
@@ -289,7 +302,6 @@ async function readApiPayload(response: Response) {
 function App() {
   const [inputUrl, setInputUrl] = useState('')
   const [inputCategory, setInputCategory] = useState(showcaseCategories[0])
-  const [customCategoryInput, setCustomCategoryInput] = useState('')
   const [websiteField, setWebsiteField] = useState('')
   const [loadingAdd, setLoadingAdd] = useState(false)
   const [loadingDirectory, setLoadingDirectory] = useState(true)
@@ -419,14 +431,6 @@ function App() {
 
     return Array.from(options).sort((left, right) => left.localeCompare(right, 'fr'))
   }, [showcaseEntries])
-
-  const resolvedSubmissionCategory = useMemo(() => {
-    if (customCategoryInput.trim()) {
-      return normalizeCategoryInput(customCategoryInput)
-    }
-
-    return normalizeCategoryInput(inputCategory)
-  }, [customCategoryInput, inputCategory])
 
   const visibleShowcaseEntries = useMemo(
     () => filteredShowcaseEntries.slice(0, visibleTilesCount),
@@ -776,10 +780,7 @@ function App() {
     setSubmitErrorMessage(null)
     setSubmitInfoMessage(null)
     setLastAddedEntry(null)
-    const categoryForSubmission = resolvedSubmissionCategory
-    if (!customCategoryInput.trim() && categoryForSubmission !== inputCategory) {
-      setInputCategory(categoryForSubmission)
-    }
+    const categoryForSubmission = normalizePublicSubmissionCategory(inputCategory)
 
     if (!isSubmitConfirmationStep) {
       if (!inputUrl.trim()) {
@@ -869,7 +870,6 @@ function App() {
         setSubmissionPreviewStatus(null)
         setInputUrl('')
         setWebsiteField('')
-        setCustomCategoryInput('')
         setSubmitInfoMessage(pendingMessage)
         announcePolite(pendingMessage)
         return
@@ -886,7 +886,6 @@ function App() {
         setSubmissionPreviewStatus(null)
         setInputUrl('')
         setWebsiteField('')
-        setCustomCategoryInput('')
         setSubmitInfoMessage(duplicateMessage)
         announcePolite(duplicateMessage)
         return
@@ -902,7 +901,6 @@ function App() {
       setLastAddedEntry(normalizeShowcaseEntry(payload))
       setInputUrl('')
       setWebsiteField('')
-      setCustomCategoryInput('')
 
       const successMessage = submissionMessage ?? `Site ajouté : ${payload.siteTitle}.`
       announcePolite(successMessage)
@@ -1430,10 +1428,10 @@ function App() {
                     setSubmissionPreviewEntry(null)
                     setSubmissionPreviewStatus(null)
                   }}
-                  aria-describedby="categorie-site-help categorie-site-custom-help"
+                  aria-describedby="categorie-site-help"
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 >
-                  {availableCategoryOptions.map((category) => (
+                  {showcaseCategories.map((category) => (
                     <option key={category} value={category}>
                       {formatCategory(category)}
                     </option>
@@ -1441,27 +1439,6 @@ function App() {
                 </select>
                 <p id="categorie-site-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                   Inclut notamment: Coopérative et services.
-                </p>
-                <label htmlFor="categorie-site-custom" className="mt-3 block text-sm font-medium">
-                  Catégorie personnalisée (optionnel)
-                </label>
-                <input
-                  id="categorie-site-custom"
-                  type="text"
-                  autoComplete="off"
-                  value={customCategoryInput}
-                  onChange={(event) => {
-                    setCustomCategoryInput(event.target.value)
-                    setIsSubmitConfirmationStep(false)
-                    setSubmissionPreviewEntry(null)
-                    setSubmissionPreviewStatus(null)
-                  }}
-                  aria-describedby="categorie-site-custom-help"
-                  placeholder="Exemple: Coopérative et services"
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
-                />
-                <p id="categorie-site-custom-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                  Si ce champ est rempli, il remplace la catégorie sélectionnée.
                 </p>
               </div>
 
@@ -1510,7 +1487,7 @@ function App() {
                   </div>
                   <div>
                     <dt className="font-semibold">Catégorie</dt>
-                    <dd>{formatCategory(resolvedSubmissionCategory)}</dd>
+                    <dd>{formatCategory(normalizePublicSubmissionCategory(inputCategory))}</dd>
                   </div>
                   <div>
                     <dt className="font-semibold">Résultat estimé</dt>
