@@ -106,6 +106,10 @@ const githubProfile = {
   profileUrl: 'https://github.com/aurelienlewin',
 }
 
+const supportProfile = {
+  buyMeACoffeeUrl: 'https://buymeacoffee.com/aurelienlewin',
+}
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('fr-FR', {
     dateStyle: 'long',
@@ -609,20 +613,35 @@ function App() {
           className="mt-12 border-t border-slate-200 bg-white"
           aria-label="Informations de bas de page"
         >
-          <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-6 sm:px-6 lg:px-8">
-            <img
-              src={githubProfile.avatarUrl}
-              alt={`Avatar GitHub de ${githubProfile.name}`}
-              className="h-12 w-12 rounded-full border border-slate-300"
-              loading="lazy"
-              referrerPolicy="no-referrer"
-            />
-            <p className="text-sm text-slate-800">
-              Cree et maintenu par{' '}
-              <a href={githubProfile.profileUrl} target="_blank" rel="noreferrer noopener">
-                {githubProfile.name} (@{githubProfile.login})
-              </a>
-            </p>
+          <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <img
+                src={githubProfile.avatarUrl}
+                alt={`Avatar GitHub de ${githubProfile.name}`}
+                className="h-12 w-12 rounded-full border border-slate-300"
+                loading="lazy"
+                referrerPolicy="no-referrer"
+              />
+              <p className="text-sm text-slate-800">
+                Cree et maintenu par{' '}
+                <a href={githubProfile.profileUrl} target="_blank" rel="noreferrer noopener">
+                  {githubProfile.name} (@{githubProfile.login})
+                </a>
+              </p>
+            </div>
+
+            <a
+              href={supportProfile.buyMeACoffeeUrl}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900"
+              aria-label="M offrir un cafe via Buy Me a Coffee"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+                <path d="M3 5h14a1 1 0 0 1 1 1v2h2a2 2 0 0 1 2 2v1a4 4 0 0 1-4 4h-1.1a5 5 0 0 1-4.9 4H8a5 5 0 0 1-5-5V6a1 1 0 0 1 1-1Zm15 8h1a2 2 0 0 0 2-2v-1h-3v3Zm-4 6a1 1 0 1 1 0 2H7a1 1 0 1 1 0-2h7Z" />
+              </svg>
+              M'offrir un cafe
+            </a>
           </div>
         </footer>
       </div>
