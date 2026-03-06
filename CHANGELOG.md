@@ -97,6 +97,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Contrast and color-pair styling has been strengthened for interface components and link rendering.
 - Skip-link containers are now fully hidden by default and only revealed on keyboard focus (`focus-within`) to prevent premature on-screen display.
 - Public canonical domain references have been standardized to `https://annuaire-rgaa.fr` across SEO metadata, sitemap/robots hints, declaration content, and documentation.
+- API metadata fetch now exposes a consistent Annuaire RGAA user-agent contact URL (`https://annuaire-rgaa.fr`).
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

@@ -218,7 +218,7 @@ async function fetchHtml(url, redirectCount = 0) {
       redirect: 'manual',
       signal: controller.signal,
       headers: {
-        'user-agent': 'Annuaire-RGAA/1.0 (+https://example.invalid)',
+        'user-agent': 'Annuaire-RGAA/1.0 (+https://annuaire-rgaa.fr)',
         accept: 'text/html,application/xhtml+xml',
       },
     })
