@@ -119,6 +119,7 @@ const focusRingClass =
 const skipLinksContainerClass =
   'fixed left-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:left-4 sm:top-4 sm:max-w-none'
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 shadow-lg ${focusRingClass}`
+const TILE_BATCH_SIZE = 24
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('fr-FR', {
@@ -212,6 +213,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<ShowcaseStatusFilter>('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [visibleTilesCount, setVisibleTilesCount] = useState(TILE_BATCH_SIZE)
   const [politeAnnouncement, setPoliteAnnouncement] = useState({ id: 0, message: '' })
   const [assertiveAnnouncement, setAssertiveAnnouncement] = useState({ id: 0, message: '' })
   const mainContentRef = useRef<HTMLElement | null>(null)
@@ -224,6 +226,7 @@ function App() {
   const directoryErrorRef = useRef<HTMLParagraphElement | null>(null)
   const submitErrorRef = useRef<HTMLParagraphElement | null>(null)
   const submitInfoRef = useRef<HTMLParagraphElement | null>(null)
+  const tilesSentinelRef = useRef<HTMLDivElement | null>(null)
 
   const announcePolite = useCallback((message: string) => {
     setPoliteAnnouncement((current) => ({ id: current.id + 1, message }))
@@ -286,15 +289,25 @@ function App() {
     })
   }, [categoryFilter, searchQuery, showcaseEntries, statusFilter])
 
+  const visibleShowcaseEntries = useMemo(
+    () => filteredShowcaseEntries.slice(0, visibleTilesCount),
+    [filteredShowcaseEntries, visibleTilesCount],
+  )
+
+  const hasMoreTiles = visibleTilesCount < filteredShowcaseEntries.length
+
   const handleSearchSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
       announcePolite(
-        `Recherche appliquée. ${filteredShowcaseEntries.length} site(s) affiché(s) sur ${showcaseEntries.length}.`,
+        `Recherche appliquée. ${Math.min(
+          filteredShowcaseEntries.length,
+          TILE_BATCH_SIZE,
+        )} carte(s) affichée(s) sur ${filteredShowcaseEntries.length} résultat(s).`,
       )
       focusElement(resultsSummaryRef.current)
     },
-    [announcePolite, filteredShowcaseEntries.length, focusElement, showcaseEntries.length],
+    [announcePolite, filteredShowcaseEntries.length, focusElement],
   )
 
   const directoryStats = useMemo(() => {
@@ -412,11 +425,62 @@ function App() {
   }, [homeStructuredData])
 
   useEffect(() => {
+    setVisibleTilesCount(Math.min(TILE_BATCH_SIZE, filteredShowcaseEntries.length))
+  }, [filteredShowcaseEntries.length, searchQuery, statusFilter, categoryFilter])
+
+  const handleLoadMoreTiles = useCallback(
+    (source: 'button' | 'auto') => {
+      if (!hasMoreTiles) {
+        return
+      }
+
+      setVisibleTilesCount((current) => {
+        const next = Math.min(current + TILE_BATCH_SIZE, filteredShowcaseEntries.length)
+        if (next > current && source === 'button') {
+          announcePolite(`${next} carte(s) affichée(s) sur ${filteredShowcaseEntries.length} résultat(s).`)
+        }
+        return next
+      })
+    },
+    [announcePolite, filteredShowcaseEntries.length, hasMoreTiles],
+  )
+
+  useEffect(() => {
+    if (!hasMoreTiles || loadingDirectory || !tilesSentinelRef.current) {
+      return
+    }
+
+    if (typeof window.IntersectionObserver !== 'function') {
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries
+        if (entry?.isIntersecting) {
+          handleLoadMoreTiles('auto')
+        }
+      },
+      {
+        root: null,
+        rootMargin: '300px 0px',
+        threshold: 0.01,
+      },
+    )
+
+    observer.observe(tilesSentinelRef.current)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [handleLoadMoreTiles, hasMoreTiles, loadingDirectory])
+
+  useEffect(() => {
     setPoliteAnnouncement((current) => ({
       id: current.id + 1,
-      message: `${filteredShowcaseEntries.length} site(s) affiché(s) sur ${showcaseEntries.length} dans l’annuaire.`,
+      message: `${visibleShowcaseEntries.length} carte(s) affichée(s) sur ${filteredShowcaseEntries.length} résultat(s).`,
     }))
-  }, [filteredShowcaseEntries.length, showcaseEntries.length])
+  }, [visibleShowcaseEntries.length, filteredShowcaseEntries.length])
 
   const loadShowcaseEntries = useCallback(async () => {
     setDirectoryErrorMessage(null)
@@ -791,7 +855,8 @@ function App() {
             </form>
 
             <p ref={resultsSummaryRef} tabIndex={-1} className="mt-3 text-sm text-slate-700 dark:text-slate-300">
-              {filteredShowcaseEntries.length} site(s) affiché(s) sur {showcaseEntries.length}.
+              {visibleShowcaseEntries.length} carte(s) affichée(s) sur {filteredShowcaseEntries.length} résultat(s) ({showcaseEntries.length}{' '}
+              site(s) total dans l’annuaire).
             </p>
 
             {loadingDirectory && <p className="mt-3 text-slate-700 dark:text-slate-300">Chargement de l’annuaire...</p>}
@@ -817,7 +882,7 @@ function App() {
 
             {filteredShowcaseEntries.length > 0 && (
               <ul id="liste-vitrines" className="mt-4 grid gap-4 md:grid-cols-2">
-                {filteredShowcaseEntries.map((entry) => (
+                {visibleShowcaseEntries.map((entry) => (
                   <li key={entry.normalizedUrl} className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
                     <article>
                       <div className="h-40 bg-slate-100 dark:bg-slate-800">
@@ -889,6 +954,25 @@ function App() {
                   </li>
                 ))}
               </ul>
+            )}
+
+            {filteredShowcaseEntries.length > 0 && hasMoreTiles && (
+              <div className="mt-4 flex flex-col items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleLoadMoreTiles('button')}
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                >
+                  Charger {Math.min(TILE_BATCH_SIZE, filteredShowcaseEntries.length - visibleShowcaseEntries.length)} carte(s) de plus
+                </button>
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  Chargement progressif actif pour alléger le rendu initial.
+                </p>
+              </div>
+            )}
+
+            {filteredShowcaseEntries.length > 0 && (
+              <div ref={tilesSentinelRef} className="h-1 w-full" aria-hidden="true" />
             )}
           </section>
 

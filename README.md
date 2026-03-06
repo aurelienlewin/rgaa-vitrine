@@ -22,6 +22,8 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Programmatic focus management on skip-link targets and dynamic feedback blocks (errors/status).
 - Keyboard filter ergonomics: `Échap` clears search input and a dedicated reset button restores all filters.
 - Explicit filter CTA with a `Rechercher` button for clear submit action and predictable keyboard flow.
+- Progressive tile pagination in the directory (`24` cards per batch) with a manual `Charger plus` action.
+- Automatic lazy loading of additional tiles near viewport end (with keyboard-accessible manual fallback).
 - Submission flow now includes a confirmation step, allowing users to review and edit URL/category before final send.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
