@@ -140,6 +140,24 @@ function SiteMapPage() {
               'Plan du site public de l’annuaire RGAA avec liens vers l’accueil, les sections et les fichiers techniques.',
           },
           {
+            '@type': 'BreadcrumbList',
+            '@id': createAbsoluteUrl('/plan-du-site#breadcrumb'),
+            itemListElement: [
+              {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'Accueil',
+                item: createAbsoluteUrl('/'),
+              },
+              {
+                '@type': 'ListItem',
+                position: 2,
+                name: 'Plan du site',
+                item: createAbsoluteUrl('/plan-du-site'),
+              },
+            ],
+          },
+          {
             '@type': 'SiteNavigationElement',
             name: 'Navigation du site Annuaire RGAA',
             inLanguage: 'fr-FR',

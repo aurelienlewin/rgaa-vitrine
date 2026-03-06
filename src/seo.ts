@@ -8,6 +8,7 @@ type SeoConfig = {
   ogType?: string
   imageUrl?: string
   imageAlt?: string
+  imageMimeType?: string
   twitterCard?: string
   locale?: string
   structuredData?: JsonLdObject | JsonLdObject[] | null
@@ -113,6 +114,7 @@ export function applySeo(config: SeoConfig) {
   const locale = config.locale ?? 'fr-FR'
   const ogLocale = locale.replace('-', '_')
   const imageUrl = config.imageUrl ?? createAbsoluteUrl(DEFAULT_OG_IMAGE_PATH)
+  const imageMimeType = config.imageMimeType ?? 'image/svg+xml'
   const robots = config.robots ?? DEFAULT_ROBOTS
   const ogType = config.ogType ?? 'website'
   const twitterCard = config.twitterCard ?? 'summary_large_image'
@@ -135,12 +137,16 @@ export function applySeo(config: SeoConfig) {
   upsertMetaByProperty('og:description').setAttribute('content', config.description)
   upsertMetaByProperty('og:url').setAttribute('content', canonicalUrl)
   upsertMetaByProperty('og:image').setAttribute('content', imageUrl)
+  upsertMetaByProperty('og:image:secure_url').setAttribute('content', imageUrl)
+  upsertMetaByProperty('og:image:type').setAttribute('content', imageMimeType)
   upsertMetaByProperty('og:image:alt').setAttribute('content', imageAlt)
 
   upsertMetaByName('twitter:card').setAttribute('content', twitterCard)
+  upsertMetaByName('twitter:url').setAttribute('content', canonicalUrl)
   upsertMetaByName('twitter:title').setAttribute('content', config.title)
   upsertMetaByName('twitter:description').setAttribute('content', config.description)
   upsertMetaByName('twitter:image').setAttribute('content', imageUrl)
+  upsertMetaByName('twitter:image:alt').setAttribute('content', imageAlt)
 
   if (config.structuredData === null) {
     const script = document.getElementById(STRUCTURED_DATA_SCRIPT_ID)

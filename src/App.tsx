@@ -390,13 +390,34 @@ function App() {
     [focusElement],
   )
 
+  const syncSearchQueryInUrl = useCallback((query: string) => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const trimmedQuery = query.trim()
+    const currentUrl = new URL(window.location.href)
+    if (trimmedQuery) {
+      currentUrl.searchParams.set('recherche', trimmedQuery)
+    } else {
+      currentUrl.searchParams.delete('recherche')
+    }
+
+    const nextRelativeUrl = `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`
+    const currentRelativeUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`
+    if (nextRelativeUrl !== currentRelativeUrl) {
+      window.history.replaceState({}, '', nextRelativeUrl)
+    }
+  }, [])
+
   const handleResetFilters = useCallback(() => {
     setSearchQuery('')
     setStatusFilter('all')
     setCategoryFilter('all')
+    syncSearchQueryInUrl('')
     announcePolite('Filtres réinitialisés.')
     searchInputRef.current?.focus()
-  }, [announcePolite])
+  }, [announcePolite, syncSearchQueryInUrl])
 
   const filteredShowcaseEntries = useMemo(() => {
     const normalizedQuery = normalizeText(searchQuery.trim())
@@ -442,6 +463,7 @@ function App() {
   const handleSearchSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
+      syncSearchQueryInUrl(searchQuery)
       announcePolite(
         `Recherche appliquée. ${Math.min(
           filteredShowcaseEntries.length,
@@ -450,7 +472,7 @@ function App() {
       )
       focusElement(resultsSummaryRef.current)
     },
-    [announcePolite, filteredShowcaseEntries.length, focusElement],
+    [announcePolite, filteredShowcaseEntries.length, focusElement, searchQuery, syncSearchQueryInUrl],
   )
 
   const directoryStats = useMemo(() => {
@@ -495,6 +517,11 @@ function App() {
           inLanguage: 'fr-FR',
           description:
             'Annuaire français pour valoriser les sites engagés dans la conformité RGAA et l’accessibilité numérique.',
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: `${createAbsoluteUrl('/')}?recherche={search_term_string}`,
+            'query-input': 'required name=search_term_string',
+          },
         },
         {
           '@type': 'Organization',
@@ -566,6 +593,19 @@ function App() {
       structuredData: homeStructuredData,
     })
   }, [homeStructuredData])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const initialQuery = new URLSearchParams(window.location.search).get('recherche')
+    if (!initialQuery) {
+      return
+    }
+
+    setSearchQuery(initialQuery.slice(0, 120))
+  }, [])
 
   useEffect(() => {
     setVisibleTilesCount(Math.min(TILE_BATCH_SIZE, filteredShowcaseEntries.length))

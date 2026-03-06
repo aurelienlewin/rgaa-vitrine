@@ -114,6 +114,24 @@ function AccessibilityPage() {
             description:
               'Déclaration d’accessibilité incluant score mesuré, non-conformités identifiées, contact et voies de recours.',
           },
+          {
+            '@type': 'BreadcrumbList',
+            '@id': createAbsoluteUrl('/accessibilite#breadcrumb'),
+            itemListElement: [
+              {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'Accueil',
+                item: createAbsoluteUrl('/'),
+              },
+              {
+                '@type': 'ListItem',
+                position: 2,
+                name: 'Accessibilité',
+                item: createAbsoluteUrl('/accessibilite'),
+              },
+            ],
+          },
         ],
       },
     })
