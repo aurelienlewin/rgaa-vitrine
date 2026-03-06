@@ -11,12 +11,19 @@ Date de consolidation: 2026-03-06.
 - 6. Ressources officielles composants JavaScript ARIA
 
 ## 1. Sources officielles obligatoires
+- https://design.numerique.gouv.fr/articles/2026-03-02-rgaa5/
 - https://disic.github.io/guide-developpeur/
 - https://disic.github.io/guide-integrateur/
 - https://design.numerique.gouv.fr/outils/memo-dev/
 - https://design.numerique.gouv.fr/outils/checklist-dev/
 - https://www.info.gouv.fr/accessibilite/developpement/bibliotheque-de-reference-des-restitutions-des-composants-javascript-aria
 - https://www.info.gouv.fr/accessibilite/developpement/le-guide-des-composants-javascript-accessibles
+
+## 1.1 Focus RGAA 5 (article officiel du 2 mars 2026)
+- L arrivee de RGAA 5 est annoncee pour fin 2026.
+- Les equipes doivent continuer a corriger et publier la conformite RGAA 4.1.2 sans attendre.
+- Les plans produit doivent combiner dette immediate (4.1.2) et preparation progressive RGAA 5.
+- Source: https://design.numerique.gouv.fr/articles/2026-03-02-rgaa5/
 
 ## 2. Memo dev (recommandations detaillees)
 

@@ -10,6 +10,7 @@ Use this skill when a task requires strict alignment with official French RGAA d
 ## Mandatory Sources
 
 Always rely on `references/official-developer-recommendations.md`, which consolidates the full recommendation sets from:
+- `https://design.numerique.gouv.fr/articles/2026-03-02-rgaa5/`
 - `https://disic.github.io/guide-developpeur/`
 - `https://disic.github.io/guide-integrateur/`
 - `https://design.numerique.gouv.fr/outils/memo-dev/`

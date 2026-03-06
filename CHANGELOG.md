@@ -13,6 +13,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Directory-first UI blocks with showcase KPIs (total / full / partial / none).
 - Multi skip-link navigation (`contenu`, `filtres`, `ajout`) for keyboard users.
 - Dedicated polite live region announcements (`role=\"status\"`, `aria-live=\"polite\"`).
+- Official RGAA 5 awareness article added to project references and embedded skill sources.
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
@@ -22,6 +23,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Registration flow wording now emphasizes adding a site to the directory (not auditing).
 - Simplified information architecture to prioritize browsing/filtering over submission.
 - Redis config now accepts `KV_REST_API_URL`/`KV_REST_API_TOKEN` aliases in addition to `UPSTASH_*`.
+- UI now highlights the March 2, 2026 RGAA 5 official article with explicit transition messaging.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

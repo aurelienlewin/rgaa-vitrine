@@ -119,6 +119,7 @@ npm run start:api
 
 Official references include:
 
+- https://design.numerique.gouv.fr/articles/2026-03-02-rgaa5/
 - https://disic.github.io/guide-developpeur/
 - https://disic.github.io/guide-integrateur/
 - https://design.numerique.gouv.fr/outils/memo-dev/

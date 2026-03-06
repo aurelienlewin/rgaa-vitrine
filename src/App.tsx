@@ -42,6 +42,10 @@ const showcaseStatusFilterLabels: Record<ShowcaseStatusFilter, string> = {
 
 const officialResources = [
   {
+    label: 'Article: RGAA 5 arrive fin 2026 (Etat)',
+    url: 'https://design.numerique.gouv.fr/articles/2026-03-02-rgaa5/',
+  },
+  {
     label: 'Guide du developpeur RGAA',
     url: 'https://disic.github.io/guide-developpeur/',
   },
@@ -518,6 +522,28 @@ function App() {
               Pour les personnes concernees, les equipes produit et les passionnes, voici les references publiques
               utilisees pour guider la qualite du repertoire.
             </p>
+            <aside
+              className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4"
+              aria-labelledby="rgaa5-focus-titre"
+            >
+              <h3 id="rgaa5-focus-titre" className="text-base font-semibold text-sky-900">
+                Point d attention: cap RGAA 5
+              </h3>
+              <p className="mt-1 text-sm text-sky-900">
+                L article officiel du 2 mars 2026 rappelle deux priorites: preparer la transition vers RGAA 5 d ici
+                fin 2026, et maintenir des maintenant les efforts de conformite RGAA 4.1.2.
+              </p>
+              <p className="mt-2 text-sm">
+                <a
+                  href="https://design.numerique.gouv.fr/articles/2026-03-02-rgaa5/"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="font-semibold text-sky-900"
+                >
+                  Lire l article \"L arrivee de RGAA 5 est annoncee\"
+                </a>
+              </p>
+            </aside>
             <ul className="mt-4 grid gap-3">
               {officialResources.map((resource) => (
                 <li key={resource.url} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
