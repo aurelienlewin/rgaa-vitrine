@@ -51,6 +51,11 @@ const buildVersion = resolveBuildVersion()
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      '@vercel/analytics/next': '@vercel/analytics/react',
+    },
+  },
   define: {
     'import.meta.env.VITE_BUILD_TIMESTAMP': JSON.stringify(buildTimestamp),
     'import.meta.env.VITE_BUILD_VERSION': JSON.stringify(buildVersion),

@@ -1,5 +1,6 @@
 import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
+import { Analytics } from '@vercel/analytics/next'
 import '@fontsource/atkinson-hyperlegible/latin-400.css'
 import '@fontsource/atkinson-hyperlegible/latin-700.css'
 import './index.css'
@@ -74,6 +75,7 @@ if (canUseDom) {
         }
       >
         <RootComponent />
+        <Analytics />
       </Suspense>
     </StrictMode>,
   )
