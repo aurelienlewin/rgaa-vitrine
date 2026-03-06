@@ -309,7 +309,8 @@ function App() {
   const [inputUrl, setInputUrl] = useState('')
   const [inputCategory, setInputCategory] = useState(showcaseCategories[0])
   const [websiteField, setWebsiteField] = useState('')
-  const [loadingAdd, setLoadingAdd] = useState(false)
+  const [isPreAnalyzing, setIsPreAnalyzing] = useState(false)
+  const [isConfirmingSubmission, setIsConfirmingSubmission] = useState(false)
   const [loadingDirectory, setLoadingDirectory] = useState(true)
   const [directoryErrorMessage, setDirectoryErrorMessage] = useState<string | null>(null)
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null)
@@ -338,6 +339,7 @@ function App() {
   const submitErrorRef = useRef<HTMLParagraphElement | null>(null)
   const submitInfoRef = useRef<HTMLParagraphElement | null>(null)
   const submitConfirmationRef = useRef<HTMLElement | null>(null)
+  const confirmSubmissionButtonRef = useRef<HTMLButtonElement | null>(null)
   const lastAddedRef = useRef<HTMLParagraphElement | null>(null)
   const loadMoreButtonRef = useRef<HTMLButtonElement | null>(null)
   const tilesSentinelRef = useRef<HTMLDivElement | null>(null)
@@ -735,13 +737,15 @@ function App() {
     }
   }, [submitErrorMessage, focusElement])
 
+  const isSubmissionBusy = isPreAnalyzing || isConfirmingSubmission
+
   useEffect(() => {
     if (submitInfoMessage) {
-      if (!isSubmitConfirmationStep && !loadingAdd) {
+      if (!isSubmitConfirmationStep && !isSubmissionBusy) {
         focusElement(submitInfoRef.current)
       }
     }
-  }, [submitInfoMessage, focusElement, isSubmitConfirmationStep, loadingAdd])
+  }, [submitInfoMessage, focusElement, isSubmitConfirmationStep, isSubmissionBusy])
 
   useEffect(() => {
     if (lastAddedEntry) {
@@ -835,74 +839,99 @@ function App() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (isSubmitConfirmationStep) {
+      const message = 'Pré-analyse déjà disponible. Utilisez le bouton Confirmer l’envoi ci-dessous.'
+      setSubmitInfoMessage(message)
+      setSubmitErrorMessage(null)
+      announcePolite(message)
+      window.setTimeout(() => {
+        focusElement(submitConfirmationRef.current)
+      }, 0)
+      return
+    }
+
     setSubmitErrorMessage(null)
     setSubmitInfoMessage(null)
     setLastAddedEntry(null)
     const categoryForSubmission = normalizePublicSubmissionCategory(inputCategory)
 
-    if (!isSubmitConfirmationStep) {
-      if (!inputUrl.trim()) {
-        const message =
-          'Veuillez saisir une URL complète, par exemple https://www.exemple.fr, avant de continuer.'
-        setSubmitErrorMessage(message)
-        announceAssertive(message)
-        return
-      }
-
-      setLoadingAdd(true)
-      setSubmitInfoMessage('Pré-analyse du site en cours. Merci de patienter.')
-      announcePolite('Pré-analyse du site en cours.')
-
-      try {
-        const response = await fetch('/api/site-insight?preview=1', {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({ url: inputUrl, category: categoryForSubmission, website: websiteField }),
-        })
-
-        const payload = await readApiPayload(response)
-        const submissionStatus = readSubmissionStatus(payload)
-        const submissionMessage = readSubmissionMessage(payload)
-
-        if (!response.ok) {
-          throw new Error(typeof payload?.error === 'string' ? payload.error : 'Pré-analyse impossible.')
-        }
-
-        if (typeof payload.error === 'string') {
-          throw new Error(payload.error)
-        }
-
-        if (!submissionStatus || !isShowcaseEntry(payload)) {
-          throw new Error('Pré-analyse invalide du serveur.')
-        }
-
-        setSubmissionPreviewEntry(normalizeShowcaseEntry(payload))
-        setSubmissionPreviewStatus(submissionStatus)
-        setIsSubmitConfirmationStep(true)
-
-        const reviewMessage =
-          submissionMessage ??
-          'Pré-analyse terminée. Vérifiez les informations détectées puis confirmez l’envoi.'
-        setSubmitInfoMessage(reviewMessage)
-        announcePolite(reviewMessage)
-        window.setTimeout(() => {
-          focusElement(submitConfirmationRef.current)
-        }, 0)
-      } catch (error) {
-        setSubmissionPreviewEntry(null)
-        setSubmissionPreviewStatus(null)
-        const localizedMessage = error instanceof Error ? error.message : 'Erreur réseau.'
-        setSubmitErrorMessage(localizedMessage)
-        announceAssertive(localizedMessage)
-      } finally {
-        setLoadingAdd(false)
-      }
+    if (!inputUrl.trim()) {
+      const message =
+        'Veuillez saisir une URL complète, par exemple https://www.exemple.fr, avant de continuer.'
+      setSubmitErrorMessage(message)
+      announceAssertive(message)
       return
     }
 
-    setLoadingAdd(true)
+    setIsPreAnalyzing(true)
+    setSubmitInfoMessage('Pré-analyse du site en cours. Merci de patienter.')
+    announcePolite('Pré-analyse du site en cours.')
+
+    try {
+      const response = await fetch('/api/site-insight?preview=1', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ url: inputUrl, category: categoryForSubmission, website: websiteField }),
+      })
+
+      const payload = await readApiPayload(response)
+      const submissionStatus = readSubmissionStatus(payload)
+      const submissionMessage = readSubmissionMessage(payload)
+
+      if (!response.ok) {
+        throw new Error(typeof payload?.error === 'string' ? payload.error : 'Pré-analyse impossible.')
+      }
+
+      if (typeof payload.error === 'string') {
+        throw new Error(payload.error)
+      }
+
+      if (!submissionStatus || !isShowcaseEntry(payload)) {
+        throw new Error('Pré-analyse invalide du serveur.')
+      }
+
+      setSubmissionPreviewEntry(normalizeShowcaseEntry(payload))
+      setSubmissionPreviewStatus(submissionStatus)
+      setIsSubmitConfirmationStep(true)
+
+      const reviewMessage =
+        submissionMessage ??
+        'Pré-analyse terminée. Vérifiez les informations détectées puis confirmez l’envoi.'
+      setSubmitInfoMessage(reviewMessage)
+      announcePolite(reviewMessage)
+      window.setTimeout(() => {
+        focusElement(submitConfirmationRef.current)
+      }, 0)
+    } catch (error) {
+      setSubmissionPreviewEntry(null)
+      setSubmissionPreviewStatus(null)
+      const localizedMessage = error instanceof Error ? error.message : 'Erreur réseau.'
+      setSubmitErrorMessage(localizedMessage)
+      announceAssertive(localizedMessage)
+    } finally {
+      setIsPreAnalyzing(false)
+    }
+  }
+
+  const handleConfirmSubmission = useCallback(async () => {
+    if (!isSubmitConfirmationStep || !submissionPreviewEntry) {
+      const message = 'Veuillez lancer la pré-analyse avant de confirmer.'
+      setSubmitErrorMessage(message)
+      setSubmitInfoMessage(null)
+      announceAssertive(message)
+      focusElement(urlInputRef.current)
+      return
+    }
+
+    setSubmitErrorMessage(null)
+    setSubmitInfoMessage(null)
+    setLastAddedEntry(null)
+    const categoryForSubmission = normalizePublicSubmissionCategory(inputCategory)
+
+    setIsConfirmingSubmission(true)
     setSubmitInfoMessage('Analyse du site en cours. Merci de patienter.')
     announcePolite("Analyse du site en cours.")
 
@@ -979,9 +1008,19 @@ function App() {
       setSubmitErrorMessage(localizedMessage)
       announceAssertive(localizedMessage)
     } finally {
-      setLoadingAdd(false)
+      setIsConfirmingSubmission(false)
     }
-  }
+  }, [
+    announceAssertive,
+    announcePolite,
+    focusElement,
+    inputCategory,
+    inputUrl,
+    isSubmitConfirmationStep,
+    loadShowcaseEntries,
+    submissionPreviewEntry,
+    websiteField,
+  ])
 
   return (
     <>
@@ -1506,27 +1545,18 @@ function App() {
 
               <button
                 type="submit"
-                disabled={loadingAdd}
+                disabled={isSubmissionBusy || isSubmitConfirmationStep}
+                aria-describedby="preanalyse-help"
                 className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-5 py-2.5 font-semibold text-white dark:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 md:self-end ${focusRingClass}`}
               >
-                {loadingAdd
-                  ? isSubmitConfirmationStep
-                    ? 'Envoi...'
-                    : 'Pré-analyse...'
-                  : isSubmitConfirmationStep
-                    ? 'Confirmer l’envoi'
-                    : 'Continuer'}
+                {isPreAnalyzing ? 'Pré-analyse...' : isSubmitConfirmationStep ? 'Pré-analyse effectuée' : 'Lancer la pré-analyse'}
               </button>
 
-              {isSubmitConfirmationStep && (
-                <button
-                  type="button"
-                  onClick={handleCancelSubmissionConfirmation}
-                  className={`min-h-11 rounded-xl border border-slate-300 dark:border-slate-600 px-5 py-2.5 font-semibold text-slate-900 dark:text-slate-50 md:self-end ${focusRingClass}`}
-                >
-                  Modifier les informations
-                </button>
-              )}
+              <p id="preanalyse-help" className="md:col-span-3 text-sm text-slate-700 dark:text-slate-300">
+                {isSubmitConfirmationStep
+                  ? 'Pré-analyse terminée. Les actions de confirmation sont disponibles dans le bloc Vérification avant envoi.'
+                  : 'Lancez la pré-analyse pour afficher le récapitulatif avant confirmation.'}
+              </p>
             </form>
 
             {isSubmitConfirmationStep && (
@@ -1535,11 +1565,13 @@ function App() {
                 tabIndex={-1}
                 className={`mt-4 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-4 ${focusRingClass}`}
                 aria-labelledby="verification-envoi-titre"
+                aria-describedby="verification-envoi-help"
+                aria-busy={isConfirmingSubmission}
               >
                 <h3 id="verification-envoi-titre" className="text-base font-semibold text-sky-900 dark:text-sky-100">
                   Vérification avant envoi
                 </h3>
-                <p className="mt-2 text-sm text-sky-900 dark:text-sky-100">
+                <p id="verification-envoi-help" className="mt-2 text-sm text-sky-900 dark:text-sky-100">
                   Les informations restent modifiables tant que vous n’avez pas confirmé l’envoi.
                 </p>
                 <dl className="mt-3 grid gap-2 text-sm text-sky-900 dark:text-sky-100">
@@ -1576,6 +1608,27 @@ function App() {
                     <dd className="break-all">{submissionPreviewEntry?.accessibilityPageUrl ?? 'Non détectée'}</dd>
                   </div>
                 </dl>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button
+                    ref={confirmSubmissionButtonRef}
+                    type="button"
+                    onClick={() => {
+                      void handleConfirmSubmission()
+                    }}
+                    disabled={isSubmissionBusy}
+                    className={`min-h-11 rounded-xl bg-sky-700 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 ${focusRingClass}`}
+                  >
+                    {isConfirmingSubmission ? 'Envoi...' : 'Confirmer l’envoi'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelSubmissionConfirmation}
+                    disabled={isSubmissionBusy}
+                    className={`min-h-11 rounded-xl border border-slate-300 dark:border-slate-600 px-5 py-2.5 font-semibold text-slate-900 dark:text-slate-50 disabled:cursor-not-allowed disabled:opacity-60 ${focusRingClass}`}
+                  >
+                    Modifier les informations
+                  </button>
+                </div>
               </section>
             )}
 
