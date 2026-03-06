@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, MouseEvent as ReactMouseEvent, RefObject } from 'react'
 import ThemeToggle from './ThemeToggle'
+import { applySeo, createAbsoluteUrl } from './seo'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
 
@@ -292,6 +293,70 @@ function App() {
     }
   }, [showcaseEntries])
 
+  const homeStructuredData = useMemo(() => {
+    const itemListElements = showcaseEntries.slice(0, 12).map((entry, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: entry.siteTitle,
+      url: entry.normalizedUrl,
+    }))
+
+    return {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'WebSite',
+          '@id': createAbsoluteUrl('/#website'),
+          url: createAbsoluteUrl('/'),
+          name: 'Annuaire RGAA',
+          inLanguage: 'fr-FR',
+          description:
+            'Annuaire français pour valoriser les sites engagés dans la conformité RGAA et l’accessibilité numérique.',
+        },
+        {
+          '@type': 'Organization',
+          '@id': createAbsoluteUrl('/#organization'),
+          name: 'Annuaire RGAA',
+          url: createAbsoluteUrl('/'),
+          logo: createAbsoluteUrl('/logo-rgaa-vitrine.svg'),
+          sameAs: [githubProfile.profileUrl],
+        },
+        {
+          '@type': 'Person',
+          '@id': createAbsoluteUrl('/#creator'),
+          name: githubProfile.name,
+          url: githubProfile.profileUrl,
+        },
+        {
+          '@type': 'CollectionPage',
+          '@id': createAbsoluteUrl('/#collection'),
+          url: createAbsoluteUrl('/'),
+          name: 'Annuaire RGAA',
+          inLanguage: 'fr-FR',
+          isPartOf: {
+            '@id': createAbsoluteUrl('/#website'),
+          },
+          mainEntity: {
+            '@type': 'ItemList',
+            numberOfItems: showcaseEntries.length,
+            itemListOrder: 'https://schema.org/ItemListOrderDescending',
+            itemListElement: itemListElements,
+          },
+        },
+      ],
+    }
+  }, [showcaseEntries])
+
+  useEffect(() => {
+    applySeo({
+      title: 'Annuaire RGAA | Vitrine française de conformité accessibilité',
+      description:
+        'Référencez et découvrez des sites engagés en accessibilité numérique avec statut de conformité RGAA et ressources officielles.',
+      path: '/',
+      structuredData: homeStructuredData,
+    })
+  }, [homeStructuredData])
+
   useEffect(() => {
     setPoliteAnnouncement((current) => ({
       id: current.id + 1,
@@ -463,6 +528,12 @@ function App() {
                   className={`inline-flex min-h-11 items-center rounded-xl border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 px-4 py-2 text-sm font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
                 >
                   Aide accessibilité
+                </a>
+                <a
+                  href="/plan-du-site"
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                >
+                  Plan du site
                 </a>
               </div>
             </div>
@@ -935,6 +1006,9 @@ function App() {
               </p>
               <a href="#aide-accessibilite" className={`text-sm font-semibold text-slate-800 dark:text-slate-200 underline ${focusRingClass}`}>
                 Aide accessibilité
+              </a>
+              <a href="/plan-du-site" className={`text-sm font-semibold text-slate-800 dark:text-slate-200 underline ${focusRingClass}`}>
+                Plan du site
               </a>
               <a href="/moderation" className={`text-sm font-semibold text-slate-800 dark:text-slate-200 underline ${focusRingClass}`}>
                 Modération

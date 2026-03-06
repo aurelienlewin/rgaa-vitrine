@@ -9,12 +9,24 @@ import '@fontsource/lexend/700.css'
 import './index.css'
 import App from './App.tsx'
 import ModerationPage from './ModerationPage.tsx'
+import SiteMapPage from './SiteMapPage.tsx'
 import { initializeTheme } from './theme'
 
 initializeTheme()
 
-const isModerationRoute = window.location.pathname.startsWith('/moderation')
-const RootComponent = isModerationRoute ? ModerationPage : App
+function normalizePathname(pathname: string) {
+  if (pathname === '/') {
+    return pathname
+  }
+
+  return pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
+}
+
+const currentPathname = normalizePathname(window.location.pathname)
+const isModerationRoute = currentPathname.startsWith('/moderation')
+const isSiteMapRoute = currentPathname === '/plan-du-site'
+
+const RootComponent = isModerationRoute ? ModerationPage : isSiteMapRoute ? SiteMapPage : App
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

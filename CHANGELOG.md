@@ -28,6 +28,9 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Local self-hosted dyslexia-friendly font assets are now bundled from `@fontsource` packages.
 - Optional GitHub-native moderation notifications: new pending submissions can open issues automatically in a target repository.
 - Added GitHub Actions-compatible notifier env fallbacks: `RGAA_NOTIFY_REPO` and `RGAA_NOTIFY_TOKEN`.
+- Public site map page (`/plan-du-site`) with dedicated skip links and semantic navigation landmarks.
+- Automatic sitemap generation endpoint (`/sitemap.xml`) exposed in local API and Vercel serverless routing.
+- Reusable frontend SEO manager for per-page metadata updates (title, description, canonical, Open Graph, Twitter, JSON-LD).
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
@@ -77,6 +80,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Branding layout now keeps only the icon inside SVG; app title, baseline, and badge are rendered as Tailwind UI to prevent logo text clipping.
 - `GET /api/health` now reports whether GitHub issue notifications are enabled.
 - Footer now displays a discreet build stamp (`version + UTC timestamp`) to help spot stale cached deployments.
+- Moderation view now enforces explicit `noindex,nofollow,noarchive` robots policy through the shared SEO layer.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

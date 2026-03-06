@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit'
 import { timingSafeEqual } from 'node:crypto'
 import { buildSiteInsight, SiteInsightError } from './siteInsight.js'
 import { isGithubNotifierEnabled, notifyPendingModerationOnGithub } from './githubNotifier.js'
+import { buildSitemapXml, resolvePublicAppUrl } from './sitemap.js'
 import {
   buildPendingSubmission,
   buildShowcaseEntry,
@@ -142,6 +143,18 @@ function getManualReviewReason(siteInsight) {
   return null
 }
 
+function readMostRecentUpdatedAt(entries) {
+  const latestTimestamp = entries.reduce((currentLatest, entry) => {
+    const updatedAt = Date.parse(entry.updatedAt)
+    if (Number.isNaN(updatedAt)) {
+      return currentLatest
+    }
+    return Math.max(currentLatest, updatedAt)
+  }, 0)
+
+  return latestTimestamp > 0 ? new Date(latestTimestamp).toISOString() : new Date().toISOString()
+}
+
 app.use(
   helmet({
     contentSecurityPolicy: false,
@@ -174,6 +187,41 @@ const submissionLimiter = rateLimit({
   message: {
     error: "Trop de soumissions. Merci de réessayer dans une heure.",
   },
+})
+
+app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
+  const baseUrl = resolvePublicAppUrl()
+  let lastModified = new Date().toISOString()
+
+  try {
+    const entries = await showcaseStorage.list({ limit: 500 })
+    lastModified = readMostRecentUpdatedAt(entries)
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      console.error('Sitemap uses fallback date because storage is unavailable', error.message)
+    } else {
+      console.error('Unexpected sitemap generation error', error)
+    }
+  }
+
+  const sitemapXml = buildSitemapXml(baseUrl, [
+    {
+      path: '/',
+      lastModified,
+      changeFrequency: 'daily',
+      priority: 1.0,
+    },
+    {
+      path: '/plan-du-site',
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+  ])
+
+  response.setHeader('content-type', 'application/xml; charset=utf-8')
+  response.setHeader('cache-control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600')
+  response.status(200).send(sitemapXml)
 })
 
 app.get('/api/health', (_request, response) => {

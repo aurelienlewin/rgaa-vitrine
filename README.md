@@ -114,7 +114,9 @@ The UI now adapts automatically to operating-system and browser accessibility pr
 
 - Rich metadata: description, robots, canonical, hreflang
 - Open Graph + Twitter Cards
-- Structured data (JSON-LD): `WebSite`, `Organization`, `Person`
+- Structured data (JSON-LD): `WebSite`, `Organization`, `Person`, `CollectionPage`, `SiteNavigationElement`
+- Accessible public site map page: `/plan-du-site`
+- Auto-generated sitemap endpoint: `/sitemap.xml` (backed by API route `/api/sitemap`)
 - `public/robots.txt`
 
 ## Getting Started

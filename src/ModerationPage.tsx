@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import ThemeToggle from './ThemeToggle'
+import { applySeo } from './seo'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
 
@@ -245,20 +246,13 @@ function ModerationPage() {
   )
 
   useEffect(() => {
-    document.title = 'Modération - Annuaire RGAA'
-    const robotsMeta = document.querySelector('meta[name="robots"]')
-    const previousRobotsContent = robotsMeta?.getAttribute('content') ?? null
-    robotsMeta?.setAttribute('content', 'noindex,nofollow')
-
-    return () => {
-      document.title = 'Annuaire RGAA'
-      if (!robotsMeta) {
-        return
-      }
-      if (previousRobotsContent) {
-        robotsMeta.setAttribute('content', previousRobotsContent)
-      }
-    }
+    applySeo({
+      title: 'Modération | Annuaire RGAA',
+      description: 'Espace de modération interne pour valider ou rejeter les soumissions de l’annuaire RGAA.',
+      path: '/moderation',
+      robots: 'noindex,nofollow,noarchive',
+      structuredData: null,
+    })
   }, [])
 
   return (
