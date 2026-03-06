@@ -18,9 +18,9 @@ type ShowcaseEntry = {
 type ShowcaseStatusFilter = 'all' | Exclude<ComplianceStatus, null>
 
 const statusClassByValue: Record<Exclude<ComplianceStatus, null>, string> = {
-  full: 'bg-emerald-100 dark:bg-emerald-900/70 text-emerald-900 dark:text-emerald-100',
-  partial: 'bg-amber-100 dark:bg-amber-900/70 text-amber-900 dark:text-amber-100',
-  none: 'bg-rose-100 dark:bg-rose-900/70 text-rose-900 dark:text-rose-100',
+  full: 'border border-emerald-700 bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100',
+  partial: 'border border-amber-700 bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-100',
+  none: 'border border-rose-700 bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-100',
 }
 
 const showcaseCategories = [
@@ -108,7 +108,7 @@ const supportProfile = {
 }
 
 const focusRingClass =
-  'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus focus-visible:ring-2 focus-visible:ring-white'
+  'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 shadow-lg -translate-y-[220%] transition-transform duration-150 motion-reduce:transition-none focus-visible:translate-y-0 ${focusRingClass}`
 
 function formatDate(value: string) {
