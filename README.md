@@ -53,6 +53,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - URL registration workflow with secure server-side metadata enrichment.
 - Dedicated moderation UI at `/moderation` for approving/rejecting pending submissions.
 - Moderation dashboards and controls stay hidden until a valid moderation token is submitted.
+- Moderation token session can now be restored automatically (tab session by default, optional 12h persistence on the current device) with an explicit sign-out/forget action.
 - Dedicated moderation UI now supports published entry editing and deletion (title, category, score, status, RGAA baseline badge, vignette, accessibility URL).
 - Moderation now includes editable site blocklist and vote-blocklist controls, plus a single action to delete and block a published site.
 - Moderation forms now strengthen input assistance (`required`, typed URL fields, explicit score guidance) and row-level action labels for assistive technologies.
