@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /moderation
+Disallow: /api/moderation
 Sitemap: https://annuaire-rgaa.fr/sitemap.xml
 
 # AI crawler hints

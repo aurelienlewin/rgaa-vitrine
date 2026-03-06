@@ -438,6 +438,12 @@ app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
       priority: 0.7,
     },
     {
+      path: '/api/showcase',
+      lastModified,
+      changeFrequency: 'daily',
+      priority: 0.6,
+    },
+    {
       path: '/llms.txt',
       lastModified,
       changeFrequency: 'monthly',
@@ -510,6 +516,8 @@ app.get('/api/showcase', async (request, response) => {
       votesBlocked: voteBlocklist.has(entry.normalizedUrl),
     }))
 
+    response.setHeader('cache-control', 'public, max-age=120, s-maxage=120, stale-while-revalidate=600')
+    response.setHeader('last-modified', readMostRecentUpdatedAt(entriesWithVoteState))
     response.json({
       entries: entriesWithVoteState,
       total: entriesWithVoteState.length,
