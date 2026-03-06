@@ -7,6 +7,9 @@ description: Apply official RGAA developer recommendations from info.gouv.fr/acc
 
 Use this skill when a task requires strict alignment with official French RGAA development guidance.
 
+When a task explicitly asks for WCAG 2.2 compliance or evidence, also load:
+- `skill/wcag-22-official-guidelines/SKILL.md`
+
 ## Mandatory Sources
 
 Always rely on `references/official-developer-recommendations.md`, which consolidates the full recommendation sets from:

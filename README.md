@@ -18,13 +18,14 @@ Planned public website: **https://rgaa-vitrine.org**
 ## Highlights
 
 - Simple French UI focused on listing discovery first.
-- Multiple skip links for keyboard navigation (`contenu`, `filtres`, `ajout`).
+- Multiple skip links for keyboard navigation (`contenu`, `filtres`, `ajout`, `aide`).
 - Polite live region announcements for dynamic feedback.
 - Directory-first UX with filters, categories, and search at the core.
 - URL registration workflow with secure server-side metadata enrichment.
 - Vitrine listing cards designed for disabled people and accessibility enthusiasts.
 - RGAA awareness sections sourced from official French references.
-- Embedded skill: `rgaa-official-recommendations`.
+- WCAG 2.2 awareness and references embedded in the UI.
+- Embedded skills: `rgaa-official-recommendations`, `wcag-22-official-guidelines`.
 
 ## Tech Stack
 
@@ -112,10 +113,12 @@ npm run start:api
 - Code of Conduct: [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
 - Security policy: [SECURITY.md](./SECURITY.md)
 
-## RGAA Sources Embedded
+## Accessibility Sources Embedded
 
 - `skill/rgaa-official-recommendations/SKILL.md`
 - `skill/rgaa-official-recommendations/references/official-developer-recommendations.md`
+- `skill/wcag-22-official-guidelines/SKILL.md`
+- `skill/wcag-22-official-guidelines/references/wcag-22-official-summary.md`
 
 Official references include:
 
@@ -126,3 +129,6 @@ Official references include:
 - https://design.numerique.gouv.fr/outils/checklist-dev/
 - https://www.info.gouv.fr/accessibilite/developpement/bibliotheque-de-reference-des-restitutions-des-composants-javascript-aria
 - https://www.info.gouv.fr/accessibilite/developpement/le-guide-des-composants-javascript-accessibles
+- https://www.w3.org/WAI/standards-guidelines/wcag/fr
+- https://www.w3.org/WAI/standards-guidelines/wcag/new-in-22/
+- https://www.w3.org/WAI/WCAG22/quickref/
