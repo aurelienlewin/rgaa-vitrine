@@ -117,6 +117,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Documentation now clarifies that `rgaa:compliance-*` extraction depends on deploying the latest frontend metadata before submission tests.
 - Submission flow now performs a non-persistent pre-analysis (`/api/site-insight?preview=1`) and displays detected score/status before final confirmation.
 - Submission CTA flow has been split for accessibility: form submit only runs pre-analysis, while final `Confirmer l’envoi` is inside the verification panel after analysis (with dedicated focus/state handling).
+- UI now uses Tailwind v4.1 `wrap-anywhere` for long URL readability and `user-valid` / `user-invalid` variants for progressive URL field feedback.
 - Footer build version now resolves from release tags first (then package version), preventing stale `0.0.0` display when releases are published.
 - `GET /api/showcase` now accepts `clientVoterId` and returns per-entry vote state (`hasUpvoted`) for the current visitor.
 - Vote registration now applies layered anti-abuse safeguards (client fingerprint + network fingerprint + hourly limiter) with localized feedback messages.
