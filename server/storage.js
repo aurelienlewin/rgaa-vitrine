@@ -4,6 +4,8 @@ const SHOWCASE_INDEX_KEY = 'rgaa:vitrine:showcase:index'
 const SHOWCASE_ENTRY_PREFIX = 'rgaa:vitrine:showcase:entry:'
 const SHOWCASE_VOTES_PREFIX = 'rgaa:vitrine:showcase:votes:'
 const SHOWCASE_CLIENT_VOTES_PREFIX = 'rgaa:vitrine:showcase:votes:client:'
+const SITE_BLOCKLIST_KEY = 'rgaa:vitrine:moderation:blocklist:sites'
+const VOTE_BLOCKLIST_KEY = 'rgaa:vitrine:moderation:blocklist:votes'
 const PENDING_INDEX_KEY = 'rgaa:vitrine:moderation:pending:index'
 const PENDING_ENTRY_PREFIX = 'rgaa:vitrine:moderation:pending:'
 const PENDING_BY_URL_HASH_KEY = 'rgaa:vitrine:moderation:pending:by-url'
@@ -97,6 +99,10 @@ function normalizeVoteTokens(voterFingerprints) {
   }
 
   return Array.from(unique)
+}
+
+function sortNormalizedUrlList(values) {
+  return Array.from(values).sort((left, right) => left.localeCompare(right, 'fr'))
 }
 
 function normalizeClientVoteIndexId(clientVoteIndexId) {
@@ -287,6 +293,8 @@ class InMemoryShowcaseStorage {
     this.pendingEntries = new Map()
     this.votesByUrl = new Map()
     this.votesByClient = new Map()
+    this.siteBlocklist = new Set()
+    this.voteBlocklist = new Set()
   }
 
   async upsert(entry) {
@@ -315,6 +323,42 @@ class InMemoryShowcaseStorage {
       votedUrls.delete(normalizedUrl)
     }
     return this.entries.delete(normalizedUrl)
+  }
+
+  async listSiteBlocklist() {
+    return sortNormalizedUrlList(this.siteBlocklist)
+  }
+
+  async listVoteBlocklist() {
+    return sortNormalizedUrlList(this.voteBlocklist)
+  }
+
+  async isSiteBlocked(normalizedUrl) {
+    return this.siteBlocklist.has(normalizedUrl)
+  }
+
+  async isVotesBlocked(normalizedUrl) {
+    return this.voteBlocklist.has(normalizedUrl)
+  }
+
+  async setSiteBlocked(normalizedUrl, blocked) {
+    if (blocked) {
+      this.siteBlocklist.add(normalizedUrl)
+      return true
+    }
+
+    this.siteBlocklist.delete(normalizedUrl)
+    return false
+  }
+
+  async setVotesBlocked(normalizedUrl, blocked) {
+    if (blocked) {
+      this.voteBlocklist.add(normalizedUrl)
+      return true
+    }
+
+    this.voteBlocklist.delete(normalizedUrl)
+    return false
   }
 
   async listClientVotedUrls(clientVoteIndexId) {
@@ -472,6 +516,10 @@ class UpstashShowcaseStorage {
     this.pendingCacheById = new Map()
     this.pendingCacheExpiresAt = 0
     this.clientVotesCacheById = new Map()
+    this.siteBlocklistCache = null
+    this.siteBlocklistCacheExpiresAt = 0
+    this.voteBlocklistCache = null
+    this.voteBlocklistCacheExpiresAt = 0
   }
 
   _isShowcaseCacheFresh() {
@@ -525,6 +573,34 @@ class UpstashShowcaseStorage {
       urls: Array.from(votedUrlsSet),
       expiresAt: Date.now() + this.cacheTtlMs,
     })
+  }
+
+  _isSiteBlocklistCacheFresh() {
+    return this.siteBlocklistCache instanceof Set && Date.now() < this.siteBlocklistCacheExpiresAt
+  }
+
+  _setSiteBlocklistCache(values) {
+    this.siteBlocklistCache = new Set(values)
+    this.siteBlocklistCacheExpiresAt = Date.now() + this.cacheTtlMs
+  }
+
+  _invalidateSiteBlocklistCache() {
+    this.siteBlocklistCache = null
+    this.siteBlocklistCacheExpiresAt = 0
+  }
+
+  _isVoteBlocklistCacheFresh() {
+    return this.voteBlocklistCache instanceof Set && Date.now() < this.voteBlocklistCacheExpiresAt
+  }
+
+  _setVoteBlocklistCache(values) {
+    this.voteBlocklistCache = new Set(values)
+    this.voteBlocklistCacheExpiresAt = Date.now() + this.cacheTtlMs
+  }
+
+  _invalidateVoteBlocklistCache() {
+    this.voteBlocklistCache = null
+    this.voteBlocklistCacheExpiresAt = 0
   }
 
   async upsert(entry) {
@@ -628,6 +704,102 @@ class UpstashShowcaseStorage {
     } catch (error) {
       console.error('Redis deleteByNormalizedUrl failed', error)
       throw new ShowcaseStorageError('Suppression Redis indisponible.', 503)
+    }
+  }
+
+  async listSiteBlocklist() {
+    if (this._isSiteBlocklistCacheFresh()) {
+      return sortNormalizedUrlList(this.siteBlocklistCache)
+    }
+
+    try {
+      const members = await this.redis.smembers(SITE_BLOCKLIST_KEY)
+      const values = new Set(
+        Array.isArray(members) ? members.filter((value) => typeof value === 'string' && value.trim()) : [],
+      )
+      this._setSiteBlocklistCache(values)
+      return sortNormalizedUrlList(values)
+    } catch (error) {
+      console.error('Redis listSiteBlocklist failed', error)
+      throw new ShowcaseStorageError('Lecture Redis de la blocklist indisponible.', 503)
+    }
+  }
+
+  async listVoteBlocklist() {
+    if (this._isVoteBlocklistCacheFresh()) {
+      return sortNormalizedUrlList(this.voteBlocklistCache)
+    }
+
+    try {
+      const members = await this.redis.smembers(VOTE_BLOCKLIST_KEY)
+      const values = new Set(
+        Array.isArray(members) ? members.filter((value) => typeof value === 'string' && value.trim()) : [],
+      )
+      this._setVoteBlocklistCache(values)
+      return sortNormalizedUrlList(values)
+    } catch (error) {
+      console.error('Redis listVoteBlocklist failed', error)
+      throw new ShowcaseStorageError('Lecture Redis du blocage des votes indisponible.', 503)
+    }
+  }
+
+  async isSiteBlocked(normalizedUrl) {
+    if (this._isSiteBlocklistCacheFresh()) {
+      return this.siteBlocklistCache.has(normalizedUrl)
+    }
+
+    try {
+      const isMember = await this.redis.sismember(SITE_BLOCKLIST_KEY, normalizedUrl)
+      return isMember === 1 || isMember === true
+    } catch (error) {
+      console.error('Redis isSiteBlocked failed', error)
+      throw new ShowcaseStorageError('Lecture Redis de la blocklist indisponible.', 503)
+    }
+  }
+
+  async isVotesBlocked(normalizedUrl) {
+    if (this._isVoteBlocklistCacheFresh()) {
+      return this.voteBlocklistCache.has(normalizedUrl)
+    }
+
+    try {
+      const isMember = await this.redis.sismember(VOTE_BLOCKLIST_KEY, normalizedUrl)
+      return isMember === 1 || isMember === true
+    } catch (error) {
+      console.error('Redis isVotesBlocked failed', error)
+      throw new ShowcaseStorageError('Lecture Redis du blocage des votes indisponible.', 503)
+    }
+  }
+
+  async setSiteBlocked(normalizedUrl, blocked) {
+    try {
+      if (blocked) {
+        await this.redis.sadd(SITE_BLOCKLIST_KEY, normalizedUrl)
+      } else {
+        await this.redis.srem(SITE_BLOCKLIST_KEY, normalizedUrl)
+      }
+
+      this._invalidateSiteBlocklistCache()
+      return blocked
+    } catch (error) {
+      console.error('Redis setSiteBlocked failed', error)
+      throw new ShowcaseStorageError('Écriture Redis de la blocklist indisponible.', 503)
+    }
+  }
+
+  async setVotesBlocked(normalizedUrl, blocked) {
+    try {
+      if (blocked) {
+        await this.redis.sadd(VOTE_BLOCKLIST_KEY, normalizedUrl)
+      } else {
+        await this.redis.srem(VOTE_BLOCKLIST_KEY, normalizedUrl)
+      }
+
+      this._invalidateVoteBlocklistCache()
+      return blocked
+    } catch (error) {
+      console.error('Redis setVotesBlocked failed', error)
+      throw new ShowcaseStorageError('Écriture Redis du blocage des votes indisponible.', 503)
     }
   }
 

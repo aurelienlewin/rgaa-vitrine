@@ -15,6 +15,7 @@ type ShowcaseEntry = {
   complianceScore: number | null
   upvoteCount: number
   hasUpvoted: boolean
+  votesBlocked: boolean
   updatedAt: string
   category: string
 }
@@ -181,6 +182,7 @@ function normalizeShowcaseEntry(entry: ShowcaseEntry): ShowcaseEntry {
         ? Math.floor(entry.upvoteCount)
         : 0,
     hasUpvoted: entry.hasUpvoted === true,
+    votesBlocked: entry.votesBlocked === true,
   }
 }
 
@@ -267,11 +269,14 @@ function App() {
   const helpSectionRef = useRef<HTMLElement | null>(null)
   const footerRef = useRef<HTMLElement | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const urlInputRef = useRef<HTMLInputElement | null>(null)
   const resultsSummaryRef = useRef<HTMLParagraphElement | null>(null)
   const directoryErrorRef = useRef<HTMLParagraphElement | null>(null)
   const submitErrorRef = useRef<HTMLParagraphElement | null>(null)
   const submitInfoRef = useRef<HTMLParagraphElement | null>(null)
   const submitConfirmationRef = useRef<HTMLElement | null>(null)
+  const lastAddedRef = useRef<HTMLParagraphElement | null>(null)
+  const loadMoreButtonRef = useRef<HTMLButtonElement | null>(null)
   const tilesSentinelRef = useRef<HTMLDivElement | null>(null)
   const clientVoterIdRef = useRef<string>('')
 
@@ -507,11 +512,16 @@ function App() {
         const next = Math.min(current + TILE_BATCH_SIZE, filteredShowcaseEntries.length)
         if (next > current && source === 'button') {
           announcePolite(`${next} carte(s) affichée(s) sur ${filteredShowcaseEntries.length} résultat(s).`)
+          if (next >= filteredShowcaseEntries.length) {
+            window.setTimeout(() => {
+              focusElement(resultsSummaryRef.current)
+            }, 0)
+          }
         }
         return next
       })
     },
-    [announcePolite, filteredShowcaseEntries.length, hasMoreTiles],
+    [announcePolite, filteredShowcaseEntries.length, focusElement, hasMoreTiles],
   )
 
   useEffect(() => {
@@ -600,11 +610,17 @@ function App() {
 
   useEffect(() => {
     if (submitInfoMessage) {
-      if (!isSubmitConfirmationStep || loadingAdd) {
+      if (!isSubmitConfirmationStep && !loadingAdd) {
         focusElement(submitInfoRef.current)
       }
     }
   }, [submitInfoMessage, focusElement, isSubmitConfirmationStep, loadingAdd])
+
+  useEffect(() => {
+    if (lastAddedEntry) {
+      focusElement(lastAddedRef.current)
+    }
+  }, [focusElement, lastAddedEntry])
 
   const handleCancelSubmissionConfirmation = useCallback(() => {
     setIsSubmitConfirmationStep(false)
@@ -613,13 +629,17 @@ function App() {
     setSubmitInfoMessage('Vous pouvez modifier les informations avant de confirmer l’envoi.')
     announcePolite('Étape de confirmation annulée. Modifiez les champs puis continuez.')
     window.setTimeout(() => {
-      const urlInput = document.getElementById('url') as HTMLInputElement | null
-      urlInput?.focus()
+      urlInputRef.current?.focus()
     }, 0)
   }, [announcePolite])
 
   const handleUpvote = useCallback(
     async (entry: ShowcaseEntry) => {
+      if (entry.votesBlocked) {
+        announcePolite(`Votes temporairement indisponibles pour ${entry.siteTitle}.`)
+        return
+      }
+
       if (entry.hasUpvoted) {
         announcePolite(`Vote déjà pris en compte pour ${entry.siteTitle}.`)
         return
@@ -1143,20 +1163,26 @@ function App() {
                           <button
                             type="button"
                             onClick={() => void handleUpvote(entry)}
-                            disabled={upvotePendingByUrl[entry.normalizedUrl]}
+                            disabled={entry.votesBlocked || upvotePendingByUrl[entry.normalizedUrl]}
                             aria-pressed={entry.hasUpvoted}
                             aria-describedby={`votes-${toDomSafeIdSegment(entry.normalizedUrl)}`}
                             aria-label={`${
-                              entry.hasUpvoted ? 'Vote déjà enregistré pour' : 'Voter pour'
+                              entry.votesBlocked
+                                ? 'Votes indisponibles pour'
+                                : entry.hasUpvoted
+                                  ? 'Vote déjà enregistré pour'
+                                  : 'Voter pour'
                             } ${entry.siteTitle}. ${entry.upvoteCount} vote(s).`}
                             className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold ${
-                              entry.hasUpvoted
+                              entry.votesBlocked
+                                ? 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                : entry.hasUpvoted
                                 ? 'border-emerald-400 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100'
                                 : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50'
                             } disabled:cursor-not-allowed disabled:opacity-70 ${focusRingClass}`}
                           >
-                            <span aria-hidden="true">{entry.hasUpvoted ? '▲' : '△'}</span>
-                            <span>{entry.hasUpvoted ? 'Voté' : 'Soutenir ce site'}</span>
+                            <span aria-hidden="true">{entry.votesBlocked ? '◌' : entry.hasUpvoted ? '▲' : '△'}</span>
+                            <span>{entry.votesBlocked ? 'Votes indisponibles' : entry.hasUpvoted ? 'Voté' : 'Soutenir ce site'}</span>
                           </button>
                           <span
                             id={`votes-${toDomSafeIdSegment(entry.normalizedUrl)}`}
@@ -1175,6 +1201,7 @@ function App() {
             {filteredShowcaseEntries.length > 0 && hasMoreTiles && (
               <div className="mt-4 flex flex-col items-start gap-3">
                 <button
+                  ref={loadMoreButtonRef}
                   type="button"
                   onClick={() => handleLoadMoreTiles('button')}
                   className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
@@ -1265,6 +1292,7 @@ function App() {
                   URL du site
                 </label>
                 <input
+                  ref={urlInputRef}
                   id="url"
                   name="url"
                   type="url"
@@ -1411,7 +1439,12 @@ function App() {
             )}
 
             {lastAddedEntry && !submitErrorMessage && (
-              <p className="mt-4 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 p-3 text-sm text-emerald-800 dark:text-emerald-100">
+              <p
+                ref={lastAddedRef}
+                tabIndex={-1}
+                className="mt-4 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 p-3 text-sm text-emerald-800 dark:text-emerald-100"
+                role="status"
+              >
                 Site ajouté : <strong>{lastAddedEntry.siteTitle}</strong>
               </p>
             )}

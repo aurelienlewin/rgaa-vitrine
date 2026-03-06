@@ -146,6 +146,24 @@ function parseScoreForModeration(value) {
   return Math.round(parsed * 100) / 100
 }
 
+function parseBooleanFlag(value) {
+  if (value === true || value === false) {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (normalized === 'true' || normalized === '1' || normalized === 'yes') {
+      return true
+    }
+    if (normalized === 'false' || normalized === '0' || normalized === 'no') {
+      return false
+    }
+  }
+
+  return null
+}
+
 function extractClientVoterId(value) {
   if (typeof value !== 'string') {
     return null
@@ -432,13 +450,17 @@ app.get('/api/showcase', async (request, response) => {
       category: firstQueryValue(request.query.category),
       limit: firstQueryValue(request.query.limit),
     })
+    const siteBlocklist = new Set(await showcaseStorage.listSiteBlocklist())
+    const voteBlocklist = new Set(await showcaseStorage.listVoteBlocklist())
+    const visibleEntries = entries.filter((entry) => !siteBlocklist.has(entry.normalizedUrl))
 
     const clientVoterId = extractClientVoterId(firstQueryValue(request.query.clientVoterId))
     const clientVoteIndexId = buildClientVoteIndexId(clientVoterId)
     const votedUrls = clientVoteIndexId ? await showcaseStorage.listClientVotedUrls(clientVoteIndexId) : new Set()
-    const entriesWithVoteState = entries.map((entry) => ({
+    const entriesWithVoteState = visibleEntries.map((entry) => ({
       ...entry,
       hasUpvoted: clientVoteIndexId ? votedUrls.has(entry.normalizedUrl) : false,
+      votesBlocked: voteBlocklist.has(entry.normalizedUrl),
     }))
 
     response.json({
@@ -471,6 +493,18 @@ app.post('/api/showcase/upvote', voteLimiter, async (request, response) => {
   }
 
   try {
+    const isSiteBlocked = await showcaseStorage.isSiteBlocked(normalizedUrl)
+    if (isSiteBlocked) {
+      sendJsonError(response, 423, 'Votes indisponibles: ce site est bloqué par la modération.')
+      return
+    }
+
+    const isVotesBlocked = await showcaseStorage.isVotesBlocked(normalizedUrl)
+    if (isVotesBlocked) {
+      sendJsonError(response, 423, 'Votes temporairement indisponibles pour ce site.')
+      return
+    }
+
     const fingerprints = buildVoteFingerprints(request, clientVoterId, normalizedUrl)
     const clientVoteIndexId = buildClientVoteIndexId(clientVoterId)
     const voteResult = await showcaseStorage.registerUpvote(normalizedUrl, fingerprints, clientVoteIndexId)
@@ -482,6 +516,7 @@ app.post('/api/showcase/upvote', voteLimiter, async (request, response) => {
     response.json({
       ...voteResult.entry,
       hasUpvoted: true,
+      votesBlocked: false,
       alreadyVoted: voteResult.alreadyVoted,
       upvoteAccepted: voteResult.accepted,
       message: voteResult.accepted ? 'Vote enregistré.' : 'Vote déjà pris en compte.',
@@ -515,6 +550,16 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
 
   try {
     const insight = await buildSiteInsight(url)
+    const isBlocked = await showcaseStorage.isSiteBlocked(insight.normalizedUrl)
+    if (isBlocked) {
+      sendJsonError(
+        response,
+        423,
+        'Soumission refusée: ce site est actuellement bloqué par la modération.',
+      )
+      return
+    }
+
     const sanitizedCategory = sanitizeCategory(category)
     const existingEntry = await showcaseStorage.getByNormalizedUrl(insight.normalizedUrl)
 
@@ -640,10 +685,17 @@ app.get('/api/moderation/showcase', requireModerationAuth, async (request, respo
       category: firstQueryValue(request.query.category),
       limit: firstQueryValue(request.query.limit ?? 200),
     })
+    const siteBlocklist = new Set(await showcaseStorage.listSiteBlocklist())
+    const voteBlocklist = new Set(await showcaseStorage.listVoteBlocklist())
+    const entriesWithModerationState = entries.map((entry) => ({
+      ...entry,
+      siteBlocked: siteBlocklist.has(entry.normalizedUrl),
+      votesBlocked: voteBlocklist.has(entry.normalizedUrl),
+    }))
 
     response.json({
-      entries,
-      total: entries.length,
+      entries: entriesWithModerationState,
+      total: entriesWithModerationState.length,
       storage: showcaseStorage.mode,
     })
   } catch (error) {
@@ -654,6 +706,99 @@ app.get('/api/moderation/showcase', requireModerationAuth, async (request, respo
 
     console.error('Unexpected error in /api/moderation/showcase', error)
     sendJsonError(response, 500, 'Erreur interne lors de la lecture de l’annuaire.')
+  }
+})
+
+app.get('/api/moderation/blocklist', requireModerationAuth, async (_request, response) => {
+  try {
+    const siteBlocklist = await showcaseStorage.listSiteBlocklist()
+    const voteBlocklist = await showcaseStorage.listVoteBlocklist()
+
+    response.json({
+      siteBlocklist,
+      voteBlocklist,
+      storage: showcaseStorage.mode,
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/blocklist', error)
+    sendJsonError(response, 500, 'Erreur interne lors de la lecture des listes de blocage.')
+  }
+})
+
+app.post('/api/moderation/blocklist/site', requireModerationAuth, async (request, response) => {
+  const normalizedUrl = extractNormalizedUrl(request.body?.normalizedUrl)
+  if (!normalizedUrl) {
+    sendJsonError(response, 400, 'normalizedUrl est obligatoire.')
+    return
+  }
+
+  const blocked = parseBooleanFlag(request.body?.blocked)
+  if (blocked === null) {
+    sendJsonError(response, 400, 'blocked doit être un booléen.')
+    return
+  }
+
+  try {
+    await showcaseStorage.setSiteBlocked(normalizedUrl, blocked)
+    const currentBlocklist = await showcaseStorage.listSiteBlocklist()
+
+    response.json({
+      normalizedUrl,
+      blocked,
+      siteBlocklist: currentBlocklist,
+      message: blocked
+        ? 'Site ajouté à la blocklist.'
+        : 'Site retiré de la blocklist.',
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/blocklist/site', error)
+    sendJsonError(response, 500, 'Erreur interne lors de la mise à jour de la blocklist.')
+  }
+})
+
+app.post('/api/moderation/blocklist/votes', requireModerationAuth, async (request, response) => {
+  const normalizedUrl = extractNormalizedUrl(request.body?.normalizedUrl)
+  if (!normalizedUrl) {
+    sendJsonError(response, 400, 'normalizedUrl est obligatoire.')
+    return
+  }
+
+  const blocked = parseBooleanFlag(request.body?.blocked)
+  if (blocked === null) {
+    sendJsonError(response, 400, 'blocked doit être un booléen.')
+    return
+  }
+
+  try {
+    await showcaseStorage.setVotesBlocked(normalizedUrl, blocked)
+    const currentVoteBlocklist = await showcaseStorage.listVoteBlocklist()
+
+    response.json({
+      normalizedUrl,
+      blocked,
+      voteBlocklist: currentVoteBlocklist,
+      message: blocked
+        ? 'Votes bloqués pour ce site.'
+        : 'Blocage des votes levé pour ce site.',
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/blocklist/votes', error)
+    sendJsonError(response, 500, 'Erreur interne lors de la mise à jour du blocage des votes.')
   }
 })
 
@@ -668,6 +813,12 @@ app.post('/api/moderation/approve', requireModerationAuth, async (request, respo
     const pendingEntry = await showcaseStorage.getPendingById(submissionId)
     if (!pendingEntry) {
       sendJsonError(response, 404, 'Soumission en attente introuvable.')
+      return
+    }
+
+    const isBlocked = await showcaseStorage.isSiteBlocked(pendingEntry.normalizedUrl)
+    if (isBlocked) {
+      sendJsonError(response, 423, 'Impossible d’approuver: ce site est dans la blocklist.')
       return
     }
 
@@ -862,6 +1013,44 @@ app.post('/api/moderation/showcase/delete', requireModerationAuth, async (reques
 
     console.error('Unexpected error in /api/moderation/showcase/delete', error)
     sendJsonError(response, 500, 'Erreur interne lors de la suppression.')
+  }
+})
+
+app.post('/api/moderation/showcase/delete-and-block', requireModerationAuth, async (request, response) => {
+  const normalizedUrl = extractNormalizedUrl(request.body?.normalizedUrl)
+  if (!normalizedUrl) {
+    sendJsonError(response, 400, 'normalizedUrl est obligatoire.')
+    return
+  }
+
+  try {
+    await showcaseStorage.setSiteBlocked(normalizedUrl, true)
+
+    const existingEntry = await showcaseStorage.getByNormalizedUrl(normalizedUrl)
+    if (existingEntry) {
+      await showcaseStorage.deleteByNormalizedUrl(normalizedUrl)
+    }
+
+    const pendingEntry = await showcaseStorage.getPendingByNormalizedUrl(normalizedUrl)
+    if (pendingEntry) {
+      await showcaseStorage.deletePendingById(pendingEntry.submissionId)
+    }
+
+    response.json({
+      normalizedUrl,
+      blocked: true,
+      deletedFromShowcase: Boolean(existingEntry),
+      deletedFromPending: Boolean(pendingEntry),
+      message: 'Site supprimé et ajouté à la blocklist.',
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/showcase/delete-and-block', error)
+    sendJsonError(response, 500, 'Erreur interne lors de la suppression avec blocklist.')
   }
 })
 

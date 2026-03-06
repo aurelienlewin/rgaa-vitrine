@@ -28,6 +28,8 @@ type ShowcaseEntry = {
   complianceStatus: ComplianceStatus
   complianceStatusLabel: string | null
   complianceScore: number | null
+  siteBlocked?: boolean
+  votesBlocked?: boolean
   updatedAt: string
   category: string
 }
@@ -161,6 +163,12 @@ function ModerationPage() {
   const [moderationToken, setModerationToken] = useState('')
   const [pendingEntries, setPendingEntries] = useState<PendingSubmission[]>([])
   const [publishedEntries, setPublishedEntries] = useState<ShowcaseEntry[]>([])
+  const [siteBlocklist, setSiteBlocklist] = useState<string[]>([])
+  const [voteBlocklist, setVoteBlocklist] = useState<string[]>([])
+  const [siteBlocklistInput, setSiteBlocklistInput] = useState('')
+  const [voteBlocklistInput, setVoteBlocklistInput] = useState('')
+  const [runningBlocklistSiteUrl, setRunningBlocklistSiteUrl] = useState<string | null>(null)
+  const [runningBlocklistVoteUrl, setRunningBlocklistVoteUrl] = useState<string | null>(null)
   const [publishedDrafts, setPublishedDrafts] = useState<Record<string, PublishedEntryDraft>>({})
   const [publishedFeedbackByUrl, setPublishedFeedbackByUrl] = useState<Record<string, PublishedEntryFeedback>>({})
   const [rejectReasons, setRejectReasons] = useState<Record<string, string>>({})
@@ -173,36 +181,60 @@ function ModerationPage() {
   const [assertiveMessage, setAssertiveMessage] = useState('')
   const [showToken, setShowToken] = useState(false)
   const mainRef = useRef<HTMLElement | null>(null)
+  const pendingRef = useRef<HTMLElement | null>(null)
   const publishedRef = useRef<HTMLElement | null>(null)
+  const tokenInputRef = useRef<HTMLInputElement | null>(null)
   const messageRef = useRef<HTMLParagraphElement | null>(null)
+  const pendingApproveButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const publishedSaveButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const publishedDeleteButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const publishedDeleteAndBlockButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const publishedScoreInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const publishedFeedbackRefs = useRef<Record<string, HTMLParagraphElement | null>>({})
+  const siteBlocklistSectionRef = useRef<HTMLElement | null>(null)
+  const voteBlocklistSectionRef = useRef<HTMLElement | null>(null)
+  const siteBlocklistInputRef = useRef<HTMLInputElement | null>(null)
+  const voteBlocklistInputRef = useRef<HTMLInputElement | null>(null)
 
   const hasToken = useMemo(() => moderationToken.trim().length > 0, [moderationToken])
 
-  const focusMain = useCallback(() => {
-    if (!mainRef.current) {
+  const focusElement = useCallback((element: HTMLElement | null) => {
+    if (!element) {
       return
     }
-    mainRef.current.focus({ preventScroll: true })
-    mainRef.current.scrollIntoView({ block: 'start' })
+    element.focus({ preventScroll: true })
+    element.scrollIntoView({ block: 'start' })
   }, [])
 
+  const focusMain = useCallback(() => {
+    focusElement(mainRef.current)
+  }, [focusElement])
+
+  const focusPending = useCallback(() => {
+    focusElement(pendingRef.current)
+  }, [focusElement])
+
   const focusPublished = useCallback(() => {
-    if (!publishedRef.current) {
-      return
-    }
-    publishedRef.current.focus({ preventScroll: true })
-    publishedRef.current.scrollIntoView({ block: 'start' })
-  }, [])
+    focusElement(publishedRef.current)
+  }, [focusElement])
+
+  const focusSiteBlocklist = useCallback(() => {
+    focusElement(siteBlocklistSectionRef.current)
+  }, [focusElement])
+
+  const focusVoteBlocklist = useCallback(() => {
+    focusElement(voteBlocklistSectionRef.current)
+  }, [focusElement])
+
+  const focusTokenInput = useCallback(() => {
+    focusElement(tokenInputRef.current)
+  }, [focusElement])
 
   const focusMessage = useCallback(() => {
     window.setTimeout(() => {
-      if (!messageRef.current) {
-        return
-      }
-      messageRef.current.focus({ preventScroll: true })
-      messageRef.current.scrollIntoView({ block: 'start' })
+      focusElement(messageRef.current)
     }, 0)
-  }, [])
+  }, [focusElement])
 
   const buildAuthHeaders = useCallback(
     (withContentType = false) => {
@@ -221,8 +253,8 @@ function ModerationPage() {
     if (!hasToken) {
       setAssertiveMessage('Veuillez saisir un jeton de modération.')
       setPoliteMessage('')
-      focusMessage()
-      return
+      focusTokenInput()
+      return false
     }
 
     setAssertiveMessage('')
@@ -243,20 +275,21 @@ function ModerationPage() {
       setPendingEntries(entries)
       setPoliteMessage(`${entries.length} soumission(s) en attente chargée(s).`)
       setAssertiveMessage('')
-      focusMessage()
+      return true
     } catch (error) {
       const localizedMessage = error instanceof Error ? error.message : 'Erreur lors du chargement.'
       setAssertiveMessage(localizedMessage)
       setPoliteMessage('')
       focusMessage()
+      return false
     } finally {
       setIsLoadingList(false)
     }
-  }, [buildAuthHeaders, focusMessage, hasToken])
+  }, [buildAuthHeaders, focusMessage, focusTokenInput, hasToken])
 
   const loadPublishedEntries = useCallback(async () => {
     if (!hasToken) {
-      return
+      return false
     }
 
     setIsLoadingPublished(true)
@@ -278,19 +311,68 @@ function ModerationPage() {
       )
       setPublishedFeedbackByUrl({})
       setDeleteConfirmationUrl(null)
+      return true
     } catch (error) {
       const localizedMessage =
         error instanceof Error ? error.message : 'Erreur lors du chargement de l’annuaire publié.'
       setAssertiveMessage(localizedMessage)
       setPoliteMessage('')
       focusMessage()
+      return false
     } finally {
       setIsLoadingPublished(false)
     }
   }, [buildAuthHeaders, focusMessage, hasToken])
 
+  const loadBlocklists = useCallback(async () => {
+    if (!hasToken) {
+      return false
+    }
+
+    try {
+      const response = await fetch('/api/moderation/blocklist', {
+        headers: buildAuthHeaders(false),
+      })
+      const payload = await readApiPayload(response)
+
+      if (!response.ok) {
+        throw new Error(typeof payload.error === 'string' ? payload.error : 'Chargement des blocklists impossible.')
+      }
+
+      const nextSiteBlocklist = Array.isArray(payload.siteBlocklist)
+        ? payload.siteBlocklist.filter((value): value is string => typeof value === 'string')
+        : []
+      const nextVoteBlocklist = Array.isArray(payload.voteBlocklist)
+        ? payload.voteBlocklist.filter((value): value is string => typeof value === 'string')
+        : []
+
+      setSiteBlocklist(nextSiteBlocklist)
+      setVoteBlocklist(nextVoteBlocklist)
+      return true
+    } catch (error) {
+      const localizedMessage = error instanceof Error ? error.message : 'Erreur lors du chargement des blocklists.'
+      setAssertiveMessage(localizedMessage)
+      setPoliteMessage('')
+      focusMessage()
+      return false
+    }
+  }, [buildAuthHeaders, focusMessage, hasToken])
+
+  const resolveNextPendingSubmissionId = useCallback(
+    (submissionId: string) => {
+      const currentIndex = pendingEntries.findIndex((entry) => entry.submissionId === submissionId)
+      if (currentIndex < 0) {
+        return null
+      }
+
+      return pendingEntries[currentIndex + 1]?.submissionId ?? pendingEntries[currentIndex - 1]?.submissionId ?? null
+    },
+    [pendingEntries],
+  )
+
   const handleApprove = useCallback(
     async (submissionId: string) => {
+      const nextSubmissionId = resolveNextPendingSubmissionId(submissionId)
       setRunningSubmissionId(submissionId)
       setAssertiveMessage('')
       setPoliteMessage('Validation de la soumission en cours...')
@@ -316,7 +398,10 @@ function ModerationPage() {
         })
         await loadPublishedEntries()
         setPoliteMessage(info)
-        focusMessage()
+        window.setTimeout(() => {
+          const nextButton = nextSubmissionId ? pendingApproveButtonRefs.current[nextSubmissionId] : null
+          focusElement(nextButton ?? pendingRef.current)
+        }, 0)
       } catch (error) {
         const localizedMessage = error instanceof Error ? error.message : 'Erreur lors de la validation.'
         setAssertiveMessage(localizedMessage)
@@ -326,11 +411,12 @@ function ModerationPage() {
         setRunningSubmissionId(null)
       }
     },
-    [buildAuthHeaders, focusMessage, loadPublishedEntries],
+    [buildAuthHeaders, focusElement, focusMessage, loadPublishedEntries, resolveNextPendingSubmissionId],
   )
 
   const handleReject = useCallback(
     async (submissionId: string) => {
+      const nextSubmissionId = resolveNextPendingSubmissionId(submissionId)
       setRunningSubmissionId(submissionId)
       setAssertiveMessage('')
       setPoliteMessage('Rejet de la soumission en cours...')
@@ -359,7 +445,10 @@ function ModerationPage() {
           return next
         })
         setPoliteMessage(info)
-        focusMessage()
+        window.setTimeout(() => {
+          const nextButton = nextSubmissionId ? pendingApproveButtonRefs.current[nextSubmissionId] : null
+          focusElement(nextButton ?? pendingRef.current)
+        }, 0)
       } catch (error) {
         const localizedMessage = error instanceof Error ? error.message : 'Erreur lors du rejet.'
         setAssertiveMessage(localizedMessage)
@@ -369,16 +458,23 @@ function ModerationPage() {
         setRunningSubmissionId(null)
       }
     },
-    [buildAuthHeaders, focusMessage, rejectReasons],
+    [buildAuthHeaders, focusElement, focusMessage, rejectReasons, resolveNextPendingSubmissionId],
   )
 
   const handleTokenSubmit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
-      await loadPendingEntries()
-      await loadPublishedEntries()
+      const pendingLoaded = await loadPendingEntries()
+      const publishedLoaded = await loadPublishedEntries()
+      const blocklistsLoaded = await loadBlocklists()
+
+      if (pendingLoaded || publishedLoaded || blocklistsLoaded) {
+        window.setTimeout(() => {
+          focusPending()
+        }, 0)
+      }
     },
-    [loadPendingEntries, loadPublishedEntries],
+    [focusPending, loadBlocklists, loadPendingEntries, loadPublishedEntries],
   )
 
   const handlePublishedDraftChange = useCallback(
@@ -419,6 +515,30 @@ function ModerationPage() {
         return
       }
 
+      const scoreRaw = draft.complianceScore.trim()
+      let normalizedScore: number | null = null
+      if (scoreRaw) {
+        const scoreNumber = Number(scoreRaw.replace(',', '.'))
+        if (Number.isNaN(scoreNumber) || scoreNumber < 0 || scoreNumber > 100) {
+          const message = 'Le score doit être un nombre compris entre 0 et 100.'
+          setPublishedFeedbackByUrl((current) => ({
+            ...current,
+            [normalizedUrl]: {
+              tone: 'error',
+              message,
+            },
+          }))
+          setAssertiveMessage(message)
+          setPoliteMessage('')
+          window.setTimeout(() => {
+            focusElement(publishedScoreInputRefs.current[normalizedUrl])
+          }, 0)
+          return
+        }
+
+        normalizedScore = Math.round(scoreNumber * 100) / 100
+      }
+
       setRunningPublishedUrl(normalizedUrl)
       setDeleteConfirmationUrl(null)
       setAssertiveMessage('')
@@ -432,16 +552,6 @@ function ModerationPage() {
       }))
 
       try {
-        const scoreRaw = draft.complianceScore.trim()
-        let scoreNumber: number | null = null
-        if (scoreRaw) {
-          scoreNumber = Number(scoreRaw.replace(',', '.'))
-          if (Number.isNaN(scoreNumber) || scoreNumber < 0 || scoreNumber > 100) {
-            throw new Error('Le score doit être un nombre compris entre 0 et 100.')
-          }
-        }
-        const normalizedScore = scoreNumber === null ? null : Math.round(scoreNumber * 100) / 100
-
         const response = await fetch('/api/moderation/showcase/update', {
           method: 'POST',
           headers: buildAuthHeaders(true),
@@ -481,7 +591,10 @@ function ModerationPage() {
           },
         }))
         setPoliteMessage(info)
-        focusMessage()
+        setAssertiveMessage('')
+        window.setTimeout(() => {
+          focusElement(publishedSaveButtonRefs.current[normalizedUrl])
+        }, 0)
       } catch (error) {
         const localizedMessage = error instanceof Error ? error.message : 'Erreur lors de la mise à jour.'
         setPublishedFeedbackByUrl((current) => ({
@@ -493,12 +606,14 @@ function ModerationPage() {
         }))
         setAssertiveMessage(localizedMessage)
         setPoliteMessage('')
-        focusMessage()
+        window.setTimeout(() => {
+          focusElement(publishedFeedbackRefs.current[normalizedUrl] ?? messageRef.current)
+        }, 0)
       } finally {
         setRunningPublishedUrl(null)
       }
     },
-    [buildAuthHeaders, focusMessage, publishedDrafts],
+    [buildAuthHeaders, focusElement, publishedDrafts],
   )
 
   const handleDeletePublishedEntry = useCallback(
@@ -514,9 +629,15 @@ function ModerationPage() {
         }))
         setAssertiveMessage('')
         setPoliteMessage('Cliquez à nouveau sur supprimer pour confirmer.')
-        focusMessage()
+        window.setTimeout(() => {
+          focusElement(publishedDeleteButtonRefs.current[normalizedUrl])
+        }, 0)
         return
       }
+
+      const currentIndex = publishedEntries.findIndex((entry) => entry.normalizedUrl === normalizedUrl)
+      const nextPublishedUrl =
+        publishedEntries[currentIndex + 1]?.normalizedUrl ?? publishedEntries[currentIndex - 1]?.normalizedUrl ?? null
 
       setRunningPublishedUrl(normalizedUrl)
       setAssertiveMessage('')
@@ -557,7 +678,10 @@ function ModerationPage() {
         })
         setDeleteConfirmationUrl(null)
         setPoliteMessage(info)
-        focusMessage()
+        window.setTimeout(() => {
+          const nextDeleteButton = nextPublishedUrl ? publishedDeleteButtonRefs.current[nextPublishedUrl] : null
+          focusElement(nextDeleteButton ?? publishedRef.current)
+        }, 0)
       } catch (error) {
         const localizedMessage = error instanceof Error ? error.message : 'Erreur lors de la suppression.'
         setPublishedFeedbackByUrl((current) => ({
@@ -569,12 +693,236 @@ function ModerationPage() {
         }))
         setAssertiveMessage(localizedMessage)
         setPoliteMessage('')
+        window.setTimeout(() => {
+          focusElement(publishedFeedbackRefs.current[normalizedUrl] ?? messageRef.current)
+        }, 0)
+      } finally {
+        setRunningPublishedUrl(null)
+      }
+    },
+    [buildAuthHeaders, deleteConfirmationUrl, focusElement, publishedEntries],
+  )
+
+  const handleSetSiteBlocked = useCallback(
+    async (normalizedUrl: string, blocked: boolean) => {
+      setRunningBlocklistSiteUrl(normalizedUrl)
+      setAssertiveMessage('')
+      setPoliteMessage(blocked ? 'Ajout à la blocklist en cours...' : 'Retrait de la blocklist en cours...')
+
+      try {
+        const response = await fetch('/api/moderation/blocklist/site', {
+          method: 'POST',
+          headers: buildAuthHeaders(true),
+          body: JSON.stringify({
+            normalizedUrl,
+            blocked,
+          }),
+        })
+        const payload = await readApiPayload(response)
+
+        if (!response.ok) {
+          throw new Error(typeof payload.error === 'string' ? payload.error : 'Mise à jour blocklist impossible.')
+        }
+
+        const nextSiteBlocklist = Array.isArray(payload.siteBlocklist)
+          ? payload.siteBlocklist.filter((value): value is string => typeof value === 'string')
+          : []
+        setSiteBlocklist(nextSiteBlocklist)
+        setPublishedEntries((current) =>
+          current.map((entry) =>
+            entry.normalizedUrl === normalizedUrl
+              ? {
+                  ...entry,
+                  siteBlocked: blocked,
+                }
+              : entry,
+          ),
+        )
+
+        const message =
+          typeof payload.message === 'string'
+            ? payload.message
+            : blocked
+              ? 'Site ajouté à la blocklist.'
+              : 'Site retiré de la blocklist.'
+        setPoliteMessage(message)
+        setAssertiveMessage('')
+        return true
+      } catch (error) {
+        const localizedMessage = error instanceof Error ? error.message : 'Erreur lors de la mise à jour blocklist.'
+        setAssertiveMessage(localizedMessage)
+        setPoliteMessage('')
+        focusMessage()
+        return false
+      } finally {
+        setRunningBlocklistSiteUrl(null)
+      }
+    },
+    [buildAuthHeaders, focusMessage],
+  )
+
+  const handleSetVotesBlocked = useCallback(
+    async (normalizedUrl: string, blocked: boolean) => {
+      setRunningBlocklistVoteUrl(normalizedUrl)
+      setAssertiveMessage('')
+      setPoliteMessage(blocked ? 'Blocage des votes en cours...' : 'Déblocage des votes en cours...')
+
+      try {
+        const response = await fetch('/api/moderation/blocklist/votes', {
+          method: 'POST',
+          headers: buildAuthHeaders(true),
+          body: JSON.stringify({
+            normalizedUrl,
+            blocked,
+          }),
+        })
+        const payload = await readApiPayload(response)
+
+        if (!response.ok) {
+          throw new Error(typeof payload.error === 'string' ? payload.error : 'Mise à jour du blocage votes impossible.')
+        }
+
+        const nextVoteBlocklist = Array.isArray(payload.voteBlocklist)
+          ? payload.voteBlocklist.filter((value): value is string => typeof value === 'string')
+          : []
+        setVoteBlocklist(nextVoteBlocklist)
+        setPublishedEntries((current) =>
+          current.map((entry) =>
+            entry.normalizedUrl === normalizedUrl
+              ? {
+                  ...entry,
+                  votesBlocked: blocked,
+                }
+              : entry,
+          ),
+        )
+
+        const message =
+          typeof payload.message === 'string'
+            ? payload.message
+            : blocked
+              ? 'Votes bloqués pour ce site.'
+              : 'Blocage des votes levé pour ce site.'
+        setPoliteMessage(message)
+        setAssertiveMessage('')
+        return true
+      } catch (error) {
+        const localizedMessage = error instanceof Error ? error.message : 'Erreur lors de la mise à jour des votes.'
+        setAssertiveMessage(localizedMessage)
+        setPoliteMessage('')
+        focusMessage()
+        return false
+      } finally {
+        setRunningBlocklistVoteUrl(null)
+      }
+    },
+    [buildAuthHeaders, focusMessage],
+  )
+
+  const handleDeleteAndBlockPublishedEntry = useCallback(
+    async (normalizedUrl: string) => {
+      const currentIndex = publishedEntries.findIndex((entry) => entry.normalizedUrl === normalizedUrl)
+      const nextPublishedUrl =
+        publishedEntries[currentIndex + 1]?.normalizedUrl ?? publishedEntries[currentIndex - 1]?.normalizedUrl ?? null
+
+      setRunningPublishedUrl(normalizedUrl)
+      setAssertiveMessage('')
+      setPoliteMessage('Suppression + blocklist en cours...')
+
+      try {
+        const response = await fetch('/api/moderation/showcase/delete-and-block', {
+          method: 'POST',
+          headers: buildAuthHeaders(true),
+          body: JSON.stringify({
+            normalizedUrl,
+          }),
+        })
+        const payload = await readApiPayload(response)
+
+        if (!response.ok) {
+          throw new Error(typeof payload.error === 'string' ? payload.error : 'Suppression + blocklist impossible.')
+        }
+
+        setPublishedEntries((current) => current.filter((entry) => entry.normalizedUrl !== normalizedUrl))
+        setPublishedDrafts((current) => {
+          const next = { ...current }
+          delete next[normalizedUrl]
+          return next
+        })
+        setPublishedFeedbackByUrl((current) => {
+          const next = { ...current }
+          delete next[normalizedUrl]
+          return next
+        })
+        setDeleteConfirmationUrl(null)
+        await loadBlocklists()
+
+        const message =
+          typeof payload.message === 'string'
+            ? payload.message
+            : 'Site supprimé et ajouté à la blocklist.'
+        setPoliteMessage(message)
+        setAssertiveMessage('')
+
+        window.setTimeout(() => {
+          const nextButton = nextPublishedUrl ? publishedDeleteAndBlockButtonRefs.current[nextPublishedUrl] : null
+          focusElement(nextButton ?? publishedRef.current)
+        }, 0)
+      } catch (error) {
+        const localizedMessage =
+          error instanceof Error ? error.message : 'Erreur lors de la suppression avec blocklist.'
+        setAssertiveMessage(localizedMessage)
+        setPoliteMessage('')
         focusMessage()
       } finally {
         setRunningPublishedUrl(null)
       }
     },
-    [buildAuthHeaders, deleteConfirmationUrl, focusMessage],
+    [buildAuthHeaders, focusElement, focusMessage, loadBlocklists, publishedEntries],
+  )
+
+  const handleAddSiteBlocklist = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+      const normalizedUrl = siteBlocklistInput.trim()
+      if (!normalizedUrl) {
+        setAssertiveMessage('Veuillez saisir une URL à bloquer.')
+        setPoliteMessage('')
+        focusElement(siteBlocklistInputRef.current)
+        return
+      }
+
+      const updated = await handleSetSiteBlocked(normalizedUrl, true)
+      if (updated) {
+        setSiteBlocklistInput('')
+        window.setTimeout(() => {
+          focusSiteBlocklist()
+        }, 0)
+      }
+    },
+    [focusElement, focusSiteBlocklist, handleSetSiteBlocked, siteBlocklistInput],
+  )
+
+  const handleAddVoteBlocklist = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+      const normalizedUrl = voteBlocklistInput.trim()
+      if (!normalizedUrl) {
+        setAssertiveMessage('Veuillez saisir une URL pour bloquer les votes.')
+        setPoliteMessage('')
+        focusElement(voteBlocklistInputRef.current)
+        return
+      }
+
+      const updated = await handleSetVotesBlocked(normalizedUrl, true)
+      if (updated) {
+        setVoteBlocklistInput('')
+        window.setTimeout(() => {
+          focusVoteBlocklist()
+        }, 0)
+      }
+    },
+    [focusElement, focusVoteBlocklist, handleSetVotesBlocked, voteBlocklistInput],
   )
 
   useEffect(() => {
@@ -598,6 +946,12 @@ function ModerationPage() {
         </a>
         <a href="#annuaire-publie" className={skipLinkClass} onClick={focusPublished}>
           Aller à l’annuaire publié
+        </a>
+        <a href="#blocklist-sites" className={skipLinkClass} onClick={focusSiteBlocklist}>
+          Aller à la blocklist sites
+        </a>
+        <a href="#blocklist-votes" className={skipLinkClass} onClick={focusVoteBlocklist}>
+          Aller à la blocklist votes
         </a>
       </div>
 
@@ -654,6 +1008,7 @@ function ModerationPage() {
                   Jeton de modération
                 </label>
                 <input
+                  ref={tokenInputRef}
                   id="token-moderation"
                   type={showToken ? 'text' : 'password'}
                   value={moderationToken}
@@ -696,7 +1051,7 @@ function ModerationPage() {
             )}
           </section>
 
-          <section className="mt-8">
+          <section id="soumissions-attente" ref={pendingRef} tabIndex={-1} className="mt-8">
             <h2 className="text-lg font-semibold">Soumissions en attente</h2>
             <p className="mt-2 text-slate-700 dark:text-slate-300">
               {pendingEntries.length} soumission(s) à traiter.
@@ -754,6 +1109,9 @@ function ModerationPage() {
                             />
                           </div>
                           <button
+                            ref={(element) => {
+                              pendingApproveButtonRefs.current[entry.submissionId] = element
+                            }}
                             type="button"
                             onClick={() => {
                               void handleApprove(entry.submissionId)
@@ -809,6 +1167,10 @@ function ModerationPage() {
                   const itemId = toDomId(entry.normalizedUrl)
                   const isRunning = runningPublishedUrl === entry.normalizedUrl
                   const isDeleteConfirm = deleteConfirmationUrl === entry.normalizedUrl
+                  const isSiteBlocked = entry.siteBlocked === true || siteBlocklist.includes(entry.normalizedUrl)
+                  const areVotesBlocked = entry.votesBlocked === true || voteBlocklist.includes(entry.normalizedUrl)
+                  const isSiteRuleRunning = runningBlocklistSiteUrl === entry.normalizedUrl
+                  const isVoteRuleRunning = runningBlocklistVoteUrl === entry.normalizedUrl
                   const feedback = publishedFeedbackByUrl[entry.normalizedUrl]
 
                   return (
@@ -822,6 +1184,26 @@ function ModerationPage() {
                         <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                           Dernière mise à jour: {formatDate(entry.updatedAt)}
                         </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <span
+                            className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${
+                              isSiteBlocked
+                                ? 'border border-rose-400 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-100'
+                                : 'border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200'
+                            }`}
+                          >
+                            {isSiteBlocked ? 'Site en blocklist' : 'Site non bloqué'}
+                          </span>
+                          <span
+                            className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${
+                              areVotesBlocked
+                                ? 'border border-amber-400 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-100'
+                                : 'border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200'
+                            }`}
+                          >
+                            {areVotesBlocked ? 'Votes bloqués' : 'Votes autorisés'}
+                          </span>
+                        </div>
 
                         <div className="mt-4 grid gap-3 md:grid-cols-2">
                           <div>
@@ -884,6 +1266,9 @@ function ModerationPage() {
                               Score
                             </label>
                             <input
+                              ref={(element) => {
+                                publishedScoreInputRefs.current[entry.normalizedUrl] = element
+                              }}
                               id={`score-${itemId}`}
                               inputMode="decimal"
                               value={draft.complianceScore}
@@ -927,6 +1312,9 @@ function ModerationPage() {
 
                         <div className="mt-4 flex flex-wrap gap-3">
                           <button
+                            ref={(element) => {
+                              publishedSaveButtonRefs.current[entry.normalizedUrl] = element
+                            }}
                             type="button"
                             onClick={() => {
                               void handleUpdatePublishedEntry(entry.normalizedUrl)
@@ -939,6 +1327,25 @@ function ModerationPage() {
                           <button
                             type="button"
                             onClick={() => {
+                              void handleSetVotesBlocked(entry.normalizedUrl, !areVotesBlocked)
+                            }}
+                            disabled={isRunning || isVoteRuleRunning}
+                            className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass} ${
+                              areVotesBlocked ? 'bg-amber-700' : 'bg-slate-700'
+                            }`}
+                          >
+                            {isVoteRuleRunning
+                              ? 'Traitement...'
+                              : areVotesBlocked
+                                ? 'Autoriser les votes'
+                                : 'Bloquer les votes'}
+                          </button>
+                          <button
+                            ref={(element) => {
+                              publishedDeleteButtonRefs.current[entry.normalizedUrl] = element
+                            }}
+                            type="button"
+                            onClick={() => {
                               void handleDeletePublishedEntry(entry.normalizedUrl)
                             }}
                             disabled={isRunning}
@@ -948,10 +1355,27 @@ function ModerationPage() {
                           >
                             {isRunning ? 'Traitement...' : isDeleteConfirm ? 'Confirmer suppression' : 'Supprimer'}
                           </button>
+                          <button
+                            ref={(element) => {
+                              publishedDeleteAndBlockButtonRefs.current[entry.normalizedUrl] = element
+                            }}
+                            type="button"
+                            onClick={() => {
+                              void handleDeleteAndBlockPublishedEntry(entry.normalizedUrl)
+                            }}
+                            disabled={isRunning || isSiteRuleRunning}
+                            className={`min-h-11 rounded-xl bg-rose-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass}`}
+                          >
+                            {isSiteRuleRunning ? 'Traitement...' : 'Supprimer + blocklist'}
+                          </button>
                         </div>
 
                         {feedback && (
                           <p
+                            ref={(element) => {
+                              publishedFeedbackRefs.current[entry.normalizedUrl] = element
+                            }}
+                            tabIndex={-1}
                             className={`mt-3 rounded-lg border px-3 py-2 text-sm ${
                               feedback.tone === 'error'
                                 ? 'border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-100'
@@ -971,6 +1395,138 @@ function ModerationPage() {
                 })}
               </ul>
             )}
+          </section>
+
+          <section
+            id="blocklist-sites"
+            ref={siteBlocklistSectionRef}
+            tabIndex={-1}
+            className="mt-8 rounded-2xl border border-rose-200 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/20 p-6"
+            aria-labelledby="blocklist-sites-titre"
+          >
+            <h2 id="blocklist-sites-titre" className="text-lg font-semibold text-rose-900 dark:text-rose-100">
+              Blocklist des sites
+            </h2>
+            <p className="mt-2 text-sm text-rose-900 dark:text-rose-100">
+              Les URL présentes ici ne peuvent plus être soumises. La liste reste modifiable à tout moment.
+            </p>
+
+            <form className="mt-4 flex flex-wrap items-end gap-3" onSubmit={handleAddSiteBlocklist}>
+              <div className="min-w-[18rem] flex-1">
+                <label htmlFor="blocklist-site-url" className="block text-sm font-medium text-rose-900 dark:text-rose-100">
+                  URL à bloquer
+                </label>
+                <input
+                  ref={siteBlocklistInputRef}
+                  id="blocklist-site-url"
+                  type="url"
+                  value={siteBlocklistInput}
+                  onChange={(event) => setSiteBlocklistInput(event.target.value)}
+                  placeholder="https://www.exemple.fr/"
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-rose-300 dark:border-rose-700 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={runningBlocklistSiteUrl === siteBlocklistInput.trim()}
+                className={`min-h-11 rounded-xl bg-rose-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass}`}
+              >
+                Ajouter à la blocklist
+              </button>
+            </form>
+
+            <ul className="mt-4 grid gap-2">
+              {siteBlocklist.length === 0 ? (
+                <li className="rounded-xl border border-rose-200 dark:border-rose-800 bg-white dark:bg-slate-900 p-3 text-sm text-slate-700 dark:text-slate-300">
+                  Aucun site en blocklist.
+                </li>
+              ) : (
+                siteBlocklist.map((blockedUrl) => {
+                  const isRunning = runningBlocklistSiteUrl === blockedUrl
+                  return (
+                    <li key={blockedUrl} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-rose-200 dark:border-rose-800 bg-white dark:bg-slate-900 p-3">
+                      <span className="break-all text-sm text-slate-800 dark:text-slate-200">{blockedUrl}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void handleSetSiteBlocked(blockedUrl, false)
+                        }}
+                        disabled={isRunning}
+                        className={`min-h-11 rounded-xl border border-rose-300 dark:border-rose-700 px-4 py-2 text-sm font-semibold text-rose-900 dark:text-rose-100 disabled:opacity-60 ${focusRingClass}`}
+                      >
+                        {isRunning ? 'Traitement...' : 'Retirer'}
+                      </button>
+                    </li>
+                  )
+                })
+              )}
+            </ul>
+          </section>
+
+          <section
+            id="blocklist-votes"
+            ref={voteBlocklistSectionRef}
+            tabIndex={-1}
+            className="mt-8 rounded-2xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20 p-6"
+            aria-labelledby="blocklist-votes-titre"
+          >
+            <h2 id="blocklist-votes-titre" className="text-lg font-semibold text-amber-900 dark:text-amber-100">
+              Blocage des votes
+            </h2>
+            <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">
+              Les votes sont désactivés côté public pour les URL listées, jusqu’à retrait manuel.
+            </p>
+
+            <form className="mt-4 flex flex-wrap items-end gap-3" onSubmit={handleAddVoteBlocklist}>
+              <div className="min-w-[18rem] flex-1">
+                <label htmlFor="blocklist-vote-url" className="block text-sm font-medium text-amber-900 dark:text-amber-100">
+                  URL pour bloquer les votes
+                </label>
+                <input
+                  ref={voteBlocklistInputRef}
+                  id="blocklist-vote-url"
+                  type="url"
+                  value={voteBlocklistInput}
+                  onChange={(event) => setVoteBlocklistInput(event.target.value)}
+                  placeholder="https://www.exemple.fr/"
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={runningBlocklistVoteUrl === voteBlocklistInput.trim()}
+                className={`min-h-11 rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass}`}
+              >
+                Bloquer les votes
+              </button>
+            </form>
+
+            <ul className="mt-4 grid gap-2">
+              {voteBlocklist.length === 0 ? (
+                <li className="rounded-xl border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-900 p-3 text-sm text-slate-700 dark:text-slate-300">
+                  Aucun blocage de vote actif.
+                </li>
+              ) : (
+                voteBlocklist.map((blockedUrl) => {
+                  const isRunning = runningBlocklistVoteUrl === blockedUrl
+                  return (
+                    <li key={blockedUrl} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-900 p-3">
+                      <span className="break-all text-sm text-slate-800 dark:text-slate-200">{blockedUrl}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void handleSetVotesBlocked(blockedUrl, false)
+                        }}
+                        disabled={isRunning}
+                        className={`min-h-11 rounded-xl border border-amber-300 dark:border-amber-700 px-4 py-2 text-sm font-semibold text-amber-900 dark:text-amber-100 disabled:opacity-60 ${focusRingClass}`}
+                      >
+                        {isRunning ? 'Traitement...' : 'Réactiver les votes'}
+                      </button>
+                    </li>
+                  )
+                })
+              )}
+            </ul>
           </section>
         </main>
       </div>
