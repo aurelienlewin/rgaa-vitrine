@@ -1,7 +1,7 @@
 User-agent: *
 Allow: /
-Sitemap: https://rgaa-vitrine.org/sitemap.xml
+Sitemap: https://annuaire-rgaa.fr/sitemap.xml
 
 # AI crawler hints
-# llms.txt: https://rgaa-vitrine.org/llms.txt
-# ai-context: https://rgaa-vitrine.org/ai-context.json
+# llms.txt: https://annuaire-rgaa.fr/llms.txt
+# ai-context: https://annuaire-rgaa.fr/ai-context.json

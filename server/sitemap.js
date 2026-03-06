@@ -1,4 +1,4 @@
-const DEFAULT_PUBLIC_APP_URL = 'https://rgaa-vitrine.org'
+const DEFAULT_PUBLIC_APP_URL = 'https://annuaire-rgaa.fr'
 
 function resolveBaseUrl(input) {
   if (typeof input !== 'string' || !input.trim()) {

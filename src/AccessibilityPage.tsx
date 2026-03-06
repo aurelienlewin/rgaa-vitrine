@@ -12,7 +12,7 @@ const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dar
 const auditSummary = {
   score: '87,3 %',
   auditDate: '6 mars 2026',
-  auditedPage: 'https://rgaa-vitrine.vercel.app/',
+  auditedPage: 'https://annuaire-rgaa.fr/',
   scope: '1 page auditée',
   applicableCriteria: '55',
   nonConformitiesCount: '7',
@@ -170,7 +170,7 @@ function AccessibilityPage() {
               </div>
             </div>
             <p className="mt-2 max-w-3xl text-slate-700 dark:text-slate-300">
-              Cette déclaration s’applique au site <strong>https://annuaire-rgaa.org/</strong>.
+              Cette déclaration s’applique au site <strong>https://annuaire-rgaa.fr/</strong>.
             </p>
           </div>
         </header>

@@ -13,7 +13,7 @@ Annuaire RGAA is an open-source French-first directory that lets organizations p
 public RGAA pride listing: site metadata, detected accessibility statement page, and
 declared compliance indicators.
 
-Planned public website: **https://rgaa-vitrine.org**
+Planned public website: **https://annuaire-rgaa.fr**
 
 ## Highlights
 
@@ -207,7 +207,7 @@ Optional:
 
 ```bash
 GITHUB_NOTIFY_LABELS=moderation,annuaire-rgaa
-PUBLIC_APP_URL=https://rgaa-vitrine.org
+PUBLIC_APP_URL=https://annuaire-rgaa.fr
 ```
 
 Behavior:

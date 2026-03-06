@@ -13,7 +13,7 @@ type SeoConfig = {
   structuredData?: JsonLdObject | JsonLdObject[] | null
 }
 
-const DEFAULT_SITE_URL = 'https://rgaa-vitrine.org'
+const DEFAULT_SITE_URL = 'https://annuaire-rgaa.fr'
 const DEFAULT_SITE_NAME = 'Annuaire RGAA'
 const DEFAULT_OG_IMAGE_PATH = '/logo-rgaa-vitrine.svg'
 const STRUCTURED_DATA_SCRIPT_ID = 'app-jsonld'

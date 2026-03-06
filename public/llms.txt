@@ -3,15 +3,15 @@
 Annuaire francophone de sites web qui publient des informations de conformité RGAA.
 
 ## Canonique
-- URL principale: https://rgaa-vitrine.org/
-- Plan du site: https://rgaa-vitrine.org/plan-du-site
-- Déclaration d’accessibilité: https://rgaa-vitrine.org/accessibilite
-- Sitemap XML: https://rgaa-vitrine.org/sitemap.xml
-- Contexte IA JSON: https://rgaa-vitrine.org/ai-context.json
+- URL principale: https://annuaire-rgaa.fr/
+- Plan du site: https://annuaire-rgaa.fr/plan-du-site
+- Déclaration d’accessibilité: https://annuaire-rgaa.fr/accessibilite
+- Sitemap XML: https://annuaire-rgaa.fr/sitemap.xml
+- Contexte IA JSON: https://annuaire-rgaa.fr/ai-context.json
 
 ## Endpoints publics utiles
-- https://rgaa-vitrine.org/api/showcase (GET JSON, annuaire des sites)
-- https://rgaa-vitrine.org/api/health (GET JSON, état du service)
+- https://annuaire-rgaa.fr/api/showcase (GET JSON, annuaire des sites)
+- https://annuaire-rgaa.fr/api/health (GET JSON, état du service)
 
 ## Langue et périmètre
 - Langue principale: fr-FR
@@ -25,4 +25,4 @@ Annuaire francophone de sites web qui publient des informations de conformité R
 
 ## Licence
 - Code source: MIT
-- Références: https://rgaa-vitrine.org/llms-full.txt
+- Références: https://annuaire-rgaa.fr/llms-full.txt

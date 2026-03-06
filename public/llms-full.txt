@@ -10,14 +10,14 @@ Annuaire RGAA est une application web orientée accessibilité numérique, en fr
 - catégorie et date de mise à jour
 
 ## URLs de référence
-- Site: https://rgaa-vitrine.org/
-- Plan du site: https://rgaa-vitrine.org/plan-du-site
-- Déclaration d’accessibilité: https://rgaa-vitrine.org/accessibilite
-- Sitemap XML: https://rgaa-vitrine.org/sitemap.xml
-- Fichier robots: https://rgaa-vitrine.org/robots.txt
-- Contexte IA JSON: https://rgaa-vitrine.org/ai-context.json
-- API annuaire: https://rgaa-vitrine.org/api/showcase
-- Santé service: https://rgaa-vitrine.org/api/health
+- Site: https://annuaire-rgaa.fr/
+- Plan du site: https://annuaire-rgaa.fr/plan-du-site
+- Déclaration d’accessibilité: https://annuaire-rgaa.fr/accessibilite
+- Sitemap XML: https://annuaire-rgaa.fr/sitemap.xml
+- Fichier robots: https://annuaire-rgaa.fr/robots.txt
+- Contexte IA JSON: https://annuaire-rgaa.fr/ai-context.json
+- API annuaire: https://annuaire-rgaa.fr/api/showcase
+- Santé service: https://annuaire-rgaa.fr/api/health
 
 ## Modèle de données principal (showcase entry)
 - normalizedUrl: string
