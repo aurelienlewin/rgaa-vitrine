@@ -35,6 +35,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - AI crawler discovery assets: `llms.txt`, `llms-full.txt`, and public `ai-context.json` summary endpoint.
 - New public accessibility declaration page (`/accessibilite`) with audit score, non-conformities list, contact channel, and legal recourse information.
 - Audit-driven remediation pass for previously non-conform criteria from production JSON report (`20260306-141236`).
+- New protected moderation endpoints for published entries management: `GET /api/moderation/showcase`, `POST /api/moderation/showcase/update`, and `POST /api/moderation/showcase/delete`.
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
@@ -98,6 +99,8 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Skip-link containers are now fully hidden by default and only revealed on keyboard focus (`focus-within`) to prevent premature on-screen display.
 - Public canonical domain references have been standardized to `https://annuaire-rgaa.fr` across SEO metadata, sitemap/robots hints, declaration content, and documentation.
 - API metadata fetch now exposes a consistent Annuaire RGAA user-agent contact URL (`https://annuaire-rgaa.fr`).
+- Accessibility-score extraction now supports broader French wording and decimal percentages (ex: `96,51 %`) from accessibility statements.
+- Moderation UI now allows administrators to edit and delete published entries (title, category, status, score, vignette, accessibility URL).
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

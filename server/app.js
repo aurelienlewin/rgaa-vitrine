@@ -2,7 +2,7 @@ import express from 'express'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import { timingSafeEqual } from 'node:crypto'
-import { buildSiteInsight, SiteInsightError } from './siteInsight.js'
+import { buildSiteInsight, SiteInsightError, validatePublicHttpUrl } from './siteInsight.js'
 import { isGithubNotifierEnabled, notifyPendingModerationOnGithub } from './githubNotifier.js'
 import { buildSitemapXml, resolvePublicAppUrl } from './sitemap.js'
 import { buildAiContextPayload } from './aiContext.js'
@@ -10,12 +10,19 @@ import {
   buildPendingSubmission,
   buildShowcaseEntry,
   createShowcaseStorage,
+  sanitizeCategory,
   ShowcaseStorageError,
 } from './storage.js'
 
 const app = express()
 const showcaseStorage = createShowcaseStorage()
 const AUTO_PUBLISH_STATUSES = new Set(['full', 'partial'])
+const MODERATION_EDITABLE_STATUSES = new Set(['full', 'partial', 'none'])
+const COMPLIANCE_LABELS = {
+  full: 'Totalement conforme',
+  partial: 'Partiellement conforme',
+  none: 'Non conforme',
+}
 const SUSPICIOUS_MARKETING_TOKENS = [
   'casino',
   'bet',
@@ -89,6 +96,41 @@ function extractSubmissionId(value) {
   }
 
   return trimmed
+}
+
+function extractNormalizedUrl(value) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed || trimmed.length > 400) {
+    return null
+  }
+
+  try {
+    const parsed = new URL(trimmed)
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return null
+    }
+  } catch {
+    return null
+  }
+
+  return trimmed
+}
+
+function parseScoreForModeration(value) {
+  if (value === null || value === undefined || value === '') {
+    return null
+  }
+
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+    return null
+  }
+
+  return Math.round(parsed * 100) / 100
 }
 
 function normalizeForMatch(value) {
@@ -421,6 +463,31 @@ app.get('/api/moderation/pending', requireModerationAuth, async (request, respon
   }
 })
 
+app.get('/api/moderation/showcase', requireModerationAuth, async (request, response) => {
+  try {
+    const entries = await showcaseStorage.list({
+      search: firstQueryValue(request.query.search),
+      status: firstQueryValue(request.query.status),
+      category: firstQueryValue(request.query.category),
+      limit: firstQueryValue(request.query.limit ?? 200),
+    })
+
+    response.json({
+      entries,
+      total: entries.length,
+      storage: showcaseStorage.mode,
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/showcase', error)
+    sendJsonError(response, 500, 'Erreur interne lors de la lecture de l’annuaire.')
+  }
+})
+
 app.post('/api/moderation/approve', requireModerationAuth, async (request, response) => {
   const submissionId = extractSubmissionId(request.body?.submissionId)
   if (!submissionId) {
@@ -516,6 +583,116 @@ app.post('/api/moderation/reject', requireModerationAuth, async (request, respon
 
     console.error('Unexpected error in /api/moderation/reject', error)
     sendJsonError(response, 500, 'Erreur interne lors du rejet.')
+  }
+})
+
+app.post('/api/moderation/showcase/update', requireModerationAuth, async (request, response) => {
+  const normalizedUrl = extractNormalizedUrl(request.body?.normalizedUrl)
+  if (!normalizedUrl) {
+    sendJsonError(response, 400, 'normalizedUrl est obligatoire.')
+    return
+  }
+
+  try {
+    const existingEntry = await showcaseStorage.getByNormalizedUrl(normalizedUrl)
+    if (!existingEntry) {
+      sendJsonError(response, 404, 'Entrée introuvable dans l’annuaire.')
+      return
+    }
+
+    const nextSiteTitleRaw = request.body?.siteTitle
+    const nextSiteTitle = typeof nextSiteTitleRaw === 'string' ? nextSiteTitleRaw.trim().slice(0, 160) : ''
+    if (!nextSiteTitle) {
+      sendJsonError(response, 400, 'siteTitle est obligatoire.')
+      return
+    }
+
+    const nextCategory = sanitizeCategory(request.body?.category)
+    const rawStatus = request.body?.complianceStatus
+    const statusCandidate = typeof rawStatus === 'string' ? rawStatus.trim() : ''
+    const nextComplianceStatus = MODERATION_EDITABLE_STATUSES.has(statusCandidate) ? statusCandidate : null
+
+    const scoreCandidate = parseScoreForModeration(request.body?.complianceScore)
+    if (request.body?.complianceScore !== null && request.body?.complianceScore !== undefined && request.body?.complianceScore !== '' && scoreCandidate === null) {
+      sendJsonError(response, 400, 'complianceScore doit être un nombre entre 0 et 100.')
+      return
+    }
+
+    const thumbnailRaw = typeof request.body?.thumbnailUrl === 'string' ? request.body.thumbnailUrl.trim() : ''
+    const accessibilityRaw =
+      typeof request.body?.accessibilityPageUrl === 'string' ? request.body.accessibilityPageUrl.trim() : ''
+
+    let nextThumbnailUrl = null
+    let nextAccessibilityPageUrl = null
+
+    if (thumbnailRaw) {
+      nextThumbnailUrl = await validatePublicHttpUrl(thumbnailRaw)
+    }
+
+    if (accessibilityRaw) {
+      nextAccessibilityPageUrl = await validatePublicHttpUrl(accessibilityRaw)
+    }
+
+    const updatedEntry = {
+      ...existingEntry,
+      siteTitle: nextSiteTitle,
+      category: nextCategory,
+      thumbnailUrl: nextThumbnailUrl,
+      accessibilityPageUrl: nextAccessibilityPageUrl,
+      complianceStatus: nextComplianceStatus,
+      complianceStatusLabel: nextComplianceStatus ? COMPLIANCE_LABELS[nextComplianceStatus] : null,
+      complianceScore: scoreCandidate,
+      updatedAt: new Date().toISOString(),
+    }
+
+    const persistedEntry = await showcaseStorage.upsert(updatedEntry)
+    response.json({
+      ...persistedEntry,
+      message: 'Entrée mise à jour.',
+    })
+  } catch (error) {
+    if (error instanceof SiteInsightError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/showcase/update', error)
+    sendJsonError(response, 500, 'Erreur interne lors de la mise à jour.')
+  }
+})
+
+app.post('/api/moderation/showcase/delete', requireModerationAuth, async (request, response) => {
+  const normalizedUrl = extractNormalizedUrl(request.body?.normalizedUrl)
+  if (!normalizedUrl) {
+    sendJsonError(response, 400, 'normalizedUrl est obligatoire.')
+    return
+  }
+
+  try {
+    const existingEntry = await showcaseStorage.getByNormalizedUrl(normalizedUrl)
+    if (!existingEntry) {
+      sendJsonError(response, 404, 'Entrée introuvable dans l’annuaire.')
+      return
+    }
+
+    await showcaseStorage.deleteByNormalizedUrl(normalizedUrl)
+    response.json({
+      normalizedUrl,
+      message: 'Entrée supprimée de l’annuaire.',
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/showcase/delete', error)
+    sendJsonError(response, 500, 'Erreur interne lors de la suppression.')
   }
 })
 

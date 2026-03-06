@@ -251,6 +251,10 @@ class InMemoryShowcaseStorage {
     return this.entries.get(normalizedUrl) ?? null
   }
 
+  async deleteByNormalizedUrl(normalizedUrl) {
+    return this.entries.delete(normalizedUrl)
+  }
+
   async list(options = {}) {
     const entries = this.#sortedEntries()
     const filtered = applyEntryFilters(entries, options)
@@ -433,6 +437,19 @@ class UpstashShowcaseStorage {
     } catch (error) {
       console.error('Redis list failed', error)
       throw new ShowcaseStorageError('Lecture Redis indisponible.', 503)
+    }
+  }
+
+  async deleteByNormalizedUrl(normalizedUrl) {
+    const entryId = encodeEntryId(normalizedUrl)
+
+    try {
+      await this.redis.multi().del(entryKeyFromId(entryId)).zrem(SHOWCASE_INDEX_KEY, entryId).exec()
+      this._invalidateShowcaseCache()
+      return true
+    } catch (error) {
+      console.error('Redis deleteByNormalizedUrl failed', error)
+      throw new ShowcaseStorageError('Suppression Redis indisponible.', 503)
     }
   }
 

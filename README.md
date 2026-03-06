@@ -38,6 +38,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Directory-first UX with filters, categories, and search at the core.
 - URL registration workflow with secure server-side metadata enrichment.
 - Dedicated moderation UI at `/moderation` for approving/rejecting pending submissions.
+- Dedicated moderation UI now supports published entry editing and deletion (title, category, score, status, vignette, accessibility URL).
 - Public accessibility declaration page at `/accessibilite` including score, non-conformities, and contact.
 - Annuaire listing cards designed for disabled people and accessibility enthusiasts.
 - RGAA awareness sections sourced from official French references.
@@ -124,6 +125,7 @@ Based on production audit data from `../audit/out/20260306-141236/audit.resume.j
 - `11.11` explicit URL format suggestions and validation guidance in the submission form.
 - `11.12` submission confirmation step with clear ability to review and modify entered data before sending.
 - `12.4` consistent exposure of `Plan du site` / `Accessibilité` navigation links across pages.
+- Compliance-score retrieval now recognizes broader wording patterns and decimal French percentages (e.g. `96,51 %`) on accessibility statements.
 
 ## SEO
 
@@ -156,6 +158,9 @@ Local services:
 - `GET /api/moderation/pending` returns pending moderation entries (protected)
 - `POST /api/moderation/approve` approves one pending submission (protected)
 - `POST /api/moderation/reject` rejects one pending submission (protected)
+- `GET /api/moderation/showcase` lists published entries for admin operations (protected)
+- `POST /api/moderation/showcase/update` updates one published entry (protected)
+- `POST /api/moderation/showcase/delete` deletes one published entry (protected)
 
 `POST /api/site-insight` behavior:
 
@@ -169,6 +174,7 @@ Local services:
 1. A submission requiring human review is stored server-side as `pending`.
 2. A moderator opens `/moderation`, enters the moderation token, and loads the pending queue.
 3. The moderator approves or rejects each entry from the UI (the page calls moderation APIs with `submissionId`).
+4. The moderator can edit or delete already published entries directly from `/moderation`.
 
 Endpoints are protected by `MODERATION_API_TOKEN`.
 

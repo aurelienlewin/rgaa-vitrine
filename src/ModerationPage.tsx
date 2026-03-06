@@ -20,6 +20,35 @@ type PendingSubmission = {
   category: string
 }
 
+type ShowcaseEntry = {
+  normalizedUrl: string
+  siteTitle: string
+  thumbnailUrl: string | null
+  accessibilityPageUrl: string | null
+  complianceStatus: ComplianceStatus
+  complianceStatusLabel: string | null
+  complianceScore: number | null
+  updatedAt: string
+  category: string
+}
+
+type PublishedEntryDraft = {
+  siteTitle: string
+  category: string
+  complianceStatus: '' | 'full' | 'partial' | 'none'
+  complianceScore: string
+  thumbnailUrl: string
+  accessibilityPageUrl: string
+}
+
+const moderationCategories = ['Administration', 'E-commerce', 'Media', 'Sante', 'Education', 'Associatif', 'Autre']
+const complianceStatusOptions: Array<{ value: PublishedEntryDraft['complianceStatus']; label: string }> = [
+  { value: '', label: 'Inconnu' },
+  { value: 'full', label: 'Totalement conforme' },
+  { value: 'partial', label: 'Partiellement conforme' },
+  { value: 'none', label: 'Non conforme' },
+]
+
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const skipLinksContainerClass =
@@ -41,6 +70,23 @@ function toNullableNumber(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
+function toDomId(value: string) {
+  return value.replace(/[^a-zA-Z0-9_-]/g, '-')
+}
+
+function formatScore(value: number | null) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 'N/A'
+  }
+
+  const localized = new Intl.NumberFormat('fr-FR', {
+    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(value)
+
+  return `${localized}%`
+}
+
 function isPendingSubmission(payload: unknown): payload is PendingSubmission {
   if (!payload || typeof payload !== 'object') {
     return false
@@ -55,6 +101,35 @@ function isPendingSubmission(payload: unknown): payload is PendingSubmission {
     typeof candidate.updatedAt === 'string' &&
     typeof candidate.category === 'string'
   )
+}
+
+function isShowcaseEntry(payload: unknown): payload is ShowcaseEntry {
+  if (!payload || typeof payload !== 'object') {
+    return false
+  }
+
+  const candidate = payload as Record<string, unknown>
+  return (
+    typeof candidate.normalizedUrl === 'string' &&
+    typeof candidate.siteTitle === 'string' &&
+    typeof candidate.updatedAt === 'string' &&
+    typeof candidate.category === 'string'
+  )
+}
+
+function toPublishedEntryDraft(entry: ShowcaseEntry): PublishedEntryDraft {
+  const status = entry.complianceStatus === 'full' || entry.complianceStatus === 'partial' || entry.complianceStatus === 'none'
+    ? entry.complianceStatus
+    : ''
+
+  return {
+    siteTitle: entry.siteTitle,
+    category: entry.category || 'Autre',
+    complianceStatus: status,
+    complianceScore: entry.complianceScore === null ? '' : String(entry.complianceScore),
+    thumbnailUrl: entry.thumbnailUrl ?? '',
+    accessibilityPageUrl: entry.accessibilityPageUrl ?? '',
+  }
 }
 
 async function readApiPayload(response: Response) {
@@ -80,13 +155,19 @@ async function readApiPayload(response: Response) {
 function ModerationPage() {
   const [moderationToken, setModerationToken] = useState('')
   const [pendingEntries, setPendingEntries] = useState<PendingSubmission[]>([])
+  const [publishedEntries, setPublishedEntries] = useState<ShowcaseEntry[]>([])
+  const [publishedDrafts, setPublishedDrafts] = useState<Record<string, PublishedEntryDraft>>({})
   const [rejectReasons, setRejectReasons] = useState<Record<string, string>>({})
   const [isLoadingList, setIsLoadingList] = useState(false)
+  const [isLoadingPublished, setIsLoadingPublished] = useState(false)
   const [runningSubmissionId, setRunningSubmissionId] = useState<string | null>(null)
+  const [runningPublishedUrl, setRunningPublishedUrl] = useState<string | null>(null)
+  const [deleteConfirmationUrl, setDeleteConfirmationUrl] = useState<string | null>(null)
   const [politeMessage, setPoliteMessage] = useState('')
   const [assertiveMessage, setAssertiveMessage] = useState('')
   const [showToken, setShowToken] = useState(false)
   const mainRef = useRef<HTMLElement | null>(null)
+  const publishedRef = useRef<HTMLElement | null>(null)
   const messageRef = useRef<HTMLParagraphElement | null>(null)
 
   const hasToken = useMemo(() => moderationToken.trim().length > 0, [moderationToken])
@@ -97,6 +178,14 @@ function ModerationPage() {
     }
     mainRef.current.focus({ preventScroll: true })
     mainRef.current.scrollIntoView({ block: 'start' })
+  }, [])
+
+  const focusPublished = useCallback(() => {
+    if (!publishedRef.current) {
+      return
+    }
+    publishedRef.current.focus({ preventScroll: true })
+    publishedRef.current.scrollIntoView({ block: 'start' })
   }, [])
 
   const focusMessage = useCallback(() => {
@@ -157,6 +246,40 @@ function ModerationPage() {
     }
   }, [buildAuthHeaders, focusMessage, hasToken])
 
+  const loadPublishedEntries = useCallback(async () => {
+    if (!hasToken) {
+      return
+    }
+
+    setIsLoadingPublished(true)
+
+    try {
+      const response = await fetch('/api/moderation/showcase?limit=200', {
+        headers: buildAuthHeaders(false),
+      })
+      const payload = await readApiPayload(response)
+
+      if (!response.ok) {
+        throw new Error(typeof payload.error === 'string' ? payload.error : 'Chargement de l’annuaire impossible.')
+      }
+
+      const entries = Array.isArray(payload.entries) ? payload.entries.filter(isShowcaseEntry) : []
+      setPublishedEntries(entries)
+      setPublishedDrafts(
+        Object.fromEntries(entries.map((entry) => [entry.normalizedUrl, toPublishedEntryDraft(entry)])),
+      )
+      setDeleteConfirmationUrl(null)
+    } catch (error) {
+      const localizedMessage =
+        error instanceof Error ? error.message : 'Erreur lors du chargement de l’annuaire publié.'
+      setAssertiveMessage(localizedMessage)
+      setPoliteMessage('')
+      focusMessage()
+    } finally {
+      setIsLoadingPublished(false)
+    }
+  }, [buildAuthHeaders, focusMessage, hasToken])
+
   const handleApprove = useCallback(
     async (submissionId: string) => {
       setRunningSubmissionId(submissionId)
@@ -182,6 +305,7 @@ function ModerationPage() {
           delete next[submissionId]
           return next
         })
+        await loadPublishedEntries()
         setPoliteMessage(info)
         focusMessage()
       } catch (error) {
@@ -193,7 +317,7 @@ function ModerationPage() {
         setRunningSubmissionId(null)
       }
     },
-    [buildAuthHeaders, focusMessage],
+    [buildAuthHeaders, focusMessage, loadPublishedEntries],
   )
 
   const handleReject = useCallback(
@@ -243,8 +367,144 @@ function ModerationPage() {
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
       await loadPendingEntries()
+      await loadPublishedEntries()
     },
-    [loadPendingEntries],
+    [loadPendingEntries, loadPublishedEntries],
+  )
+
+  const handlePublishedDraftChange = useCallback(
+    <K extends keyof PublishedEntryDraft>(normalizedUrl: string, field: K, value: PublishedEntryDraft[K]) => {
+      setPublishedDrafts((current) => {
+        const existing = current[normalizedUrl]
+        if (!existing) {
+          return current
+        }
+
+        return {
+          ...current,
+          [normalizedUrl]: { ...existing, [field]: value },
+        }
+      })
+    },
+    [],
+  )
+
+  const handleUpdatePublishedEntry = useCallback(
+    async (normalizedUrl: string) => {
+      const draft = publishedDrafts[normalizedUrl]
+      if (!draft) {
+        return
+      }
+
+      setRunningPublishedUrl(normalizedUrl)
+      setDeleteConfirmationUrl(null)
+      setAssertiveMessage('')
+      setPoliteMessage('Mise à jour de l’entrée en cours...')
+
+      try {
+        const scoreRaw = draft.complianceScore.trim()
+        let scoreNumber: number | null = null
+        if (scoreRaw) {
+          scoreNumber = Number(scoreRaw.replace(',', '.'))
+          if (Number.isNaN(scoreNumber) || scoreNumber < 0 || scoreNumber > 100) {
+            throw new Error('Le score doit être un nombre compris entre 0 et 100.')
+          }
+        }
+        const normalizedScore = scoreNumber === null ? null : Math.round(scoreNumber * 100) / 100
+
+        const response = await fetch('/api/moderation/showcase/update', {
+          method: 'POST',
+          headers: buildAuthHeaders(true),
+          body: JSON.stringify({
+            normalizedUrl,
+            siteTitle: draft.siteTitle,
+            category: draft.category,
+            complianceStatus: draft.complianceStatus || null,
+            complianceScore: normalizedScore,
+            thumbnailUrl: draft.thumbnailUrl || null,
+            accessibilityPageUrl: draft.accessibilityPageUrl || null,
+          }),
+        })
+        const payload = await readApiPayload(response)
+        const info = toNullableString(payload.message) ?? 'Entrée mise à jour.'
+
+        if (!response.ok) {
+          throw new Error(typeof payload.error === 'string' ? payload.error : 'Mise à jour impossible.')
+        }
+
+        if (!isShowcaseEntry(payload)) {
+          throw new Error('Réponse serveur invalide.')
+        }
+
+        setPublishedEntries((current) =>
+          current.map((entry) => (entry.normalizedUrl === normalizedUrl ? payload : entry)),
+        )
+        setPublishedDrafts((current) => ({
+          ...current,
+          [normalizedUrl]: toPublishedEntryDraft(payload),
+        }))
+        setPoliteMessage(info)
+        focusMessage()
+      } catch (error) {
+        const localizedMessage = error instanceof Error ? error.message : 'Erreur lors de la mise à jour.'
+        setAssertiveMessage(localizedMessage)
+        setPoliteMessage('')
+        focusMessage()
+      } finally {
+        setRunningPublishedUrl(null)
+      }
+    },
+    [buildAuthHeaders, focusMessage, publishedDrafts],
+  )
+
+  const handleDeletePublishedEntry = useCallback(
+    async (normalizedUrl: string) => {
+      if (deleteConfirmationUrl !== normalizedUrl) {
+        setDeleteConfirmationUrl(normalizedUrl)
+        setAssertiveMessage('')
+        setPoliteMessage('Cliquez à nouveau sur supprimer pour confirmer.')
+        focusMessage()
+        return
+      }
+
+      setRunningPublishedUrl(normalizedUrl)
+      setAssertiveMessage('')
+      setPoliteMessage('Suppression de l’entrée en cours...')
+
+      try {
+        const response = await fetch('/api/moderation/showcase/delete', {
+          method: 'POST',
+          headers: buildAuthHeaders(true),
+          body: JSON.stringify({
+            normalizedUrl,
+          }),
+        })
+        const payload = await readApiPayload(response)
+
+        if (!response.ok) {
+          throw new Error(typeof payload.error === 'string' ? payload.error : 'Suppression impossible.')
+        }
+
+        const info = toNullableString(payload.message) ?? 'Entrée supprimée.'
+        setPublishedEntries((current) => current.filter((entry) => entry.normalizedUrl !== normalizedUrl))
+        setPublishedDrafts((current) => {
+          const next = { ...current }
+          delete next[normalizedUrl]
+          return next
+        })
+        setDeleteConfirmationUrl(null)
+        setPoliteMessage(info)
+        focusMessage()
+      } catch (error) {
+        const localizedMessage = error instanceof Error ? error.message : 'Erreur lors de la suppression.'
+        setAssertiveMessage(localizedMessage)
+        setPoliteMessage('')
+        focusMessage()
+      } finally {
+        setRunningPublishedUrl(null)
+      }
+    },
+    [buildAuthHeaders, deleteConfirmationUrl, focusMessage],
   )
 
   useEffect(() => {
@@ -265,6 +525,9 @@ function ModerationPage() {
       >
         <a href="#contenu-moderation" className={skipLinkClass} onClick={focusMain}>
           Aller au contenu
+        </a>
+        <a href="#annuaire-publie" className={skipLinkClass} onClick={focusPublished}>
+          Aller à l’annuaire publié
         </a>
       </div>
 
@@ -339,10 +602,10 @@ function ModerationPage() {
               </button>
               <button
                 type="submit"
-                disabled={isLoadingList}
+                disabled={isLoadingList || isLoadingPublished}
                 className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-white dark:text-slate-950 disabled:opacity-60 ${focusRingClass} md:self-end`}
               >
-                {isLoadingList ? 'Chargement...' : 'Charger la file'}
+                {isLoadingList || isLoadingPublished ? 'Chargement...' : 'Charger la modération'}
               </button>
             </form>
 
@@ -395,8 +658,7 @@ function ModerationPage() {
                         <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">Créée le: {formatDate(entry.createdAt)}</p>
                         <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">Dernière analyse: {formatDate(entry.updatedAt)}</p>
                         <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                          Niveau: {entry.complianceStatusLabel ?? 'Inconnu'} | Score:{' '}
-                          {score !== null ? `${score}%` : 'N/A'}
+                          Niveau: {entry.complianceStatusLabel ?? 'Inconnu'} | Score: {formatScore(score)}
                         </p>
                         {entry.reviewReason && (
                           <p className="mt-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-900 dark:text-amber-100">
@@ -440,6 +702,180 @@ function ModerationPage() {
                             className={`min-h-11 rounded-xl bg-rose-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass} md:self-end`}
                           >
                             {isActionRunning ? 'Traitement...' : 'Rejeter'}
+                          </button>
+                        </div>
+                      </article>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </section>
+
+          <section
+            id="annuaire-publie"
+            ref={publishedRef}
+            tabIndex={-1}
+            className="mt-8"
+            aria-busy={isLoadingPublished}
+          >
+            <h2 className="text-lg font-semibold">Annuaire publié (édition et suppression)</h2>
+            <p className="mt-2 text-slate-700 dark:text-slate-300">
+              {publishedEntries.length} entrée(s) publiées.
+            </p>
+
+            {publishedEntries.length === 0 ? (
+              <p className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-slate-700 dark:text-slate-300">
+                Aucune entrée publiée chargée.
+              </p>
+            ) : (
+              <ul className="mt-4 grid gap-4">
+                {publishedEntries.map((entry) => {
+                  const draft = publishedDrafts[entry.normalizedUrl]
+                  if (!draft) {
+                    return null
+                  }
+
+                  const itemId = toDomId(entry.normalizedUrl)
+                  const isRunning = runningPublishedUrl === entry.normalizedUrl
+                  const isDeleteConfirm = deleteConfirmationUrl === entry.normalizedUrl
+
+                  return (
+                    <li
+                      key={entry.normalizedUrl}
+                      className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm"
+                    >
+                      <article>
+                        <h3 className="text-lg font-semibold">{entry.siteTitle}</h3>
+                        <p className="mt-2 break-all text-sm text-slate-700 dark:text-slate-300">{entry.normalizedUrl}</p>
+                        <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                          Dernière mise à jour: {formatDate(entry.updatedAt)}
+                        </p>
+
+                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                          <div>
+                            <label htmlFor={`title-${itemId}`} className="block text-sm font-medium">
+                              Nom du site
+                            </label>
+                            <input
+                              id={`title-${itemId}`}
+                              value={draft.siteTitle}
+                              onChange={(event) =>
+                                handlePublishedDraftChange(entry.normalizedUrl, 'siteTitle', event.target.value)
+                              }
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor={`category-${itemId}`} className="block text-sm font-medium">
+                              Catégorie
+                            </label>
+                            <select
+                              id={`category-${itemId}`}
+                              value={draft.category}
+                              onChange={(event) =>
+                                handlePublishedDraftChange(entry.normalizedUrl, 'category', event.target.value)
+                              }
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                            >
+                              {moderationCategories.map((category) => (
+                                <option key={category} value={category}>
+                                  {category}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label htmlFor={`status-${itemId}`} className="block text-sm font-medium">
+                              Niveau de conformité
+                            </label>
+                            <select
+                              id={`status-${itemId}`}
+                              value={draft.complianceStatus}
+                              onChange={(event) =>
+                                handlePublishedDraftChange(
+                                  entry.normalizedUrl,
+                                  'complianceStatus',
+                                  event.target.value as PublishedEntryDraft['complianceStatus'],
+                                )
+                              }
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                            >
+                              {complianceStatusOptions.map((statusOption) => (
+                                <option key={statusOption.value || 'unknown'} value={statusOption.value}>
+                                  {statusOption.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label htmlFor={`score-${itemId}`} className="block text-sm font-medium">
+                              Score
+                            </label>
+                            <input
+                              id={`score-${itemId}`}
+                              inputMode="decimal"
+                              value={draft.complianceScore}
+                              onChange={(event) =>
+                                handlePublishedDraftChange(entry.normalizedUrl, 'complianceScore', event.target.value)
+                              }
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label htmlFor={`thumb-${itemId}`} className="block text-sm font-medium">
+                              URL vignette (optionnel)
+                            </label>
+                            <input
+                              id={`thumb-${itemId}`}
+                              value={draft.thumbnailUrl}
+                              onChange={(event) =>
+                                handlePublishedDraftChange(entry.normalizedUrl, 'thumbnailUrl', event.target.value)
+                              }
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label htmlFor={`a11y-${itemId}`} className="block text-sm font-medium">
+                              URL déclaration d’accessibilité (optionnel)
+                            </label>
+                            <input
+                              id={`a11y-${itemId}`}
+                              value={draft.accessibilityPageUrl}
+                              onChange={(event) =>
+                                handlePublishedDraftChange(
+                                  entry.normalizedUrl,
+                                  'accessibilityPageUrl',
+                                  event.target.value,
+                                )
+                              }
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void handleUpdatePublishedEntry(entry.normalizedUrl)
+                            }}
+                            disabled={isRunning}
+                            className={`min-h-11 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass}`}
+                          >
+                            {isRunning ? 'Traitement...' : 'Enregistrer'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void handleDeletePublishedEntry(entry.normalizedUrl)
+                            }}
+                            disabled={isRunning}
+                            className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass} ${
+                              isDeleteConfirm ? 'bg-rose-900' : 'bg-rose-700'
+                            }`}
+                          >
+                            {isRunning ? 'Traitement...' : isDeleteConfirm ? 'Confirmer suppression' : 'Supprimer'}
                           </button>
                         </div>
                       </article>
