@@ -24,6 +24,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Explicit filter CTA with a `Rechercher` button for clear submit action and predictable keyboard flow.
 - Progressive tile pagination in the directory (`24` cards per batch) with a manual `Charger plus` action.
 - Automatic lazy loading of additional tiles near viewport end (with keyboard-accessible manual fallback).
+- Reddit-like upvote on each directory tile with accessible button state (`aria-pressed`) and live vocal feedback.
 - Submission flow now includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
@@ -90,6 +91,14 @@ REDIS_CACHE_TTL_MS=15000
 
 This enables short-lived server-side caching for Redis-backed listing/moderation reads to avoid unnecessary Upstash queries on repeated requests.
 
+Optional vote hardening setting:
+
+```bash
+VOTE_FINGERPRINT_SALT=change-this-random-secret
+```
+
+Use a custom secret in production so vote fingerprints cannot be reproduced across environments.
+
 You can check the active storage mode via:
 
 - `GET /api/health`
@@ -103,6 +112,7 @@ You can check the active storage mode via:
 - DNS resolution checks before remote fetch
 - Response timeout and maximum HTML size limits
 - Global rate limiting on API endpoints + stricter hourly limiter for submissions
+- Dedicated vote anti-abuse controls: one-vote safeguards per user/browser fingerprint + per network fingerprint, plus hourly vote rate limiting
 - Domain-level deduplication via canonical URL normalization (e.g. `www` variants collapse)
 - Honeypot field validation to reduce automated spam submissions
 - Automatic spam/marketing signal rejection (quality filter)
@@ -163,7 +173,8 @@ Local services:
 
 - `POST /api/site-insight` registers/enriches one site entry in the directory
 - `POST /api/site-insight?preview=1` runs pre-analysis without persistence (used by confirmation step)
-- `GET /api/showcase` returns persisted showcase entries (supports `search`, `status`, `category`, `limit`)
+- `GET /api/showcase` returns persisted showcase entries (supports `search`, `status`, `category`, `limit`, `clientVoterId`)
+- `POST /api/showcase/upvote` records one upvote for one listed site
 - `GET /api/health` returns service status and active storage mode
 - `GET /api/moderation/pending` returns pending moderation entries (protected)
 - `POST /api/moderation/approve` approves one pending submission (protected)
@@ -212,6 +223,21 @@ Notes:
 - `complianceScore` accepte les décimales (ex: `96.51`) et est normalisé entre `0` et `100`.
 - `thumbnailUrl` et `accessibilityPageUrl` sont optionnels; envoyer `null` (ou chaîne vide côté UI) pour les vider.
 - Les URL éditées sont validées côté serveur (HTTP/HTTPS public uniquement).
+
+`POST /api/showcase/upvote` body:
+
+```json
+{
+  "normalizedUrl": "https://www.impots.gouv.fr/",
+  "clientVoterId": "voter_q8r7m5h4q3w2e1z9"
+}
+```
+
+Vote notes:
+
+- `clientVoterId` is generated and persisted in browser storage by the frontend.
+- The API combines client and network-based fingerprints to block repeated votes on the same site.
+- Successful response returns the updated entry (`upvoteCount`, `hasUpvoted`) plus a localized `message`.
 
 ### Manual moderation workflow
 
@@ -276,7 +302,8 @@ Recommended GitHub setup:
 The repository includes native Vercel serverless endpoints in `api/`:
 
 - `api/site-insight.js`
-- `api/showcase.js`
+- `api/showcase/index.js`
+- `api/showcase/upvote.js`
 - `api/health.js`
 - `api/moderation/pending.js`
 - `api/moderation/approve.js`

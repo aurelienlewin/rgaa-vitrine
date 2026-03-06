@@ -36,6 +36,8 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - New public accessibility declaration page (`/accessibilite`) with audit score, non-conformities list, contact channel, and legal recourse information.
 - Audit-driven remediation pass for previously non-conform criteria from production JSON report (`20260306-141236`).
 - New protected moderation endpoints for published entries management: `GET /api/moderation/showcase`, `POST /api/moderation/showcase/update`, and `POST /api/moderation/showcase/delete`.
+- New accessible upvote system on showcase tiles, with `POST /api/showcase/upvote` and persisted `upvoteCount`.
+- Dedicated Vercel serverless handlers for showcase routes: `api/showcase/index.js` and `api/showcase/upvote.js`.
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
@@ -112,6 +114,9 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Site insight compliance retrieval now consumes metadata hints (`rgaa:compliance-status`, `rgaa:compliance-score`) and stronger SPA-page textual signals to avoid false manual-review downgrades.
 - Documentation now clarifies that `rgaa:compliance-*` extraction depends on deploying the latest frontend metadata before submission tests.
 - Submission flow now performs a non-persistent pre-analysis (`/api/site-insight?preview=1`) and displays detected score/status before final confirmation.
+- `GET /api/showcase` now accepts `clientVoterId` and returns per-entry vote state (`hasUpvoted`) for the current visitor.
+- Vote registration now applies layered anti-abuse safeguards (client fingerprint + network fingerprint + hourly limiter) with localized feedback messages.
+- Vercel function glob now targets nested API handlers (`api/**/*.js`) so showcase/moderation subroutes share the same runtime limits.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
