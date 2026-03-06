@@ -258,7 +258,8 @@ Vote notes:
 RGAA baseline notes:
 
 - `rgaaBaseline` is exposed in showcase entries (`4.1` or `5.0-ready`).
-- Detection prioritizes explicit RGAA 5 mentions in accessibility declarations/meta tags, otherwise defaults to `4.1`.
+- Existing and newly ingested entries default to `4.1` until a moderator explicitly overrides the badge.
+- `5.0-ready` is applied only through moderation override.
 
 ### Manual moderation workflow
 
