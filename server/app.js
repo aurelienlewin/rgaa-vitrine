@@ -1,7 +1,7 @@
 import express from 'express'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
-import { createHash, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 import { isIP } from 'node:net'
 import { buildSiteInsight, SiteInsightError, validatePublicHttpUrl } from './siteInsight.js'
 import { isGithubNotifierEnabled, notifyPendingModerationOnGithub } from './githubNotifier.js'
@@ -40,7 +40,12 @@ const SUSPICIOUS_MARKETING_TOKENS = [
 const VOTE_FINGERPRINT_SALT = process.env.VOTE_FINGERPRINT_SALT ?? 'annuaire-rgaa-votes'
 const MAX_ARCHIVE_IMPORT_BYTES = 2_000_000
 const MAX_SHOWCASE_ENTRY_LIMIT = 500
+const MAX_PENDING_ARCHIVE_SCAN_LIMIT = 200
 const MIN_MODERATION_TOKEN_LENGTH = 32
+const ARCHIVE_FORMAT = 'annuaire-rgaa-archive'
+const ARCHIVE_VERSION = 1
+const ARCHIVE_INTEGRITY_ALGORITHM = 'hmac-sha256'
+const MIN_ARCHIVE_SIGNING_SECRET_LENGTH = 32
 const PUBLIC_SUBMISSION_CATEGORY_FALLBACK = 'Autre'
 const PUBLIC_SUBMISSION_CATEGORIES = [
   'Administration',
@@ -75,6 +80,20 @@ function readModerationToken() {
 
 function isStrongModerationToken(token) {
   return typeof token === 'string' && token.length >= MIN_MODERATION_TOKEN_LENGTH
+}
+
+function readArchiveSigningSecret() {
+  const rawValue = process.env.MODERATION_ARCHIVE_SIGNING_SECRET
+  if (typeof rawValue !== 'string') {
+    return null
+  }
+
+  const trimmed = rawValue.trim()
+  return trimmed || null
+}
+
+function isStrongArchiveSigningSecret(secret) {
+  return typeof secret === 'string' && secret.length >= MIN_ARCHIVE_SIGNING_SECRET_LENGTH
 }
 
 function sendJsonError(response, statusCode, message) {
@@ -123,6 +142,155 @@ function safeTokenEquals(left, right) {
   }
 
   return timingSafeEqual(leftBuffer, rightBuffer)
+}
+
+function stableStringify(value) {
+  if (value === null || value === undefined) {
+    return 'null'
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? String(value) : 'null'
+  }
+
+  if (typeof value === 'boolean') {
+    return value ? 'true' : 'false'
+  }
+
+  if (typeof value === 'string') {
+    return JSON.stringify(value)
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(',')}]`
+  }
+
+  if (typeof value === 'object') {
+    const entries = Object.entries(value)
+      .filter(([, entryValue]) => entryValue !== undefined)
+      .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey, 'en'))
+      .map(([key, entryValue]) => `${JSON.stringify(key)}:${stableStringify(entryValue)}`)
+    return `{${entries.join(',')}}`
+  }
+
+  return JSON.stringify(String(value))
+}
+
+function buildArchiveSignaturePayload(payload) {
+  const source = payload && typeof payload === 'object' ? payload : {}
+  const sourceData = source.data && typeof source.data === 'object' ? source.data : source
+  return {
+    format: typeof source.format === 'string' ? source.format : null,
+    version: Number.isInteger(source.version) ? source.version : null,
+    exportedAt: typeof source.exportedAt === 'string' ? source.exportedAt : null,
+    storageMode: typeof source.storageMode === 'string' ? source.storageMode : null,
+    data: sourceData,
+  }
+}
+
+function computeArchiveIntegritySignature(payload, secret) {
+  const signingPayload = buildArchiveSignaturePayload(payload)
+  const canonical = stableStringify(signingPayload)
+  return createHmac('sha256', secret).update(canonical, 'utf8').digest('hex')
+}
+
+function readArchiveEnvelopeMetadata(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return { error: 'Archive invalide.' }
+  }
+
+  if (payload.format !== undefined && payload.format !== ARCHIVE_FORMAT) {
+    return { error: `Format d’archive invalide. Valeur attendue: ${ARCHIVE_FORMAT}.` }
+  }
+
+  if (payload.version !== undefined && payload.version !== ARCHIVE_VERSION) {
+    return { error: `Version d’archive invalide. Valeur attendue: ${ARCHIVE_VERSION}.` }
+  }
+
+  if (payload.exportedAt === undefined) {
+    return { exportedAtIso: null }
+  }
+
+  if (typeof payload.exportedAt !== 'string') {
+    return { error: 'Champ exportedAt invalide.' }
+  }
+
+  const parsed = Date.parse(payload.exportedAt)
+  if (Number.isNaN(parsed)) {
+    return { error: 'Champ exportedAt invalide.' }
+  }
+
+  return { exportedAtIso: new Date(parsed).toISOString() }
+}
+
+function readArchiveIntegrity(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return { present: false, error: null, signature: null }
+  }
+
+  if (payload.integrity === undefined) {
+    return { present: false, error: null, signature: null }
+  }
+
+  const integrity = payload.integrity
+  if (!integrity || typeof integrity !== 'object') {
+    return { present: true, error: 'Bloc integrity invalide.', signature: null }
+  }
+
+  const algorithm = typeof integrity.algorithm === 'string' ? integrity.algorithm.trim().toLowerCase() : ''
+  if (algorithm !== ARCHIVE_INTEGRITY_ALGORITHM) {
+    return {
+      present: true,
+      error: `Algorithme integrity invalide. Valeur attendue: ${ARCHIVE_INTEGRITY_ALGORITHM}.`,
+      signature: null,
+    }
+  }
+
+  const signature = typeof integrity.signature === 'string' ? integrity.signature.trim().toLowerCase() : ''
+  if (!/^[a-f0-9]{64}$/.test(signature)) {
+    return { present: true, error: 'Signature integrity invalide.', signature: null }
+  }
+
+  return { present: true, error: null, signature }
+}
+
+function withArchiveIntegrity(payload, secret) {
+  return {
+    ...payload,
+    integrity: {
+      algorithm: ARCHIVE_INTEGRITY_ALGORITHM,
+      signature: computeArchiveIntegritySignature(payload, secret),
+    },
+  }
+}
+
+function readNewestIsoTimestamp(candidates) {
+  let latestTimestamp = 0
+
+  for (const candidate of candidates) {
+    const parsed = Date.parse(String(candidate ?? ''))
+    if (Number.isNaN(parsed)) {
+      continue
+    }
+    latestTimestamp = Math.max(latestTimestamp, parsed)
+  }
+
+  if (latestTimestamp <= 0) {
+    return null
+  }
+
+  return new Date(latestTimestamp).toISOString()
+}
+
+async function readLatestStoredDataTimestampIso() {
+  const [entries, pendingEntries] = await Promise.all([
+    showcaseStorage.list({ limit: MAX_SHOWCASE_ENTRY_LIMIT }),
+    showcaseStorage.listPending({ limit: MAX_PENDING_ARCHIVE_SCAN_LIMIT }),
+  ])
+
+  const latestEntryUpdatedAt = Array.isArray(entries) && entries[0] ? entries[0].updatedAt : null
+  const latestPendingCreatedAt = Array.isArray(pendingEntries) && pendingEntries[0] ? pendingEntries[0].createdAt : null
+  return readNewestIsoTimestamp([latestEntryUpdatedAt, latestPendingCreatedAt])
 }
 
 function extractSubmissionId(value) {
@@ -988,12 +1156,26 @@ app.post('/api/moderation/blocklist/votes', requireModerationAuth, async (reques
 app.get('/api/moderation/archive', requireModerationAuth, async (_request, response) => {
   try {
     const archivePayload = await showcaseStorage.exportArchive()
+    const archiveSigningSecret = readArchiveSigningSecret()
+    if (archiveSigningSecret && !isStrongArchiveSigningSecret(archiveSigningSecret)) {
+      sendJsonError(
+        response,
+        503,
+        `Archivage signé indisponible: MODERATION_ARCHIVE_SIGNING_SECRET doit contenir au moins ${MIN_ARCHIVE_SIGNING_SECRET_LENGTH} caractères.`,
+      )
+      return
+    }
+
+    const responsePayload =
+      archiveSigningSecret && isStrongArchiveSigningSecret(archiveSigningSecret)
+        ? withArchiveIntegrity(archivePayload, archiveSigningSecret)
+        : archivePayload
     const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
 
     response.setHeader('content-type', 'application/json; charset=utf-8')
     response.setHeader('content-disposition', `attachment; filename="annuaire-rgaa-archive-${timestamp}.json"`)
     response.setHeader('cache-control', 'no-store')
-    response.status(200).json(archivePayload)
+    response.status(200).json(responsePayload)
   } catch (error) {
     if (error instanceof ShowcaseStorageError) {
       sendJsonError(response, error.statusCode, error.message)
@@ -1022,6 +1204,49 @@ app.post('/api/moderation/archive/import', requireModerationAuth, async (request
     return
   }
 
+  const envelope = readArchiveEnvelopeMetadata(archivePayload)
+  if (envelope.error) {
+    sendJsonError(response, 400, envelope.error)
+    return
+  }
+
+  const allowRollbackRaw = request.body?.allowRollback
+  const allowRollbackFlag = parseBooleanFlag(allowRollbackRaw)
+  if (allowRollbackRaw !== undefined && allowRollbackFlag === null) {
+    sendJsonError(response, 400, 'allowRollback doit être un booléen.')
+    return
+  }
+  const allowRollback = allowRollbackFlag === true
+
+  const archiveSigningSecret = readArchiveSigningSecret()
+  if (archiveSigningSecret && !isStrongArchiveSigningSecret(archiveSigningSecret)) {
+    sendJsonError(
+      response,
+      503,
+      `Import signé indisponible: MODERATION_ARCHIVE_SIGNING_SECRET doit contenir au moins ${MIN_ARCHIVE_SIGNING_SECRET_LENGTH} caractères.`,
+    )
+    return
+  }
+
+  if (archiveSigningSecret) {
+    const integrity = readArchiveIntegrity(archivePayload)
+    if (integrity.error) {
+      sendJsonError(response, 400, integrity.error)
+      return
+    }
+
+    if (!integrity.present || !integrity.signature) {
+      sendJsonError(response, 400, 'Signature d’archive requise pour cet environnement.')
+      return
+    }
+
+    const expectedSignature = computeArchiveIntegritySignature(archivePayload, archiveSigningSecret)
+    if (!safeTokenEquals(integrity.signature, expectedSignature)) {
+      sendJsonError(response, 400, 'Signature d’archive invalide.')
+      return
+    }
+  }
+
   const payloadSize = Buffer.byteLength(JSON.stringify(archivePayload), 'utf8')
   if (payloadSize > MAX_ARCHIVE_IMPORT_BYTES) {
     sendJsonError(response, 413, 'Archive trop volumineuse pour import.')
@@ -1029,6 +1254,31 @@ app.post('/api/moderation/archive/import', requireModerationAuth, async (request
   }
 
   try {
+    if (mode === 'replace' && !allowRollback) {
+      if (!envelope.exportedAtIso) {
+        sendJsonError(
+          response,
+          400,
+          'Le champ exportedAt est requis pour un import replace sécurisé (ou activez allowRollback).',
+        )
+        return
+      }
+
+      const currentLatestTimestampIso = await readLatestStoredDataTimestampIso()
+      if (currentLatestTimestampIso) {
+        const archiveTimestamp = Date.parse(envelope.exportedAtIso)
+        const currentTimestamp = Date.parse(currentLatestTimestampIso)
+        if (!Number.isNaN(archiveTimestamp) && !Number.isNaN(currentTimestamp) && archiveTimestamp < currentTimestamp) {
+          sendJsonError(
+            response,
+            409,
+            'Archive plus ancienne que les données actuelles. Définissez allowRollback=true pour forcer ce remplacement.',
+          )
+          return
+        }
+      }
+    }
+
     const importResult = await showcaseStorage.importArchive(archivePayload, mode)
     response.json({
       mode,

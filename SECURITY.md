@@ -23,6 +23,8 @@ https://github.com/aurelienlewin
 - Keep moderation endpoints protected by a strong `MODERATION_API_TOKEN` (minimum 32 chars).
 - Keep brute-force resistance on moderation auth (failed attempts must stay rate-limited).
 - Treat moderation archive export/import payloads as sensitive operational data.
+- If enabled, keep `MODERATION_ARCHIVE_SIGNING_SECRET` strong (minimum 32 chars) and rotate it securely.
+- Keep rollback imports explicit (`allowRollback=true`) to avoid accidental destructive restores from stale archives.
 - Never commit secrets (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `.env` files).
 - If using GitHub notifications, use a fine-grained token scoped to one repository with Issues write only.
 - Use `GITHUB_NOTIFY_TOKEN` / `RGAA_NOTIFY_TOKEN` only (no implicit `GITHUB_TOKEN` fallback).

@@ -141,6 +141,7 @@ You can check the active storage mode via:
 - Forwarded IP headers are now validated as real IPs before contributing to anti-abuse vote fingerprints.
 - Moderation-enforced site blocklist now prevents new submissions on blocked URLs.
 - Moderation-enforced vote blocking now disables upvotes for selected URLs.
+- Moderation archive hardening: optional HMAC-signed exports/imports (`MODERATION_ARCHIVE_SIGNING_SECRET`) and rollback guard for destructive `replace` imports.
 - GitHub notifier hardening: explicit notifier token env vars only, strict public-HTTPS validation for custom GitHub API base URL, and short outbound timeout.
 - Domain-level deduplication via canonical URL normalization (e.g. `www` variants collapse)
 - Honeypot field validation to reduce automated spam submissions
@@ -279,6 +280,7 @@ Public profile pages:
 ```json
 {
   "mode": "merge",
+  "allowRollback": false,
   "archive": {
     "format": "annuaire-rgaa-archive",
     "version": 1,
@@ -303,7 +305,9 @@ Notes:
 - `thumbnailUrl` and `accessibilityPageUrl` are optional; send `null` (or an empty UI value) to clear them.
 - Edited URLs are validated server-side (public HTTP/HTTPS only).
 - `mode: "merge"` merges archive content with current storage; `mode: "replace"` clears storage before importing.
+- `allowRollback` is optional (`false` by default). Keep it `false` for safe imports; set `true` only when intentionally restoring an older archive in `replace` mode.
 - Exported archive payload is readable JSON (entries, pending queue, blocklists, vote fingerprints, client vote indexes).
+- If `MODERATION_ARCHIVE_SIGNING_SECRET` is configured, archive exports include an `integrity` HMAC signature and imports require a valid signature.
 
 `POST /api/showcase/upvote` body:
 
@@ -409,6 +413,7 @@ Ensure these environment variables are configured in Vercel project settings:
 or
 - `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
 - `MODERATION_API_TOKEN` (required to enable manual moderation API)
+- `MODERATION_ARCHIVE_SIGNING_SECRET` (optional but recommended; signs archive exports and enforces signature verification on imports)
 - `GITHUB_NOTIFY_REPO` and `GITHUB_NOTIFY_TOKEN` (optional, enables GitHub issue notifications for pending moderation)
 - `GITHUB_NOTIFY_LABELS` and `PUBLIC_APP_URL` (optional)
 - `GITHUB_API_URL` (optional, GitHub Enterprise/API gateway only; must be a public HTTPS URL)

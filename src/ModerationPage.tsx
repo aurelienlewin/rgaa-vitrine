@@ -330,6 +330,7 @@ function ModerationPage() {
   const [isExportingArchive, setIsExportingArchive] = useState(false)
   const [isImportingArchive, setIsImportingArchive] = useState(false)
   const [archiveImportMode, setArchiveImportMode] = useState<ArchiveImportMode>('merge')
+  const [allowArchiveRollbackImport, setAllowArchiveRollbackImport] = useState(false)
   const [archiveImportFile, setArchiveImportFile] = useState<File | null>(null)
   const [archiveImportFileName, setArchiveImportFileName] = useState('')
   const mainRef = useRef<HTMLElement | null>(null)
@@ -801,6 +802,7 @@ function ModerationPage() {
           headers: buildAuthHeaders(true),
           body: JSON.stringify({
             mode: archiveImportMode,
+            allowRollback: allowArchiveRollbackImport,
             archive: parsedArchive,
           }),
         })
@@ -822,6 +824,7 @@ function ModerationPage() {
 
         setArchiveImportFile(null)
         setArchiveImportFileName('')
+        setAllowArchiveRollbackImport(false)
         if (archiveImportInputRef.current) {
           archiveImportInputRef.current.value = ''
         }
@@ -839,6 +842,7 @@ function ModerationPage() {
     [
       archiveImportFile,
       archiveImportMode,
+      allowArchiveRollbackImport,
       buildAuthHeaders,
       focusArchive,
       focusElement,
@@ -1533,7 +1537,10 @@ function ModerationPage() {
                           name="archive-import-mode"
                           value="merge"
                           checked={archiveImportMode === 'merge'}
-                          onChange={() => setArchiveImportMode('merge')}
+                          onChange={() => {
+                            setArchiveImportMode('merge')
+                            setAllowArchiveRollbackImport(false)
+                          }}
                         />
                         Fusionner
                       </label>
@@ -1548,6 +1555,19 @@ function ModerationPage() {
                         Remplacer toute la base
                       </label>
                     </div>
+
+                    {archiveImportMode === 'replace' && (
+                      <label className={`mt-3 inline-flex min-h-11 items-start gap-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-sm text-amber-900 dark:text-amber-100 ${focusRingClass}`}>
+                        <input
+                          type="checkbox"
+                          checked={allowArchiveRollbackImport}
+                          onChange={(event) => setAllowArchiveRollbackImport(event.target.checked)}
+                        />
+                        <span>
+                          Autoriser un rollback (import d’une archive potentiellement plus ancienne que la base actuelle).
+                        </span>
+                      </label>
+                    )}
                   </fieldset>
 
                   <p className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-900 dark:text-amber-100">
