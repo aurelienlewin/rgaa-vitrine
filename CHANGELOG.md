@@ -124,10 +124,13 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Public showcase now exposes moderation vote availability state (`votesBlocked`) and disables voting on blocked URLs.
 - Site submissions are now rejected when the normalized URL is in moderation blocklist.
 - Moderation UI now includes accessible editors for site blocklist and vote blocklist.
+- Showcase and moderation tiles now expose an RGAA baseline indicator (`RGAA 4.1` or `RGAA 5.0 prêt`) with explicit explanatory text and backend detection.
+- Category inputs are now open text with suggestions in both submission and moderation flows, and include a dedicated `Coopérative et services` suggestion.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
 - Hardened metadata fetch SSRF guardrails by validating every redirect hop before following it.
+- Vote anti-abuse fingerprinting now ignores malformed forwarded-IP headers and only accepts valid IP values.
 
 ## [2026-03-06]
 

@@ -25,7 +25,9 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Progressive tile pagination in the directory (`24` cards per batch) with a manual `Charger plus` action.
 - Automatic lazy loading of additional tiles near viewport end (with keyboard-accessible manual fallback).
 - Reddit-like upvote on each directory tile with accessible button state (`aria-pressed`) and live vocal feedback.
+- Each directory tile now includes an explicit RGAA baseline badge (`RGAA 4.1` or `RGAA 5.0 prêt`) with readable explanation text.
 - Submission flow now includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
+- Category fields now support free text with accessible suggestions, including `Coopérative et services`.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
 - High-contrast color system tuned for low-vision navigation in both light and dark modes (including stronger visited-link and status semantics).
@@ -40,6 +42,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Default typography now prioritizes `Atkinson Hyperlegible` for broad readability, with `OpenDyslexic` and `Lexend` as accessible fallbacks.
 - Logo strategy is now icon-only in SVG; textual branding is rendered in semantic Tailwind UI for robust responsive display.
 - Directory-first UX with filters, categories, and search at the core.
+- Score is treated as a compass, not the goal: priority is to unblock customer journeys and deliver usable UX for everyone.
 - URL registration workflow with secure server-side metadata enrichment.
 - Dedicated moderation UI at `/moderation` for approving/rejecting pending submissions.
 - Dedicated moderation UI now supports published entry editing and deletion (title, category, score, status, vignette, accessibility URL).
@@ -116,6 +119,7 @@ You can check the active storage mode via:
 - Response timeout and maximum HTML size limits
 - Global rate limiting on API endpoints + stricter hourly limiter for submissions
 - Dedicated vote anti-abuse controls: one-vote safeguards per user/browser fingerprint + per network fingerprint, plus hourly vote rate limiting
+- Forwarded IP headers are now validated as real IPs before contributing to anti-abuse vote fingerprints.
 - Moderation-enforced site blocklist now prevents new submissions on blocked URLs.
 - Moderation-enforced vote blocking now disables upvotes for selected URLs.
 - Domain-level deduplication via canonical URL normalization (e.g. `www` variants collapse)
@@ -249,12 +253,17 @@ Vote notes:
 - Successful response returns the updated entry (`upvoteCount`, `hasUpvoted`, `votesBlocked`) plus a localized `message`.
 - When moderation blocks votes on one URL, public vote controls are dimmed and unavailable for this tile.
 
+RGAA baseline notes:
+
+- `rgaaBaseline` is exposed in showcase entries (`4.1` or `5.0-ready`).
+- Detection prioritizes explicit RGAA 5 mentions in accessibility declarations/meta tags, otherwise defaults to `4.1`.
+
 ### Manual moderation workflow
 
 1. A submission requiring human review is stored server-side as `pending`.
 2. A moderator opens `/moderation`, enters the moderation token, and loads the pending queue.
 3. The moderator approves or rejects each entry from the UI (the page calls moderation APIs with `submissionId`).
-4. The moderator can edit, delete, delete+block, and manage site/vote blocklists directly from `/moderation`.
+4. The moderator can edit, delete, delete+block, manage site/vote blocklists, and set custom categories directly from `/moderation`.
 
 Endpoints are protected by `MODERATION_API_TOKEN`.
 
@@ -359,6 +368,7 @@ npm run start:api
 
 J’ai lancé cet annuaire pour que le RGAA ne reste pas un sigle, mais une promesse tenue à chaque
 personne. Quand l’empathie guide les choix, l’activité progresse et l’équité devient concrète.
+Le score est une boussole, pas la destination: la priorité reste de libérer les parcours et l’usage.
 
 - M’offrir un café: https://buymeacoffee.com/aurelienlewin
 
