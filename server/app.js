@@ -19,6 +19,7 @@ const app = express()
 const showcaseStorage = createShowcaseStorage()
 const AUTO_PUBLISH_STATUSES = new Set(['full', 'partial'])
 const MODERATION_EDITABLE_STATUSES = new Set(['full', 'partial', 'none'])
+const MODERATION_EDITABLE_RGAA_BASELINES = new Set(['4.1', '5.0-ready'])
 const COMPLIANCE_LABELS = {
   full: 'Totalement conforme',
   partial: 'Partiellement conforme',
@@ -145,6 +146,23 @@ function parseScoreForModeration(value) {
   }
 
   return Math.round(parsed * 100) / 100
+}
+
+function parseRgaaBaselineForModeration(value, fallback = '4.1') {
+  if (value === null || value === undefined || value === '') {
+    return fallback
+  }
+
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (!MODERATION_EDITABLE_RGAA_BASELINES.has(trimmed)) {
+    return null
+  }
+
+  return trimmed
 }
 
 function parseBooleanFlag(value) {
@@ -943,6 +961,11 @@ app.post('/api/moderation/showcase/update', requireModerationAuth, async (reques
       sendJsonError(response, 400, 'complianceScore doit être un nombre entre 0 et 100.')
       return
     }
+    const nextRgaaBaseline = parseRgaaBaselineForModeration(request.body?.rgaaBaseline, existingEntry.rgaaBaseline ?? '4.1')
+    if (!nextRgaaBaseline) {
+      sendJsonError(response, 400, 'rgaaBaseline doit être `4.1` ou `5.0-ready`.')
+      return
+    }
 
     const thumbnailRaw = typeof request.body?.thumbnailUrl === 'string' ? request.body.thumbnailUrl.trim() : ''
     const accessibilityRaw =
@@ -968,6 +991,7 @@ app.post('/api/moderation/showcase/update', requireModerationAuth, async (reques
       complianceStatus: nextComplianceStatus,
       complianceStatusLabel: nextComplianceStatus ? COMPLIANCE_LABELS[nextComplianceStatus] : null,
       complianceScore: scoreCandidate,
+      rgaaBaseline: nextRgaaBaseline,
       updatedAt: new Date().toISOString(),
     }
 

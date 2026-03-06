@@ -42,6 +42,7 @@ type PublishedEntryDraft = {
   category: string
   complianceStatus: '' | 'full' | 'partial' | 'none'
   complianceScore: string
+  rgaaBaseline: RgaaBaseline
   thumbnailUrl: string
   accessibilityPageUrl: string
 }
@@ -66,6 +67,10 @@ const complianceStatusOptions: Array<{ value: PublishedEntryDraft['complianceSta
   { value: 'full', label: 'Totalement conforme' },
   { value: 'partial', label: 'Partiellement conforme' },
   { value: 'none', label: 'Non conforme' },
+]
+const rgaaBaselineOptions: Array<{ value: RgaaBaseline; label: string }> = [
+  { value: '4.1', label: 'RGAA 4.1' },
+  { value: '5.0-ready', label: 'RGAA 5.0 prêt' },
 ]
 
 const focusRingClass =
@@ -150,6 +155,7 @@ function toPublishedEntryDraft(entry: ShowcaseEntry): PublishedEntryDraft {
     category: entry.category || 'Autre',
     complianceStatus: status,
     complianceScore: entry.complianceScore === null ? '' : String(entry.complianceScore),
+    rgaaBaseline: entry.rgaaBaseline === '5.0-ready' ? '5.0-ready' : '4.1',
     thumbnailUrl: entry.thumbnailUrl ?? '',
     accessibilityPageUrl: entry.accessibilityPageUrl ?? '',
   }
@@ -588,6 +594,7 @@ function ModerationPage() {
             category: draft.category,
             complianceStatus: draft.complianceStatus || null,
             complianceScore: normalizedScore,
+            rgaaBaseline: draft.rgaaBaseline,
             thumbnailUrl: draft.thumbnailUrl || null,
             accessibilityPageUrl: draft.accessibilityPageUrl || null,
           }),
@@ -1296,6 +1303,29 @@ function ModerationPage() {
                               {complianceStatusOptions.map((statusOption) => (
                                 <option key={statusOption.value || 'unknown'} value={statusOption.value}>
                                   {statusOption.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label htmlFor={`rgaa-baseline-${itemId}`} className="block text-sm font-medium">
+                              Référentiel RGAA
+                            </label>
+                            <select
+                              id={`rgaa-baseline-${itemId}`}
+                              value={draft.rgaaBaseline}
+                              onChange={(event) =>
+                                handlePublishedDraftChange(
+                                  entry.normalizedUrl,
+                                  'rgaaBaseline',
+                                  event.target.value as PublishedEntryDraft['rgaaBaseline'],
+                                )
+                              }
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                            >
+                              {rgaaBaselineOptions.map((baselineOption) => (
+                                <option key={baselineOption.value} value={baselineOption.value}>
+                                  {baselineOption.label}
                                 </option>
                               ))}
                             </select>
