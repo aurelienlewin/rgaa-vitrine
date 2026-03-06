@@ -11,6 +11,7 @@ const COMPLIANCE_LABELS = {
   partial: 'Partiellement conforme',
   none: 'Non conforme',
 }
+const DEFAULT_RGAA_BASELINE = '4.1'
 
 const accessibilityKeywords = [
   'accessibilite',
@@ -421,6 +422,22 @@ function parseComplianceStatusValue(rawValue) {
   return null
 }
 
+function detectRgaaBaseline(normalizedText) {
+  if (typeof normalizedText !== 'string' || !normalizedText.trim()) {
+    return null
+  }
+
+  if (/(?:\brgaa\s*(?:v|version)?\s*5(?:[.,]0)?\b)|(?:\brgaa5\b)/.test(normalizedText)) {
+    return '5.0-ready'
+  }
+
+  if (/(?:\brgaa\s*(?:v|version)?\s*4(?:[.,]1(?:[.,]2)?)?\b)|(?:\brgaa4\b)/.test(normalizedText)) {
+    return '4.1'
+  }
+
+  return null
+}
+
 function resolveComplianceStatus(explicitStatus, score, normalizedText) {
   if (explicitStatus) {
     return explicitStatus
@@ -605,6 +622,16 @@ function extractComplianceFromMetaTags($) {
     'meta[name="accessibility:compliance-score"]',
     'meta[name="accessibility:score"]',
   ]
+  const baselineMetaSelectors = [
+    'meta[name="rgaa:baseline"]',
+    'meta[name="rgaa:version"]',
+    'meta[name="rgaa:referential"]',
+    'meta[name="accessibility:rgaa-baseline"]',
+    'meta[name="accessibility:rgaa-version"]',
+    'meta[name="accessibility:referential"]',
+    'meta[property="rgaa:baseline"]',
+    'meta[property="rgaa:version"]',
+  ]
 
   let explicitStatus = null
   for (const selector of statusMetaSelectors) {
@@ -626,9 +653,20 @@ function extractComplianceFromMetaTags($) {
     }
   }
 
+  let rgaaBaseline = null
+  for (const selector of baselineMetaSelectors) {
+    const value = $(selector).attr('content')?.trim()
+    const parsed = detectRgaaBaseline(normalizeForMatch(value ?? ''))
+    if (parsed) {
+      rgaaBaseline = parsed
+      break
+    }
+  }
+
   return {
     explicitStatus,
     complianceScore,
+    rgaaBaseline,
   }
 }
 
@@ -672,6 +710,7 @@ async function extractComplianceFromAccessibilityPage(accessibilityPageUrl) {
   const normalizedSignalText = normalizeForMatch(signalText)
   const textBased = extractCompliance(signalText)
   const metaBased = extractComplianceFromMetaTags($)
+  const textBasedRgaaBaseline = detectRgaaBaseline(normalizedSignalText)
 
   const complianceScore = textBased.complianceScore ?? metaBased.complianceScore
   const complianceStatus = resolveComplianceStatus(
@@ -679,10 +718,12 @@ async function extractComplianceFromAccessibilityPage(accessibilityPageUrl) {
     complianceScore,
     normalizedSignalText,
   )
+  const rgaaBaseline = textBasedRgaaBaseline ?? metaBased.rgaaBaseline
 
   return {
     complianceStatus,
     complianceScore,
+    rgaaBaseline,
   }
 }
 
@@ -696,11 +737,13 @@ export async function buildSiteInsight(inputUrl) {
 
   let complianceStatus = null
   let complianceScore = null
+  let rgaaBaseline = null
 
   try {
     const compliance = await extractComplianceFromAccessibilityPage(accessibilityPageUrl)
     complianceStatus = compliance.complianceStatus
     complianceScore = compliance.complianceScore
+    rgaaBaseline = compliance.rgaaBaseline
   } catch {
     // Accessibility page parsing is best effort and should not fail the main result.
   }
@@ -711,6 +754,11 @@ export async function buildSiteInsight(inputUrl) {
     complianceScore = complianceScore ?? fallback.complianceScore
   }
 
+  if (!rgaaBaseline) {
+    const homepageText = normalizeForMatch(load(homepage.html).text())
+    rgaaBaseline = detectRgaaBaseline(homepageText)
+  }
+
   return {
     normalizedUrl: canonicalizeListingUrl(homepage.finalUrl),
     siteTitle: metadata.siteTitle,
@@ -719,6 +767,7 @@ export async function buildSiteInsight(inputUrl) {
     complianceStatus,
     complianceStatusLabel: complianceStatus ? COMPLIANCE_LABELS[complianceStatus] : null,
     complianceScore,
+    rgaaBaseline: rgaaBaseline ?? DEFAULT_RGAA_BASELINE,
     updatedAt: new Date().toISOString(),
   }
 }

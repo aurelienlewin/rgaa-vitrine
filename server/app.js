@@ -2,6 +2,7 @@ import express from 'express'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import { createHash, timingSafeEqual } from 'node:crypto'
+import { isIP } from 'node:net'
 import { buildSiteInsight, SiteInsightError, validatePublicHttpUrl } from './siteInsight.js'
 import { isGithubNotifierEnabled, notifyPendingModerationOnGithub } from './githubNotifier.js'
 import { buildSitemapXml, resolvePublicAppUrl } from './sitemap.js'
@@ -186,8 +187,12 @@ function readCandidateIp(rawValue) {
     return null
   }
 
-  const first = rawValue.split(',')[0]?.trim()
+  const first = rawValue.split(',')[0]?.trim().replace(/^\[|\]$/g, '')
   if (!first || first.length > 100) {
+    return null
+  }
+
+  if (isIP(first) === 0) {
     return null
   }
 
@@ -842,6 +847,7 @@ app.post('/api/moderation/approve', requireModerationAuth, async (request, respo
         complianceStatus: pendingEntry.complianceStatus,
         complianceStatusLabel: pendingEntry.complianceStatusLabel,
         complianceScore: pendingEntry.complianceScore,
+        rgaaBaseline: pendingEntry.rgaaBaseline,
         updatedAt: new Date().toISOString(),
       },
       pendingEntry.category,

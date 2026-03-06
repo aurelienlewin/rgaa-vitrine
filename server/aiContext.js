@@ -59,6 +59,7 @@ function summarizeTopEntries(entries, maxItems = 20) {
     complianceStatus: entry.complianceStatus,
     complianceStatusLabel: entry.complianceStatusLabel,
     complianceScore: entry.complianceScore,
+    rgaaBaseline: entry.rgaaBaseline === '5.0-ready' ? '5.0-ready' : '4.1',
     updatedAt: toIsoDate(entry.updatedAt),
     accessibilityPageUrl: entry.accessibilityPageUrl,
   }))
@@ -125,6 +126,7 @@ export function buildAiContextPayload({ baseUrl, entries }) {
             'complianceStatus',
             'complianceStatusLabel',
             'complianceScore',
+            'rgaaBaseline',
             'updatedAt',
             'category',
           ],

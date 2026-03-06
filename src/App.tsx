@@ -4,6 +4,7 @@ import ThemeToggle from './ThemeToggle'
 import { applySeo, createAbsoluteUrl } from './seo'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
+type RgaaBaseline = '4.1' | '5.0-ready'
 
 type ShowcaseEntry = {
   normalizedUrl: string
@@ -13,6 +14,7 @@ type ShowcaseEntry = {
   complianceStatus: ComplianceStatus
   complianceStatusLabel: string | null
   complianceScore: number | null
+  rgaaBaseline: RgaaBaseline
   upvoteCount: number
   hasUpvoted: boolean
   votesBlocked: boolean
@@ -36,6 +38,7 @@ const showcaseCategories = [
   'Sante',
   'Education',
   'Associatif',
+  'Coopérative et services',
   'Autre',
 ]
 
@@ -46,6 +49,8 @@ const categoryLabels: Record<string, string> = {
   Sante: 'Santé',
   Education: 'Éducation',
   Associatif: 'Associatif',
+  'Cooperative et services': 'Coopérative et services',
+  'Coopérative et services': 'Coopérative et services',
   Autre: 'Autre',
 }
 
@@ -159,6 +164,35 @@ function formatSubmissionStatusLabel(value: SubmissionStatus | null) {
   return 'En attente d’analyse'
 }
 
+function normalizeRgaaBaseline(value: unknown): RgaaBaseline {
+  if (value === '5.0-ready') {
+    return '5.0-ready'
+  }
+  return '4.1'
+}
+
+function getRgaaBadgePresentation(baseline: RgaaBaseline) {
+  if (baseline === '5.0-ready') {
+    return {
+      shortLabel: 'RGAA 5.0 prêt',
+      ariaLabel: 'RGAA 5.0 prêt',
+      description:
+        'Le site mentionne une préparation au référentiel RGAA 5.0 sur sa déclaration d’accessibilité.',
+      className:
+        'border border-cyan-700 bg-cyan-100 dark:bg-cyan-950 text-cyan-900 dark:text-cyan-100',
+    }
+  }
+
+  return {
+    shortLabel: 'RGAA 4.1',
+    ariaLabel: 'RGAA 4.1',
+    description:
+      'Le site indique une conformité basée sur le référentiel RGAA 4.1 (ou 4.1.2).',
+    className:
+      'border border-sky-700 bg-sky-100 dark:bg-sky-950 text-sky-900 dark:text-sky-100',
+  }
+}
+
 function normalizeText(value: string) {
   return value
     .normalize('NFD')
@@ -170,6 +204,15 @@ function formatCategory(value: string) {
   return categoryLabels[value] ?? value
 }
 
+function normalizeCategoryInput(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return showcaseCategories[0]
+  }
+
+  return trimmed.slice(0, 60)
+}
+
 function toDomSafeIdSegment(value: string) {
   return value.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 120)
 }
@@ -177,6 +220,7 @@ function toDomSafeIdSegment(value: string) {
 function normalizeShowcaseEntry(entry: ShowcaseEntry): ShowcaseEntry {
   return {
     ...entry,
+    rgaaBaseline: normalizeRgaaBaseline(entry.rgaaBaseline),
     upvoteCount:
       typeof entry.upvoteCount === 'number' && Number.isFinite(entry.upvoteCount) && entry.upvoteCount >= 0
         ? Math.floor(entry.upvoteCount)
@@ -362,6 +406,18 @@ function App() {
       return searchable.includes(normalizedQuery)
     })
   }, [categoryFilter, searchQuery, showcaseEntries, statusFilter])
+
+  const availableCategoryOptions = useMemo(() => {
+    const options = new Set(showcaseCategories)
+    for (const entry of showcaseEntries) {
+      const normalized = normalizeCategoryInput(entry.category)
+      if (normalized) {
+        options.add(normalized)
+      }
+    }
+
+    return Array.from(options).sort((left, right) => left.localeCompare(right, 'fr'))
+  }, [showcaseEntries])
 
   const visibleShowcaseEntries = useMemo(
     () => filteredShowcaseEntries.slice(0, visibleTilesCount),
@@ -711,6 +767,10 @@ function App() {
     setSubmitErrorMessage(null)
     setSubmitInfoMessage(null)
     setLastAddedEntry(null)
+    const categoryForSubmission = normalizeCategoryInput(inputCategory)
+    if (categoryForSubmission !== inputCategory) {
+      setInputCategory(categoryForSubmission)
+    }
 
     if (!isSubmitConfirmationStep) {
       if (!inputUrl.trim()) {
@@ -731,7 +791,7 @@ function App() {
           headers: {
             'content-type': 'application/json',
           },
-          body: JSON.stringify({ url: inputUrl, category: inputCategory, website: websiteField }),
+          body: JSON.stringify({ url: inputUrl, category: categoryForSubmission, website: websiteField }),
         })
 
         const payload = await readApiPayload(response)
@@ -780,7 +840,7 @@ function App() {
         headers: {
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ url: inputUrl, category: inputCategory, website: websiteField }),
+        body: JSON.stringify({ url: inputUrl, category: categoryForSubmission, website: websiteField }),
       })
 
       const payload = await readApiPayload(response)
@@ -957,6 +1017,10 @@ function App() {
                 <dd className="mt-1 text-2xl font-bold text-rose-900 dark:text-rose-100">{directoryStats.none}</dd>
               </div>
             </dl>
+            <p className="mt-4 rounded-xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-3 text-sm font-medium text-sky-900 dark:text-sky-100">
+              Le score indique une direction. La vraie mesure, c’est un parcours client débloqué et une UX qui laisse
+              passer chaque personne.
+            </p>
           </section>
 
           <section
@@ -1038,7 +1102,7 @@ function App() {
                     className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                   >
                     <option value="all">Toutes les catégories</option>
-                    {showcaseCategories.map((category) => (
+                    {availableCategoryOptions.map((category) => (
                       <option key={category} value={category}>
                         {formatCategory(category)}
                       </option>
@@ -1095,6 +1159,12 @@ function App() {
                 {visibleShowcaseEntries.map((entry) => (
                   <li key={entry.normalizedUrl} className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
                     <article>
+                      {(() => {
+                        const rgaaBadge = getRgaaBadgePresentation(entry.rgaaBaseline)
+                        const badgeDescriptionId = `rgaa-badge-description-${toDomSafeIdSegment(entry.normalizedUrl)}`
+
+                        return (
+                          <>
                       <div className="h-40 bg-slate-100 dark:bg-slate-800">
                         {entry.thumbnailUrl ? (
                           <img
@@ -1155,10 +1225,23 @@ function App() {
                               Niveau inconnu
                             </span>
                           )}
+                          <span
+                            className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${rgaaBadge.className}`}
+                            aria-label={rgaaBadge.ariaLabel}
+                            aria-describedby={badgeDescriptionId}
+                          >
+                            {rgaaBadge.shortLabel}
+                          </span>
                           <span className="inline-flex min-h-8 items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
                             Score: {formatScore(entry.complianceScore)}
                           </span>
                         </div>
+                        <p
+                          id={badgeDescriptionId}
+                          className="text-xs text-slate-600 dark:text-slate-300"
+                        >
+                          {rgaaBadge.description}
+                        </p>
                         <div className="flex flex-wrap items-center gap-3 pt-1">
                           <button
                             type="button"
@@ -1192,6 +1275,9 @@ function App() {
                           </span>
                         </div>
                       </div>
+                          </>
+                        )
+                      })()}
                     </article>
                   </li>
                 ))}
@@ -1321,11 +1407,14 @@ function App() {
 
               <div>
                 <label htmlFor="categorie-site" className="block text-sm font-medium">
-                  Catégorie
+                  Catégorie (saisie libre possible)
                 </label>
-                <select
+                <input
                   id="categorie-site"
                   name="categorie"
+                  type="text"
+                  list="categorie-site-suggestions"
+                  autoComplete="off"
                   value={inputCategory}
                   onChange={(event) => {
                     setInputCategory(event.target.value)
@@ -1333,14 +1422,17 @@ function App() {
                     setSubmissionPreviewEntry(null)
                     setSubmissionPreviewStatus(null)
                   }}
+                  aria-describedby="categorie-site-help"
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
-                >
-                  {showcaseCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {formatCategory(category)}
-                    </option>
+                />
+                <datalist id="categorie-site-suggestions">
+                  {availableCategoryOptions.map((category) => (
+                    <option key={category} value={category} />
                   ))}
-                </select>
+                </datalist>
+                <p id="categorie-site-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                  Exemples: Administration, Éducation, Coopérative et services.
+                </p>
               </div>
 
               <button
@@ -1388,7 +1480,7 @@ function App() {
                   </div>
                   <div>
                     <dt className="font-semibold">Catégorie</dt>
-                    <dd>{formatCategory(inputCategory)}</dd>
+                    <dd>{formatCategory(normalizeCategoryInput(inputCategory))}</dd>
                   </div>
                   <div>
                     <dt className="font-semibold">Résultat estimé</dt>
@@ -1405,6 +1497,10 @@ function App() {
                   <div>
                     <dt className="font-semibold">Score détecté</dt>
                     <dd>{formatScore(submissionPreviewEntry?.complianceScore ?? null)}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Référentiel RGAA détecté</dt>
+                    <dd>{getRgaaBadgePresentation(normalizeRgaaBaseline(submissionPreviewEntry?.rgaaBaseline)).shortLabel}</dd>
                   </div>
                   <div>
                     <dt className="font-semibold">Déclaration d’accessibilité</dt>
@@ -1582,6 +1678,9 @@ function App() {
               <p className="mt-3 text-sm text-amber-900 dark:text-amber-100">
                 J’ai lancé cet annuaire pour que le RGAA ne reste pas un sigle, mais une promesse tenue à chaque
                 personne. Quand l’empathie guide les choix, l’activité progresse et l’équité devient concrète.
+              </p>
+              <p className="mt-3 text-sm font-semibold text-amber-900 dark:text-amber-100">
+                Le score est une boussole, pas la destination: la priorité reste de libérer les parcours et l’usage.
               </p>
               <a
                 href={supportProfile.buyMeACoffeeUrl}

@@ -4,6 +4,7 @@ import ThemeToggle from './ThemeToggle'
 import { applySeo } from './seo'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
+type RgaaBaseline = '4.1' | '5.0-ready'
 
 type PendingSubmission = {
   submissionId: string
@@ -14,6 +15,7 @@ type PendingSubmission = {
   complianceStatus: ComplianceStatus
   complianceStatusLabel: string | null
   complianceScore: number | null
+  rgaaBaseline?: RgaaBaseline
   updatedAt: string
   createdAt: string
   reviewReason: string | null
@@ -28,6 +30,7 @@ type ShowcaseEntry = {
   complianceStatus: ComplianceStatus
   complianceStatusLabel: string | null
   complianceScore: number | null
+  rgaaBaseline?: RgaaBaseline
   siteBlocked?: boolean
   votesBlocked?: boolean
   updatedAt: string
@@ -48,7 +51,16 @@ type PublishedEntryFeedback = {
   message: string
 }
 
-const moderationCategories = ['Administration', 'E-commerce', 'Media', 'Sante', 'Education', 'Associatif', 'Autre']
+const moderationCategories = [
+  'Administration',
+  'E-commerce',
+  'Media',
+  'Sante',
+  'Education',
+  'Associatif',
+  'Coopérative et services',
+  'Autre',
+]
 const complianceStatusOptions: Array<{ value: PublishedEntryDraft['complianceStatus']; label: string }> = [
   { value: '', label: 'Inconnu' },
   { value: 'full', label: 'Totalement conforme' },
@@ -92,6 +104,10 @@ function formatScore(value: number | null) {
   }).format(value)
 
   return `${localized}%`
+}
+
+function formatRgaaBaseline(value: RgaaBaseline | null | undefined) {
+  return value === '5.0-ready' ? 'RGAA 5.0 prêt' : 'RGAA 4.1'
 }
 
 function isPendingSubmission(payload: unknown): payload is PendingSubmission {
@@ -197,6 +213,17 @@ function ModerationPage() {
   const voteBlocklistInputRef = useRef<HTMLInputElement | null>(null)
 
   const hasToken = useMemo(() => moderationToken.trim().length > 0, [moderationToken])
+  const availableModerationCategoryOptions = useMemo(() => {
+    const options = new Set(moderationCategories)
+    for (const entry of publishedEntries) {
+      const category = typeof entry.category === 'string' ? entry.category.trim().slice(0, 60) : ''
+      if (category) {
+        options.add(category)
+      }
+    }
+
+    return Array.from(options).sort((left, right) => left.localeCompare(right, 'fr'))
+  }, [publishedEntries])
 
   const focusElement = useCallback((element: HTMLElement | null) => {
     if (!element) {
@@ -1085,6 +1112,9 @@ function ModerationPage() {
                         <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                           Niveau: {entry.complianceStatusLabel ?? 'Inconnu'} | Score: {formatScore(score)}
                         </p>
+                        <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                          Référentiel: {formatRgaaBaseline(entry.rgaaBaseline)}
+                        </p>
                         {entry.reviewReason && (
                           <p className="mt-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-900 dark:text-amber-100">
                             Motif de validation manuelle: {entry.reviewReason}
@@ -1151,6 +1181,11 @@ function ModerationPage() {
             <p className="mt-2 text-slate-700 dark:text-slate-300">
               {publishedEntries.length} entrée(s) publiées.
             </p>
+            <datalist id="moderation-category-suggestions">
+              {availableModerationCategoryOptions.map((category) => (
+                <option key={category} value={category} />
+              ))}
+            </datalist>
 
             {publishedEntries.length === 0 ? (
               <p className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-slate-700 dark:text-slate-300">
@@ -1183,6 +1218,9 @@ function ModerationPage() {
                         <p className="mt-2 break-all text-sm text-slate-700 dark:text-slate-300">{entry.normalizedUrl}</p>
                         <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                           Dernière mise à jour: {formatDate(entry.updatedAt)}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                          Référentiel: {formatRgaaBaseline(entry.rgaaBaseline)}
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2">
                           <span
@@ -1221,22 +1259,23 @@ function ModerationPage() {
                           </div>
                           <div>
                             <label htmlFor={`category-${itemId}`} className="block text-sm font-medium">
-                              Catégorie
+                              Catégorie (saisie libre possible)
                             </label>
-                            <select
+                            <input
                               id={`category-${itemId}`}
+                              type="text"
+                              list="moderation-category-suggestions"
+                              autoComplete="off"
                               value={draft.category}
                               onChange={(event) =>
                                 handlePublishedDraftChange(entry.normalizedUrl, 'category', event.target.value)
                               }
+                              aria-describedby={`category-help-${itemId}`}
                               className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-                            >
-                              {moderationCategories.map((category) => (
-                                <option key={category} value={category}>
-                                  {category}
-                                </option>
-                              ))}
-                            </select>
+                            />
+                            <p id={`category-help-${itemId}`} className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                              Suggestions disponibles, ou catégorie personnalisée.
+                            </p>
                           </div>
                           <div>
                             <label htmlFor={`status-${itemId}`} className="block text-sm font-medium">

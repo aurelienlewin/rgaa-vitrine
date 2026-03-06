@@ -21,6 +21,7 @@ const MAX_REDIS_CACHE_TTL_MS = 300_000
 const CLIENT_VOTES_REDIS_TTL_SECONDS = 180 * 24 * 60 * 60
 
 const ALLOWED_STATUSES = new Set(['full', 'partial', 'none'])
+const ALLOWED_RGAA_BASELINES = new Set(['4.1', '5.0-ready'])
 
 function resolveRedisCacheTtlMs() {
   const rawValue = Number.parseInt(process.env.REDIS_CACHE_TTL_MS ?? '', 10)
@@ -77,6 +78,15 @@ function toNonNegativeInteger(value) {
     return 0
   }
   return parsed
+}
+
+function normalizeRgaaBaseline(value) {
+  const baseline = toNullableString(value)
+  if (ALLOWED_RGAA_BASELINES.has(baseline ?? '')) {
+    return baseline
+  }
+
+  return '4.1'
 }
 
 function normalizeVoteTokens(voterFingerprints) {
@@ -140,6 +150,7 @@ function parseStoredEntry(payload) {
     complianceStatus: ALLOWED_STATUSES.has(complianceStatus ?? '') ? complianceStatus : null,
     complianceStatusLabel: toNullableString(payload.complianceStatusLabel),
     complianceScore: toNullableNumber(payload.complianceScore),
+    rgaaBaseline: normalizeRgaaBaseline(payload.rgaaBaseline),
     upvoteCount: toNonNegativeInteger(payload.upvoteCount),
     updatedAt,
     category: sanitizeCategory(payload.category),
@@ -173,6 +184,7 @@ function parsePendingEntry(payload) {
     complianceStatus: ALLOWED_STATUSES.has(complianceStatus ?? '') ? complianceStatus : null,
     complianceStatusLabel: toNullableString(payload.complianceStatusLabel),
     complianceScore: toNullableNumber(payload.complianceScore),
+    rgaaBaseline: normalizeRgaaBaseline(payload.rgaaBaseline),
     updatedAt,
     createdAt,
     reviewReason: toNullableString(payload.reviewReason),
@@ -189,6 +201,7 @@ function serializeEntry(entry) {
     complianceStatus: entry.complianceStatus ?? '',
     complianceStatusLabel: entry.complianceStatusLabel ?? '',
     complianceScore: entry.complianceScore ?? '',
+    rgaaBaseline: normalizeRgaaBaseline(entry.rgaaBaseline),
     upvoteCount: toNonNegativeInteger(entry.upvoteCount),
     updatedAt: entry.updatedAt,
     category: entry.category,
@@ -205,6 +218,7 @@ function serializePendingEntry(entry) {
     complianceStatus: entry.complianceStatus ?? '',
     complianceStatusLabel: entry.complianceStatusLabel ?? '',
     complianceScore: entry.complianceScore ?? '',
+    rgaaBaseline: normalizeRgaaBaseline(entry.rgaaBaseline),
     updatedAt: entry.updatedAt,
     createdAt: entry.createdAt,
     reviewReason: entry.reviewReason ?? '',
@@ -1076,6 +1090,7 @@ export function createShowcaseStorage() {
 export function buildShowcaseEntry(siteInsight, rawCategory) {
   return {
     ...siteInsight,
+    rgaaBaseline: normalizeRgaaBaseline(siteInsight.rgaaBaseline),
     upvoteCount: toNonNegativeInteger(siteInsight.upvoteCount),
     category: sanitizeCategory(rawCategory),
   }
@@ -1091,6 +1106,7 @@ export function buildPendingSubmission(siteInsight, rawCategory, rawReason) {
     complianceStatus: siteInsight.complianceStatus ?? null,
     complianceStatusLabel: siteInsight.complianceStatusLabel ?? null,
     complianceScore: siteInsight.complianceScore ?? null,
+    rgaaBaseline: normalizeRgaaBaseline(siteInsight.rgaaBaseline),
     updatedAt: siteInsight.updatedAt,
     createdAt: new Date().toISOString(),
     reviewReason: typeof rawReason === 'string' ? rawReason : null,
