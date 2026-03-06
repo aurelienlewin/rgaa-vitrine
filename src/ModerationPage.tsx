@@ -81,6 +81,14 @@ const focusRingClass =
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 shadow-lg ${focusRingClass}`
+const MODERATION_SESSION_STORAGE_KEY = 'annuaire-rgaa-moderation-session'
+const MODERATION_SESSION_TTL_MS = 12 * 60 * 60 * 1000
+
+type StoredModerationSession = {
+  token: string
+  expiresAt: number
+  source: 'session' | 'local'
+}
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('fr-FR', {
@@ -211,8 +219,94 @@ function readFilenameFromDisposition(disposition: string | null) {
   return null
 }
 
+function readSessionFromStorage(rawValue: string | null, source: StoredModerationSession['source']) {
+  if (!rawValue) {
+    return null
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue) as { token?: unknown; expiresAt?: unknown }
+    if (typeof parsed.token !== 'string' || typeof parsed.expiresAt !== 'number') {
+      return null
+    }
+    const token = parsed.token.trim()
+    if (!token || !Number.isFinite(parsed.expiresAt) || parsed.expiresAt <= Date.now()) {
+      return null
+    }
+
+    return {
+      token,
+      expiresAt: parsed.expiresAt,
+      source,
+    } satisfies StoredModerationSession
+  } catch {
+    return null
+  }
+}
+
+function readStoredModerationSession() {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const localSession = readSessionFromStorage(
+    window.localStorage.getItem(MODERATION_SESSION_STORAGE_KEY),
+    'local',
+  )
+  const sessionSession = readSessionFromStorage(
+    window.sessionStorage.getItem(MODERATION_SESSION_STORAGE_KEY),
+    'session',
+  )
+
+  if (!localSession && !sessionSession) {
+    return null
+  }
+  if (!localSession) {
+    return sessionSession
+  }
+  if (!sessionSession) {
+    return localSession
+  }
+
+  return localSession.expiresAt >= sessionSession.expiresAt ? localSession : sessionSession
+}
+
+function clearStoredModerationSession() {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.localStorage.removeItem(MODERATION_SESSION_STORAGE_KEY)
+  window.sessionStorage.removeItem(MODERATION_SESSION_STORAGE_KEY)
+}
+
+function persistStoredModerationSession(token: string, rememberAcrossBrowser: boolean) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const normalizedToken = token.trim()
+  if (!normalizedToken) {
+    clearStoredModerationSession()
+    return
+  }
+
+  const payload = JSON.stringify({
+    token: normalizedToken,
+    expiresAt: Date.now() + MODERATION_SESSION_TTL_MS,
+  })
+  window.sessionStorage.setItem(MODERATION_SESSION_STORAGE_KEY, payload)
+  if (rememberAcrossBrowser) {
+    window.localStorage.setItem(MODERATION_SESSION_STORAGE_KEY, payload)
+  } else {
+    window.localStorage.removeItem(MODERATION_SESSION_STORAGE_KEY)
+  }
+}
+
 function ModerationPage() {
   const [moderationToken, setModerationToken] = useState('')
+  const [rememberModerationSession, setRememberModerationSession] = useState(true)
+  const [hasStoredModerationSession, setHasStoredModerationSession] = useState(false)
   const [pendingEntries, setPendingEntries] = useState<PendingSubmission[]>([])
   const [publishedEntries, setPublishedEntries] = useState<ShowcaseEntry[]>([])
   const [siteBlocklist, setSiteBlocklist] = useState<string[]>([])
@@ -340,6 +434,28 @@ function ModerationPage() {
     setRejectReasons({})
     setDeleteConfirmationUrl(null)
   }, [])
+
+  const clearModerationSession = useCallback(
+    (clearToken = false) => {
+      clearStoredModerationSession()
+      setHasStoredModerationSession(false)
+      if (clearToken) {
+        setModerationToken('')
+      }
+      lockModerationView()
+    },
+    [lockModerationView],
+  )
+
+  const handleSignOut = useCallback(() => {
+    clearModerationSession(true)
+    setAssertiveMessage('')
+    setPoliteMessage('Session modération fermée.')
+    setRememberModerationSession(true)
+    window.setTimeout(() => {
+      focusTokenInput()
+    }, 0)
+  }, [clearModerationSession, focusTokenInput])
 
   const loadPendingEntries = useCallback(async () => {
     if (!hasToken) {
@@ -562,6 +678,8 @@ function ModerationPage() {
       const unlocked = pendingLoaded || publishedLoaded || blocklistsLoaded
 
       if (unlocked) {
+        persistStoredModerationSession(moderationToken, rememberModerationSession)
+        setHasStoredModerationSession(true)
         setIsModerationUnlocked(true)
         setAssertiveMessage('')
         setPoliteMessage('Accès modération activé.')
@@ -573,7 +691,15 @@ function ModerationPage() {
 
       lockModerationView()
     },
-    [focusPending, loadBlocklists, loadPendingEntries, loadPublishedEntries, lockModerationView],
+    [
+      focusPending,
+      loadBlocklists,
+      loadPendingEntries,
+      loadPublishedEntries,
+      lockModerationView,
+      moderationToken,
+      rememberModerationSession,
+    ],
   )
 
   const handleExportArchive = useCallback(async () => {
@@ -1184,6 +1310,21 @@ function ModerationPage() {
     })
   }, [])
 
+  useEffect(() => {
+    const restoredSession = readStoredModerationSession()
+    if (!restoredSession) {
+      clearStoredModerationSession()
+      setHasStoredModerationSession(false)
+      return
+    }
+
+    setModerationToken(restoredSession.token)
+    setRememberModerationSession(restoredSession.source === 'local')
+    setHasStoredModerationSession(true)
+    setAssertiveMessage('')
+    setPoliteMessage('Jeton restauré. Activez le chargement pour ouvrir la modération.')
+  }, [])
+
   return (
     <>
       <div
@@ -1249,17 +1390,33 @@ function ModerationPage() {
                   onChange={(event) => {
                     const nextToken = event.target.value
                     setModerationToken(nextToken)
-                    if (!nextToken.trim() && isModerationUnlocked) {
-                      lockModerationView()
-                      setPoliteMessage('Accès modération verrouillé.')
-                      setAssertiveMessage('')
+                    if (!nextToken.trim()) {
+                      clearStoredModerationSession()
+                      setHasStoredModerationSession(false)
+                      if (isModerationUnlocked) {
+                        lockModerationView()
+                        setPoliteMessage('Accès modération verrouillé.')
+                        setAssertiveMessage('')
+                      }
                     }
                   }}
+                  aria-describedby="token-session-help"
                   autoComplete="off"
                   required
                   spellCheck={false}
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 />
+                <label className={`mt-3 inline-flex min-h-11 items-center gap-2 text-sm ${focusRingClass}`}>
+                  <input
+                    type="checkbox"
+                    checked={rememberModerationSession}
+                    onChange={(event) => setRememberModerationSession(event.target.checked)}
+                  />
+                  Mémoriser sur cet appareil pendant 12 heures
+                </label>
+                <p id="token-session-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                  La session est conservée dans cet onglet. Avec l’option ci-dessus, elle est aussi conservée sur cet appareil pendant 12 heures.
+                </p>
               </div>
               <button
                 type="button"
@@ -1276,6 +1433,18 @@ function ModerationPage() {
                 {isLoadingList || isLoadingPublished ? 'Chargement...' : 'Charger la modération'}
               </button>
             </form>
+
+            {(isModerationUnlocked || hasStoredModerationSession) && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className={`min-h-11 rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}
+                >
+                  Se déconnecter et oublier la session
+                </button>
+              </div>
+            )}
 
             {(politeMessage || assertiveMessage) && (
               <p
