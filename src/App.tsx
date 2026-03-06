@@ -18,9 +18,9 @@ type ShowcaseEntry = {
 type ShowcaseStatusFilter = 'all' | Exclude<ComplianceStatus, null>
 
 const statusClassByValue: Record<Exclude<ComplianceStatus, null>, string> = {
-  full: 'bg-emerald-100 text-emerald-900',
-  partial: 'bg-amber-100 text-amber-900',
-  none: 'bg-rose-100 text-rose-900',
+  full: 'bg-emerald-100 dark:bg-emerald-900/70 text-emerald-900 dark:text-emerald-100',
+  partial: 'bg-amber-100 dark:bg-amber-900/70 text-amber-900 dark:text-amber-100',
+  none: 'bg-rose-100 dark:bg-rose-900/70 text-rose-900 dark:text-rose-100',
 }
 
 const showcaseCategories = [
@@ -109,7 +109,7 @@ const supportProfile = {
 
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus focus-visible:ring-2 focus-visible:ring-white'
-const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white px-3 py-2 text-slate-900 shadow-lg -translate-y-[220%] transition-transform duration-150 motion-reduce:transition-none focus-visible:translate-y-0 ${focusRingClass}`
+const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 shadow-lg -translate-y-[220%] transition-transform duration-150 motion-reduce:transition-none focus-visible:translate-y-0 ${focusRingClass}`
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('fr-FR', {
@@ -444,13 +444,13 @@ function App() {
       </div>
 
       <div className="min-h-screen bg-brand-surface text-brand-ink">
-        <header className="border-b border-slate-200 bg-white">
+        <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold uppercase tracking-wide text-slate-600">Annuaire public RGAA</p>
+              <p className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">Annuaire public RGAA</p>
               <a
                 href="#aide-accessibilite"
-                className={`inline-flex min-h-11 items-center rounded-xl border border-sky-300 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-900 ${focusRingClass}`}
+                className={`inline-flex min-h-11 items-center rounded-xl border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 px-4 py-2 text-sm font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
               >
                 Aide accessibilité
               </a>
@@ -462,7 +462,7 @@ function App() {
               loading="eager"
             />
             <h1 className="sr-only">Annuaire RGAA</h1>
-            <p className="mt-3 max-w-3xl text-base text-slate-700">
+            <p className="mt-3 max-w-3xl text-base text-slate-700 dark:text-slate-300">
               Une vitrine simple pour référencer et découvrir les sites qui affichent leur conformité RGAA, avec
               filtres et recherche accessibles à tous.
             </p>
@@ -470,26 +470,26 @@ function App() {
         </header>
 
         <main id="contenu" ref={mainContentRef} tabIndex={-1} className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-          <section aria-labelledby="annuaire-titre" className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section aria-labelledby="annuaire-titre" className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
             <h2 id="annuaire-titre" className="text-xl font-semibold">
               Annuaire
             </h2>
             <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-xl bg-slate-100 px-4 py-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600">Sites référencés</dt>
-                <dd className="mt-1 text-2xl font-bold text-slate-900">{directoryStats.total}</dd>
+              <div className="rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">Sites référencés</dt>
+                <dd className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">{directoryStats.total}</dd>
               </div>
-              <div className="rounded-xl bg-emerald-50 px-4 py-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Totalement conformes</dt>
-                <dd className="mt-1 text-2xl font-bold text-emerald-900">{directoryStats.full}</dd>
+              <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 px-4 py-3">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-200">Totalement conformes</dt>
+                <dd className="mt-1 text-2xl font-bold text-emerald-900 dark:text-emerald-100">{directoryStats.full}</dd>
               </div>
-              <div className="rounded-xl bg-amber-50 px-4 py-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-amber-700">Partiellement conformes</dt>
-                <dd className="mt-1 text-2xl font-bold text-amber-900">{directoryStats.partial}</dd>
+              <div className="rounded-xl bg-amber-50 dark:bg-amber-950/40 px-4 py-3">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">Partiellement conformes</dt>
+                <dd className="mt-1 text-2xl font-bold text-amber-900 dark:text-amber-100">{directoryStats.partial}</dd>
               </div>
-              <div className="rounded-xl bg-rose-50 px-4 py-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-rose-700">Non conformes</dt>
-                <dd className="mt-1 text-2xl font-bold text-rose-900">{directoryStats.none}</dd>
+              <div className="rounded-xl bg-rose-50 dark:bg-rose-950/40 px-4 py-3">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-200">Non conformes</dt>
+                <dd className="mt-1 text-2xl font-bold text-rose-900 dark:text-rose-100">{directoryStats.none}</dd>
               </div>
             </dl>
           </section>
@@ -506,14 +506,14 @@ function App() {
               <h2 id="galerie-titre" className="text-xl font-semibold">
                 Rechercher et filtrer
               </h2>
-              <p className="text-slate-700">Trouvez rapidement un site par nom, catégorie ou niveau de conformité.</p>
-              <p id="recherche-aide" className="text-sm text-slate-600">
+              <p className="text-slate-700 dark:text-slate-300">Trouvez rapidement un site par nom, catégorie ou niveau de conformité.</p>
+              <p id="recherche-aide" className="text-sm text-slate-600 dark:text-slate-400">
                 Astuce clavier: appuyez sur Échap dans la recherche pour effacer la saisie.
               </p>
             </div>
 
             <form
-              className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm"
               role="search"
               aria-label="Recherche dans l’annuaire des vitrines"
               onSubmit={handleSearchSubmit}
@@ -538,7 +538,7 @@ function App() {
                     placeholder="Titre, URL, catégorie..."
                     aria-controls="liste-vitrines"
                     aria-describedby="recherche-aide"
-                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm ${focusRingClass}`}
+                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                   />
                 </div>
 
@@ -551,7 +551,7 @@ function App() {
                     value={statusFilter}
                     onChange={(event) => setStatusFilter(event.target.value as ShowcaseStatusFilter)}
                     aria-controls="liste-vitrines"
-                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm ${focusRingClass}`}
+                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                   >
                     {Object.entries(showcaseStatusFilterLabels).map(([value, label]) => (
                       <option key={value} value={value}>
@@ -570,7 +570,7 @@ function App() {
                     value={categoryFilter}
                     onChange={(event) => setCategoryFilter(event.target.value)}
                     aria-controls="liste-vitrines"
-                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm ${focusRingClass}`}
+                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                   >
                     <option value="all">Toutes les catégories</option>
                     {showcaseCategories.map((category) => (
@@ -585,39 +585,39 @@ function App() {
               <div className="mt-3 flex flex-wrap gap-3">
                 <button
                   type="submit"
-                  className={`inline-flex min-h-11 items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl bg-slate-900 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-white dark:text-slate-950 ${focusRingClass}`}
                 >
                   Rechercher
                 </button>
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 >
                   Réinitialiser les filtres
                 </button>
               </div>
             </form>
 
-            <p ref={resultsSummaryRef} tabIndex={-1} className="mt-3 text-sm text-slate-700">
+            <p ref={resultsSummaryRef} tabIndex={-1} className="mt-3 text-sm text-slate-700 dark:text-slate-300">
               {filteredShowcaseEntries.length} site(s) affiché(s) sur {showcaseEntries.length}.
             </p>
 
-            {loadingDirectory && <p className="mt-3 text-slate-700">Chargement de l’annuaire...</p>}
+            {loadingDirectory && <p className="mt-3 text-slate-700 dark:text-slate-300">Chargement de l’annuaire...</p>}
 
             {!loadingDirectory && showcaseEntries.length === 0 && (
-              <p className="mt-3 text-slate-700">Aucun site référencé pour le moment.</p>
+              <p className="mt-3 text-slate-700 dark:text-slate-300">Aucun site référencé pour le moment.</p>
             )}
 
             {!loadingDirectory && showcaseEntries.length > 0 && filteredShowcaseEntries.length === 0 && (
-              <p className="mt-3 text-slate-700">Aucun site ne correspond aux filtres actuels.</p>
+              <p className="mt-3 text-slate-700 dark:text-slate-300">Aucun site ne correspond aux filtres actuels.</p>
             )}
 
             {directoryErrorMessage && (
               <p
                 ref={directoryErrorRef}
                 tabIndex={-1}
-                className="mt-4 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800"
+                className="mt-4 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 p-3 text-sm text-rose-800 dark:text-rose-100"
                 role="alert"
               >
                 {directoryErrorMessage}
@@ -627,9 +627,9 @@ function App() {
             {filteredShowcaseEntries.length > 0 && (
               <ul id="liste-vitrines" className="mt-4 grid gap-4 md:grid-cols-2">
                 {filteredShowcaseEntries.map((entry) => (
-                  <li key={entry.normalizedUrl} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <li key={entry.normalizedUrl} className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
                     <article>
-                      <div className="h-40 bg-slate-100">
+                      <div className="h-40 bg-slate-100 dark:bg-slate-800">
                         {entry.thumbnailUrl ? (
                           <img
                             src={entry.thumbnailUrl}
@@ -639,23 +639,23 @@ function App() {
                             referrerPolicy="no-referrer"
                           />
                         ) : (
-                          <div className="flex h-full items-center justify-center px-3 text-center text-sm text-slate-600">
+                          <div className="flex h-full items-center justify-center px-3 text-center text-sm text-slate-600 dark:text-slate-400">
                             Aucune vignette disponible
                           </div>
                         )}
                       </div>
                       <div className="space-y-2 p-4">
                         <h3 className="text-lg font-semibold">{entry.siteTitle}</h3>
-                        <p className="text-xs text-slate-600">Catégorie : {formatCategory(entry.category)}</p>
-                        <p className="text-xs text-slate-600">Mise à jour : {formatDate(entry.updatedAt)}</p>
-                        <p className="break-all text-xs text-slate-600">{entry.normalizedUrl}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">Catégorie : {formatCategory(entry.category)}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">Mise à jour : {formatDate(entry.updatedAt)}</p>
+                        <p className="break-all text-xs text-slate-600 dark:text-slate-400">{entry.normalizedUrl}</p>
                         <p className="text-sm">
                           <a
                             href={entry.normalizedUrl}
                             target="_blank"
                             rel="noreferrer noopener"
                             aria-label={`Visiter le site ${entry.siteTitle}`}
-                            className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-3 py-2 font-semibold text-slate-900 ${focusRingClass}`}
+                            className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                           >
                             Visiter le site
                           </a>
@@ -667,12 +667,12 @@ function App() {
                               target="_blank"
                               rel="noreferrer noopener"
                               aria-label={`Ouvrir la déclaration d’accessibilité de ${entry.siteTitle}`}
-                              className={`inline-flex min-h-11 items-center rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 font-semibold text-emerald-900 ${focusRingClass}`}
+                              className={`inline-flex min-h-11 items-center rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 font-semibold text-emerald-900 dark:text-emerald-100 ${focusRingClass}`}
                             >
                               Déclaration d’accessibilité
                             </a>
                           ) : (
-                            <span className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-600">
+                            <span className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-600 dark:text-slate-400">
                               Déclaration non détectée
                             </span>
                           )}
@@ -685,11 +685,11 @@ function App() {
                               {entry.complianceStatusLabel}
                             </span>
                           ) : (
-                            <span className="inline-flex min-h-8 items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-800">
+                            <span className="inline-flex min-h-8 items-center rounded-full bg-slate-200 dark:bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-800 dark:text-slate-200">
                               Niveau inconnu
                             </span>
                           )}
-                          <span className="inline-flex min-h-8 items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800">
+                          <span className="inline-flex min-h-8 items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-800 dark:text-slate-200">
                             Score: {entry.complianceScore !== null ? `${entry.complianceScore}%` : 'N/A'}
                           </span>
                         </div>
@@ -705,17 +705,17 @@ function App() {
             id="aide-accessibilite"
             ref={helpSectionRef}
             tabIndex={-1}
-            className="mt-8 rounded-2xl border border-sky-200 bg-sky-50 p-6"
+            className="mt-8 rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-6"
             aria-labelledby="aide-titre"
           >
-            <h2 id="aide-titre" className="text-xl font-semibold text-sky-900">
+            <h2 id="aide-titre" className="text-xl font-semibold text-sky-900 dark:text-sky-100">
               Aide accessibilité et repères WCAG 2.2
             </h2>
-            <p className="mt-2 text-sky-900">
+            <p className="mt-2 text-sky-900 dark:text-sky-100">
               Cette vitrine suit les recommandations WCAG 2.2 pour un usage clavier, des cibles interactives plus
               confortables et des retours clairs pour toutes et tous.
             </p>
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-sky-900">
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-sky-900 dark:text-sky-100">
               <li>Focus clavier visible et non masqué sur les contrôles interactifs.</li>
               <li>Cibles pointeur suffisantes pour limiter les erreurs de sélection.</li>
               <li>Point d’aide cohérent et retrouvé au même endroit dans l’interface.</li>
@@ -727,7 +727,7 @@ function App() {
                   href={resource.url}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-sky-300 bg-white px-4 py-2 font-semibold text-sky-900 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-sky-300 dark:border-sky-600 bg-white dark:bg-slate-900 px-4 py-2 font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
                 >
                   {resource.label}
                 </a>
@@ -739,13 +739,13 @@ function App() {
             id="ajout-site"
             ref={formSectionRef}
             tabIndex={-1}
-            className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+            className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
             aria-labelledby="formulaire-titre"
           >
             <h2 id="formulaire-titre" className="text-xl font-semibold">
               Ajouter un site
             </h2>
-            <p id="url-help" className="mt-2 text-sm text-slate-700">
+            <p id="url-help" className="mt-2 text-sm text-slate-700 dark:text-slate-300">
               Ajoutez une URL pour enrichir l’annuaire. Les métadonnées publiques seront récupérées automatiquement.
             </p>
 
@@ -780,7 +780,7 @@ function App() {
                   aria-describedby={submitErrorMessage ? 'url-help url-error' : 'url-help'}
                   value={inputUrl}
                   onChange={(event) => setInputUrl(event.target.value)}
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-base shadow-sm ${focusRingClass}`}
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 />
               </div>
 
@@ -793,7 +793,7 @@ function App() {
                   name="categorie"
                   value={inputCategory}
                   onChange={(event) => setInputCategory(event.target.value)}
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-base shadow-sm ${focusRingClass}`}
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 >
                   {showcaseCategories.map((category) => (
                     <option key={category} value={category}>
@@ -806,7 +806,7 @@ function App() {
               <button
                 type="submit"
                 disabled={loadingAdd}
-                className={`min-h-11 rounded-xl bg-slate-900 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:self-end ${focusRingClass}`}
+                className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-5 py-2.5 font-semibold text-white dark:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 md:self-end ${focusRingClass}`}
               >
                 {loadingAdd ? 'Ajout...' : 'Ajouter'}
               </button>
@@ -817,7 +817,7 @@ function App() {
                 id="url-error"
                 ref={submitErrorRef}
                 tabIndex={-1}
-                className="mt-4 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800"
+                className="mt-4 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 p-3 text-sm text-rose-800 dark:text-rose-100"
                 role="alert"
               >
                 {submitErrorMessage}
@@ -828,7 +828,7 @@ function App() {
               <p
                 ref={submitInfoRef}
                 tabIndex={-1}
-                className="mt-4 rounded-lg border border-sky-300 bg-sky-50 p-3 text-sm text-sky-900"
+                className="mt-4 rounded-lg border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 p-3 text-sm text-sky-900 dark:text-sky-100"
                 role="status"
                 aria-live="polite"
               >
@@ -837,7 +837,7 @@ function App() {
             )}
 
             {lastAddedEntry && !submitErrorMessage && (
-              <p className="mt-4 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800">
+              <p className="mt-4 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 p-3 text-sm text-emerald-800 dark:text-emerald-100">
                 Site ajouté : <strong>{lastAddedEntry.siteTitle}</strong>
               </p>
             )}
@@ -847,18 +847,18 @@ function App() {
             <h2 id="sources-titre" className="text-xl font-semibold">
               Ressources officielles RGAA
             </h2>
-            <p className="mt-2 text-slate-700">
+            <p className="mt-2 text-slate-700 dark:text-slate-300">
               Pour les personnes concernées, les équipes produit et les passionnés, voici les références publiques
               utilisées pour guider la qualité du répertoire.
             </p>
             <aside
-              className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4"
+              className="mt-4 rounded-xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-4"
               aria-labelledby="rgaa5-focus-titre"
             >
-              <h3 id="rgaa5-focus-titre" className="text-base font-semibold text-sky-900">
+              <h3 id="rgaa5-focus-titre" className="text-base font-semibold text-sky-900 dark:text-sky-100">
                 Point d’attention : cap RGAA 5
               </h3>
-              <p className="mt-1 text-sm text-sky-900">
+              <p className="mt-1 text-sm text-sky-900 dark:text-sky-100">
                 L’article officiel du 2 mars 2026 rappelle deux priorités : préparer la transition vers RGAA 5 d’ici
                 fin 2026, et maintenir dès maintenant les efforts de conformité RGAA 4.1.2.
               </p>
@@ -867,7 +867,7 @@ function App() {
                   href="https://design.numerique.gouv.fr/articles/2026-03-02-rgaa5/"
                   target="_blank"
                   rel="noreferrer noopener"
-                  className={`font-semibold text-sky-900 ${focusRingClass}`}
+                  className={`font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
                 >
                   Lire l’article "L’arrivée de RGAA 5 est annoncée"
                 </a>
@@ -875,7 +875,7 @@ function App() {
             </aside>
             <ul className="mt-4 grid gap-3">
               {officialResources.map((resource) => (
-                <li key={resource.url} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <li key={resource.url} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm">
                   <a
                     href={resource.url}
                     target="_blank"
@@ -892,7 +892,7 @@ function App() {
 
         <footer
           role="contentinfo"
-          className="mt-12 border-t border-slate-200 bg-white"
+          className="mt-12 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
           aria-label="Informations de bas de page"
         >
           <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8 md:flex-row md:items-center md:justify-between">
@@ -900,17 +900,17 @@ function App() {
               <img
                 src={githubProfile.avatarUrl}
                 alt={`Avatar GitHub de ${githubProfile.name}`}
-                className="h-12 w-12 rounded-full border border-slate-300"
+                className="h-12 w-12 rounded-full border border-slate-300 dark:border-slate-600"
                 loading="lazy"
                 referrerPolicy="no-referrer"
               />
-              <p className="text-sm text-slate-800">
+              <p className="text-sm text-slate-800 dark:text-slate-200">
                 Créé et maintenu par{' '}
                 <a href={githubProfile.profileUrl} target="_blank" rel="noreferrer noopener" className={focusRingClass}>
                   {githubProfile.name} (@{githubProfile.login})
                 </a>
               </p>
-              <a href="#aide-accessibilite" className={`text-sm font-semibold text-slate-800 underline ${focusRingClass}`}>
+              <a href="#aide-accessibilite" className={`text-sm font-semibold text-slate-800 dark:text-slate-200 underline ${focusRingClass}`}>
                 Aide accessibilité
               </a>
             </div>
@@ -919,7 +919,7 @@ function App() {
               href={supportProfile.buyMeACoffeeUrl}
               target="_blank"
               rel="noreferrer noopener"
-              className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 ${focusRingClass}`}
+              className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 px-4 py-2 text-sm font-semibold text-amber-900 dark:text-amber-100 ${focusRingClass}`}
               aria-label="M’offrir un café via Buy Me a Coffee"
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">

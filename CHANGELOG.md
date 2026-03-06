@@ -49,6 +49,9 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - SVG logo baseline clipping has been fixed by adding vertical canvas padding and rebalancing text block positioning.
 - App branding has been renamed to `Annuaire RGAA` (including metadata, UI labels, package name, and crawler user-agent).
 - Vercel config now removes invalid `functions.runtime` to comply with current platform runtime validation.
+- Dark-mode rendering now relies on explicit Tailwind `dark:` variants and tokenized base colors instead of brittle utility overrides, preventing mixed light/dark surfaces.
+- Global `:focus-visible` base styles have been reinforced for WCAG 2.2 keyboard focus visibility across all interactive controls.
+- Logo SVG viewport now includes extra vertical safe area (`viewBox` + overflow) to prevent baseline clipping in strict renderers.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
