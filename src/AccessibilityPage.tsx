@@ -11,56 +11,69 @@ const skipLinksContainerClass =
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 shadow-lg ${focusRingClass}`
 
 const auditSummary = {
-  score: '87,3 %',
+  score: '92,5 %',
   auditDate: '6 mars 2026',
-  auditedPage: 'https://annuaire-rgaa.fr/',
-  scope: '1 page auditée',
-  applicableCriteria: '55',
-  nonConformitiesCount: '7',
+  scope: '3 pages auditées',
+  auditedPages: [
+    'https://annuaire-rgaa.fr/',
+    'https://annuaire-rgaa.fr/plan-du-site',
+    'https://annuaire-rgaa.fr/accessibilite',
+  ],
+  applicableCriteria: '151',
+  conclusiveCriteria: '147',
+  reviewCriteria: '4',
+  nonConformitiesCount: '11',
 }
 
 const nonConformities = [
   {
-    id: '3.3',
-    title: 'Contraste insuffisant sur certains composants d’interface',
+    id: '3.1',
+    title: 'Informations perçues uniquement par la couleur sur des liens textuels',
     detail:
-      'Certaines combinaisons visuelles ne permettent pas une lecture et un repérage confortables pour tous les profils.',
+      'Des liens intégrés au texte ne sont pas assez distingués du texte environnant lorsqu’aucun soulignement permanent n’est présent.',
+    impactedPages: 'Accessibilité',
+  },
+  {
+    id: '3.2',
+    title: 'Contraste texte/fond insuffisant sur un statut',
+    detail:
+      'Un libellé de statut affiche un contraste trop faible entre texte et arrière-plan.',
+    impactedPages: 'Accueil',
+  },
+  {
+    id: '3.3',
+    title: 'Contraste non textuel insuffisant sur des composants d’interface',
+    detail:
+      'Certaines bordures et limites visuelles de contrôles interactifs ne sont pas suffisamment contrastées.',
+    impactedPages: 'Accueil, Plan du site, Accessibilité',
+  },
+  {
+    id: '7.2',
+    title: 'Alternative aux scripts non pertinente',
+    detail:
+      'Le contenu sans script n’offrait pas d’accès fonctionnel équivalent aux pages et ressources publiques essentielles.',
+    impactedPages: 'Accueil, Plan du site, Accessibilité',
   },
   {
     id: '10.5',
-    title: 'Association couleur de texte / couleur de fond incomplète',
+    title: 'Association couleur de texte / couleur de fond à renforcer',
     detail:
-      'Des styles utilisent parfois une seule couleur sans l’autre valeur associée, ce qui peut dégrader la lisibilité.',
+      'Certaines règles CSS utilisées sur la page doivent mieux expliciter le couple couleur de texte et couleur de fond.',
+    impactedPages: 'Accessibilité',
+  },
+  {
+    id: '10.6',
+    title: 'Liens en contexte textuel insuffisamment distinguables',
+    detail:
+      'Des liens non évidents ne sont pas visuellement assez différenciés du texte adjacent.',
+    impactedPages: 'Accessibilité',
   },
   {
     id: '10.11',
-    title: 'Reflow incomplet en très petite largeur',
+    title: 'Reflow en petite largeur à sécuriser',
     detail:
-      'En largeur réduite à 320 px, un défilement horizontal peut être nécessaire dans certaines situations.',
-  },
-  {
-    id: '10.13',
-    title: 'Contenus additionnels non entièrement contrôlables',
-    detail:
-      'Des informations additionnelles affichées au survol ou au focus ne sont pas toujours maîtrisables par l’utilisateur.',
-  },
-  {
-    id: '11.11',
-    title: 'Suggestions de correction insuffisantes dans le formulaire',
-    detail:
-      'Lors d’une erreur de saisie d’URL, les indications proposées ne facilitent pas assez la correction du format attendu.',
-  },
-  {
-    id: '11.12',
-    title: 'Mécanismes de modification ou récupération des données à renforcer',
-    detail:
-      'Le parcours de soumission ne propose pas encore de dispositif explicite pour corriger ou récupérer les informations transmises.',
-  },
-  {
-    id: '12.4',
-    title: 'Accès au plan du site observé comme non cohérent au moment de l’audit',
-    detail:
-      'La version analysée ne proposait pas un accès uniforme au plan du site sur l’ensemble audité.',
+      'À 320 px de large, certains contenus peuvent nécessiter un défilement horizontal selon les cas.',
+    impactedPages: 'Accessibilité',
   },
 ]
 
@@ -201,11 +214,20 @@ function AccessibilityPage() {
               Audit de référence réalisé le <strong>{auditSummary.auditDate}</strong> sur la version en production
               auditée à la date du contrôle ({auditSummary.scope}).
             </p>
-            <p className="mt-2 wrap-anywhere text-sm text-slate-700 dark:text-slate-300">
-              Page auditée: {auditSummary.auditedPage}
-            </p>
+            <ul className="mt-2 grid gap-1 text-sm text-slate-700 dark:text-slate-300">
+              {auditSummary.auditedPages.map((pageUrl) => (
+                <li key={pageUrl} className="wrap-anywhere">
+                  Page auditée: {pageUrl}
+                </li>
+              ))}
+            </ul>
             <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
               Critères applicables évalués: {auditSummary.applicableCriteria}.
+            </p>
+            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+              Critères conclusifs (conforme ou non conforme): {auditSummary.conclusiveCriteria}. Critères en revue:
+              {' '}
+              {auditSummary.reviewCriteria}.
             </p>
           </section>
 
@@ -222,10 +244,13 @@ function AccessibilityPage() {
             <ul className="mt-4 grid gap-3">
               {nonConformities.map((item) => (
                 <li key={item.id} className="rounded-xl border border-rose-300 dark:border-rose-700 bg-white dark:bg-slate-900 p-4">
-                  <p className="text-base font-semibold text-rose-900 dark:text-rose-100">
+                  <p className="wrap-anywhere text-base font-semibold text-rose-900 dark:text-rose-100">
                     Critère {item.id} · {item.title}
                   </p>
-                  <p className="mt-1 text-sm text-slate-800 dark:text-slate-200">{item.detail}</p>
+                  <p className="mt-1 wrap-anywhere text-sm text-slate-800 dark:text-slate-200">{item.detail}</p>
+                  <p className="mt-2 text-sm text-slate-800 dark:text-slate-200">
+                    Pages concernées: <strong>{item.impactedPages}</strong>
+                  </p>
                 </li>
               ))}
             </ul>
@@ -254,7 +279,7 @@ function AccessibilityPage() {
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">E-mail</p>
                 <a
                   href="mailto:aurelienlewin@proton.me"
-                  className={`mt-1 inline-flex min-h-11 items-center underline ${focusRingClass}`}
+                  className={`mt-1 inline-flex min-h-11 items-center wrap-anywhere underline decoration-2 underline-offset-2 ${focusRingClass}`}
                 >
                   aurelienlewin@proton.me
                 </a>
@@ -265,7 +290,7 @@ function AccessibilityPage() {
                   href="https://github.com/aurelienlewin"
                   target="_blank"
                   rel="noreferrer noopener"
-                  className={`mt-1 inline-flex min-h-11 items-center underline ${focusRingClass}`}
+                  className={`mt-1 inline-flex min-h-11 items-center wrap-anywhere underline decoration-2 underline-offset-2 ${focusRingClass}`}
                 >
                   github.com/aurelienlewin
                 </a>
@@ -294,7 +319,7 @@ function AccessibilityPage() {
                   href="https://formulaire.defenseurdesdroits.fr/"
                   target="_blank"
                   rel="noreferrer noopener"
-                  className={focusRingClass}
+                  className={`wrap-anywhere underline decoration-2 underline-offset-2 ${focusRingClass}`}
                 >
                   formulaire.defenseurdesdroits.fr
                 </a>
@@ -302,7 +327,7 @@ function AccessibilityPage() {
               <li>Courrier: Défenseur des droits, Libre réponse 71120, 75342 Paris CEDEX 07.</li>
               <li>
                 Téléphone:{' '}
-                <a href="tel:+33153732900" className={focusRingClass}>
+                <a href="tel:+33153732900" className={`underline decoration-2 underline-offset-2 ${focusRingClass}`}>
                   01 53 73 29 00
                 </a>
               </li>

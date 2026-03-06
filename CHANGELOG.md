@@ -162,6 +162,8 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Canonical SEO hardening: Vercel host redirects now consolidate `www.annuaire-rgaa.fr` and legacy `.org` hosts to `https://annuaire-rgaa.fr`.
 - Homepage structured data now exposes a `SearchAction`, with URL-synced `?recherche=` support for crawlable search landing URLs.
 - `sitemap.xml` now bypasses HTTP caching (`Cache-Control: no-store`) so new published sites appear in sitemap immediately.
+- Accessibility declaration content now reflects the latest completed multi-page review scope (home, site map, accessibility page) with refreshed score/criteria counts and impacted-page traceability.
+- Contextual links in the accessibility declaration now use persistent visual markers (underline + offset) to avoid color-only distinction.
 - Secondary pages (`/plan-du-site`, `/accessibilite`) now expose `BreadcrumbList` structured data.
 - Open Graph and Twitter metadata now include URL/image-alt/secure image fields for richer sharing previews.
 - Sitemap now includes `/api/showcase`, and `robots.txt` explicitly blocks moderation paths from indexing.

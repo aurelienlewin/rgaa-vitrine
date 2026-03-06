@@ -160,17 +160,21 @@ The UI now adapts automatically to operating-system and browser accessibility pr
 
 ## Accessibility Remediation Traceability
 
-Based on production audit data from `../audit/out/20260306-141236/audit.resume.json`, the app now includes targeted remediations for previously non-conform criteria:
+Based on the latest completed production accessibility review (updated March 6, 2026; scope: home page, site map, accessibility declaration), the current non-conform findings are concentrated on:
 
-- `3.3` improved interface contrast tuning (component boundaries and visual states).
-- `10.5` explicit foreground/background CSS pairing for links.
-- `10.11` reduced horizontal overflow risk on narrow viewports (`320px`) via skip-link layout adjustments.
-- `10.13` removal of tooltip-only `title` behavior on interactive controls.
-- `11.11` explicit URL format suggestions and validation guidance in the submission form.
-- `11.12` submission confirmation step with clear ability to review and modify entered data before sending.
-- `12.4` consistent exposure of `Plan du site` / `Accessibilité` navigation links across pages.
-- Compliance-score retrieval now recognizes broader wording patterns and decimal French percentages (e.g. `96,51 %`) on accessibility statements.
-- Compliance retrieval now also reads declarative meta hints (`rgaa:compliance-status`, `rgaa:compliance-score`) and SPA shell signals when accessibility pages expose little static body text.
+- `3.1` color-only distinction for some inline links in textual context.
+- `3.2` insufficient text/background contrast on one status badge.
+- `3.3` insufficient non-text contrast on some interface component boundaries.
+- `7.2` non-script fallback not functionally equivalent.
+- `10.5` color/background pairing still to be tightened in CSS usage patterns.
+- `10.6` inline links not visually distinct enough from surrounding text.
+- `10.11` reflow robustness at `320px` width.
+
+Remediations now implemented:
+
+- Stronger inline link visibility and permanent underline in the accessibility declaration for criteria `3.1` and `10.6`.
+- Additional wrapping hardening (`wrap-anywhere`) on long declaration content to reduce reflow risk (`10.11`).
+- Accessibility declaration data refreshed to the latest completed review scope and criteria set.
 
 Operational note:
 
@@ -435,13 +439,13 @@ npm run start:api
 - Code of Conduct: [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
 - Security policy: [SECURITY.md](./SECURITY.md)
 
-## Soutien
+## Support
 
-J’ai lancé cet annuaire pour que le RGAA ne reste pas un sigle, mais une promesse tenue à chaque
-personne. Quand l’empathie guide les choix, l’activité progresse et l’équité devient concrète.
-Le score est une boussole, pas la destination: la priorité reste de libérer les parcours et l’usage.
+I launched this directory so RGAA would not remain a label, but become a promise kept for every person.
+When empathy guides product decisions, business grows with fairness instead of friction.
+The score is a compass, not the destination: the true target is unblocked journeys and usable experiences.
 
-- M’offrir un café: https://buymeacoffee.com/aurelienlewin
+- Buy me a coffee: https://buymeacoffee.com/aurelienlewin
 
 ## Accessibility Sources Embedded
 

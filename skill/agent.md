@@ -11,12 +11,16 @@ Use the rgaa-official-recommendations skill for this accessibility task:
 <your request here>
 ```
 
-## Project-specific audit checklist (2026-03-06 baseline)
+## Project-specific audit checklist (2026-03-07 baseline)
 
 When remediating this project after a production audit, verify at minimum:
 
+- `3.1` inline links must not rely on color only (permanent underline or equivalent marker).
+- `3.2` status labels must keep text/background contrast >= WCAG AA in both themes.
 - `3.3` interface contrast (borders, component boundaries, state visibility).
+- `7.2` `<noscript>` must provide functional fallback paths (not message-only).
 - `10.5` CSS text/background color pairing on link and interactive styles.
+- `10.6` contextual links must remain visually distinguishable from surrounding text.
 - `10.11` reflow at `320px` width without horizontal scrolling caused by utility UI.
 - `10.13` no tooltip-only `title` reliance on interactive controls.
 - `11.11` clear error suggestion patterns in form inputs (example format included).
@@ -25,7 +29,7 @@ When remediating this project after a production audit, verify at minimum:
 
 Use this list as a rapid regression filter before running a full RGAA review.
 
-## Operational lessons learned (2026-03-06)
+## Operational lessons learned (2026-03-07)
 
 - Treat compliance score as a signal, not an objective: prioritize unblocking customer journeys and UX continuity.
 - For moderation actions that mutate lists (approve/reject/delete/block), move focus to the next logical control.
@@ -41,3 +45,7 @@ Use this list as a rapid regression filter before running a full RGAA review.
 - For slug profile pages (`/site/{slug}`), pair canonical metadata with per-profile dataset discovery (`/api/showcase?slug={slug}`) to improve machine indexing without sacrificing UX.
 - Keep profile crawlability redundant across channels: sitemap XML, plan du site visible links, and `ai-context`/`llms` hints should all expose the same profile pattern.
 - Strengthen internal linking between profiles (related entries) using semantic lists and keyboard-focusable anchors to improve both crawl graph and journey continuity.
+- Update accessibility declaration figures only from a completed review scope (`completedPages === pages`, no `inProgressPage`).
+- Keep declaration non-conformity entries de-duplicated by criterion, and add impacted-page coverage to retain traceability.
+- For script alternatives (`7.2`), provide direct fallback navigation to public pages/datasets in `<noscript>`.
+- For contrast regressions, prefer explicit component tokens (status badges, bordered controls) over inherited color assumptions.
