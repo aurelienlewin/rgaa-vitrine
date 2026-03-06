@@ -111,6 +111,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Submission confirmation flow now moves focus to the \"Vérification avant envoi\" panel on trigger, then to in-progress status feedback during final send.
 - Site insight compliance retrieval now consumes metadata hints (`rgaa:compliance-status`, `rgaa:compliance-score`) and stronger SPA-page textual signals to avoid false manual-review downgrades.
 - Documentation now clarifies that `rgaa:compliance-*` extraction depends on deploying the latest frontend metadata before submission tests.
+- Submission flow now performs a non-persistent pre-analysis (`/api/site-insight?preview=1`) and displays detected score/status before final confirmation.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

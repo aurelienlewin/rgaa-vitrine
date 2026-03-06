@@ -24,7 +24,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Explicit filter CTA with a `Rechercher` button for clear submit action and predictable keyboard flow.
 - Progressive tile pagination in the directory (`24` cards per batch) with a manual `Charger plus` action.
 - Automatic lazy loading of additional tiles near viewport end (with keyboard-accessible manual fallback).
-- Submission flow now includes a confirmation step, allowing users to review and edit URL/category before final send.
+- Submission flow now includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
 - High-contrast color system tuned for low-vision navigation in both light and dark modes (including stronger visited-link and status semantics).
@@ -162,6 +162,7 @@ Local services:
 ## API endpoints
 
 - `POST /api/site-insight` registers/enriches one site entry in the directory
+- `POST /api/site-insight?preview=1` runs pre-analysis without persistence (used by confirmation step)
 - `GET /api/showcase` returns persisted showcase entries (supports `search`, `status`, `category`, `limit`)
 - `GET /api/health` returns service status and active storage mode
 - `GET /api/moderation/pending` returns pending moderation entries (protected)
@@ -177,6 +178,12 @@ Local services:
 - `200` + `submissionStatus: "duplicate"` when site already exists
 - `202` + `submissionStatus: "pending"` when the site requires manual review
 - `4xx` when rejected by validation/anti-abuse rules (spam, invalid input, etc.)
+
+`POST /api/site-insight?preview=1` behavior:
+
+- never persists data
+- returns extracted metadata (`siteTitle`, `accessibilityPageUrl`, `complianceStatus`, `complianceScore`)
+- returns projected `submissionStatus` (`approved`, `pending`, `duplicate`) with explanatory `message`
 
 `POST /api/moderation/showcase/update` body:
 

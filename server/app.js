@@ -60,6 +60,18 @@ function firstQueryValue(value) {
   return value
 }
 
+function isPreviewRequested(request) {
+  const queryValue = firstQueryValue(request.query.preview)
+  if (typeof queryValue === 'string') {
+    const normalized = queryValue.trim().toLowerCase()
+    if (normalized === '1' || normalized === 'true' || normalized === 'yes') {
+      return true
+    }
+  }
+
+  return request.body?.preview === true
+}
+
 function parseAuthorizationToken(request) {
   const authorization = request.get('authorization')
   if (typeof authorization !== 'string') {
@@ -352,6 +364,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
   const url = request.body?.url
   const category = request.body?.category
   const honeypot = request.body?.website
+  const previewMode = isPreviewRequested(request)
 
   if (typeof url !== 'string') {
     sendJsonError(response, 400, 'Le champ URL est obligatoire.')
@@ -365,12 +378,14 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
 
   try {
     const insight = await buildSiteInsight(url)
+    const sanitizedCategory = sanitizeCategory(category)
     const existingEntry = await showcaseStorage.getByNormalizedUrl(insight.normalizedUrl)
 
     if (existingEntry) {
       response.json({
         ...existingEntry,
         submissionStatus: 'duplicate',
+        preview: previewMode,
         message: 'Ce site est déjà référencé dans la vitrine.',
       })
       return
@@ -381,6 +396,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       response.status(202).json({
         ...existingPending,
         submissionStatus: 'pending',
+        preview: previewMode,
         message: 'Ce site est déjà en attente de validation manuelle.',
       })
       return
@@ -397,8 +413,24 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
     }
 
     const manualReviewReason = getManualReviewReason(insight)
+    if (previewMode) {
+      const previewStatus = manualReviewReason ? 'pending' : 'approved'
+      const previewMessage = manualReviewReason
+        ? `Pré-analyse terminée: ${manualReviewReason}`
+        : 'Pré-analyse terminée. Le site est prêt pour confirmation.'
+
+      response.status(previewStatus === 'pending' ? 202 : 200).json({
+        ...insight,
+        category: sanitizedCategory,
+        submissionStatus: previewStatus,
+        preview: true,
+        message: previewMessage,
+      })
+      return
+    }
+
     if (manualReviewReason) {
-      const pendingSubmission = buildPendingSubmission(insight, category, manualReviewReason)
+      const pendingSubmission = buildPendingSubmission(insight, sanitizedCategory, manualReviewReason)
       const savedPendingSubmission = await showcaseStorage.upsertPending(pendingSubmission)
 
       if (isGithubNotifierEnabled()) {
@@ -418,7 +450,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       return
     }
 
-    const showcaseEntry = buildShowcaseEntry(insight, category)
+    const showcaseEntry = buildShowcaseEntry(insight, sanitizedCategory)
     const persistedEntry = await showcaseStorage.upsert(showcaseEntry)
     response.json({
       ...persistedEntry,

@@ -18,6 +18,7 @@ type ShowcaseEntry = {
 }
 
 type ShowcaseStatusFilter = 'all' | Exclude<ComplianceStatus, null>
+type SubmissionStatus = 'approved' | 'duplicate' | 'pending'
 
 const statusClassByValue: Record<Exclude<ComplianceStatus, null>, string> = {
   full: 'border border-emerald-700 bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100',
@@ -141,6 +142,19 @@ function formatScore(value: number | null) {
   return `${localized}%`
 }
 
+function formatSubmissionStatusLabel(value: SubmissionStatus | null) {
+  if (value === 'approved') {
+    return 'Publication probable'
+  }
+  if (value === 'pending') {
+    return 'Validation manuelle probable'
+  }
+  if (value === 'duplicate') {
+    return 'Déjà référencé'
+  }
+  return 'En attente d’analyse'
+}
+
 function normalizeText(value: string) {
   return value
     .normalize('NFD')
@@ -169,7 +183,7 @@ function isShowcaseEntry(payload: unknown): payload is ShowcaseEntry {
 function readSubmissionStatus(payload: Record<string, unknown>) {
   const rawStatus = payload.submissionStatus
   if (rawStatus === 'approved' || rawStatus === 'duplicate' || rawStatus === 'pending') {
-    return rawStatus
+    return rawStatus as SubmissionStatus
   }
   return null
 }
@@ -208,6 +222,8 @@ function App() {
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null)
   const [submitInfoMessage, setSubmitInfoMessage] = useState<string | null>(null)
   const [isSubmitConfirmationStep, setIsSubmitConfirmationStep] = useState(false)
+  const [submissionPreviewEntry, setSubmissionPreviewEntry] = useState<ShowcaseEntry | null>(null)
+  const [submissionPreviewStatus, setSubmissionPreviewStatus] = useState<SubmissionStatus | null>(null)
   const [lastAddedEntry, setLastAddedEntry] = useState<ShowcaseEntry | null>(null)
   const [showcaseEntries, setShowcaseEntries] = useState<ShowcaseEntry[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -539,6 +555,8 @@ function App() {
 
   const handleCancelSubmissionConfirmation = useCallback(() => {
     setIsSubmitConfirmationStep(false)
+    setSubmissionPreviewEntry(null)
+    setSubmissionPreviewStatus(null)
     setSubmitInfoMessage('Vous pouvez modifier les informations avant de confirmer l’envoi.')
     announcePolite('Étape de confirmation annulée. Modifiez les champs puis continuez.')
     window.setTimeout(() => {
@@ -562,14 +580,52 @@ function App() {
         return
       }
 
-      setIsSubmitConfirmationStep(true)
-      const reviewMessage =
-        'Vérifiez les informations saisies puis confirmez l’envoi. Vous pouvez modifier les champs à tout moment.'
-      setSubmitInfoMessage(reviewMessage)
-      announcePolite(reviewMessage)
-      window.setTimeout(() => {
-        focusElement(submitConfirmationRef.current)
-      }, 0)
+      setLoadingAdd(true)
+      setSubmitInfoMessage('Pré-analyse du site en cours. Merci de patienter.')
+      announcePolite('Pré-analyse du site en cours.')
+
+      try {
+        const response = await fetch('/api/site-insight?preview=1', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({ url: inputUrl, category: inputCategory, website: websiteField }),
+        })
+
+        const payload = await readApiPayload(response)
+        const submissionStatus = readSubmissionStatus(payload)
+        const submissionMessage = readSubmissionMessage(payload)
+
+        if (!response.ok) {
+          throw new Error(typeof payload?.error === 'string' ? payload.error : 'Pré-analyse impossible.')
+        }
+
+        if (!submissionStatus || !isShowcaseEntry(payload)) {
+          throw new Error('Pré-analyse invalide du serveur.')
+        }
+
+        setSubmissionPreviewEntry(payload)
+        setSubmissionPreviewStatus(submissionStatus)
+        setIsSubmitConfirmationStep(true)
+
+        const reviewMessage =
+          submissionMessage ??
+          'Pré-analyse terminée. Vérifiez les informations détectées puis confirmez l’envoi.'
+        setSubmitInfoMessage(reviewMessage)
+        announcePolite(reviewMessage)
+        window.setTimeout(() => {
+          focusElement(submitConfirmationRef.current)
+        }, 0)
+      } catch (error) {
+        setSubmissionPreviewEntry(null)
+        setSubmissionPreviewStatus(null)
+        const localizedMessage = error instanceof Error ? error.message : 'Erreur réseau.'
+        setSubmitErrorMessage(localizedMessage)
+        announceAssertive(localizedMessage)
+      } finally {
+        setLoadingAdd(false)
+      }
       return
     }
 
@@ -599,6 +655,8 @@ function App() {
           submissionMessage ??
           "Soumission reçue, en attente de vérification humaine avant publication dans la vitrine."
         setIsSubmitConfirmationStep(false)
+        setSubmissionPreviewEntry(null)
+        setSubmissionPreviewStatus(null)
         setInputUrl('')
         setWebsiteField('')
         setSubmitInfoMessage(pendingMessage)
@@ -613,6 +671,8 @@ function App() {
 
         const duplicateMessage = submissionMessage ?? 'Ce site est déjà référencé dans la vitrine.'
         setIsSubmitConfirmationStep(false)
+        setSubmissionPreviewEntry(null)
+        setSubmissionPreviewStatus(null)
         setInputUrl('')
         setWebsiteField('')
         setSubmitInfoMessage(duplicateMessage)
@@ -625,6 +685,8 @@ function App() {
       }
 
       setIsSubmitConfirmationStep(false)
+      setSubmissionPreviewEntry(null)
+      setSubmissionPreviewStatus(null)
       setLastAddedEntry(payload)
       setInputUrl('')
       setWebsiteField('')
@@ -1067,6 +1129,8 @@ function App() {
                   onChange={(event) => {
                     setInputUrl(event.target.value)
                     setIsSubmitConfirmationStep(false)
+                    setSubmissionPreviewEntry(null)
+                    setSubmissionPreviewStatus(null)
                   }}
                   onInvalid={(event) => {
                     event.currentTarget.setCustomValidity(
@@ -1091,6 +1155,8 @@ function App() {
                   onChange={(event) => {
                     setInputCategory(event.target.value)
                     setIsSubmitConfirmationStep(false)
+                    setSubmissionPreviewEntry(null)
+                    setSubmissionPreviewStatus(null)
                   }}
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 >
@@ -1107,7 +1173,13 @@ function App() {
                 disabled={loadingAdd}
                 className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-5 py-2.5 font-semibold text-white dark:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 md:self-end ${focusRingClass}`}
               >
-                {loadingAdd ? 'Envoi...' : isSubmitConfirmationStep ? 'Confirmer l’envoi' : 'Continuer'}
+                {loadingAdd
+                  ? isSubmitConfirmationStep
+                    ? 'Envoi...'
+                    : 'Pré-analyse...'
+                  : isSubmitConfirmationStep
+                    ? 'Confirmer l’envoi'
+                    : 'Continuer'}
               </button>
 
               {isSubmitConfirmationStep && (
@@ -1142,6 +1214,26 @@ function App() {
                   <div>
                     <dt className="font-semibold">Catégorie</dt>
                     <dd>{formatCategory(inputCategory)}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Résultat estimé</dt>
+                    <dd>{formatSubmissionStatusLabel(submissionPreviewStatus)}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Titre détecté</dt>
+                    <dd>{submissionPreviewEntry?.siteTitle ?? 'N/A'}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Niveau détecté</dt>
+                    <dd>{submissionPreviewEntry?.complianceStatusLabel ?? 'N/A'}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Score détecté</dt>
+                    <dd>{formatScore(submissionPreviewEntry?.complianceScore ?? null)}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Déclaration d’accessibilité</dt>
+                    <dd className="break-all">{submissionPreviewEntry?.accessibilityPageUrl ?? 'Non détectée'}</dd>
                   </div>
                 </dl>
               </section>
