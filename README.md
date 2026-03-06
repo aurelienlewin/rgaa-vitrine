@@ -30,7 +30,7 @@ Planned public website: **https://rgaa-vitrine.org**
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
 - UI typography avoids tiny text; informational content and metadata are rendered at `text-sm` or above.
 - Muted text and status colors are tuned for stronger contrast in both light and dark themes.
-- Default typography now prioritizes a dyslexia-friendly stack (`OpenDyslexic`, `Atkinson Hyperlegible`, `Lexend`) with safe sans-serif fallbacks.
+- Default typography now prioritizes `Atkinson Hyperlegible` for broad readability, with `OpenDyslexic` and `Lexend` as accessible fallbacks.
 - Logo strategy is now icon-only in SVG; textual branding is rendered in semantic Tailwind UI for robust responsive display.
 - Directory-first UX with filters, categories, and search at the core.
 - URL registration workflow with secure server-side metadata enrichment.

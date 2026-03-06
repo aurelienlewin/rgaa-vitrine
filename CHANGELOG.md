@@ -65,7 +65,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Contrast pass: strengthened muted/status dark-theme text colors to improve WCAG 2.2 readability margins.
 - Main app footer now links to moderation page for authorized reviewers.
 - Pending moderation duplicate lookup now uses a dedicated Redis URL index (no full pending-list scan per submission).
-- Default app font stack now prioritizes dyslexia-friendly families (`OpenDyslexic`, `Atkinson Hyperlegible`, `Lexend`), with robust fallback fonts.
+- Default app font stack now prioritizes `Atkinson Hyperlegible`, with `OpenDyslexic` and `Lexend` as accessible fallbacks.
 - Vercel rewrites now route SPA paths (including `/moderation`) to `index.html`, fixing direct-access/refresh 404 errors.
 - Header logo now spans full available width in the hero area (removed previous max-width cap).
 - Tailwind color palette tokens (slate/sky/emerald/amber/rose) are now remapped to a higher-contrast low-vision scheme in light and dark modes.

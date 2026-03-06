@@ -2,7 +2,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: "OpenDyslexic", "Atkinson Hyperlegible", "Lexend", "Noto Sans", "Segoe UI", "Arial", sans-serif;
+  --font-sans: "Atkinson Hyperlegible", "OpenDyslexic", "Lexend", "Noto Sans", "Segoe UI", "Arial", sans-serif;
   --color-brand-ink: #121a2b;
   --color-brand-surface: #f3f6fd;
   --color-brand-link: #0038c7;
