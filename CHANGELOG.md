@@ -104,6 +104,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - README now documents moderation update/delete payloads and Vercel handlers for published entries management routes.
 - Frontend now lazy-loads non-home routes (`/moderation`, `/plan-du-site`, `/accessibilite`) to reduce initial JS bytes on homepage.
 - Secondary font families (`OpenDyslexic`, `Lexend`) are deferred after first paint while keeping `Atkinson Hyperlegible` in critical path.
+- Moderation now shows inline per-entry feedback during published-entry edits/deletions (pending changes, processing, success, errors).
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

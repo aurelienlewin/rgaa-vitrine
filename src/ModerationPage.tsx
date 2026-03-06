@@ -41,6 +41,11 @@ type PublishedEntryDraft = {
   accessibilityPageUrl: string
 }
 
+type PublishedEntryFeedback = {
+  tone: 'info' | 'success' | 'error'
+  message: string
+}
+
 const moderationCategories = ['Administration', 'E-commerce', 'Media', 'Sante', 'Education', 'Associatif', 'Autre']
 const complianceStatusOptions: Array<{ value: PublishedEntryDraft['complianceStatus']; label: string }> = [
   { value: '', label: 'Inconnu' },
@@ -157,6 +162,7 @@ function ModerationPage() {
   const [pendingEntries, setPendingEntries] = useState<PendingSubmission[]>([])
   const [publishedEntries, setPublishedEntries] = useState<ShowcaseEntry[]>([])
   const [publishedDrafts, setPublishedDrafts] = useState<Record<string, PublishedEntryDraft>>({})
+  const [publishedFeedbackByUrl, setPublishedFeedbackByUrl] = useState<Record<string, PublishedEntryFeedback>>({})
   const [rejectReasons, setRejectReasons] = useState<Record<string, string>>({})
   const [isLoadingList, setIsLoadingList] = useState(false)
   const [isLoadingPublished, setIsLoadingPublished] = useState(false)
@@ -268,6 +274,7 @@ function ModerationPage() {
       setPublishedDrafts(
         Object.fromEntries(entries.map((entry) => [entry.normalizedUrl, toPublishedEntryDraft(entry)])),
       )
+      setPublishedFeedbackByUrl({})
       setDeleteConfirmationUrl(null)
     } catch (error) {
       const localizedMessage =
@@ -385,6 +392,20 @@ function ModerationPage() {
           [normalizedUrl]: { ...existing, [field]: value },
         }
       })
+      setPublishedFeedbackByUrl((current) => {
+        const existing = current[normalizedUrl]
+        if (existing && existing.tone === 'info' && existing.message === 'Modifications non enregistrées.') {
+          return current
+        }
+
+        return {
+          ...current,
+          [normalizedUrl]: {
+            tone: 'info',
+            message: 'Modifications non enregistrées.',
+          },
+        }
+      })
     },
     [],
   )
@@ -400,6 +421,13 @@ function ModerationPage() {
       setDeleteConfirmationUrl(null)
       setAssertiveMessage('')
       setPoliteMessage('Mise à jour de l’entrée en cours...')
+      setPublishedFeedbackByUrl((current) => ({
+        ...current,
+        [normalizedUrl]: {
+          tone: 'info',
+          message: 'Enregistrement en cours...',
+        },
+      }))
 
       try {
         const scoreRaw = draft.complianceScore.trim()
@@ -443,10 +471,24 @@ function ModerationPage() {
           ...current,
           [normalizedUrl]: toPublishedEntryDraft(payload),
         }))
+        setPublishedFeedbackByUrl((current) => ({
+          ...current,
+          [normalizedUrl]: {
+            tone: 'success',
+            message: 'Entrée mise à jour avec succès.',
+          },
+        }))
         setPoliteMessage(info)
         focusMessage()
       } catch (error) {
         const localizedMessage = error instanceof Error ? error.message : 'Erreur lors de la mise à jour.'
+        setPublishedFeedbackByUrl((current) => ({
+          ...current,
+          [normalizedUrl]: {
+            tone: 'error',
+            message: localizedMessage,
+          },
+        }))
         setAssertiveMessage(localizedMessage)
         setPoliteMessage('')
         focusMessage()
@@ -461,6 +503,13 @@ function ModerationPage() {
     async (normalizedUrl: string) => {
       if (deleteConfirmationUrl !== normalizedUrl) {
         setDeleteConfirmationUrl(normalizedUrl)
+        setPublishedFeedbackByUrl((current) => ({
+          ...current,
+          [normalizedUrl]: {
+            tone: 'info',
+            message: 'Cliquez à nouveau sur supprimer pour confirmer.',
+          },
+        }))
         setAssertiveMessage('')
         setPoliteMessage('Cliquez à nouveau sur supprimer pour confirmer.')
         focusMessage()
@@ -470,6 +519,13 @@ function ModerationPage() {
       setRunningPublishedUrl(normalizedUrl)
       setAssertiveMessage('')
       setPoliteMessage('Suppression de l’entrée en cours...')
+      setPublishedFeedbackByUrl((current) => ({
+        ...current,
+        [normalizedUrl]: {
+          tone: 'info',
+          message: 'Suppression en cours...',
+        },
+      }))
 
       try {
         const response = await fetch('/api/moderation/showcase/delete', {
@@ -492,11 +548,23 @@ function ModerationPage() {
           delete next[normalizedUrl]
           return next
         })
+        setPublishedFeedbackByUrl((current) => {
+          const next = { ...current }
+          delete next[normalizedUrl]
+          return next
+        })
         setDeleteConfirmationUrl(null)
         setPoliteMessage(info)
         focusMessage()
       } catch (error) {
         const localizedMessage = error instanceof Error ? error.message : 'Erreur lors de la suppression.'
+        setPublishedFeedbackByUrl((current) => ({
+          ...current,
+          [normalizedUrl]: {
+            tone: 'error',
+            message: localizedMessage,
+          },
+        }))
         setAssertiveMessage(localizedMessage)
         setPoliteMessage('')
         focusMessage()
@@ -739,6 +807,7 @@ function ModerationPage() {
                   const itemId = toDomId(entry.normalizedUrl)
                   const isRunning = runningPublishedUrl === entry.normalizedUrl
                   const isDeleteConfirm = deleteConfirmationUrl === entry.normalizedUrl
+                  const feedback = publishedFeedbackByUrl[entry.normalizedUrl]
 
                   return (
                     <li
@@ -878,6 +947,22 @@ function ModerationPage() {
                             {isRunning ? 'Traitement...' : isDeleteConfirm ? 'Confirmer suppression' : 'Supprimer'}
                           </button>
                         </div>
+
+                        {feedback && (
+                          <p
+                            className={`mt-3 rounded-lg border px-3 py-2 text-sm ${
+                              feedback.tone === 'error'
+                                ? 'border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-100'
+                                : feedback.tone === 'success'
+                                  ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-100'
+                                  : 'border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-100'
+                            }`}
+                            role={feedback.tone === 'error' ? 'alert' : 'status'}
+                            aria-live={feedback.tone === 'error' ? 'assertive' : 'polite'}
+                          >
+                            {feedback.message}
+                          </p>
+                        )}
                       </article>
                     </li>
                   )
