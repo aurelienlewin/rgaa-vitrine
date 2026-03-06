@@ -28,6 +28,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Each directory tile now includes an explicit RGAA baseline badge (`RGAA 4.1` or `RGAA 5.0 prêt`) with readable explanation text.
 - Submission flow now includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
 - Confirmation CTA now lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.
+- Each listed site now has a dedicated public profile page (`/site/{slug}`) with shareable metadata and backlink snippet.
 - Add-site flow now exposes a visible category dropdown (including `Coopérative et services`) without custom free-text entry.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - Tailwind v4.1 accessibility helpers are used where relevant: `wrap-anywhere` for long URLs and `user-valid` / `user-invalid` for progressive form feedback.
@@ -178,6 +179,7 @@ Operational note:
 - Public accessibility declaration page: `/accessibilite`
 - Auto-generated sitemap endpoint: `/sitemap.xml` (backed by API route `/api/sitemap`)
 - Sitemap now includes the public data endpoint (`/api/showcase`) for dataset discovery.
+- Sitemap now includes one public URL per referenced site profile (`/site/{slug}`).
 - AI crawler files: `/llms.txt`, `/llms-full.txt`, `/ai-context.json` (and `/api/ai-context`)
 - `public/robots.txt`
 - Public showcase API includes cache headers (`Cache-Control`, `Last-Modified`) for crawler efficiency and reduced load.
@@ -203,6 +205,7 @@ Local services:
 - `POST /api/site-insight` registers/enriches one site entry in the directory
 - `POST /api/site-insight?preview=1` runs pre-analysis without persistence (used by confirmation step)
 - `GET /api/showcase` returns persisted showcase entries (supports `search`, `status`, `category`, `limit`, `clientVoterId`)
+- `GET /api/showcase` also supports `slug` for single-profile retrieval and returns `slug` + `profilePath` for each entry.
 - `POST /api/showcase/upvote` records one upvote for one listed site
 - `GET /api/health` returns service status and active storage mode
 - `GET /api/moderation/pending` returns pending moderation entries (protected)
@@ -231,6 +234,11 @@ Local services:
 - never persists data
 - returns extracted metadata (`siteTitle`, `accessibilityPageUrl`, `complianceStatus`, `complianceScore`)
 - returns projected `submissionStatus` (`approved`, `pending`, `duplicate`) with explanatory `message`
+
+Public profile pages:
+
+- `/site/{slug}` exposes one dedicated page per referenced site with canonical metadata, outbound links, and backlink snippet.
+- Outbound links to referenced sites use `noopener` without `noreferrer` so referral analytics can identify annuaire-rgaa.fr.
 
 `POST /api/moderation/showcase/update` body:
 

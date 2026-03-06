@@ -118,6 +118,10 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Submission flow now performs a non-persistent pre-analysis (`/api/site-insight?preview=1`) and displays detected score/status before final confirmation.
 - Submission CTA flow has been split for accessibility: form submit only runs pre-analysis, while final `Confirmer l’envoi` is inside the verification panel after analysis (with dedicated focus/state handling).
 - UI now uses Tailwind v4.1 `wrap-anywhere` for long URL readability and `user-valid` / `user-invalid` variants for progressive URL field feedback.
+- Public directory cards now link to dedicated internal profile pages (`/site/{slug}`) to strengthen crawlable internal linking.
+- Public showcase API now returns `slug` and `profilePath` per entry, and accepts `slug` as a direct filter for profile-page retrieval.
+- Sitemap generation now publishes one URL per referenced site profile (`/site/{slug}`) in addition to core pages and API resources.
+- Outbound links to referenced sites now preserve referral visibility (`noopener` without `noreferrer`) to facilitate reciprocal discovery.
 - Footer build version now resolves from release tags first (then package version), preventing stale `0.0.0` display when releases are published.
 - `GET /api/showcase` now accepts `clientVoterId` and returns per-entry vote state (`hasUpvoted`) for the current visitor.
 - Vote registration now applies layered anti-abuse safeguards (client fingerprint + network fingerprint + hourly limiter) with localized feedback messages.
