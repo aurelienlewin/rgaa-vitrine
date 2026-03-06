@@ -123,6 +123,10 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Public showcase API now returns `slug` and `profilePath` per entry, and accepts `slug` as a direct filter for profile-page retrieval.
 - Sitemap generation now publishes one URL per referenced site profile (`/site/{slug}`) in addition to core pages and API resources.
 - Outbound links to referenced sites now preserve referral visibility (`noopener` without `noreferrer`) to facilitate reciprocal discovery.
+- Profile pages now publish richer structured data (`WebPage`, referenced-site `Organization`, and per-profile `Dataset` with direct `DataDownload` link).
+- Profile pages now expose stronger crawl paths with related-profile internal links and footer navigation targets.
+- `Plan du site` now fetches and renders an explicit extract of `/site/{slug}` links for additional internal discovery and associated `ItemList` structured data.
+- `ai-context` and `llms*.txt` now document profile-page patterns and profile-level API access (`/api/showcase?slug={slug}`), including crawl seed URLs.
 - Footer build version now resolves from release tags first (then package version), preventing stale `0.0.0` display when releases are published.
 - `GET /api/showcase` now accepts `clientVoterId` and returns per-entry vote state (`hasUpvoted`) for the current visitor.
 - Vote registration now applies layered anti-abuse safeguards (client fingerprint + network fingerprint + hourly limiter) with localized feedback messages.

@@ -29,6 +29,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Submission flow now includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
 - Confirmation CTA now lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.
 - Each listed site now has a dedicated public profile page (`/site/{slug}`) with shareable metadata and backlink snippet.
+- Profile pages now expose stronger SEO/IA signals: dedicated `WebPage` + `Dataset` structured data, direct API link (`/api/showcase?slug={slug}`), and related-profile internal linking.
 - Add-site flow now exposes a visible category dropdown (including `Coopérative et services`) without custom free-text entry.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - Tailwind v4.2 accessibility helpers are used where relevant: `wrap-anywhere`, `user-valid` / `user-invalid`, and logical utilities (`start-*`, `ps-*`) to avoid direction-specific custom positioning/padding.
@@ -176,11 +177,13 @@ Operational note:
 - Structured data (JSON-LD): `WebSite`, `Organization`, `Person`, `CollectionPage`, `SiteNavigationElement`
 - Structured data now also exposes `SearchAction` on homepage and `BreadcrumbList` on key secondary pages.
 - Accessible public site map page: `/plan-du-site`
+- Site map page now lists an extract of published `/site/{slug}` links to strengthen crawlable internal discovery.
 - Public accessibility declaration page: `/accessibilite`
 - Auto-generated sitemap endpoint: `/sitemap.xml` (backed by API route `/api/sitemap`)
 - Sitemap now includes the public data endpoint (`/api/showcase`) for dataset discovery.
 - Sitemap now includes one public URL per referenced site profile (`/site/{slug}`).
 - AI crawler files: `/llms.txt`, `/llms-full.txt`, `/ai-context.json` (and `/api/ai-context`)
+- AI context now includes explicit site-profile patterns (`/site/{slug}`), API pattern (`/api/showcase?slug={slug}`), and crawl seed profile URLs.
 - `public/robots.txt`
 - Public showcase API includes cache headers (`Cache-Control`, `Last-Modified`) for crawler efficiency and reduced load.
 - Serverless API adapter now normalizes absolute/relative request URLs before Express routing, reducing production fallback mismatches on `/api/*`.
@@ -237,7 +240,8 @@ Local services:
 
 Public profile pages:
 
-- `/site/{slug}` exposes one dedicated page per referenced site with canonical metadata, outbound links, and backlink snippet.
+- `/site/{slug}` exposes one dedicated page per referenced site with canonical metadata, outbound links, backlink snippet, and a direct dataset endpoint.
+- Each profile page also links to related profiles in the same category to strengthen internal crawl paths.
 - Outbound links to referenced sites use `noopener` without `noreferrer` so referral analytics can identify annuaire-rgaa.fr.
 
 `POST /api/moderation/showcase/update` body:

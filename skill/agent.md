@@ -38,3 +38,6 @@ Use this list as a rapid regression filter before running a full RGAA review.
 - Always pair numeric moderation fields with explicit format/range help text and `aria-describedby`.
 - Route-level loading fallback should be announced (`role="status"` + `aria-live="polite"`) to avoid silent waits.
 - For repeated list actions (blocklist entries), include URL-specific accessible labels to avoid ambiguous “Retirer” controls in screen readers.
+- For slug profile pages (`/site/{slug}`), pair canonical metadata with per-profile dataset discovery (`/api/showcase?slug={slug}`) to improve machine indexing without sacrificing UX.
+- Keep profile crawlability redundant across channels: sitemap XML, plan du site visible links, and `ai-context`/`llms` hints should all expose the same profile pattern.
+- Strengthen internal linking between profiles (related entries) using semantic lists and keyboard-focusable anchors to improve both crawl graph and journey continuity.
