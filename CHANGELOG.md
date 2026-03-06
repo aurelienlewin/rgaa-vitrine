@@ -18,6 +18,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - New in-app WCAG 2.2 help section with links to W3C FR guidance.
 - Vercel-native serverless API entrypoints added under `api/` for production deployments.
 - Anti-abuse submission guardrails: honeypot field, stricter submission rate limit, spam/marketing signal checks, and non-publishable submission rejection.
+- Adaptive accessibility preferences support for low-vision contexts (`dark mode`, `reduced motion`, `high contrast`, `forced colors`).
 
 ### Changed
 - `POST /api/site-insight` now persists analyzed entries with category.
@@ -38,6 +39,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Backend app setup has been centralized in `server/app.js` and shared by local runtime + serverless handlers.
 - URL normalization now canonicalizes listings at domain level (dedupe across `www`/path variants).
 - Frontend submission flow now supports `approved`, `duplicate`, and `pending` outcomes with localized feedback.
+- Added explicit browser metadata for light/dark color scheme support (`meta color-scheme` + themed `theme-color`).
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

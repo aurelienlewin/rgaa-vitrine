@@ -37,3 +37,151 @@
     font: inherit;
   }
 }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    color: #e2e8f0;
+    background-color: #020617;
+  }
+
+  a {
+    color: #93c5fd;
+  }
+
+  .bg-white {
+    background-color: #0f172a !important;
+  }
+
+  .bg-slate-50 {
+    background-color: #020617 !important;
+  }
+
+  .bg-slate-100 {
+    background-color: #1e293b !important;
+  }
+
+  .bg-slate-900 {
+    background-color: #e2e8f0 !important;
+    color: #0f172a !important;
+  }
+
+  .text-slate-900 {
+    color: #f8fafc !important;
+  }
+
+  .text-slate-800 {
+    color: #e2e8f0 !important;
+  }
+
+  .text-slate-700,
+  .text-slate-600 {
+    color: #cbd5e1 !important;
+  }
+
+  .border-slate-200,
+  .border-slate-300 {
+    border-color: #334155 !important;
+  }
+
+  .bg-sky-50 {
+    background-color: #082f49 !important;
+  }
+
+  .text-sky-900 {
+    color: #e0f2fe !important;
+  }
+
+  .border-sky-200,
+  .border-sky-300 {
+    border-color: #0ea5e9 !important;
+  }
+
+  .bg-emerald-50 {
+    background-color: #022c22 !important;
+  }
+
+  .text-emerald-900,
+  .text-emerald-800 {
+    color: #d1fae5 !important;
+  }
+
+  .border-emerald-300 {
+    border-color: #34d399 !important;
+  }
+
+  .bg-rose-50 {
+    background-color: #4c0519 !important;
+  }
+
+  .text-rose-800 {
+    color: #ffe4e6 !important;
+  }
+
+  .border-rose-300 {
+    border-color: #fb7185 !important;
+  }
+
+  .bg-amber-50 {
+    background-color: #451a03 !important;
+  }
+
+  .text-amber-900 {
+    color: #fef3c7 !important;
+  }
+
+  .border-amber-300 {
+    border-color: #fbbf24 !important;
+  }
+
+  .shadow-sm,
+  .shadow-lg {
+    box-shadow: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  a {
+    text-decoration: underline;
+    text-decoration-thickness: 0.14em;
+  }
+
+  .border-slate-200,
+  .border-slate-300,
+  .border-sky-200,
+  .border-sky-300,
+  .border-emerald-300,
+  .border-rose-300,
+  .border-amber-300 {
+    border-width: 2px !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    color-scheme: light dark;
+  }
+
+  * {
+    forced-color-adjust: auto;
+  }
+
+  .shadow-sm,
+  .shadow-lg {
+    box-shadow: none !important;
+  }
+}

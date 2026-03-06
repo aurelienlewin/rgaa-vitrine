@@ -109,7 +109,7 @@ const supportProfile = {
 
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus focus-visible:ring-2 focus-visible:ring-white'
-const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white px-3 py-2 text-slate-900 shadow-lg -translate-y-[220%] transition-transform duration-150 focus-visible:translate-y-0 ${focusRingClass}`
+const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white px-3 py-2 text-slate-900 shadow-lg -translate-y-[220%] transition-transform duration-150 motion-reduce:transition-none focus-visible:translate-y-0 ${focusRingClass}`
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('fr-FR', {

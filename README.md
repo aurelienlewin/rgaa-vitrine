@@ -20,6 +20,7 @@ Planned public website: **https://rgaa-vitrine.org**
 - Simple French UI focused on listing discovery first.
 - Multiple skip links for keyboard navigation (`contenu`, `filtres`, `ajout`, `aide`).
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
+- User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
 - Directory-first UX with filters, categories, and search at the core.
 - URL registration workflow with secure server-side metadata enrichment.
 - Vitrine listing cards designed for disabled people and accessibility enthusiasts.
@@ -75,6 +76,15 @@ You can check the active storage mode via:
 - Automatic spam/marketing signal rejection (quality filter)
 - Manual-review mode for low-trust submissions (not auto-published)
 - No execution of remote page scripts
+
+## Accessibility Preferences
+
+The UI now adapts automatically to operating-system and browser accessibility preferences:
+
+- Dark mode (`prefers-color-scheme`)
+- Reduced motion (`prefers-reduced-motion`)
+- Increased contrast (`prefers-contrast: more`)
+- Forced colors / high-contrast modes (`forced-colors: active`)
 
 ## SEO
 
