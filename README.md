@@ -169,6 +169,34 @@ Local services:
 - `202` + `submissionStatus: "pending"` when the site requires manual review
 - `4xx` when rejected by validation/anti-abuse rules (spam, invalid input, etc.)
 
+`POST /api/moderation/showcase/update` body:
+
+```json
+{
+  "normalizedUrl": "https://impots.gouv.fr/",
+  "siteTitle": "impots.gouv.fr",
+  "category": "Administration",
+  "complianceStatus": "partial",
+  "complianceScore": 96.51,
+  "thumbnailUrl": "https://www.impots.gouv.fr/example-image.jpg",
+  "accessibilityPageUrl": "https://www.impots.gouv.fr/accessibilite"
+}
+```
+
+`POST /api/moderation/showcase/delete` body:
+
+```json
+{
+  "normalizedUrl": "https://impots.gouv.fr/"
+}
+```
+
+Notes:
+
+- `complianceScore` accepte les décimales (ex: `96.51`) et est normalisé entre `0` et `100`.
+- `thumbnailUrl` et `accessibilityPageUrl` sont optionnels; envoyer `null` (ou chaîne vide côté UI) pour les vider.
+- Les URL éditées sont validées côté serveur (HTTP/HTTPS public uniquement).
+
 ### Manual moderation workflow
 
 1. A submission requiring human review is stored server-side as `pending`.
@@ -237,6 +265,9 @@ The repository includes native Vercel serverless endpoints in `api/`:
 - `api/moderation/pending.js`
 - `api/moderation/approve.js`
 - `api/moderation/reject.js`
+- `api/moderation/showcase/index.js`
+- `api/moderation/showcase/update.js`
+- `api/moderation/showcase/delete.js`
 
 This avoids production `NOT_FOUND` responses on `/api/*` routes when the frontend is deployed as a Vite app.
 Vercel rewrites also ensure SPA routes (including `/moderation`) resolve to `index.html` instead of returning 404 on refresh/direct access.

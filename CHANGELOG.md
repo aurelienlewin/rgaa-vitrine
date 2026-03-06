@@ -101,6 +101,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - API metadata fetch now exposes a consistent Annuaire RGAA user-agent contact URL (`https://annuaire-rgaa.fr`).
 - Accessibility-score extraction now supports broader French wording and decimal percentages (ex: `96,51 %`) from accessibility statements.
 - Moderation UI now allows administrators to edit and delete published entries (title, category, status, score, vignette, accessibility URL).
+- README now documents moderation update/delete payloads and Vercel handlers for published entries management routes.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
