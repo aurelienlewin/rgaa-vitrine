@@ -289,6 +289,7 @@ async function readApiPayload(response: Response) {
 function App() {
   const [inputUrl, setInputUrl] = useState('')
   const [inputCategory, setInputCategory] = useState(showcaseCategories[0])
+  const [customCategoryInput, setCustomCategoryInput] = useState('')
   const [websiteField, setWebsiteField] = useState('')
   const [loadingAdd, setLoadingAdd] = useState(false)
   const [loadingDirectory, setLoadingDirectory] = useState(true)
@@ -418,6 +419,14 @@ function App() {
 
     return Array.from(options).sort((left, right) => left.localeCompare(right, 'fr'))
   }, [showcaseEntries])
+
+  const resolvedSubmissionCategory = useMemo(() => {
+    if (customCategoryInput.trim()) {
+      return normalizeCategoryInput(customCategoryInput)
+    }
+
+    return normalizeCategoryInput(inputCategory)
+  }, [customCategoryInput, inputCategory])
 
   const visibleShowcaseEntries = useMemo(
     () => filteredShowcaseEntries.slice(0, visibleTilesCount),
@@ -767,8 +776,8 @@ function App() {
     setSubmitErrorMessage(null)
     setSubmitInfoMessage(null)
     setLastAddedEntry(null)
-    const categoryForSubmission = normalizeCategoryInput(inputCategory)
-    if (categoryForSubmission !== inputCategory) {
+    const categoryForSubmission = resolvedSubmissionCategory
+    if (!customCategoryInput.trim() && categoryForSubmission !== inputCategory) {
       setInputCategory(categoryForSubmission)
     }
 
@@ -860,6 +869,7 @@ function App() {
         setSubmissionPreviewStatus(null)
         setInputUrl('')
         setWebsiteField('')
+        setCustomCategoryInput('')
         setSubmitInfoMessage(pendingMessage)
         announcePolite(pendingMessage)
         return
@@ -876,6 +886,7 @@ function App() {
         setSubmissionPreviewStatus(null)
         setInputUrl('')
         setWebsiteField('')
+        setCustomCategoryInput('')
         setSubmitInfoMessage(duplicateMessage)
         announcePolite(duplicateMessage)
         return
@@ -891,6 +902,7 @@ function App() {
       setLastAddedEntry(normalizeShowcaseEntry(payload))
       setInputUrl('')
       setWebsiteField('')
+      setCustomCategoryInput('')
 
       const successMessage = submissionMessage ?? `Site ajouté : ${payload.siteTitle}.`
       announcePolite(successMessage)
@@ -1405,15 +1417,12 @@ function App() {
               </div>
 
               <div>
-                <label htmlFor="categorie-site" className="block text-sm font-medium">
-                  Catégorie (saisie libre possible)
+                <label htmlFor="categorie-site-select" className="block text-sm font-medium">
+                  Catégorie
                 </label>
-                <input
-                  id="categorie-site"
+                <select
+                  id="categorie-site-select"
                   name="categorie"
-                  type="text"
-                  list="categorie-site-suggestions"
-                  autoComplete="off"
                   value={inputCategory}
                   onChange={(event) => {
                     setInputCategory(event.target.value)
@@ -1421,16 +1430,38 @@ function App() {
                     setSubmissionPreviewEntry(null)
                     setSubmissionPreviewStatus(null)
                   }}
-                  aria-describedby="categorie-site-help"
+                  aria-describedby="categorie-site-help categorie-site-custom-help"
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                >
+                  {availableCategoryOptions.map((category) => (
+                    <option key={category} value={category}>
+                      {formatCategory(category)}
+                    </option>
+                  ))}
+                </select>
+                <p id="categorie-site-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                  Inclut notamment: Coopérative et services.
+                </p>
+                <label htmlFor="categorie-site-custom" className="mt-3 block text-sm font-medium">
+                  Catégorie personnalisée (optionnel)
+                </label>
+                <input
+                  id="categorie-site-custom"
+                  type="text"
+                  autoComplete="off"
+                  value={customCategoryInput}
+                  onChange={(event) => {
+                    setCustomCategoryInput(event.target.value)
+                    setIsSubmitConfirmationStep(false)
+                    setSubmissionPreviewEntry(null)
+                    setSubmissionPreviewStatus(null)
+                  }}
+                  aria-describedby="categorie-site-custom-help"
+                  placeholder="Exemple: Coopérative et services"
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 />
-                <datalist id="categorie-site-suggestions">
-                  {availableCategoryOptions.map((category) => (
-                    <option key={category} value={category} />
-                  ))}
-                </datalist>
-                <p id="categorie-site-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                  Exemples: Administration, Éducation, Coopérative et services.
+                <p id="categorie-site-custom-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                  Si ce champ est rempli, il remplace la catégorie sélectionnée.
                 </p>
               </div>
 
@@ -1479,7 +1510,7 @@ function App() {
                   </div>
                   <div>
                     <dt className="font-semibold">Catégorie</dt>
-                    <dd>{formatCategory(normalizeCategoryInput(inputCategory))}</dd>
+                    <dd>{formatCategory(resolvedSubmissionCategory)}</dd>
                   </div>
                   <div>
                     <dt className="font-semibold">Résultat estimé</dt>
