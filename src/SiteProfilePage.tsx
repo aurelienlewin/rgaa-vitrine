@@ -553,21 +553,6 @@ function SiteProfilePage() {
                 )}
               </div>
 
-              <section className="mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4" aria-labelledby="donnees-fiche-titre">
-                <h3 id="donnees-fiche-titre" className="text-lg font-semibold">
-                  Données publiques de cette fiche
-                </h3>
-                <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-                  Cette fiche dispose d’un endpoint dédié pour la découverte machine et la réutilisation des données.
-                </p>
-                <a
-                  href={profileApiUrl}
-                  className={`mt-3 inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 font-semibold ${focusRingClass}`}
-                >
-                  Ouvrir l’endpoint de fiche
-                </a>
-              </section>
-
               <section id="backlink-fiche" ref={backlinkSectionRef} tabIndex={-1} className="mt-6 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-4" aria-labelledby="backlink-fiche-titre">
                 <h3 id="backlink-fiche-titre" className="text-lg font-semibold text-sky-900 dark:text-sky-100">
                   Lien retour recommandé

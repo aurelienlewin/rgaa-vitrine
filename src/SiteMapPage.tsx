@@ -98,11 +98,6 @@ const technicalLinks: SiteLink[] = [
     label: 'Fichier robots.txt',
     description: 'Consignes d’exploration des robots pour le site.',
   },
-  {
-    href: '/api/showcase?slug={slug}',
-    label: 'API de fiche (`slug`)',
-    description: 'Accès direct à une fiche publique précise pour automatisation et indexation ciblée.',
-  },
 ]
 
 function isShowcaseEntry(payload: unknown): payload is ShowcaseEntry {
