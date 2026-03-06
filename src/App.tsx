@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
 
-type SiteInsight = {
+type ShowcaseEntry = {
   normalizedUrl: string
   siteTitle: string
   thumbnailUrl: string | null
@@ -12,9 +12,6 @@ type SiteInsight = {
   complianceStatusLabel: string | null
   complianceScore: number | null
   updatedAt: string
-}
-
-type ShowcaseEntry = SiteInsight & {
   category: string
 }
 
@@ -43,59 +40,30 @@ const showcaseStatusFilterLabels: Record<ShowcaseStatusFilter, string> = {
   none: 'Non conforme',
 }
 
-const rgaaValues = [
-  'Inclure toutes les personnes, sans discrimination de handicap ou de contexte d usage.',
-  'Permettre une autonomie reelle en navigation clavier, lecteur d ecran et zoom.',
-  'Publier une information claire sur le niveau de conformite et les limites connues.',
-]
-
-const rgaaRules = [
-  'Utiliser une structure HTML semantique avant d ajouter ARIA.',
-  'Garantir un focus visible, un ordre de tabulation coherent et aucun piege clavier.',
-  'Associer chaque champ de formulaire a une etiquette explicite.',
-  'Ne jamais transmettre une information uniquement par la couleur ou la forme.',
-  'Conserver une page utilisable sans styles et avec agrandissement des caracteres.',
-  'Controler les mises a jour dynamiques avec une strategie focus ou aria-live adaptee.',
-]
-
-const rgaaAwareness = [
-  'Verifier chaque livraison avec des tests rapides: titre de page, lang, validite HTML, clavier.',
-  'Tester des composants riches avec des technologies d assistance de reference.',
-  'Documenter en PR les choix accessibilite, limites et preuves de verification.',
-]
-
 const officialResources = [
   {
     label: 'Guide du developpeur RGAA',
     url: 'https://disic.github.io/guide-developpeur/',
-    summary:
-      'Bonnes pratiques JavaScript/ARIA: tabulation, acces clavier, changements de contexte, motifs de conception.',
   },
   {
     label: 'Guide de l integrateur RGAA',
     url: 'https://disic.github.io/guide-integrateur/',
-    summary: 'Regles structurelles: gabarit, navigation, contenus, tableaux, liens, formulaires, focus, images.',
   },
   {
     label: 'Memo dev',
     url: 'https://design.numerique.gouv.fr/outils/memo-dev/',
-    summary: 'Resume operationnel des recommandations techniques prioritaires a appliquer en implementation.',
   },
   {
     label: 'Checklist dev',
     url: 'https://design.numerique.gouv.fr/outils/checklist-dev/',
-    summary: 'Controle rapide avant livraison: titre, lang, HTML valide, clavier, semantique, etiquettes.',
   },
   {
     label: 'Bibliotheque de reference ARIA',
     url: 'https://www.info.gouv.fr/accessibilite/developpement/bibliotheque-de-reference-des-restitutions-des-composants-javascript-aria',
-    summary: 'Reference de restitution des composants JS ARIA avec technologies d assistance.',
   },
   {
     label: 'Guide des composants JavaScript accessibles',
     url: 'https://www.info.gouv.fr/accessibilite/developpement/le-guide-des-composants-javascript-accessibles',
-    summary:
-      'Tutoriels et correctifs de composants (accordion, tabs, menu, modal, slider, etc.) selon frameworks.',
   },
 ]
 
@@ -124,6 +92,20 @@ function normalizeText(value: string) {
     .toLowerCase()
 }
 
+function isShowcaseEntry(payload: unknown): payload is ShowcaseEntry {
+  if (!payload || typeof payload !== 'object') {
+    return false
+  }
+
+  const candidate = payload as Record<string, unknown>
+  return (
+    typeof candidate.normalizedUrl === 'string' &&
+    typeof candidate.siteTitle === 'string' &&
+    typeof candidate.updatedAt === 'string' &&
+    typeof candidate.category === 'string'
+  )
+}
+
 async function readApiPayload(response: Response) {
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
   const rawBody = await response.text()
@@ -147,30 +129,15 @@ async function readApiPayload(response: Response) {
 function App() {
   const [inputUrl, setInputUrl] = useState('')
   const [inputCategory, setInputCategory] = useState(showcaseCategories[0])
-  const [loading, setLoading] = useState(false)
+  const [loadingAdd, setLoadingAdd] = useState(false)
+  const [loadingDirectory, setLoadingDirectory] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [lastAddedEntry, setLastAddedEntry] = useState<ShowcaseEntry | null>(null)
   const [showcaseEntries, setShowcaseEntries] = useState<ShowcaseEntry[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<ShowcaseStatusFilter>('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
-
-  const loadingMessage = useMemo(
-    () => (loading ? 'Ajout du site en cours...' : 'Ajout termine.'),
-    [loading],
-  )
-
-  const directoryStats = useMemo(() => {
-    const full = showcaseEntries.filter((entry) => entry.complianceStatus === 'full').length
-    const partial = showcaseEntries.filter((entry) => entry.complianceStatus === 'partial').length
-    const none = showcaseEntries.filter((entry) => entry.complianceStatus === 'none').length
-    return {
-      total: showcaseEntries.length,
-      full,
-      partial,
-      none,
-    }
-  }, [showcaseEntries])
+  const [politeAnnouncement, setPoliteAnnouncement] = useState('')
 
   const filteredShowcaseEntries = useMemo(() => {
     const normalizedQuery = normalizeText(searchQuery.trim())
@@ -194,33 +161,47 @@ function App() {
     })
   }, [categoryFilter, searchQuery, showcaseEntries, statusFilter])
 
+  const directoryStats = useMemo(() => {
+    const full = showcaseEntries.filter((entry) => entry.complianceStatus === 'full').length
+    const partial = showcaseEntries.filter((entry) => entry.complianceStatus === 'partial').length
+    const none = showcaseEntries.filter((entry) => entry.complianceStatus === 'none').length
+
+    return {
+      total: showcaseEntries.length,
+      full,
+      partial,
+      none,
+    }
+  }, [showcaseEntries])
+
+  useEffect(() => {
+    setPoliteAnnouncement(
+      `${filteredShowcaseEntries.length} site(s) affiche(s) sur ${showcaseEntries.length} dans l annuaire.`,
+    )
+  }, [filteredShowcaseEntries.length, showcaseEntries.length])
+
   async function loadShowcaseEntries() {
+    setLoadingDirectory(true)
+
     try {
       const response = await fetch('/api/showcase')
       const payload = await readApiPayload(response)
 
       if (!response.ok) {
-        throw new Error(typeof payload?.error === 'string' ? payload.error : 'Chargement vitrine impossible.')
+        throw new Error(typeof payload?.error === 'string' ? payload.error : 'Chargement annuaire impossible.')
       }
 
       if (!Array.isArray(payload.entries)) {
-        throw new Error('Liste vitrine invalide.')
+        throw new Error('Liste annuaire invalide.')
       }
 
-      const parsedEntries = payload.entries.filter((entry) => {
-        return (
-          typeof entry === 'object' &&
-          entry !== null &&
-          typeof entry.normalizedUrl === 'string' &&
-          typeof entry.siteTitle === 'string' &&
-          typeof entry.updatedAt === 'string' &&
-          typeof entry.category === 'string'
-        )
-      }) as ShowcaseEntry[]
-
+      const parsedEntries = payload.entries.filter(isShowcaseEntry)
       setShowcaseEntries(parsedEntries)
     } catch (error) {
       console.error('Unable to load showcase entries', error)
+      setErrorMessage(error instanceof Error ? error.message : 'Erreur de chargement de l annuaire.')
+    } finally {
+      setLoadingDirectory(false)
     }
   }
 
@@ -231,7 +212,7 @@ function App() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrorMessage(null)
-    setLoading(true)
+    setLoadingAdd(true)
 
     try {
       const response = await fetch('/api/site-insight', {
@@ -245,49 +226,57 @@ function App() {
       const payload = await readApiPayload(response)
 
       if (!response.ok) {
-        throw new Error(typeof payload?.error === 'string' ? payload.error : 'Analyse impossible.')
+        throw new Error(typeof payload?.error === 'string' ? payload.error : 'Ajout impossible.')
       }
 
-      if (
-        typeof payload.normalizedUrl !== 'string' ||
-        typeof payload.siteTitle !== 'string' ||
-        typeof payload.updatedAt !== 'string' ||
-        typeof payload.category !== 'string'
-      ) {
+      if (!isShowcaseEntry(payload)) {
         throw new Error('Reponse serveur invalide.')
       }
 
-      const parsedEntry = payload as unknown as ShowcaseEntry
-      setLastAddedEntry(parsedEntry)
+      setLastAddedEntry(payload)
+      setInputUrl('')
       await loadShowcaseEntries()
+      setPoliteAnnouncement(`Site ajoute: ${payload.siteTitle}.`)
     } catch (error) {
       setLastAddedEntry(null)
       setErrorMessage(error instanceof Error ? error.message : 'Erreur reseau.')
     } finally {
-      setLoading(false)
+      setLoadingAdd(false)
     }
   }
 
   return (
     <>
-      <a href="#contenu" className="skip-link">
-        Aller au contenu principal
-      </a>
+      <div className="skip-links" aria-label="Liens d evitement">
+        <a href="#contenu" className="skip-link">
+          Aller au contenu
+        </a>
+        <a href="#filtres-annuaire" className="skip-link">
+          Aller aux filtres
+        </a>
+        <a href="#ajout-site" className="skip-link">
+          Aller au formulaire d ajout
+        </a>
+      </div>
+
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {politeAnnouncement}
+      </div>
 
       <div className="min-h-screen bg-slate-50 text-slate-900">
         <header className="border-b border-slate-200 bg-white">
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-            <p className="text-sm font-semibold uppercase tracking-wide text-slate-600">Vitrine FR</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-slate-600">Annuaire public RGAA</p>
             <img
               src="/logo-rgaa-vitrine.svg"
               alt="Logo RGAA Vitrine"
               className="mt-2 h-auto w-full max-w-md"
               loading="eager"
             />
-            <h1 className="sr-only">Fierte RGAA</h1>
+            <h1 className="sr-only">RGAA Vitrine</h1>
             <p className="mt-3 max-w-3xl text-base text-slate-700">
-              Un grand annuaire filtreable pour mettre en avant les sites engages en accessibilite numerique
-              et valoriser leur conformite RGAA.
+              Une vitrine simple pour referencer et decouvrir les sites qui affichent leur conformite RGAA, avec
+              filtres et recherche accessibles a tous.
             </p>
           </div>
         </header>
@@ -295,14 +284,11 @@ function App() {
         <main id="contenu" className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           <section aria-labelledby="annuaire-titre" className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 id="annuaire-titre" className="text-xl font-semibold">
-              Annuaire RGAA
+              Annuaire
             </h2>
-            <p className="mt-2 text-slate-700">
-              Parcourez la liste, cherchez par mot-cle, filtrez par categorie et par niveau de conformite.
-            </p>
             <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl bg-slate-100 px-4 py-3">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600">Total references</dt>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600">Sites references</dt>
                 <dd className="mt-1 text-2xl font-bold text-slate-900">{directoryStats.total}</dd>
               </div>
               <div className="rounded-xl bg-emerald-50 px-4 py-3">
@@ -320,13 +306,149 @@ function App() {
             </dl>
           </section>
 
-          <section aria-labelledby="formulaire-titre" className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section id="filtres-annuaire" className="mt-8" aria-labelledby="galerie-titre">
+            <div className="flex flex-col gap-2">
+              <h2 id="galerie-titre" className="text-xl font-semibold">
+                Rechercher et filtrer
+              </h2>
+              <p className="text-slate-700">Trouvez rapidement un site par nom, categorie ou niveau de conformite.</p>
+            </div>
+
+            <div className="mt-4 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3">
+              <div>
+                <label htmlFor="recherche-vitrine" className="block text-sm font-medium">
+                  Recherche
+                </label>
+                <input
+                  id="recherche-vitrine"
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Titre, URL, categorie..."
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="filtre-statut" className="block text-sm font-medium">
+                  Niveau de conformite
+                </label>
+                <select
+                  id="filtre-statut"
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value as ShowcaseStatusFilter)}
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
+                >
+                  {Object.entries(showcaseStatusFilterLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="filtre-categorie" className="block text-sm font-medium">
+                  Categorie
+                </label>
+                <select
+                  id="filtre-categorie"
+                  value={categoryFilter}
+                  onChange={(event) => setCategoryFilter(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
+                >
+                  <option value="all">Toutes les categories</option>
+                  {showcaseCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <p className="mt-3 text-sm text-slate-700">
+              {filteredShowcaseEntries.length} site(s) affiche(s) sur {showcaseEntries.length}.
+            </p>
+
+            {loadingDirectory && <p className="mt-3 text-slate-700">Chargement de l annuaire...</p>}
+
+            {!loadingDirectory && showcaseEntries.length === 0 && (
+              <p className="mt-3 text-slate-700">Aucun site reference pour le moment.</p>
+            )}
+
+            {!loadingDirectory && showcaseEntries.length > 0 && filteredShowcaseEntries.length === 0 && (
+              <p className="mt-3 text-slate-700">Aucun site ne correspond aux filtres actuels.</p>
+            )}
+
+            {filteredShowcaseEntries.length > 0 && (
+              <ul id="liste-vitrines" className="mt-4 grid gap-4 md:grid-cols-2">
+                {filteredShowcaseEntries.map((entry) => (
+                  <li key={entry.normalizedUrl} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <article>
+                      <div className="h-40 bg-slate-100">
+                        {entry.thumbnailUrl ? (
+                          <img
+                            src={entry.thumbnailUrl}
+                            alt={`Apercu du site ${entry.siteTitle}`}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center px-3 text-center text-sm text-slate-600">
+                            Aucune vignette disponible
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-2 p-4">
+                        <h3 className="text-lg font-semibold">{entry.siteTitle}</h3>
+                        <p className="text-xs text-slate-600">Categorie: {entry.category}</p>
+                        <p className="text-xs text-slate-600">Mise a jour: {formatDate(entry.updatedAt)}</p>
+                        <p className="text-sm">
+                          <a href={entry.normalizedUrl} target="_blank" rel="noreferrer noopener" className="break-all">
+                            {entry.normalizedUrl}
+                          </a>
+                        </p>
+                        <p className="text-sm">
+                          {entry.accessibilityPageUrl ? (
+                            <a href={entry.accessibilityPageUrl} target="_blank" rel="noreferrer noopener" className="break-all">
+                              Declaration accessibilite
+                            </a>
+                          ) : (
+                            <span className="text-slate-600">Declaration non detectee</span>
+                          )}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {entry.complianceStatus ? (
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusClassByValue[entry.complianceStatus]}`}
+                            >
+                              {entry.complianceStatusLabel}
+                            </span>
+                          ) : (
+                            <span className="inline-flex rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-800">
+                              Niveau inconnu
+                            </span>
+                          )}
+                          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800">
+                            Score: {entry.complianceScore !== null ? `${entry.complianceScore}%` : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    </article>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section id="ajout-site" className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" aria-labelledby="formulaire-titre">
             <h2 id="formulaire-titre" className="text-xl font-semibold">
-              Ajouter un site a l annuaire
+              Ajouter un site
             </h2>
             <p id="url-help" className="mt-2 text-sm text-slate-700">
-              Entrez l URL du site a referencer. Les metadonnees publiques seront recuperees automatiquement.
-              Exemple: <span className="font-medium">https://www.exemple.fr</span>
+              Ajoutez une URL pour enrichir l annuaire. Les metadonnees publiques seront recuperees automatiquement.
             </p>
 
             <form className="mt-4 grid gap-4 md:grid-cols-[2fr_1fr_auto]" onSubmit={handleSubmit} noValidate>
@@ -368,16 +490,12 @@ function App() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loadingAdd}
                 className="rounded-xl bg-slate-900 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:self-end"
               >
-                {loading ? 'Ajout...' : 'Ajouter a la vitrine'}
+                {loadingAdd ? 'Ajout...' : 'Ajouter'}
               </button>
             </form>
-
-            <p className="sr-only" aria-live="polite">
-              {loadingMessage}
-            </p>
 
             {errorMessage && (
               <p className="mt-4 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800" role="alert">
@@ -387,209 +505,25 @@ function App() {
 
             {lastAddedEntry && !errorMessage && (
               <p className="mt-4 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800">
-                Site ajoute: <strong>{lastAddedEntry.siteTitle}</strong>{' '}
-                <a href={lastAddedEntry.normalizedUrl} target="_blank" rel="noreferrer noopener">
-                  ({lastAddedEntry.normalizedUrl})
-                </a>
+                Site ajoute: <strong>{lastAddedEntry.siteTitle}</strong>
               </p>
             )}
-          </section>
-
-          <section className="mt-8" aria-labelledby="galerie-titre">
-            <div className="flex flex-col gap-2">
-              <h2 id="galerie-titre" className="text-xl font-semibold">
-                Galerie des vitrines
-              </h2>
-              <p className="text-slate-700">
-                Recherchez et filtrez les sites references par categorie et niveau de conformite.
-              </p>
-            </div>
-
-            <div className="mt-4 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3">
-              <div>
-                <label htmlFor="recherche-vitrine" className="block text-sm font-medium">
-                  Recherche
-                </label>
-                <input
-                  id="recherche-vitrine"
-                  type="search"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Titre, URL, categorie..."
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="filtre-statut" className="block text-sm font-medium">
-                  Filtre conformite
-                </label>
-                <select
-                  id="filtre-statut"
-                  value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value as ShowcaseStatusFilter)}
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
-                >
-                  {Object.entries(showcaseStatusFilterLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="filtre-categorie" className="block text-sm font-medium">
-                  Filtre categorie
-                </label>
-                <select
-                  id="filtre-categorie"
-                  value={categoryFilter}
-                  onChange={(event) => setCategoryFilter(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm"
-                >
-                  <option value="all">Toutes les categories</option>
-                  {showcaseCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <p className="mt-3 text-sm text-slate-700">
-              {filteredShowcaseEntries.length} vitrine(s) affichee(s) sur {showcaseEntries.length}.
-            </p>
-
-            {showcaseEntries.length === 0 && (
-              <p className="mt-3 text-slate-700">
-                Aucune vitrine enregistree pour le moment. Ajoutez des sites pour enrichir l annuaire.
-              </p>
-            )}
-
-            {showcaseEntries.length > 0 && filteredShowcaseEntries.length === 0 && (
-              <p className="mt-3 text-slate-700">Aucun site ne correspond aux filtres actuels.</p>
-            )}
-
-            {filteredShowcaseEntries.length > 0 && (
-              <ul id="liste-vitrines" className="mt-4 grid gap-4 md:grid-cols-2">
-                {filteredShowcaseEntries.map((entry) => (
-                  <li key={entry.normalizedUrl} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    <article>
-                      <div className="h-40 bg-slate-100">
-                        {entry.thumbnailUrl ? (
-                          <img
-                            src={entry.thumbnailUrl}
-                            alt={`Apercu du site ${entry.siteTitle}`}
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center px-3 text-center text-sm text-slate-600">
-                            Aucune vignette disponible
-                          </div>
-                        )}
-                      </div>
-                      <div className="space-y-2 p-4">
-                        <h3 className="text-lg font-semibold">{entry.siteTitle}</h3>
-                        <p className="text-xs text-slate-600">Categorie: {entry.category}</p>
-                        <p className="text-xs text-slate-600">Mise a jour: {formatDate(entry.updatedAt)}</p>
-                        <p className="text-sm">
-                          <a href={entry.normalizedUrl} target="_blank" rel="noreferrer noopener" className="break-all">
-                            {entry.normalizedUrl}
-                          </a>
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2">
-                          {entry.complianceStatus ? (
-                            <span
-                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusClassByValue[entry.complianceStatus]}`}
-                            >
-                              {entry.complianceStatusLabel}
-                            </span>
-                          ) : (
-                            <span className="inline-flex rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-800">
-                              Niveau inconnu
-                            </span>
-                          )}
-                          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800">
-                            Score: {entry.complianceScore !== null ? `${entry.complianceScore}%` : 'N/A'}
-                          </span>
-                        </div>
-                      </div>
-                    </article>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section
-            className="mt-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-            aria-labelledby="rgaa-culture-titre"
-          >
-            <h2 id="rgaa-culture-titre" className="text-xl font-semibold">
-              Valeurs et culture RGAA
-            </h2>
-            <p className="mt-2 text-slate-700">
-              Cette vitrine diffuse aussi les fondamentaux RGAA pour renforcer la qualite, la confiance et la
-              sensibilisation des equipes.
-            </p>
-
-            <div className="mt-6 grid gap-6 md:grid-cols-3">
-              <article aria-labelledby="valeurs-titre">
-                <h3 id="valeurs-titre" className="text-lg font-semibold">
-                  Valeurs
-                </h3>
-                <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-800">
-                  {rgaaValues.map((value) => (
-                    <li key={value}>{value}</li>
-                  ))}
-                </ul>
-              </article>
-
-              <article aria-labelledby="regles-titre">
-                <h3 id="regles-titre" className="text-lg font-semibold">
-                  Regles prioritaires
-                </h3>
-                <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-800">
-                  {rgaaRules.map((rule) => (
-                    <li key={rule}>{rule}</li>
-                  ))}
-                </ul>
-              </article>
-
-              <article aria-labelledby="sensibilisation-titre">
-                <h3 id="sensibilisation-titre" className="text-lg font-semibold">
-                  Sensibilisation
-                </h3>
-                <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-800">
-                  {rgaaAwareness.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </article>
-            </div>
           </section>
 
           <section className="mt-8" aria-labelledby="sources-titre">
             <h2 id="sources-titre" className="text-xl font-semibold">
-              Sources officielles de reference
+              Ressources officielles RGAA
             </h2>
             <p className="mt-2 text-slate-700">
-              Les recommandations affichees sur cette page sont alignees sur les ressources officielles suivantes.
+              Pour les personnes concernees, les equipes produit et les passionnes, voici les references publiques
+              utilisees pour guider la qualite du repertoire.
             </p>
             <ul className="mt-4 grid gap-3">
               {officialResources.map((resource) => (
                 <li key={resource.url} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h3 className="text-base font-semibold">{resource.label}</h3>
-                  <p className="mt-1 text-sm text-slate-700">{resource.summary}</p>
-                  <p className="mt-2 text-sm">
-                    <a href={resource.url} target="_blank" rel="noreferrer noopener">
-                      {resource.url}
-                    </a>
-                  </p>
+                  <a href={resource.url} target="_blank" rel="noreferrer noopener" className="font-semibold">
+                    {resource.label}
+                  </a>
                 </li>
               ))}
             </ul>

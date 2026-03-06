@@ -17,10 +17,12 @@ Planned public website: **https://rgaa-vitrine.org**
 
 ## Highlights
 
-- French UI focused on accessibility clarity.
+- Simple French UI focused on listing discovery first.
+- Multiple skip links for keyboard navigation (`contenu`, `filtres`, `ajout`).
+- Polite live region announcements for dynamic feedback.
 - Directory-first UX with filters, categories, and search at the core.
-- URL registration workflow with secure server-side metadata extraction.
-- Vitrine listing cards designed for discovery and comparison.
+- URL registration workflow with secure server-side metadata enrichment.
+- Vitrine listing cards designed for disabled people and accessibility enthusiasts.
 - RGAA awareness sections sourced from official French references.
 - Embedded skill: `rgaa-official-recommendations`.
 
@@ -80,7 +82,7 @@ Local services:
 
 ## API endpoints
 
-- `POST /api/site-insight` analyzes a site and persists one showcase entry
+- `POST /api/site-insight` registers/enriches one site entry in the directory
 - `GET /api/showcase` returns persisted showcase entries (supports `search`, `status`, `category`, `limit`)
 - `GET /api/health` returns service status and active storage mode
 
