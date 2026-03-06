@@ -46,6 +46,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Dynamic error/status feedback blocks now receive focus when displayed to improve keyboard and screen-reader discoverability.
 - Directory filters now expose explicit control relationships (`aria-controls`) and helper guidance for keyboard-only users.
 - Directory filters now include an explicit `Rechercher` CTA (search form submit) with focus return to results summary.
+- SVG logo baseline clipping has been fixed by adding vertical canvas padding and rebalancing text block positioning.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.
