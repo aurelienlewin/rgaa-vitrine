@@ -106,6 +106,8 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Secondary font families (`OpenDyslexic`, `Lexend`) are deferred after first paint while keeping `Atkinson Hyperlegible` in critical path.
 - Moderation now shows inline per-entry feedback during published-entry edits/deletions (pending changes, processing, success, errors).
 - Directory tiles now use progressive pagination (`24` cards per batch) with a `Charger plus` control and automatic lazy loading near viewport end.
+- Moderation message focus timing is now deferred to ensure reliable keyboard focus on freshly rendered feedback blocks.
+- Frontend bootstrap now guards `window/document` usage for SSR-safe execution paths.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

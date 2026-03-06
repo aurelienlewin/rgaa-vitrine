@@ -195,11 +195,13 @@ function ModerationPage() {
   }, [])
 
   const focusMessage = useCallback(() => {
-    if (!messageRef.current) {
-      return
-    }
-    messageRef.current.focus({ preventScroll: true })
-    messageRef.current.scrollIntoView({ block: 'start' })
+    window.setTimeout(() => {
+      if (!messageRef.current) {
+        return
+      }
+      messageRef.current.focus({ preventScroll: true })
+      messageRef.current.scrollIntoView({ block: 'start' })
+    }, 0)
   }, [])
 
   const buildAuthHeaders = useCallback(

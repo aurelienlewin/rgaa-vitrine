@@ -6,7 +6,11 @@ import './index.css'
 import App from './App.tsx'
 import { initializeTheme } from './theme'
 
-initializeTheme()
+const canUseDom = typeof window !== 'undefined' && typeof document !== 'undefined'
+
+if (canUseDom) {
+  initializeTheme()
+}
 
 const ModerationPage = lazy(() => import('./ModerationPage.tsx'))
 const SiteMapPage = lazy(() => import('./SiteMapPage.tsx'))
@@ -42,7 +46,7 @@ function normalizePathname(pathname: string) {
   return pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
 }
 
-const currentPathname = normalizePathname(window.location.pathname)
+const currentPathname = normalizePathname(canUseDom ? window.location.pathname : '/')
 const isModerationRoute = currentPathname.startsWith('/moderation')
 const isSiteMapRoute = currentPathname === '/plan-du-site'
 const isAccessibilityRoute = currentPathname === '/accessibilite'
@@ -55,18 +59,22 @@ const RootComponent = isModerationRoute
       ? AccessibilityPage
       : App
 
-scheduleSecondaryFontsLoad()
+if (canUseDom) {
+  scheduleSecondaryFontsLoad()
+}
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-brand-surface px-4 py-6 text-brand-ink">
-          Chargement…
-        </div>
-      }
-    >
-      <RootComponent />
-    </Suspense>
-  </StrictMode>,
-)
+if (canUseDom) {
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-brand-surface px-4 py-6 text-brand-ink">
+            Chargement…
+          </div>
+        }
+      >
+        <RootComponent />
+      </Suspense>
+    </StrictMode>,
+  )
+}
