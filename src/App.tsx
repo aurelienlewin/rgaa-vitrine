@@ -116,7 +116,9 @@ const buildTimestampDisplay =
 
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
-const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 shadow-lg -translate-y-[220%] transition-transform duration-150 motion-reduce:transition-none focus-visible:translate-y-0 ${focusRingClass}`
+const skipLinksContainerClass =
+  'fixed left-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:left-4 sm:top-4 sm:max-w-none'
+const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 shadow-lg ${focusRingClass}`
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('fr-FR', {
@@ -561,7 +563,7 @@ function App() {
   return (
     <>
       <div
-        className="fixed left-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] flex-col items-start gap-2 sm:left-4 sm:top-4 sm:max-w-none"
+        className={skipLinksContainerClass}
         aria-label="Liens d’évitement"
       >
         <a href="#contenu" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, mainContentRef)}>

@@ -95,6 +95,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Theme toggle now relies on explicit accessible labels without tooltip-only `title` behavior.
 - Navigation consistency improved across pages for `Plan du site` and `Accessibilité` discovery.
 - Contrast and color-pair styling has been strengthened for interface components and link rendering.
+- Skip-link containers are now fully hidden by default and only revealed on keyboard focus (`focus-within`) to prevent premature on-screen display.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

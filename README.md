@@ -18,7 +18,7 @@ Planned public website: **https://rgaa-vitrine.org**
 ## Highlights
 
 - Simple French UI focused on listing discovery first.
-- Multiple skip links for keyboard navigation (`contenu`, `filtres`, `ajout`, `aide`, `pied de page`).
+- Multiple skip links for keyboard navigation (`contenu`, `filtres`, `ajout`, `aide`, `pied de page`), hidden by default and revealed on keyboard focus.
 - Programmatic focus management on skip-link targets and dynamic feedback blocks (errors/status).
 - Keyboard filter ergonomics: `Échap` clears search input and a dedicated reset button restores all filters.
 - Explicit filter CTA with a `Rechercher` button for clear submit action and predictable keyboard flow.
