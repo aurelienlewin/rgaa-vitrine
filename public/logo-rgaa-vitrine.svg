@@ -1,86 +1,53 @@
 <svg
-  width="720"
-  height="280"
-  viewBox="0 -12 720 280"
+  width="256"
+  height="256"
+  viewBox="0 0 256 256"
   fill="none"
   xmlns="http://www.w3.org/2000/svg"
   role="img"
   aria-labelledby="logoTitle logoDesc"
-  style="overflow: visible"
 >
-  <title id="logoTitle">Logo Annuaire RGAA</title>
+  <title id="logoTitle">Icône Annuaire RGAA</title>
   <desc id="logoDesc">
-    Logo Annuaire RGAA avec icône de vitrine tricolore, coche de conformité et signature textuelle.
+    Icône de vitrine tricolore avec un badge de validation pour symboliser la conformité d’un site.
   </desc>
 
   <defs>
-    <linearGradient id="surfaceGrad" x1="12" y1="14" x2="708" y2="238" gradientUnits="userSpaceOnUse">
+    <linearGradient id="surface" x1="20" y1="20" x2="236" y2="236" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#FFFFFF" />
-      <stop offset="1" stop-color="#F2F5FF" />
+      <stop offset="1" stop-color="#E9F1FF" />
     </linearGradient>
-
-    <linearGradient id="chipGrad" x1="40" y1="40" x2="232" y2="232" gradientUnits="userSpaceOnUse">
+    <linearGradient id="frame" x1="28" y1="28" x2="228" y2="228" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#EEF4FF" />
-      <stop offset="1" stop-color="#DCE6FF" />
+      <stop offset="1" stop-color="#D8E5FF" />
     </linearGradient>
-
-    <linearGradient id="brandLine" x1="286" y1="176" x2="676" y2="176" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#000091" />
-      <stop offset="0.5" stop-color="#6A6AF4" />
-      <stop offset="1" stop-color="#E1000F" />
-    </linearGradient>
-
-    <filter id="softShadow" x="0" y="0" width="720" height="252" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+    <filter id="shadow" x="6" y="8" width="244" height="244" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
       <feFlood flood-opacity="0" result="BackgroundImageFix" />
       <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
       <feOffset dy="4" />
-      <feGaussianBlur stdDeviation="6" />
+      <feGaussianBlur stdDeviation="5" />
       <feComposite in2="hardAlpha" operator="out" />
-      <feColorMatrix type="matrix" values="0 0 0 0 0.04 0 0 0 0 0.08 0 0 0 0 0.17 0 0 0 0.15 0" />
+      <feColorMatrix type="matrix" values="0 0 0 0 0.04 0 0 0 0 0.08 0 0 0 0 0.17 0 0 0 0.18 0" />
       <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1" />
       <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape" />
     </filter>
   </defs>
 
-  <g filter="url(#softShadow)">
-    <rect x="12" y="14" width="696" height="224" rx="28" fill="url(#surfaceGrad)" stroke="#D8DEE9" />
-  </g>
+  <g filter="url(#shadow)">
+    <rect x="16" y="16" width="224" height="224" rx="36" fill="url(#surface)" stroke="#C8D6EE" />
+    <rect x="28" y="28" width="200" height="200" rx="30" fill="url(#frame)" stroke="#B7C8E6" />
 
-  <g transform="translate(30 30)">
-    <rect x="0" y="0" width="180" height="180" rx="28" fill="url(#chipGrad)" stroke="#BFCBE6" />
+    <rect x="56" y="52" width="144" height="26" rx="9" fill="#000091" />
+    <circle cx="74" cy="65" r="5" fill="#FFFFFF" />
+    <circle cx="91" cy="65" r="5" fill="#FFFFFF" />
+    <circle cx="108" cy="65" r="5" fill="#FFFFFF" />
 
-    <rect x="24" y="22" width="132" height="24" rx="8" fill="#000091" />
-    <circle cx="46" cy="34" r="5" fill="#FFFFFF" />
-    <circle cx="64" cy="34" r="5" fill="#FFFFFF" />
-    <circle cx="82" cy="34" r="5" fill="#FFFFFF" />
+    <rect x="56" y="88" width="144" height="78" rx="14" fill="#FFFFFF" stroke="#C5D3EB" />
+    <rect x="68" y="100" width="31" height="54" rx="7" fill="#000091" />
+    <rect x="99" y="100" width="54" height="54" rx="7" fill="#FFFFFF" stroke="#CAD6EC" />
+    <rect x="153" y="100" width="35" height="54" rx="7" fill="#E1000F" />
 
-    <rect x="28" y="56" width="124" height="72" rx="14" fill="#FFFFFF" stroke="#C7D3EF" />
-    <rect x="38" y="66" width="24" height="52" rx="6" fill="#000091" />
-    <rect x="62" y="66" width="44" height="52" rx="6" fill="#FFFFFF" stroke="#CAD4EA" />
-    <rect x="106" y="66" width="36" height="52" rx="6" fill="#E1000F" />
-
-    <g transform="translate(42 118)">
-      <circle cx="48" cy="30" r="26" fill="#FFFFFF" stroke="#C7D3EF" />
-      <path d="M35 30L45 40L62 22" stroke="#18753C" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
-    </g>
-
-    <path d="M152 54L156 62L164 66L156 70L152 78L148 70L140 66L148 62L152 54Z" fill="#6A6AF4" />
-  </g>
-
-  <g transform="translate(286 44)">
-    <text x="0" y="56" fill="#121B2E" font-size="64" font-family="Marianne, Segoe UI, Arial, sans-serif" font-weight="800" letter-spacing="0.4">
-      Annuaire RGAA
-    </text>
-
-    <text x="0" y="95" fill="#334155" font-size="24" font-family="Marianne, Segoe UI, Arial, sans-serif" font-weight="600">
-      L’accessibilité numérique, visible avec fierté
-    </text>
-
-    <rect x="0" y="118" width="392" height="10" rx="5" fill="url(#brandLine)" />
-
-    <rect x="0" y="138" width="220" height="30" rx="15" fill="#FFFFFF" stroke="#C8D3E8" />
-    <text x="16" y="158" fill="#1E293B" font-size="16" font-family="Marianne, Segoe UI, Arial, sans-serif" font-weight="700">
-      Annuaire RGAA conforme
-    </text>
+    <circle cx="176" cy="176" r="28" fill="#FFFFFF" stroke="#BFD1EA" />
+    <path d="M162 176L172 186L191 167" stroke="#18753C" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" />
   </g>
 </svg>

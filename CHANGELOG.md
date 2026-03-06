@@ -72,6 +72,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Compliance badges now include stronger border contrast in addition to color coding.
 - Added an explicit light/dark toggle (with persistence) in both main and moderation headers.
 - Tailwind `dark:` variant now follows a root `.dark` class to support manual mode switching while keeping system fallback.
+- Branding layout now keeps only the icon inside SVG; app title, baseline, and badge are rendered as Tailwind UI to prevent logo text clipping.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

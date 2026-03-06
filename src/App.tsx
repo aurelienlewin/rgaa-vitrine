@@ -461,14 +461,26 @@ function App() {
                 </a>
               </div>
             </div>
-            <img
-              src="/logo-rgaa-vitrine.svg"
-              alt="Logo Annuaire RGAA"
-              className="mt-2 h-auto w-full"
-              loading="eager"
-            />
-            <h1 className="sr-only">Annuaire RGAA</h1>
-            <p className="mt-3 max-w-3xl text-base text-slate-700 dark:text-slate-300">
+            <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+              <img
+                src="/logo-rgaa-vitrine.svg"
+                alt="Icône Annuaire RGAA"
+                className="h-28 w-28 flex-none rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2"
+                loading="eager"
+              />
+              <div className="min-w-0">
+                <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50">
+                  Annuaire RGAA
+                </h1>
+                <p className="mt-1 text-lg font-semibold text-slate-800 dark:text-slate-100">
+                  L’accessibilité numérique, visible avec fierté.
+                </p>
+                <span className="mt-3 inline-flex min-h-10 items-center rounded-full border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 px-4 py-1 text-sm font-bold text-sky-900 dark:text-sky-100">
+                  Annuaire RGAA conforme
+                </span>
+              </div>
+            </div>
+            <p className="mt-4 max-w-3xl text-base text-slate-700 dark:text-slate-300">
               Une vitrine simple pour référencer et découvrir les sites qui affichent leur conformité RGAA, avec
               filtres et recherche accessibles à tous.
             </p>
