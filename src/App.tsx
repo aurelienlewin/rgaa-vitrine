@@ -128,6 +128,12 @@ const githubProfile = {
 
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
+const ctaHoverClass = 'transition-colors duration-150 hover:underline'
+const ctaNeutralClass = `border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${ctaHoverClass}`
+const ctaPrimaryClass = `bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 hover:bg-slate-700 dark:hover:bg-slate-200 ${ctaHoverClass}`
+const ctaSkyClass = `border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 text-sky-900 dark:text-sky-100 hover:bg-sky-100 dark:hover:bg-sky-900/60 ${ctaHoverClass}`
+const ctaConfirmClass = `bg-sky-700 text-white hover:bg-sky-800 ${ctaHoverClass}`
+const ctaEmeraldClass = `border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 ${ctaHoverClass}`
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 shadow-lg ${focusRingClass}`
@@ -840,17 +846,6 @@ function App() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (isSubmitConfirmationStep) {
-      const message = 'Pré-analyse déjà disponible. Utilisez le bouton Confirmer l’envoi ci-dessous.'
-      setSubmitInfoMessage(message)
-      setSubmitErrorMessage(null)
-      announcePolite(message)
-      window.setTimeout(() => {
-        focusElement(submitConfirmationRef.current)
-      }, 0)
-      return
-    }
-
     setSubmitErrorMessage(null)
     setSubmitInfoMessage(null)
     setLastAddedEntry(null)
@@ -1065,25 +1060,25 @@ function App() {
                 />
                 <a
                   href="#aide-accessibilite"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 px-4 py-2 text-sm font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
                 >
                   Aide accessibilité
                 </a>
                 <a
                   href="/plan-du-site"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
                 >
                   Plan du site
                 </a>
                 <a
                   href="/accessibilite"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
                 >
                   Accessibilité
                 </a>
                 <a
                   href="/moderation"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
                 >
                   Modération
                 </a>
@@ -1234,14 +1229,14 @@ function App() {
               <div className="mt-3 flex flex-wrap gap-3">
                 <button
                   type="submit"
-                  className={`inline-flex min-h-11 items-center rounded-xl bg-slate-900 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-white dark:text-slate-950 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaPrimaryClass} ${focusRingClass}`}
                 >
                   Rechercher
                 </button>
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
                 >
                   Réinitialiser les filtres
                 </button>
@@ -1309,7 +1304,7 @@ function App() {
                           <a
                             href={entry.profilePath ?? resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug)}
                             aria-label={`Ouvrir la fiche annuaire de ${entry.siteTitle}`}
-                            className={`inline-flex min-h-11 items-center rounded-xl border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 px-3 py-2 font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
+                            className={`inline-flex min-h-11 items-center rounded-xl px-3 py-2 font-semibold ${ctaSkyClass} ${focusRingClass}`}
                           >
                             Voir la fiche annuaire
                           </a>
@@ -1321,7 +1316,7 @@ function App() {
                             rel="noopener external"
                             referrerPolicy="strict-origin-when-cross-origin"
                             aria-label={`Visiter le site ${entry.siteTitle}`}
-                            className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 px-3 py-2 font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                            className={`inline-flex min-h-11 items-center rounded-xl px-3 py-2 font-semibold ${ctaNeutralClass} ${focusRingClass}`}
                           >
                             Visiter le site
                           </a>
@@ -1334,7 +1329,7 @@ function App() {
                               rel="noopener external"
                               referrerPolicy="strict-origin-when-cross-origin"
                               aria-label={`Ouvrir la déclaration d’accessibilité de ${entry.siteTitle}`}
-                              className={`inline-flex min-h-11 items-center rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 font-semibold text-emerald-900 dark:text-emerald-100 ${focusRingClass}`}
+                              className={`inline-flex min-h-11 items-center rounded-xl px-3 py-2 font-semibold ${ctaEmeraldClass} ${focusRingClass}`}
                             >
                               Déclaration d’accessibilité
                             </a>
@@ -1421,7 +1416,7 @@ function App() {
                   ref={loadMoreButtonRef}
                   type="button"
                   onClick={() => handleLoadMoreTiles('button')}
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
                 >
                   Charger {Math.min(TILE_BATCH_SIZE, filteredShowcaseEntries.length - visibleShowcaseEntries.length)} carte(s) de plus
                 </button>
@@ -1462,7 +1457,7 @@ function App() {
                   href={resource.url}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-sky-300 dark:border-sky-600 bg-white dark:bg-slate-900 px-4 py-2 font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 font-semibold ${ctaSkyClass} ${focusRingClass}`}
                 >
                   {resource.label}
                 </a>
@@ -1562,11 +1557,11 @@ function App() {
 
               <button
                 type="submit"
-                disabled={isSubmissionBusy || isSubmitConfirmationStep}
+                disabled={isSubmissionBusy}
                 aria-describedby="preanalyse-help"
-                className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-5 py-2.5 font-semibold text-white dark:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 md:self-end ${focusRingClass}`}
+                className={`min-h-11 rounded-xl px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:opacity-60 md:self-end ${ctaPrimaryClass} ${focusRingClass}`}
               >
-                {isPreAnalyzing ? 'Pré-analyse...' : isSubmitConfirmationStep ? 'Pré-analyse effectuée' : 'Lancer la pré-analyse'}
+                {isPreAnalyzing ? 'Pré-analyse...' : isSubmitConfirmationStep ? 'Relancer la pré-analyse' : 'Lancer la pré-analyse'}
               </button>
 
               <p id="preanalyse-help" className="md:col-span-3 text-sm text-slate-700 dark:text-slate-300">
@@ -1633,7 +1628,7 @@ function App() {
                       void handleConfirmSubmission()
                     }}
                     disabled={isSubmissionBusy}
-                    className={`min-h-11 rounded-xl bg-sky-700 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 ${focusRingClass}`}
+                    className={`min-h-11 rounded-xl px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${ctaConfirmClass} ${focusRingClass}`}
                   >
                     {isConfirmingSubmission ? 'Envoi...' : 'Confirmer l’envoi'}
                   </button>
@@ -1641,7 +1636,7 @@ function App() {
                     type="button"
                     onClick={handleCancelSubmissionConfirmation}
                     disabled={isSubmissionBusy}
-                    className={`min-h-11 rounded-xl border border-slate-600 dark:border-slate-600 px-5 py-2.5 font-semibold text-slate-900 dark:text-slate-50 disabled:cursor-not-allowed disabled:opacity-60 ${focusRingClass}`}
+                    className={`min-h-11 rounded-xl px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${ctaNeutralClass} ${focusRingClass}`}
                   >
                     Modifier les informations
                   </button>
