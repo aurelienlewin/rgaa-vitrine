@@ -103,6 +103,12 @@
     font: inherit;
   }
 
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-slate-700);
+    opacity: 1;
+  }
+
   :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):focus-visible {
     outline: 3px solid var(--color-brand-focus);
     outline-offset: 3px;
@@ -110,8 +116,8 @@
 }
 
 @layer utilities {
-  /* Pair text color declarations with an explicit background fallback. */
-  [class*='text-'] {
+  /* Apply a transparent background fallback only when no background utility is present. */
+  [class*='text-']:not([class*='bg-']) {
     background-color: transparent;
   }
 
