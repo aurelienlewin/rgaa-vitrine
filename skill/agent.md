@@ -51,3 +51,15 @@ Use this list as a rapid regression filter before running a full RGAA review.
 - For contrast regressions, prefer explicit component tokens (status badges, bordered controls) over inherited color assumptions.
 - Avoid relying on low-opacity disabled states as the only differentiation signal; keep explicit border/text/background contrast on inactive controls.
 - Add a global fallback pairing layer for utility CSS (`text-*` and `bg-*`) when audits flag criterion `10.5` on declaration coupling.
+
+## Generalized guidance update (2026-03-07 remediation)
+
+- Standardize accessibility primitives across routes (header, skip links, footer, focus ring, live regions) before local component tweaks.
+- Keep critical journey entry points consistent on every page (search, navigation hubs, and primary return paths).
+- Express state changes in at least two channels: semantic state (`disabled`, ARIA/live) and visible state (contrast, labels, boundaries).
+- Treat disabled controls as first-class UI states with explicit color/border/text combinations, not opacity-only styling.
+- Keep no-script alternatives functionally useful, not informational only.
+- Use responsive constraints that preserve content/controls at narrow widths without horizontal scrolling.
+- Expand jargon and acronyms in editorial text where they first matter for comprehension.
+- Preserve focus continuity after async mutations: next logical control, local summary, or triggering control.
+- Track accessibility status with dated scope and evidence; avoid carrying stale declarations across releases.

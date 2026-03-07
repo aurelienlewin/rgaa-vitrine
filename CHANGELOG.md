@@ -174,6 +174,15 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Moderation now supports full database archive export (`GET /api/moderation/archive`) and import (`POST /api/moderation/archive/import`) in `merge` or `replace` mode.
 - Archive export/import includes published entries, pending queue, blocklists, vote fingerprints, and client vote indexes in a readable JSON envelope.
 - Moderation UI now includes an accessible archive section (download + import form with explicit mode selection and focus-safe feedback).
+- Accessibility remediation pass (latest `../audit/out/20260307-201423`) is now reflected across all routes, not only audited public pages.
+- Secondary header now exposes a consistent annuaire search access pattern (`role="search"` + direct search route link) to keep navigation parity across pages.
+- Skip links now remain explicitly link-like (persistent underline) to avoid color-only/context ambiguity.
+- Primary/confirmation/disabled action states now use explicit high-contrast color tokens instead of opacity-only disabled rendering.
+- Added runtime CSS rule pairing hardening so color/background declarations stay coupled on utility-heavy stylesheets.
+- Accessibility declaration page now reports zero known blocking non-conformities for this remediation baseline and tracks ongoing commitments instead of stale NC lists.
+- Acronym expansions (RGAA, WCAG, UX) are now exposed in shared editorial surfaces to reduce cryptic wording.
+- `<noscript>` fallback now includes direct home/search access in addition to existing public resources.
+- Moderation blocklist forms now avoid fixed minimum width values that could trigger narrow viewport reflow issues.
 
 ### Security
 - Documented secret handling requirements for Upstash credentials.

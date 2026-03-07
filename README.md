@@ -57,7 +57,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Dedicated moderation UI now supports published entry editing and deletion (title, category, score, status, RGAA baseline badge, vignette, accessibility URL).
 - Moderation now includes editable site blocklist and vote-blocklist controls, plus a single action to delete and block a published site.
 - Moderation forms now strengthen input assistance (`required`, typed URL fields, explicit score guidance) and row-level action labels for assistive technologies.
-- Public accessibility declaration page at `/accessibilite` including score, non-conformities, and contact.
+- Public accessibility declaration page at `/accessibilite` including compliance status, follow-up commitments, and contact.
 - Annuaire listing cards designed for disabled people and accessibility enthusiasts.
 - RGAA awareness sections sourced from official French references.
 - WCAG 2.2 awareness and references embedded in the UI.
@@ -160,24 +160,24 @@ The UI now adapts automatically to operating-system and browser accessibility pr
 
 ## Accessibility Remediation Traceability
 
-Based on the latest completed production accessibility review (updated March 6, 2026; scope: home page, site map, accessibility declaration), the current non-conform findings are concentrated on:
+Latest remediation baseline (March 7, 2026) now covers:
 
-- `3.1` color-only distinction for some inline links in textual context.
-- `3.2` insufficient text/background contrast on one status badge.
-- `3.3` insufficient non-text contrast on some interface component boundaries.
-- `7.2` non-script fallback not functionally equivalent.
-- `10.5` color/background pairing still to be tightened in CSS usage patterns.
-- `10.6` inline links not visually distinct enough from surrounding text.
-- `10.11` reflow robustness at `320px` width.
+- `/` (home)
+- `/plan-du-site`
+- `/accessibilite`
+- `/site/{slug}`
+- `/moderation`
 
-Remediations now implemented:
+Topic-level remediations now applied:
 
-- Stronger inline link visibility and permanent underline in the accessibility declaration for criteria `3.1` and `10.6`.
-- Additional wrapping hardening (`wrap-anywhere`) on long declaration content to reduce reflow risk (`10.11`).
-- Accessibility declaration data refreshed to the latest completed review scope and criteria set.
-- Functional non-script fallback in `index.html` (`/plan-du-site`, `/accessibilite`, `/sitemap.xml`, `/api/showcase`) for criterion `7.2`.
-- Stronger contrast tokens for status badges and key header/form controls to reduce `3.2`/`3.3` regressions.
-- Global CSS pairing utilities now enforce explicit fallback coupling (`text-*` => transparent background, `bg-*` without `text-*` => inherited text color) to harden criterion `10.5`.
+- Color/contrast hardening in both light and dark mode for primary actions, status chips, and disabled states.
+- Contextual link distinguishability hardening (persistent underline + clear CTA/link differentiation).
+- Search reachability harmonized across pages (consistent entry points to the annuaire search).
+- Functional `noscript` fallback reinforced with direct access to key public resources.
+- Mobile reflow hardening (320px width and constrained heights) on public and moderation views.
+- Acronym disambiguation in editorial copy (RGAA / WCAG / UX expansions on first explanatory surfaces).
+- Runtime CSS pairing hardening to avoid text/background declaration drift in utility-heavy stylesheets.
+- Shared keyboard/focus/live-region behavior maintained across all major routes.
 
 Operational note:
 
