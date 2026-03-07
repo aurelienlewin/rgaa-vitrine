@@ -1084,31 +1084,6 @@ function App() {
                 </a>
               </div>
             </div>
-            <form
-              action="/"
-              method="get"
-              role="search"
-              aria-label="Recherche globale dans l’annuaire"
-              className="mt-4 grid gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3 sm:grid-cols-[minmax(0,1fr)_auto]"
-            >
-              <label htmlFor="home-header-recherche-annuaire" className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:col-span-2">
-                Rechercher un site dans l’annuaire
-              </label>
-              <input
-                id="home-header-recherche-annuaire"
-                name="recherche"
-                type="search"
-                defaultValue={searchQuery}
-                placeholder="Titre, URL, catégorie…"
-                className={`min-h-11 rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-              />
-              <button
-                type="submit"
-                className={`min-h-11 rounded-xl border border-slate-950 dark:border-slate-50 bg-slate-950 dark:bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-50 dark:text-slate-950 ${focusRingClass}`}
-              >
-                Rechercher
-              </button>
-            </form>
             <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
               <img
                 src="/logo-rgaa-vitrine.svg"
