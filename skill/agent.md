@@ -50,3 +50,4 @@ Use this list as a rapid regression filter before running a full RGAA review.
 - For script alternatives (`7.2`), provide direct fallback navigation to public pages/datasets in `<noscript>`.
 - For contrast regressions, prefer explicit component tokens (status badges, bordered controls) over inherited color assumptions.
 - Avoid relying on low-opacity disabled states as the only differentiation signal; keep explicit border/text/background contrast on inactive controls.
+- Add a global fallback pairing layer for utility CSS (`text-*` and `bg-*`) when audits flag criterion `10.5` on declaration coupling.

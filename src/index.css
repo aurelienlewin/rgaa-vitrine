@@ -103,6 +103,18 @@
   }
 }
 
+@layer utilities {
+  /* Pair text color declarations with an explicit background fallback. */
+  [class*='text-'] {
+    background-color: transparent;
+  }
+
+  /* Pair background declarations with an explicit text fallback when no text utility is present. */
+  [class*='bg-']:not([class*='text-']) {
+    color: inherit;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --color-slate-50: #f7f9ff;

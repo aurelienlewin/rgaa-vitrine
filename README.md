@@ -177,6 +177,7 @@ Remediations now implemented:
 - Accessibility declaration data refreshed to the latest completed review scope and criteria set.
 - Functional non-script fallback in `index.html` (`/plan-du-site`, `/accessibilite`, `/sitemap.xml`, `/api/showcase`) for criterion `7.2`.
 - Stronger contrast tokens for status badges and key header/form controls to reduce `3.2`/`3.3` regressions.
+- Global CSS pairing utilities now enforce explicit fallback coupling (`text-*` => transparent background, `bg-*` without `text-*` => inherited text color) to harden criterion `10.5`.
 
 Operational note:
 

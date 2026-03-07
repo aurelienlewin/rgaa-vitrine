@@ -166,6 +166,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Contextual links in the accessibility declaration now use persistent visual markers (underline + offset) to avoid color-only distinction.
 - `<noscript>` now exposes functional fallback links to core public resources (`/plan-du-site`, `/accessibilite`, `/sitemap.xml`, `/api/showcase`) instead of a message-only fallback.
 - Header/form controls and the “Niveau inconnu” badge now use stronger contrast-safe color/border combinations to reduce text and non-text contrast failures.
+- CSS utility hardening now adds explicit color/background fallback pairing for `text-*` and `bg-*` classes to reduce criterion `10.5` regressions.
 - Secondary pages (`/plan-du-site`, `/accessibilite`) now expose `BreadcrumbList` structured data.
 - Open Graph and Twitter metadata now include URL/image-alt/secure image fields for richer sharing previews.
 - Sitemap now includes `/api/showcase`, and `robots.txt` explicitly blocks moderation paths from indexing.
