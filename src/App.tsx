@@ -1157,12 +1157,12 @@ function App() {
             </div>
 
             <form
-              className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm"
+              className="@container mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm"
               role="search"
               aria-label="Recherche dans l’annuaire des vitrines"
               onSubmit={handleSearchSubmit}
             >
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
                 <div>
                   <label htmlFor="recherche-vitrine" className="block text-sm font-medium">
                     Recherche
@@ -1226,17 +1226,17 @@ function App() {
                 </div>
               </div>
 
-              <div className="mt-3 flex flex-wrap gap-3">
+              <div className="mt-3 grid grid-cols-1 gap-3 @sm:grid-cols-2">
                 <button
                   type="submit"
-                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaPrimaryClass} ${focusRingClass}`}
+                  className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaPrimaryClass} ${focusRingClass}`}
                 >
                   Rechercher
                 </button>
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                  className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
                 >
                   Réinitialiser les filtres
                 </button>
