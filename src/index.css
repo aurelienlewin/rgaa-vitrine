@@ -70,14 +70,20 @@
   }
 
   a {
+    @apply underline decoration-2 underline-offset-2;
     color: var(--color-brand-link);
     background-color: transparent;
   }
 
   a:hover {
+    @apply decoration-3;
     color: var(--color-brand-link-hover);
     background-color: transparent;
-    text-decoration: underline;
+  }
+
+  a[class*='inline-flex'],
+  a[class*='rounded'] {
+    @apply no-underline;
   }
 
   a:visited {
