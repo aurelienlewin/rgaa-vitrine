@@ -1162,7 +1162,7 @@ function App() {
               aria-label="Recherche dans l’annuaire des vitrines"
               onSubmit={handleSearchSubmit}
             >
-              <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+              <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto] @lg:items-end">
                 <div>
                   <label htmlFor="recherche-vitrine" className="block text-sm font-medium">
                     Recherche
@@ -1224,19 +1224,16 @@ function App() {
                     ))}
                   </select>
                 </div>
-              </div>
-
-              <div className="mt-3 grid grid-cols-1 gap-3 @sm:grid-cols-2">
                 <button
                   type="submit"
-                  className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaPrimaryClass} ${focusRingClass}`}
+                  className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold @lg:w-auto ${ctaPrimaryClass} ${focusRingClass}`}
                 >
                   Rechercher
                 </button>
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                  className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold @lg:w-auto ${ctaNeutralClass} ${focusRingClass}`}
                 >
                   Réinitialiser les filtres
                 </button>
