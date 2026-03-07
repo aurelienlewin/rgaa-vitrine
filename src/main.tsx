@@ -5,12 +5,17 @@ import '@fontsource/atkinson-hyperlegible/latin-400.css'
 import '@fontsource/atkinson-hyperlegible/latin-700.css'
 import './index.css'
 import App from './App.tsx'
+import { ensureCssColorPairs } from './ensureCssColorPairs'
 import { initializeTheme } from './theme'
 
 const canUseDom = typeof window !== 'undefined' && typeof document !== 'undefined'
 
 if (canUseDom) {
   initializeTheme()
+  ensureCssColorPairs()
+  window.setTimeout(() => {
+    ensureCssColorPairs()
+  }, 250)
 }
 
 const ModerationPage = lazy(() => import('./ModerationPage.tsx'))

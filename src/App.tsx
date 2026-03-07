@@ -129,14 +129,14 @@ const githubProfile = {
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const ctaHoverClass = 'transition-colors duration-150 hover:underline'
-const ctaNeutralClass = `border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${ctaHoverClass}`
-const ctaPrimaryClass = `border border-slate-900 dark:border-slate-200 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 hover:bg-slate-700 dark:hover:bg-slate-200 ${ctaHoverClass}`
+const ctaNeutralClass = `border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${ctaHoverClass}`
+const ctaPrimaryClass = `border border-slate-950 dark:border-slate-50 bg-slate-950 dark:bg-slate-50 text-slate-50 dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-200 ${ctaHoverClass}`
 const ctaSkyClass = `border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 text-sky-900 dark:text-sky-100 hover:bg-sky-100 dark:hover:bg-sky-900/60 ${ctaHoverClass}`
-const ctaConfirmClass = `bg-sky-700 text-white hover:bg-sky-800 ${ctaHoverClass}`
+const ctaConfirmClass = `border border-sky-800 dark:border-sky-200 bg-sky-800 dark:bg-sky-200 text-sky-50 dark:text-sky-950 hover:bg-sky-900 dark:hover:bg-sky-100 ${ctaHoverClass}`
 const ctaEmeraldClass = `border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 ${ctaHoverClass}`
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
-const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 shadow-lg ${focusRingClass}`
+const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 underline decoration-2 underline-offset-2 shadow-lg ${focusRingClass}`
 const TILE_BATCH_SIZE = 24
 const CLIENT_VOTER_ID_STORAGE_KEY = 'annuaire-rgaa-voter-id'
 
@@ -1084,6 +1084,31 @@ function App() {
                 </a>
               </div>
             </div>
+            <form
+              action="/"
+              method="get"
+              role="search"
+              aria-label="Recherche globale dans l’annuaire"
+              className="mt-4 grid gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3 sm:grid-cols-[minmax(0,1fr)_auto]"
+            >
+              <label htmlFor="home-header-recherche-annuaire" className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:col-span-2">
+                Rechercher un site dans l’annuaire
+              </label>
+              <input
+                id="home-header-recherche-annuaire"
+                name="recherche"
+                type="search"
+                defaultValue={searchQuery}
+                placeholder="Titre, URL, catégorie…"
+                className={`min-h-11 rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+              />
+              <button
+                type="submit"
+                className={`min-h-11 rounded-xl border border-slate-950 dark:border-slate-50 bg-slate-950 dark:bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-50 dark:text-slate-950 ${focusRingClass}`}
+              >
+                Rechercher
+              </button>
+            </form>
             <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
               <img
                 src="/logo-rgaa-vitrine.svg"
@@ -1096,7 +1121,7 @@ function App() {
                   Annuaire RGAA
                 </h1>
                 <p className="mt-1 text-lg font-semibold text-slate-800 dark:text-slate-100">
-                  L’accessibilité numérique, visible avec fierté.
+                  Le Référentiel général d’amélioration de l’accessibilité (RGAA), visible avec fierté.
                 </p>
                 <span className="mt-3 inline-flex min-h-10 items-center rounded-full border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 px-4 py-1 text-sm font-bold text-sky-900 dark:text-sky-100">
                   Annuaire RGAA conforme
@@ -1104,7 +1129,8 @@ function App() {
               </div>
             </div>
             <p className="mt-4 max-w-4xl text-base text-slate-700 dark:text-slate-300">
-              Une vitrine simple pour référencer et découvrir les sites qui affichent leur conformité RGAA, avec filtres et recherche accessibles à tous.
+              Une vitrine simple pour référencer et découvrir les sites qui affichent leur conformité RGAA, avec
+              filtres et recherche accessibles à tous, alignés sur les WCAG (Web Content Accessibility Guidelines) 2.2.
             </p>
           </div>
         </header>
@@ -1133,8 +1159,8 @@ function App() {
               </div>
             </dl>
             <p className="mt-4 rounded-xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-3 text-sm font-medium text-sky-900 dark:text-sky-100">
-              Le score indique une direction. La vraie mesure, c’est un parcours client débloqué et une UX qui laisse
-              passer chaque personne.
+              Le score indique une direction. La vraie mesure, c’est un parcours client débloqué et une expérience
+              utilisateur (UX) qui laisse passer chaque personne.
             </p>
           </section>
 
@@ -1556,7 +1582,7 @@ function App() {
                 type="submit"
                 disabled={isSubmissionBusy}
                 aria-describedby="preanalyse-help"
-                className={`min-h-11 rounded-xl px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:opacity-60 md:self-end ${ctaPrimaryClass} ${focusRingClass}`}
+                className={`min-h-11 rounded-xl px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 md:self-end ${ctaPrimaryClass} ${focusRingClass}`}
               >
                 {isPreAnalyzing ? 'Pré-analyse...' : isSubmitConfirmationStep ? 'Relancer la pré-analyse' : 'Lancer la pré-analyse'}
               </button>
@@ -1625,7 +1651,7 @@ function App() {
                       void handleConfirmSubmission()
                     }}
                     disabled={isSubmissionBusy}
-                    className={`min-h-11 rounded-xl px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${ctaConfirmClass} ${focusRingClass}`}
+                    className={`min-h-11 rounded-xl px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${ctaConfirmClass} ${focusRingClass}`}
                   >
                     {isConfirmingSubmission ? 'Envoi...' : 'Confirmer l’envoi'}
                   </button>
@@ -1633,7 +1659,7 @@ function App() {
                     type="button"
                     onClick={handleCancelSubmissionConfirmation}
                     disabled={isSubmissionBusy}
-                    className={`min-h-11 rounded-xl px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${ctaNeutralClass} ${focusRingClass}`}
+                    className={`min-h-11 rounded-xl px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${ctaNeutralClass} ${focusRingClass}`}
                   >
                     Modifier les informations
                   </button>

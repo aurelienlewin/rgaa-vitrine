@@ -81,11 +81,6 @@
     background-color: transparent;
   }
 
-  a[class*='inline-flex'],
-  a[class*='rounded'] {
-    @apply no-underline;
-  }
-
   a:visited {
     color: var(--color-brand-link);
     background-color: transparent;
@@ -106,6 +101,7 @@
   input::placeholder,
   textarea::placeholder {
     color: var(--color-slate-700);
+    background-color: transparent;
     opacity: 1;
   }
 

@@ -72,6 +72,14 @@ function SiteFooter({ id = 'pied-page', footerRef, helpHref = '/#aide-accessibil
           <ul className="mt-3 grid gap-2">
             <li>
               <a
+                href="/#filtres-annuaire"
+                className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+              >
+                Recherche annuaire
+              </a>
+            </li>
+            <li>
+              <a
                 href={helpHref}
                 className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
               >

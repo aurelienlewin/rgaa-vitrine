@@ -80,7 +80,7 @@ const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
-const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 shadow-lg ${focusRingClass}`
+const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 underline decoration-2 underline-offset-2 shadow-lg ${focusRingClass}`
 const MODERATION_SESSION_STORAGE_KEY = 'annuaire-rgaa-moderation-session'
 const MODERATION_SESSION_TTL_MS = 12 * 60 * 60 * 1000
 
@@ -1338,6 +1338,9 @@ function ModerationPage() {
         <a href="#contenu-moderation" className={skipLinkClass} onClick={focusMain}>
           Aller au contenu
         </a>
+        <a href="/#filtres-annuaire" className={skipLinkClass}>
+          Aller à la recherche annuaire
+        </a>
         {isModerationUnlocked && (
           <>
             <a href="#annuaire-publie" className={skipLinkClass} onClick={focusPublished}>
@@ -1432,7 +1435,7 @@ function ModerationPage() {
               <button
                 type="submit"
                 disabled={isLoadingList || isLoadingPublished}
-                className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-white dark:text-slate-950 disabled:opacity-60 ${focusRingClass} md:self-end`}
+                className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-white dark:text-slate-950 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass} md:self-end`}
               >
                 {isLoadingList || isLoadingPublished ? 'Chargement...' : 'Charger la modération'}
               </button>
@@ -1499,7 +1502,7 @@ function ModerationPage() {
                       void handleExportArchive()
                     }}
                     disabled={!hasToken || isExportingArchive || isImportingArchive}
-                    className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-white dark:text-slate-950 disabled:opacity-60 ${focusRingClass}`}
+                    className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-white dark:text-slate-950 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
                   >
                     {isExportingArchive ? 'Export en cours...' : 'Télécharger l’archive JSON'}
                   </button>
@@ -1577,7 +1580,7 @@ function ModerationPage() {
                   <button
                     type="submit"
                     disabled={!hasToken || !archiveImportFile || isImportingArchive || isExportingArchive}
-                    className={`min-h-11 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass}`}
+                    className={`min-h-11 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
                   >
                     {isImportingArchive ? 'Import en cours...' : 'Importer l’archive'}
                   </button>
@@ -1653,7 +1656,7 @@ function ModerationPage() {
                               void handleApprove(entry.submissionId)
                             }}
                             disabled={isActionRunning}
-                            className={`min-h-11 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass} md:self-end`}
+                            className={`min-h-11 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass} md:self-end`}
                           >
                             {isActionRunning ? 'Traitement...' : 'Approuver'}
                           </button>
@@ -1663,7 +1666,7 @@ function ModerationPage() {
                               void handleReject(entry.submissionId)
                             }}
                             disabled={isActionRunning}
-                            className={`min-h-11 rounded-xl bg-rose-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass} md:self-end`}
+                            className={`min-h-11 rounded-xl bg-rose-700 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass} md:self-end`}
                           >
                             {isActionRunning ? 'Traitement...' : 'Rejeter'}
                           </button>
@@ -1897,7 +1900,7 @@ function ModerationPage() {
                               void handleUpdatePublishedEntry(entry.normalizedUrl)
                             }}
                             disabled={isRunning}
-                            className={`min-h-11 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass}`}
+                            className={`min-h-11 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
                           >
                             {isRunning ? 'Traitement...' : 'Enregistrer'}
                           </button>
@@ -1907,7 +1910,7 @@ function ModerationPage() {
                               void handleSetVotesBlocked(entry.normalizedUrl, !areVotesBlocked)
                             }}
                             disabled={isRunning || isVoteRuleRunning}
-                            className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass} ${
+                            className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass} ${
                               areVotesBlocked ? 'bg-amber-700' : 'bg-slate-700'
                             }`}
                           >
@@ -1926,7 +1929,7 @@ function ModerationPage() {
                               void handleDeletePublishedEntry(entry.normalizedUrl)
                             }}
                             disabled={isRunning}
-                            className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass} ${
+                            className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass} ${
                               isDeleteConfirm ? 'bg-rose-900' : 'bg-rose-700'
                             }`}
                           >
@@ -1941,7 +1944,7 @@ function ModerationPage() {
                               void handleDeleteAndBlockPublishedEntry(entry.normalizedUrl)
                             }}
                             disabled={isRunning || isSiteRuleRunning}
-                            className={`min-h-11 rounded-xl bg-rose-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass}`}
+                            className={`min-h-11 rounded-xl bg-rose-900 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
                           >
                             {isSiteRuleRunning ? 'Traitement...' : 'Supprimer + blocklist'}
                           </button>
@@ -1989,7 +1992,7 @@ function ModerationPage() {
             </p>
 
             <form className="mt-4 flex flex-wrap items-end gap-3" onSubmit={handleAddSiteBlocklist}>
-              <div className="min-w-[18rem] flex-1">
+              <div className="min-w-0 flex-1">
                 <label htmlFor="blocklist-site-url" className="block text-sm font-medium text-rose-900 dark:text-rose-100">
                   URL à bloquer
                 </label>
@@ -2008,7 +2011,7 @@ function ModerationPage() {
               <button
                 type="submit"
                 disabled={runningBlocklistSiteUrl === siteBlocklistInput.trim()}
-                className={`min-h-11 rounded-xl bg-rose-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass}`}
+                className={`min-h-11 rounded-xl bg-rose-800 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
               >
                 Ajouter à la blocklist
               </button>
@@ -2032,7 +2035,7 @@ function ModerationPage() {
                         }}
                         aria-label={`Retirer ${blockedUrl} de la blocklist des sites`}
                         disabled={isRunning}
-                        className={`min-h-11 rounded-xl border border-rose-300 dark:border-rose-700 px-4 py-2 text-sm font-semibold text-rose-900 dark:text-rose-100 disabled:opacity-60 ${focusRingClass}`}
+                        className={`min-h-11 rounded-xl border border-rose-300 dark:border-rose-700 px-4 py-2 text-sm font-semibold text-rose-900 dark:text-rose-100 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
                       >
                         {isRunning ? 'Traitement...' : 'Retirer'}
                       </button>
@@ -2058,7 +2061,7 @@ function ModerationPage() {
             </p>
 
             <form className="mt-4 flex flex-wrap items-end gap-3" onSubmit={handleAddVoteBlocklist}>
-              <div className="min-w-[18rem] flex-1">
+              <div className="min-w-0 flex-1">
                 <label htmlFor="blocklist-vote-url" className="block text-sm font-medium text-amber-900 dark:text-amber-100">
                   URL pour bloquer les votes
                 </label>
@@ -2077,7 +2080,7 @@ function ModerationPage() {
               <button
                 type="submit"
                 disabled={runningBlocklistVoteUrl === voteBlocklistInput.trim()}
-                className={`min-h-11 rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${focusRingClass}`}
+                className={`min-h-11 rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
               >
                 Bloquer les votes
               </button>
@@ -2101,7 +2104,7 @@ function ModerationPage() {
                         }}
                         aria-label={`Réactiver les votes pour ${blockedUrl}`}
                         disabled={isRunning}
-                        className={`min-h-11 rounded-xl border border-amber-300 dark:border-amber-700 px-4 py-2 text-sm font-semibold text-amber-900 dark:text-amber-100 disabled:opacity-60 ${focusRingClass}`}
+                        className={`min-h-11 rounded-xl border border-amber-300 dark:border-amber-700 px-4 py-2 text-sm font-semibold text-amber-900 dark:text-amber-100 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
                       >
                         {isRunning ? 'Traitement...' : 'Réactiver les votes'}
                       </button>

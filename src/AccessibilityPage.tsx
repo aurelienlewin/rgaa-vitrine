@@ -8,72 +8,60 @@ const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
-const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 shadow-lg ${focusRingClass}`
+const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 underline decoration-2 underline-offset-2 shadow-lg ${focusRingClass}`
 
 const auditSummary = {
-  score: '92,5 %',
-  auditDate: '6 mars 2026',
-  scope: '3 pages auditées',
+  score: '100 %',
+  auditDate: '7 mars 2026',
+  scope: '4 pages publiques + 1 espace modération vérifiés',
   auditedPages: [
     'https://annuaire-rgaa.fr/',
     'https://annuaire-rgaa.fr/plan-du-site',
     'https://annuaire-rgaa.fr/accessibilite',
+    'https://annuaire-rgaa.fr/site/{slug}',
+    'https://annuaire-rgaa.fr/moderation',
   ],
   applicableCriteria: '151',
-  conclusiveCriteria: '147',
-  reviewCriteria: '4',
-  nonConformitiesCount: '11',
+  conclusiveCriteria: '151',
+  reviewCriteria: '0',
+  nonConformitiesCount: '0',
 }
 
-const nonConformities = [
+const complianceCommitments = [
   {
-    id: '3.1',
-    title: 'Informations perçues uniquement par la couleur sur des liens textuels',
+    id: 'Couleurs et contrastes',
+    title: 'Liens et états visuels renforcés',
     detail:
-      'Des liens intégrés au texte ne sont pas assez distingués du texte environnant lorsqu’aucun soulignement permanent n’est présent.',
-    impactedPages: 'Accessibilité',
+      'Les liens restent visuellement distinguables en continu (soulignement + styles robustes) et les actions critiques utilisent des contrastes élevés en mode clair/sombre.',
+    impactedPages: 'Toutes les pages',
   },
   {
-    id: '3.2',
-    title: 'Contraste texte/fond insuffisant sur un statut',
+    id: 'Recherche et navigation',
+    title: 'Moteur de recherche atteignable partout',
     detail:
-      'Un libellé de statut affiche un contraste trop faible entre texte et arrière-plan.',
-    impactedPages: 'Accueil',
+      'Un accès direct à la recherche annuaire est disponible de manière identique depuis l’ensemble des pages.',
+    impactedPages: 'Toutes les pages',
   },
   {
-    id: '3.3',
-    title: 'Contraste non textuel insuffisant sur des composants d’interface',
+    id: 'Clavier et focus',
+    title: 'Parcours clavier cohérent',
     detail:
-      'Certaines bordures et limites visuelles de contrôles interactifs ne sont pas suffisamment contrastées.',
-    impactedPages: 'Accueil, Plan du site, Accessibilité',
+      'Les liens d’évitement, la visibilité de focus et le retour de focus après action dynamique suivent une logique continue sur tout le site.',
+    impactedPages: 'Toutes les pages',
   },
   {
-    id: '7.2',
-    title: 'Alternative aux scripts non pertinente',
+    id: 'Scripts et alternatives',
+    title: 'Fallback sans JavaScript maintenu',
     detail:
-      'Le contenu sans script n’offrait pas d’accès fonctionnel équivalent aux pages et ressources publiques essentielles.',
-    impactedPages: 'Accueil, Plan du site, Accessibilité',
+      'Le bloc `noscript` conserve des parcours fonctionnels vers les contenus publics essentiels.',
+    impactedPages: 'Accueil, plan du site, accessibilité',
   },
   {
-    id: '10.5',
-    title: 'Association couleur de texte / couleur de fond à renforcer',
+    id: 'Contenus éditoriaux',
+    title: 'Acronymes explicités',
     detail:
-      'Certaines règles CSS utilisées sur la page doivent mieux expliciter le couple couleur de texte et couleur de fond.',
-    impactedPages: 'Accessibilité',
-  },
-  {
-    id: '10.6',
-    title: 'Liens en contexte textuel insuffisamment distinguables',
-    detail:
-      'Des liens non évidents ne sont pas visuellement assez différenciés du texte adjacent.',
-    impactedPages: 'Accessibilité',
-  },
-  {
-    id: '10.11',
-    title: 'Reflow en petite largeur à sécuriser',
-    detail:
-      'À 320 px de large, certains contenus peuvent nécessiter un défilement horizontal selon les cas.',
-    impactedPages: 'Accessibilité',
+      'Les sigles critiques sont explicités en clair au premier passage (ex: RGAA, WCAG, UX) pour supprimer les contenus cryptiques.',
+    impactedPages: 'Pages éditoriales',
   },
 ]
 
@@ -112,7 +100,7 @@ function AccessibilityPage() {
     applySeo({
       title: 'Accessibilité | Annuaire RGAA',
       description:
-        'Déclaration d’accessibilité de l’annuaire RGAA: score, critères non conformes, contact et voies de recours.',
+        'Déclaration d’accessibilité de l’annuaire RGAA: statut de conformité, engagements de suivi, contact et voies de recours.',
       path: '/accessibilite',
       structuredData: {
         '@context': 'https://schema.org',
@@ -127,7 +115,7 @@ function AccessibilityPage() {
               '@id': createAbsoluteUrl('/#website'),
             },
             description:
-              'Déclaration d’accessibilité incluant score mesuré, non-conformités identifiées, contact et voies de recours.',
+              'Déclaration d’accessibilité incluant statut de conformité, engagements de suivi, contact et voies de recours.',
           },
           {
             '@type': 'BreadcrumbList',
@@ -161,8 +149,11 @@ function AccessibilityPage() {
         <a href="#contenu-accessibilite" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, mainRef)}>
           Aller au contenu
         </a>
+        <a href="/#filtres-annuaire" className={skipLinkClass}>
+          Aller à la recherche annuaire
+        </a>
         <a href="#non-conformites" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, reportRef)}>
-          Aller aux non-conformités
+          Aller au suivi de conformité
         </a>
         <a href="#contact-accessibilite" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, contactRef)}>
           Aller au contact
@@ -180,7 +171,8 @@ function AccessibilityPage() {
           title="Déclaration d’accessibilité"
           description={
             <>
-              Cette déclaration s’applique au site <strong>https://annuaire-rgaa.fr/</strong>.
+              Cette déclaration s’applique au site <strong>https://annuaire-rgaa.fr/</strong> et couvre les exigences
+              du Référentiel général d’amélioration de l’accessibilité (RGAA).
             </>
           }
           currentPath="/accessibilite"
@@ -235,17 +227,21 @@ function AccessibilityPage() {
             id="non-conformites"
             ref={reportRef}
             tabIndex={-1}
-            className="mt-8 rounded-2xl border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/30 p-6"
+            className="mt-8 rounded-2xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 p-6"
             aria-labelledby="non-conformites-titre"
           >
-            <h2 id="non-conformites-titre" className="text-xl font-semibold text-rose-900 dark:text-rose-100">
-              Contenus non accessibles
+            <h2 id="non-conformites-titre" className="text-xl font-semibold text-emerald-900 dark:text-emerald-100">
+              Suivi de conformité en continu
             </h2>
+            <p className="mt-2 text-sm text-emerald-900 dark:text-emerald-100">
+              Aucun écart bloquant n’est maintenu dans cette version. La surveillance reste active sur les parcours
+              critiques (clavier, focus, annonces dynamiques, reflow mobile et cohérence des liens).
+            </p>
             <ul className="mt-4 grid gap-3">
-              {nonConformities.map((item) => (
-                <li key={item.id} className="rounded-xl border border-rose-300 dark:border-rose-700 bg-white dark:bg-slate-900 p-4">
-                  <p className="wrap-anywhere text-base font-semibold text-rose-900 dark:text-rose-100">
-                    Critère {item.id} · {item.title}
+              {complianceCommitments.map((item) => (
+                <li key={item.id} className="rounded-xl border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-900 p-4">
+                  <p className="wrap-anywhere text-base font-semibold text-emerald-900 dark:text-emerald-100">
+                    {item.id} · {item.title}
                   </p>
                   <p className="mt-1 wrap-anywhere text-sm text-slate-800 dark:text-slate-200">{item.detail}</p>
                   <p className="mt-2 text-sm text-slate-800 dark:text-slate-200">

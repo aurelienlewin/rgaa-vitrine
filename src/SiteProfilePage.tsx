@@ -31,7 +31,7 @@ const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
-const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 shadow-lg ${focusRingClass}`
+const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 underline decoration-2 underline-offset-2 shadow-lg ${focusRingClass}`
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('fr-FR', {
@@ -494,6 +494,9 @@ function SiteProfilePage() {
       >
         <a href="#contenu-fiche" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, mainRef)}>
           Aller au contenu
+        </a>
+        <a href="/#filtres-annuaire" className={skipLinkClass}>
+          Aller à la recherche annuaire
         </a>
         <a href="#backlink-fiche" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, backlinkSectionRef)}>
           Aller au lien retour

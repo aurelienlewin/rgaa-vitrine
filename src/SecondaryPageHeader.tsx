@@ -27,6 +27,12 @@ function SecondaryPageHeader({ title, description, currentPath = null }: Seconda
               Retour à l’annuaire
             </a>
             <a
+              href="/#filtres-annuaire"
+              className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+            >
+              Recherche annuaire
+            </a>
+            <a
               href="/plan-du-site"
               aria-current={currentPath === '/plan-du-site' ? 'page' : undefined}
               className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
@@ -49,7 +55,35 @@ function SecondaryPageHeader({ title, description, currentPath = null }: Seconda
             </a>
           </div>
         </div>
+        <form
+          action="/"
+          method="get"
+          role="search"
+          aria-label="Recherche globale dans l’annuaire"
+          className="mt-4 grid gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3 sm:grid-cols-[minmax(0,1fr)_auto]"
+        >
+          <label htmlFor="header-recherche-annuaire" className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:col-span-2">
+            Rechercher un site dans l’annuaire
+          </label>
+          <input
+            id="header-recherche-annuaire"
+            name="recherche"
+            type="search"
+            placeholder="Titre, URL, catégorie…"
+            className={`min-h-11 rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+          />
+          <button
+            type="submit"
+            className={`min-h-11 rounded-xl border border-slate-950 dark:border-slate-50 bg-slate-950 dark:bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-50 dark:text-slate-950 ${focusRingClass}`}
+          >
+            Rechercher
+          </button>
+        </form>
         {description ? <p className="mt-2 max-w-3xl text-slate-700 dark:text-slate-300">{description}</p> : null}
+        <p className="mt-2 text-xs text-slate-700 dark:text-slate-300">
+          Glossaire: RGAA = Référentiel général d’amélioration de l’accessibilité, WCAG = Web Content Accessibility
+          Guidelines, UX = expérience utilisateur.
+        </p>
       </div>
     </header>
   )
