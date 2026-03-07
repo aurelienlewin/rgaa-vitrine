@@ -130,7 +130,7 @@ const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const ctaHoverClass = 'transition-colors duration-150 hover:underline'
 const ctaNeutralClass = `border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${ctaHoverClass}`
-const ctaPrimaryClass = `bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 hover:bg-slate-700 dark:hover:bg-slate-200 ${ctaHoverClass}`
+const ctaPrimaryClass = `border border-slate-900 dark:border-slate-200 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 hover:bg-slate-700 dark:hover:bg-slate-200 ${ctaHoverClass}`
 const ctaSkyClass = `border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 text-sky-900 dark:text-sky-100 hover:bg-sky-100 dark:hover:bg-sky-900/60 ${ctaHoverClass}`
 const ctaConfirmClass = `bg-sky-700 text-white hover:bg-sky-800 ${ctaHoverClass}`
 const ctaEmeraldClass = `border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 ${ctaHoverClass}`
