@@ -119,6 +119,20 @@ async function readApiPayload(response: Response) {
   return { error: compactBody.slice(0, 220) || 'Réponse serveur non JSON.' }
 }
 
+function readCanonicalRedirectPath(payload: Record<string, unknown>) {
+  const rawValue = payload.redirectPath
+  if (typeof rawValue !== 'string' || !rawValue.trim()) {
+    return null
+  }
+
+  const trimmed = rawValue.trim()
+  if (!/^\/site\/[a-z0-9-]{4,120}$/.test(trimmed)) {
+    return null
+  }
+
+  return trimmed
+}
+
 function upsertHeadLink(id: string, attributes: Record<string, string>) {
   let element = document.getElementById(id) as HTMLLinkElement | null
   if (!element) {
@@ -367,9 +381,18 @@ function SiteProfilePage() {
       try {
         const response = await fetch(`/api/showcase?slug=${encodeURIComponent(siteSlug)}&limit=500`)
         const payload = await readApiPayload(response)
+        const redirectPath = readCanonicalRedirectPath(payload)
 
         if (!response.ok) {
           throw new Error(typeof payload.error === 'string' ? payload.error : 'Chargement de la fiche impossible.')
+        }
+
+        if (redirectPath && redirectPath !== `/site/${siteSlug}`) {
+          if (!cancelled) {
+            announcePolite('Cette fiche a été déplacée. Redirection vers la version à jour.')
+            window.location.replace(redirectPath)
+          }
+          return
         }
 
         const responseEntries = Array.isArray(payload.entries)

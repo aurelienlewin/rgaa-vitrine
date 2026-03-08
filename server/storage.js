@@ -5,6 +5,7 @@ const SHOWCASE_INDEX_KEY = 'rgaa:vitrine:showcase:index'
 const SHOWCASE_ENTRY_PREFIX = 'rgaa:vitrine:showcase:entry:'
 const SHOWCASE_VOTES_PREFIX = 'rgaa:vitrine:showcase:votes:'
 const SHOWCASE_CLIENT_VOTES_PREFIX = 'rgaa:vitrine:showcase:votes:client:'
+const SHOWCASE_SLUG_REDIRECTS_KEY = 'rgaa:vitrine:showcase:slug-redirects'
 const SITE_BLOCKLIST_KEY = 'rgaa:vitrine:moderation:blocklist:sites'
 const VOTE_BLOCKLIST_KEY = 'rgaa:vitrine:moderation:blocklist:votes'
 const PENDING_INDEX_KEY = 'rgaa:vitrine:moderation:pending:index'
@@ -402,6 +403,19 @@ function normalizeUrlCandidate(value) {
   return trimmed
 }
 
+function normalizeSlugCandidate(value) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim().toLowerCase()
+  if (!/^[a-z0-9-]{4,120}$/.test(trimmed)) {
+    return null
+  }
+
+  return trimmed
+}
+
 function normalizeVoteTokenList(values) {
   if (!Array.isArray(values)) {
     return []
@@ -574,6 +588,7 @@ function normalizeArchiveImportPayload(payload) {
   const voteBlocklist = normalizeArchiveUrlList(source.voteBlocklist)
   const voteTokensByUrl = normalizeVotesByUrl(source.voteTokensByUrl ?? source.votesByUrl)
   const clientVotesByIndex = normalizeClientVotesByIndex(source.clientVotesByIndex ?? source.clientVotes)
+  const slugRedirects = normalizeSlugRedirects(source.slugRedirects)
 
   return {
     entries,
@@ -582,7 +597,33 @@ function normalizeArchiveImportPayload(payload) {
     voteBlocklist,
     voteTokensByUrl,
     clientVotesByIndex,
+    slugRedirects,
   }
+}
+
+function normalizeSlugRedirects(values) {
+  if (!Array.isArray(values)) {
+    return []
+  }
+
+  const bySlug = new Map()
+  for (const value of values) {
+    if (!value || typeof value !== 'object') {
+      continue
+    }
+
+    const slug = normalizeSlugCandidate(value.slug)
+    const normalizedUrl = normalizeUrlCandidate(value.normalizedUrl)
+    if (!slug || !normalizedUrl) {
+      continue
+    }
+
+    bySlug.set(slug, normalizedUrl)
+  }
+
+  return Array.from(bySlug.entries())
+    .sort((left, right) => left[0].localeCompare(right[0], 'fr'))
+    .map(([slug, normalizedUrl]) => ({ slug, normalizedUrl }))
 }
 
 function buildArchivePayload(storageMode, data) {
@@ -745,6 +786,7 @@ class InMemoryShowcaseStorage {
     this.votesByClient = new Map()
     this.siteBlocklist = new Set()
     this.voteBlocklist = new Set()
+    this.slugRedirectsBySlug = new Map()
   }
 
   async upsert(entry) {
@@ -773,6 +815,26 @@ class InMemoryShowcaseStorage {
       votedUrls.delete(normalizedUrl)
     }
     return this.entries.delete(normalizedUrl)
+  }
+
+  async rememberSlugRedirect(slug, normalizedUrl) {
+    const safeSlug = normalizeSlugCandidate(slug)
+    const safeUrl = normalizeUrlCandidate(normalizedUrl)
+    if (!safeSlug || !safeUrl) {
+      return false
+    }
+
+    this.slugRedirectsBySlug.set(safeSlug, safeUrl)
+    return true
+  }
+
+  async resolveSlugRedirect(slug) {
+    const safeSlug = normalizeSlugCandidate(slug)
+    if (!safeSlug) {
+      return null
+    }
+
+    return this.slugRedirectsBySlug.get(safeSlug) ?? null
   }
 
   async listSiteBlocklist() {
@@ -948,6 +1010,12 @@ class InMemoryShowcaseStorage {
         clientVoteIndexId,
         urls: sortNormalizedUrlList(urlsSet),
       }))
+    const slugRedirects = Array.from(this.slugRedirectsBySlug.entries())
+      .sort((left, right) => left[0].localeCompare(right[0], 'fr'))
+      .map(([slug, normalizedUrl]) => ({
+        slug,
+        normalizedUrl,
+      }))
 
     return buildArchivePayload(this.mode, {
       entries,
@@ -956,6 +1024,7 @@ class InMemoryShowcaseStorage {
       voteBlocklist,
       voteTokensByUrl,
       clientVotesByIndex,
+      slugRedirects,
     })
   }
 
@@ -976,6 +1045,7 @@ class InMemoryShowcaseStorage {
       this.votesByClient.clear()
       this.siteBlocklist.clear()
       this.voteBlocklist.clear()
+      this.slugRedirectsBySlug.clear()
     }
 
     for (const entry of normalized.entries) {
@@ -1006,6 +1076,9 @@ class InMemoryShowcaseStorage {
       }
       this.votesByClient.set(clientVoteEntry.clientVoteIndexId, existing)
     }
+    for (const slugRedirectEntry of normalized.slugRedirects) {
+      this.slugRedirectsBySlug.set(slugRedirectEntry.slug, slugRedirectEntry.normalizedUrl)
+    }
 
     return {
       mode,
@@ -1016,12 +1089,14 @@ class InMemoryShowcaseStorage {
         voteBlocklist: normalized.voteBlocklist.length,
         voteTokenGroups: normalized.voteTokensByUrl.length,
         clientVoteGroups: normalized.clientVotesByIndex.length,
+        slugRedirects: normalized.slugRedirects.length,
       },
       totals: {
         entries: this.entries.size,
         pendingEntries: this.pendingEntries.size,
         siteBlocklist: this.siteBlocklist.size,
         voteBlocklist: this.voteBlocklist.size,
+        slugRedirects: this.slugRedirectsBySlug.size,
       },
     }
   }
@@ -1210,6 +1285,7 @@ class UpstashShowcaseStorage {
       .del(PENDING_BY_URL_HASH_KEY)
       .del(SITE_BLOCKLIST_KEY)
       .del(VOTE_BLOCKLIST_KEY)
+      .del(SHOWCASE_SLUG_REDIRECTS_KEY)
 
     for (const entryId of Array.isArray(entryIds) ? entryIds : []) {
       if (typeof entryId !== 'string' || !entryId.trim()) {
@@ -1335,6 +1411,37 @@ class UpstashShowcaseStorage {
     } catch (error) {
       console.error('Redis deleteByNormalizedUrl failed', error)
       throw new ShowcaseStorageError('Suppression Redis indisponible.', 503)
+    }
+  }
+
+  async rememberSlugRedirect(slug, normalizedUrl) {
+    const safeSlug = normalizeSlugCandidate(slug)
+    const safeUrl = normalizeUrlCandidate(normalizedUrl)
+    if (!safeSlug || !safeUrl) {
+      return false
+    }
+
+    try {
+      await this.redis.hset(SHOWCASE_SLUG_REDIRECTS_KEY, { [safeSlug]: safeUrl })
+      return true
+    } catch (error) {
+      console.error('Redis rememberSlugRedirect failed', error)
+      throw new ShowcaseStorageError('Écriture Redis des redirections indisponible.', 503)
+    }
+  }
+
+  async resolveSlugRedirect(slug) {
+    const safeSlug = normalizeSlugCandidate(slug)
+    if (!safeSlug) {
+      return null
+    }
+
+    try {
+      const normalizedUrl = await this.redis.hget(SHOWCASE_SLUG_REDIRECTS_KEY, safeSlug)
+      return normalizeUrlCandidate(normalizedUrl) ?? null
+    } catch (error) {
+      console.error('Redis resolveSlugRedirect failed', error)
+      throw new ShowcaseStorageError('Lecture Redis des redirections indisponible.', 503)
     }
   }
 
@@ -1722,6 +1829,20 @@ class UpstashShowcaseStorage {
         }
       }
 
+      const rawSlugRedirects = await this.redis.hgetall(SHOWCASE_SLUG_REDIRECTS_KEY)
+      const slugRedirects = []
+      if (rawSlugRedirects && typeof rawSlugRedirects === 'object') {
+        for (const [slug, rawUrl] of Object.entries(rawSlugRedirects)) {
+          const safeSlug = normalizeSlugCandidate(slug)
+          const normalizedUrl = normalizeUrlCandidate(rawUrl)
+          if (!safeSlug || !normalizedUrl) {
+            continue
+          }
+          slugRedirects.push({ slug: safeSlug, normalizedUrl })
+        }
+      }
+      slugRedirects.sort((left, right) => left.slug.localeCompare(right.slug, 'fr'))
+
       return buildArchivePayload(this.mode, {
         entries,
         pendingEntries,
@@ -1729,6 +1850,7 @@ class UpstashShowcaseStorage {
         voteBlocklist,
         voteTokensByUrl,
         clientVotesByIndex,
+        slugRedirects,
       })
     } catch (error) {
       console.error('Redis exportArchive failed', error)
@@ -1786,13 +1908,22 @@ class UpstashShowcaseStorage {
       }
       await clientVotesWrite.exec()
 
+      if (normalized.slugRedirects.length > 0) {
+        const slugRedirectPayload = {}
+        for (const entry of normalized.slugRedirects) {
+          slugRedirectPayload[entry.slug] = entry.normalizedUrl
+        }
+        await this.redis.hset(SHOWCASE_SLUG_REDIRECTS_KEY, slugRedirectPayload)
+      }
+
       this._invalidateAllCaches()
 
-      const [entriesCount, pendingCount, siteBlocklistCount, voteBlocklistCount] = await Promise.all([
+      const [entriesCount, pendingCount, siteBlocklistCount, voteBlocklistCount, slugRedirectsCount] = await Promise.all([
         this.redis.zcard(SHOWCASE_INDEX_KEY),
         this.redis.zcard(PENDING_INDEX_KEY),
         this.redis.scard(SITE_BLOCKLIST_KEY),
         this.redis.scard(VOTE_BLOCKLIST_KEY),
+        this.redis.hlen(SHOWCASE_SLUG_REDIRECTS_KEY),
       ])
 
       return {
@@ -1804,12 +1935,14 @@ class UpstashShowcaseStorage {
           voteBlocklist: normalized.voteBlocklist.length,
           voteTokenGroups: normalized.voteTokensByUrl.length,
           clientVoteGroups: normalized.clientVotesByIndex.length,
+          slugRedirects: normalized.slugRedirects.length,
         },
         totals: {
           entries: toNonNegativeInteger(entriesCount),
           pendingEntries: toNonNegativeInteger(pendingCount),
           siteBlocklist: toNonNegativeInteger(siteBlocklistCount),
           voteBlocklist: toNonNegativeInteger(voteBlocklistCount),
+          slugRedirects: toNonNegativeInteger(slugRedirectsCount),
         },
       }
     } catch (error) {

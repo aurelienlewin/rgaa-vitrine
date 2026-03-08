@@ -671,7 +671,7 @@ app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
     ])
     const blockedSet = new Set(blockedUrls)
     const visibleEntries = entries.filter((entry) => !blockedSet.has(entry.normalizedUrl))
-    lastModified = readMostRecentUpdatedAt(entries)
+    lastModified = readMostRecentUpdatedAt(visibleEntries.length > 0 ? visibleEntries : entries)
 
     const profileBySlug = new Map()
     for (const entry of visibleEntries) {
@@ -802,17 +802,34 @@ app.get('/api/showcase', async (request, response) => {
       hasUpvoted: clientVoteIndexId ? votedUrls.has(entry.normalizedUrl) : false,
       votesBlocked: voteBlocklist.has(entry.normalizedUrl),
     })).map((entry) => withShowcasePublicMetadata(entry))
-    const filteredEntries = slugFilter
+    let filteredEntries = slugFilter
       ? entriesWithVoteState.filter((entry) => entry.slug === slugFilter)
       : entriesWithVoteState
+    let redirectPath = null
+
+    if (slugFilter && filteredEntries.length === 0) {
+      const normalizedRedirectUrl = await showcaseStorage.resolveSlugRedirect(slugFilter)
+      if (normalizedRedirectUrl && !siteBlocklist.has(normalizedRedirectUrl)) {
+        const redirectedEntry = entriesWithVoteState.find((entry) => entry.normalizedUrl === normalizedRedirectUrl) ?? null
+        if (redirectedEntry?.profilePath && redirectedEntry.profilePath !== `/site/${slugFilter}`) {
+          filteredEntries = [redirectedEntry]
+          redirectPath = redirectedEntry.profilePath
+        }
+      }
+    }
+
     const lastModifiedSource = filteredEntries.length > 0 ? filteredEntries : entriesWithVoteState
 
     response.setHeader('cache-control', 'public, max-age=120, s-maxage=120, stale-while-revalidate=600')
     response.setHeader('last-modified', readMostRecentUpdatedAt(lastModifiedSource))
+    if (redirectPath) {
+      response.setHeader('x-rgaa-canonical-profile', redirectPath)
+    }
     response.json({
       entries: filteredEntries,
       total: filteredEntries.length,
       storage: showcaseStorage.mode,
+      redirectPath,
     })
   } catch (error) {
     if (error instanceof ShowcaseStorageError) {
@@ -1505,9 +1522,12 @@ app.post('/api/moderation/showcase/delete', requireModerationAuth, async (reques
       return
     }
 
+    const removedSlug = buildShowcaseEntrySlug(existingEntry.normalizedUrl)
+    await showcaseStorage.rememberSlugRedirect(removedSlug, existingEntry.normalizedUrl)
     await showcaseStorage.deleteByNormalizedUrl(normalizedUrl)
     response.json({
       normalizedUrl,
+      removedSlug,
       message: 'Entrée supprimée de l’annuaire.',
     })
   } catch (error) {
@@ -1532,6 +1552,10 @@ app.post('/api/moderation/showcase/delete-and-block', requireModerationAuth, asy
     await showcaseStorage.setSiteBlocked(normalizedUrl, true)
 
     const existingEntry = await showcaseStorage.getByNormalizedUrl(normalizedUrl)
+    const removedSlug = existingEntry ? buildShowcaseEntrySlug(existingEntry.normalizedUrl) : null
+    if (removedSlug && existingEntry) {
+      await showcaseStorage.rememberSlugRedirect(removedSlug, existingEntry.normalizedUrl)
+    }
     if (existingEntry) {
       await showcaseStorage.deleteByNormalizedUrl(normalizedUrl)
     }
@@ -1543,6 +1567,7 @@ app.post('/api/moderation/showcase/delete-and-block', requireModerationAuth, asy
 
     response.json({
       normalizedUrl,
+      removedSlug,
       blocked: true,
       deletedFromShowcase: Boolean(existingEntry),
       deletedFromPending: Boolean(pendingEntry),

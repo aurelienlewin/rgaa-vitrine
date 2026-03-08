@@ -11,37 +11,37 @@ const skipLinksContainerClass =
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
 
 const auditSummary = {
-  score: 'Remédiation finalisée, contre-audit en cours',
+  status: 'Partiellement conforme',
+  score: '96,8 % (estimation)',
   auditDate: '8 mars 2026',
   scope: '4 pages publiques vérifiées',
   auditedPages: [
-    'https://annuaire-rgaa.fr/',
-    'https://annuaire-rgaa.fr/plan-du-site',
-    'https://annuaire-rgaa.fr/accessibilite',
-    'https://annuaire-rgaa.fr/site/{slug}',
+    'https://www.annuaire-rgaa.fr/',
+    'https://www.annuaire-rgaa.fr/plan-du-site',
+    'https://www.annuaire-rgaa.fr/accessibilite',
+    'https://www.annuaire-rgaa.fr/site/access42-net-h0nx3j',
   ],
-  applicableCriteria: '424 résultats',
-  conclusiveCriteria: '2 non conformités',
+  applicableCriteria: '424 critères vérifiés',
   nonConformitiesCount: '2 critères',
-  remediationDate: '8 mars 2026',
+  remediationStatus: 'Plan d’action en cours',
 }
 
 const currentNonConformities = [
   {
-    id: '3.3',
-    title: 'Contraste insuffisant sur un élément graphique informatif',
+    id: '10.5',
+    title: 'Déclarations de couleurs de texte et de fond à compléter',
     detail:
-      'Le contrôle de contraste de composants d’interface détectait un contraste insuffisant sur le logo informatif d’en-tête de la page d’accueil.',
+      'Certaines zones de texte doivent expliciter plus systématiquement leur couleur de fond associée pour garantir une lecture stable quel que soit le contexte d’affichage.',
     impactedPages: 'Accueil de l’annuaire',
-    status: 'Correctif déployé, validation finale en cours.',
+    status: 'Correction en cours',
   },
   {
-    id: '10.10',
-    title: 'Information formulée uniquement par position',
+    id: '10.11',
+    title: 'Adaptation aux petites hauteurs d’affichage',
     detail:
-      'Un libellé utilisait une indication spatiale. La formulation a été remplacée par une référence explicite de section.',
-    impactedPages: 'Déclaration d’accessibilité',
-    status: 'Correctif déployé, validation finale en cours.',
+      'Le contenu doit être ajusté pour limiter le recours au défilement vertical dans des fenêtres de faible hauteur, tout en conservant toutes les informations et fonctionnalités.',
+    impactedPages: 'Accueil de l’annuaire',
+    status: 'Correction en cours',
   },
 ]
 
@@ -174,16 +174,16 @@ function AccessibilityPage() {
             <dl className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
                 <dt className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
-                  Score mesuré
+                  État de conformité
                 </dt>
-                <dd className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">{auditSummary.score}</dd>
+                <dd className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">{auditSummary.status}</dd>
               </div>
               <div className="rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
                 <dt className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
-                  Non-conformités identifiées
+                  Taux estimé
                 </dt>
                 <dd className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">
-                  {auditSummary.nonConformitiesCount}
+                  {auditSummary.score}
                 </dd>
               </div>
             </dl>
@@ -199,10 +199,13 @@ function AccessibilityPage() {
               ))}
             </ul>
             <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-              Critères applicables évalués: {auditSummary.applicableCriteria}.
+              {auditSummary.applicableCriteria}.
             </p>
             <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-              Résultats non conformes confirmés: {auditSummary.conclusiveCriteria}.
+              Non-conformités en cours: {auditSummary.nonConformitiesCount}.
+            </p>
+            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+              Parcours de fiches vérifié sur un échantillon représentatif, incluant notamment Access42 et Temesis.
             </p>
           </section>
 
@@ -217,12 +220,10 @@ function AccessibilityPage() {
               Non-conformités en cours de traitement
             </h2>
             <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">
-              Le contrôle du 8 mars 2026 relève <strong>2 critères non conformes</strong> (2 occurrences) sur
-              le périmètre public audité. Le plan de correction de cette section est suivi jusqu’à clôture.
+              Deux non-conformités sont actuellement suivies sur le périmètre public.
             </p>
             <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">
-              État d’avancement des corrections: déploiement du <strong>{auditSummary.remediationDate}</strong>, avec
-              validation finale en cours.
+              État d’avancement: <strong>{auditSummary.remediationStatus}</strong>.
             </p>
             <ul className="mt-4 grid gap-3">
               {currentNonConformities.map((item) => (
