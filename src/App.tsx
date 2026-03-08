@@ -35,6 +35,11 @@ type ShowcaseEntry = {
 }
 
 type SubmissionStatus = 'approved' | 'duplicate' | 'pending'
+type DuplicateSubmissionFeedback = {
+  id: number
+  entry: ShowcaseEntry
+  message: string
+}
 
 const statusClassByValue: Record<Exclude<ComplianceStatus, null>, string> = {
   full: 'border border-emerald-700 bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100',
@@ -112,6 +117,8 @@ const ctaPrimaryClass = `border border-slate-950 dark:border-slate-50 bg-slate-9
 const ctaSkyClass = `border border-sky-700 dark:border-sky-300 bg-transparent text-sky-900 dark:text-sky-100 hover:bg-sky-50 dark:hover:bg-sky-950 ${ctaHoverClass}`
 const ctaConfirmClass = `border border-sky-800 dark:border-sky-200 bg-sky-800 dark:bg-sky-200 text-sky-50 dark:text-sky-950 hover:bg-sky-900 dark:hover:bg-sky-100 ${ctaHoverClass}`
 const ctaEmeraldClass = `border border-emerald-700 dark:border-emerald-300 bg-transparent text-emerald-900 dark:text-emerald-100 hover:bg-emerald-50 dark:hover:bg-emerald-950 ${ctaHoverClass}`
+const moderationContactPath = '/accessibilite#contact-accessibilite'
+const moderationContactEmail = 'mailto:aurelienlewin@proton.me'
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
@@ -295,6 +302,7 @@ function App() {
   const [directoryErrorMessage, setDirectoryErrorMessage] = useState<string | null>(null)
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null)
   const [submitInfoMessage, setSubmitInfoMessage] = useState<string | null>(null)
+  const [duplicateSubmissionFeedback, setDuplicateSubmissionFeedback] = useState<DuplicateSubmissionFeedback | null>(null)
   const [isSubmitConfirmationStep, setIsSubmitConfirmationStep] = useState(false)
   const [submissionPreviewEntry, setSubmissionPreviewEntry] = useState<ShowcaseEntry | null>(null)
   const [submissionPreviewStatus, setSubmissionPreviewStatus] = useState<SubmissionStatus | null>(null)
@@ -319,6 +327,7 @@ function App() {
   const directoryErrorRef = useRef<HTMLParagraphElement | null>(null)
   const submitErrorRef = useRef<HTMLParagraphElement | null>(null)
   const submitInfoRef = useRef<HTMLParagraphElement | null>(null)
+  const duplicateFeedbackRef = useRef<HTMLElement | null>(null)
   const submitConfirmationRef = useRef<HTMLElement | null>(null)
   const confirmSubmissionButtonRef = useRef<HTMLButtonElement | null>(null)
   const lastAddedRef = useRef<HTMLParagraphElement | null>(null)
@@ -791,6 +800,12 @@ function App() {
     }
   }, [submitErrorMessage, focusElement])
 
+  useEffect(() => {
+    if (duplicateSubmissionFeedback && !submitErrorMessage) {
+      focusElement(duplicateFeedbackRef.current)
+    }
+  }, [duplicateSubmissionFeedback, focusElement, submitErrorMessage])
+
   const isSubmissionBusy = isPreAnalyzing || isConfirmingSubmission
 
   useEffect(() => {
@@ -806,6 +821,31 @@ function App() {
       focusElement(lastAddedRef.current)
     }
   }, [focusElement, lastAddedEntry])
+
+  const handleDismissDuplicateFeedback = useCallback(() => {
+    setDuplicateSubmissionFeedback(null)
+    announcePolite('Message “site déjà référencé” fermé.')
+    window.setTimeout(() => {
+      urlInputRef.current?.focus()
+    }, 0)
+  }, [announcePolite])
+
+  const handleDuplicateSubmissionFeedback = useCallback(
+    (entry: ShowcaseEntry, message: string) => {
+      setIsSubmitConfirmationStep(false)
+      setSubmissionPreviewEntry(null)
+      setSubmissionPreviewStatus(null)
+      setLastAddedEntry(null)
+      setSubmitInfoMessage(null)
+      setDuplicateSubmissionFeedback((current) => ({
+        id: (current?.id ?? 0) + 1,
+        entry,
+        message,
+      }))
+      announcePolite(message)
+    },
+    [announcePolite],
+  )
 
   const handleCancelSubmissionConfirmation = useCallback(() => {
     setIsSubmitConfirmationStep(false)
@@ -897,6 +937,7 @@ function App() {
     setSubmitErrorMessage(null)
     setSubmitInfoMessage(null)
     setLastAddedEntry(null)
+    setDuplicateSubmissionFeedback(null)
     const categoryForSubmission = normalizePublicSubmissionCategory(inputCategory)
 
     if (!inputUrl.trim()) {
@@ -930,6 +971,18 @@ function App() {
 
       if (typeof payload.error === 'string') {
         throw new Error(payload.error)
+      }
+
+      if (submissionStatus === 'duplicate') {
+        if (!isShowcaseEntry(payload)) {
+          throw new Error('Pré-analyse invalide du serveur.')
+        }
+
+        const duplicateMessage =
+          submissionMessage ??
+          'Ce site est déjà référencé. Contactez la modération pour demander le retrait avant une nouvelle soumission.'
+        handleDuplicateSubmissionFeedback(normalizeShowcaseEntry(payload), duplicateMessage)
+        return
       }
 
       if (!submissionStatus || !isShowcaseEntry(payload)) {
@@ -972,6 +1025,7 @@ function App() {
     setSubmitErrorMessage(null)
     setSubmitInfoMessage(null)
     setLastAddedEntry(null)
+    setDuplicateSubmissionFeedback(null)
     const categoryForSubmission = normalizePublicSubmissionCategory(inputCategory)
 
     setIsConfirmingSubmission(true)
@@ -1018,14 +1072,10 @@ function App() {
           throw new Error('Réponse serveur invalide.')
         }
 
-        const duplicateMessage = submissionMessage ?? 'Ce site est déjà référencé dans la vitrine.'
-        setIsSubmitConfirmationStep(false)
-        setSubmissionPreviewEntry(null)
-        setSubmissionPreviewStatus(null)
-        setInputUrl('')
-        setWebsiteField('')
-        setSubmitInfoMessage(duplicateMessage)
-        announcePolite(duplicateMessage)
+        const duplicateMessage =
+          submissionMessage ??
+          'Ce site est déjà référencé. Contactez la modération pour demander le retrait avant une nouvelle soumission.'
+        handleDuplicateSubmissionFeedback(normalizeShowcaseEntry(payload), duplicateMessage)
         return
       }
 
@@ -1057,6 +1107,7 @@ function App() {
     announceAssertive,
     announcePolite,
     focusElement,
+    handleDuplicateSubmissionFeedback,
     inputCategory,
     inputUrl,
     isSubmitConfirmationStep,
@@ -1515,6 +1566,7 @@ function App() {
                   value={inputUrl}
                   onChange={(event) => {
                     setInputUrl(event.target.value)
+                    setDuplicateSubmissionFeedback(null)
                     setIsSubmitConfirmationStep(false)
                     setSubmissionPreviewEntry(null)
                     setSubmissionPreviewStatus(null)
@@ -1541,6 +1593,7 @@ function App() {
                   value={inputCategory}
                   onChange={(event) => {
                     setInputCategory(event.target.value)
+                    setDuplicateSubmissionFeedback(null)
                     setIsSubmitConfirmationStep(false)
                     setSubmissionPreviewEntry(null)
                     setSubmissionPreviewStatus(null)
@@ -1639,6 +1692,69 @@ function App() {
                     className={`min-h-11 rounded-xl px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${ctaNeutralClass} ${focusRingClass}`}
                   >
                     Modifier les informations
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {duplicateSubmissionFeedback && !submitErrorMessage && (
+              <section
+                key={duplicateSubmissionFeedback.id}
+                ref={duplicateFeedbackRef}
+                tabIndex={-1}
+                className="mt-4 rounded-xl border border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950 p-4 text-amber-950 dark:text-amber-100 focus:outline-3 focus:outline-offset-3 focus:outline-brand-focus"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                aria-labelledby="site-deja-reference-titre"
+                aria-describedby="site-deja-reference-aide site-deja-reference-raisons"
+              >
+                <h3 id="site-deja-reference-titre" className="text-base font-semibold">
+                  Site déjà référencé
+                </h3>
+                <p id="site-deja-reference-aide" className="mt-2 text-sm">
+                  {duplicateSubmissionFeedback.message}
+                </p>
+                <p className="mt-2 text-sm">
+                  Pour une nouvelle publication, demandez d’abord la suppression de la fiche actuelle auprès de
+                  l’administration/modération.
+                </p>
+                <ul id="site-deja-reference-raisons" className="mt-2 list-disc space-y-1 ps-5 text-sm">
+                  <li>Nouvel audit d’accessibilité.</li>
+                  <li>Nouveau score RGAA.</li>
+                  <li>Améliorations fonctionnelles ou correctifs significatifs.</li>
+                </ul>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <a
+                    href={
+                      duplicateSubmissionFeedback.entry.profilePath ??
+                      resolveShowcaseProfilePath(
+                        duplicateSubmissionFeedback.entry.normalizedUrl,
+                        duplicateSubmissionFeedback.entry.slug,
+                      )
+                    }
+                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                  >
+                    Voir la fiche existante
+                  </a>
+                  <a
+                    href={moderationContactPath}
+                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
+                  >
+                    Contacter la modération
+                  </a>
+                  <a
+                    href={moderationContactEmail}
+                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
+                  >
+                    Envoyer un e-mail
+                  </a>
+                  <button
+                    type="button"
+                    onClick={handleDismissDuplicateFeedback}
+                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                  >
+                    Fermer ce message
                   </button>
                 </div>
               </section>

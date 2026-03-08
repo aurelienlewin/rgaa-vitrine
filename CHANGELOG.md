@@ -109,6 +109,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Main navigation and site map now expose the accessibility declaration page for consistent user access.
 - Sitemap now references `/accessibilite` for public indexing coverage.
 - Submission flow now includes a review/confirmation step so data can be modified before final send.
+- Duplicate submission feedback is now rendered in a dedicated accessible panel with `aria-live="polite"`, automatic focus, dismiss action, and direct moderation contact links for re-listing requests.
 - Skip-link layout has been adjusted to avoid narrow-viewport horizontal overflow.
 - Theme toggle now relies on explicit accessible labels without tooltip-only `title` behavior.
 - Navigation consistency improved across pages for `Plan du site` and `Accessibilité` discovery.

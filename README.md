@@ -32,6 +32,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Each directory tile includes an explicit RGAA baseline badge (`RGAA 4.1` or `RGAA 5.0 prêt`) with readable explanation text.
 - Submission flow includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
 - Confirmation CTA lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.
+- Duplicate submissions now trigger a dedicated accessible feedback panel (`Site déjà référencé`) with polite live announcement, programmatic focus, dismiss action, and direct moderation contact links.
 - Each listed site has a dedicated public profile page (`/site/{slug}`) with shareable metadata and backlink snippet.
 - Profile pages expose stronger SEO/IA signals: dedicated `WebPage` + `Dataset` structured data, direct API link (`/api/showcase?slug={slug}`), and related-profile internal linking.
 - Profile pages provide a reusable visual backlink badge (`/badge-backlink-annuaire-rgaa.svg`) plus copy-ready HTML snippets with explicit `alt` and `aria-label`.
@@ -255,12 +256,14 @@ Local services:
 - `202` + `submissionStatus: "pending"` when the site requires manual review
 - `4xx` when rejected by validation/anti-abuse rules (spam, invalid input, etc.)
 - Public submissions accept only moderator-approved category values from the dropdown; unknown values are normalized to `Autre`.
+- For `duplicate`, the frontend displays an explicit guidance block that links to the existing profile and moderation contact (`/accessibilite#contact-accessibilite`) before any re-listing request.
 
 `POST /api/site-insight?preview=1` behavior:
 
 - never persists data
 - returns extracted metadata (`siteTitle`, `accessibilityPageUrl`, `complianceStatus`, `complianceScore`)
 - returns projected `submissionStatus` (`approved`, `pending`, `duplicate`) with explanatory `message`
+- when projected status is `duplicate`, the submission confirmation flow is skipped and the duplicate guidance panel is shown immediately.
 
 Public profile pages:
 
@@ -353,6 +356,7 @@ RGAA baseline notes:
 2. A moderator opens `/moderation`, enters the moderation token, and loads the pending queue.
 3. The moderator approves or rejects each entry from the UI (the page calls moderation APIs with `submissionId`).
 4. The moderator can edit, delete, delete+block, manage site/vote blocklists, set custom categories, and archive/restore the full database directly from `/moderation`.
+5. To re-list a site that is already published, the current entry must first be removed by moderation/admin after requester justification (new audit, new score, significant improvements, etc.).
 
 Endpoints are protected by `MODERATION_API_TOKEN`.
 
