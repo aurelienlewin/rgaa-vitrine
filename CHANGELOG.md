@@ -42,8 +42,11 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Frontend Vercel Web Analytics integration via `@vercel/analytics`.
 
 ### Changed
-- Accessibility declaration (`/accessibilite`) now reflects the latest production audit baseline (`20260307-224947`) with the active non-conformity list (`1.8`, `3.3`, `10.5`, `10.13`, `12.5`) and impacted pages.
-- Shared global search form component now provides an identical annuaire search entry point across homepage and secondary routes (`#moteur-recherche-global`), including skip links and quick-nav links.
+- Accessibility declaration (`/accessibilite`) now reflects the latest production audit baseline (`20260308-021904`) with the active non-conformity list (`3.3`, `10.10`) and impacted pages.
+- Shared global search form now carries the full homepage search feature set (query, status, category, submit, reset, `Échap`) across homepage and secondary routes (`#moteur-recherche-global`).
+- Homepage duplicate search landmark has been removed; results filtering now follows the single shared header search flow.
+- Main navigation landmark is now unified as `#navigation-principale` across all pages, and skip links now expose a consistent target to that landmark.
+- Homepage logo contrast has been reinforced (criterion `3.3` remediation) and positional wording has been removed from `/accessibilite` (criterion `10.10` remediation).
 - Homepage showcase thumbnails are now decorative (`alt=""`) when equivalent textual information is already available in card content.
 - Alternate discovery links in `<head>` no longer rely on native `title` tooltips.
 - UI contrast pass: interactive controls now use stronger border-based affordances and high-contrast skip-link styling; same-surface white-on-white controls were removed.

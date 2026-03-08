@@ -18,9 +18,9 @@ Planned public website: **https://annuaire-rgaa.fr**
 ## Highlights
 
 - Simple French UI focused on listing discovery first.
-- Multiple skip links for keyboard navigation (`contenu`, `recherche`, `filtres`, `ajout`, `aide`, `pied de page`), hidden by default and revealed on keyboard focus.
+- Multiple skip links for keyboard navigation (`contenu`, `navigation principale`, `recherche`, `résultats`, `ajout`, `aide`, `pied de page`), hidden by default and revealed on keyboard focus.
 - Programmatic focus management on skip-link targets and dynamic feedback blocks (errors/status).
-- Keyboard filter ergonomics: `Échap` clears search input and a dedicated reset button restores all filters.
+- Keyboard filter ergonomics: `Échap` clears search input and a dedicated reset button restores all filters from the shared header search.
 - Explicit filter CTA with a `Rechercher` button for clear submit action and predictable keyboard flow.
 - Shared global search entry point (`#moteur-recherche-global`) reused across homepage, secondary pages, and quick links.
 - Progressive tile pagination in the directory (`24` cards per batch) with a manual `Charger plus` action.
@@ -42,7 +42,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Discreet footer build stamp (`version + UTC timestamp`) helps detect stale cache quickly.
 - Footer version now resolves from release tags first (with package version fallback) to stay aligned with published GitHub releases.
 - Footer now uses a clearer three-column information architecture (`Projet`, `Navigation rapide`, `Soutien`) on large screens.
-- Secondary pages (`/plan-du-site`, `/accessibilite`, `/site/{slug}`, `/moderation`) now share a consistent top navigation and the same global footer as homepage.
+- All pages now share a consistent top `navigation principale` landmark and the same global footer.
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
 - Route lazy-loading fallback is announced as status (`aria-live="polite"`) to avoid silent loading states.
 - Lazy-loaded completion states are now also announced on `/site/{slug}` and `/plan-du-site` (successful load, empty result, and loading error) via dedicated polite live regions.
@@ -162,7 +162,7 @@ The UI now adapts automatically to operating-system and browser accessibility pr
 
 ## Accessibility Remediation Traceability
 
-Latest production audit baseline consumed (March 7, 2026) covers:
+Latest production audit baseline consumed (`20260308-021904`, March 8, 2026) covers:
 
 - `/` (home)
 - `/plan-du-site`
@@ -171,25 +171,17 @@ Latest production audit baseline consumed (March 7, 2026) covers:
 
 Non-conform criteria identified in that baseline:
 
-- `1.8` image-of-text usage in homepage thumbnails
-- `3.3` insufficient UI component contrast
-- `10.5` text/background declaration pairing drift
-- `10.13` non-controllable hover/focus additional content
-- `12.5` non-identical search engine reachability across pages
+- `3.3` insufficient contrast on one informative graphic in homepage header
+- `10.10` positional-only wording on accessibility declaration
 
 Remediation pass applied (March 8, 2026):
 
-- Color/contrast hardening in both light and dark mode for primary actions, status chips, and disabled states.
-- UI controls now prefer transparent surfaces + strong borders when embedded in same-color containers, to keep component boundaries visible.
-- Contextual link distinguishability hardening (persistent underline + clear CTA/link differentiation).
-- Search reachability harmonized across pages with a single shared global search pattern (`#moteur-recherche-global`).
-- Native tooltip-only `title` attributes removed from alternate head links.
-- Homepage thumbnails now expose empty `alt` when decorative, with card text carrying the informative content.
-- Functional `noscript` fallback reinforced with direct access to key public resources.
-- Mobile reflow hardening (320px width and constrained heights) on public and moderation views.
-- Acronym disambiguation in editorial copy (RGAA / WCAG / UX expansions on first explanatory surfaces).
-- Runtime CSS/style pairing hardening to avoid text/background declaration drift in utility-heavy stylesheets.
-- Shared keyboard/focus/live-region behavior maintained across all major routes.
+- Single shared search form retained in page header (`#moteur-recherche-global`) and homepage duplicate search landmark removed.
+- Homepage search features (query + status + category + submit + reset + keyboard `Échap`) now run through the shared header form.
+- Main navigation landmark is now consistent across all pages (`#navigation-principale`) and skip links now target it explicitly.
+- Homepage logo contrast has been reinforced (dark/light background + border) to address criterion `3.3`.
+- Positional wording has been replaced by explicit section wording on `/accessibilite` to address criterion `10.10`.
+- All dynamic status/error announcements remain localized in French with `aria-live` channels (`polite` and `assertive`).
 
 Operational note:
 
