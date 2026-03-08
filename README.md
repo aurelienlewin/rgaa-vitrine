@@ -18,10 +18,11 @@ Planned public website: **https://annuaire-rgaa.fr**
 ## Highlights
 
 - Simple French UI focused on listing discovery first.
-- Multiple skip links for keyboard navigation (`contenu`, `filtres`, `ajout`, `aide`, `pied de page`), hidden by default and revealed on keyboard focus.
+- Multiple skip links for keyboard navigation (`contenu`, `recherche`, `filtres`, `ajout`, `aide`, `pied de page`), hidden by default and revealed on keyboard focus.
 - Programmatic focus management on skip-link targets and dynamic feedback blocks (errors/status).
 - Keyboard filter ergonomics: `Échap` clears search input and a dedicated reset button restores all filters.
 - Explicit filter CTA with a `Rechercher` button for clear submit action and predictable keyboard flow.
+- Shared global search entry point (`#moteur-recherche-global`) reused across homepage, secondary pages, and quick links.
 - Progressive tile pagination in the directory (`24` cards per batch) with a manual `Charger plus` action.
 - Automatic lazy loading of additional tiles near viewport end (with keyboard-accessible manual fallback).
 - Reddit-like upvote on each directory tile with accessible button state (`aria-pressed`) and live vocal feedback.
@@ -33,6 +34,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Add-site flow now exposes a visible category dropdown (including `Coopérative et services`) without custom free-text entry.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - Tailwind v4.2 accessibility helpers are used where relevant: `wrap-anywhere`, `user-valid` / `user-invalid`, and logical utilities (`start-*`, `ps-*`) to avoid direction-specific custom positioning/padding.
+- Showcase thumbnails are treated as decorative visuals when equivalent textual information is already present in cards.
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
 - High-contrast color system tuned for low-vision navigation in both light and dark modes (including stronger visited-link and status semantics).
 - Persistent light/dark mode toggle available on both directory and moderation screens.
@@ -160,23 +162,33 @@ The UI now adapts automatically to operating-system and browser accessibility pr
 
 ## Accessibility Remediation Traceability
 
-Latest remediation baseline (March 7, 2026) now covers:
+Latest production audit baseline consumed (March 7, 2026) covers:
 
 - `/` (home)
 - `/plan-du-site`
 - `/accessibilite`
 - `/site/{slug}`
-- `/moderation`
 
-Topic-level remediations now applied:
+Non-conform criteria identified in that baseline:
+
+- `1.8` image-of-text usage in homepage thumbnails
+- `3.3` insufficient UI component contrast
+- `10.5` text/background declaration pairing drift
+- `10.13` non-controllable hover/focus additional content
+- `12.5` non-identical search engine reachability across pages
+
+Remediation pass applied (March 8, 2026):
 
 - Color/contrast hardening in both light and dark mode for primary actions, status chips, and disabled states.
+- UI controls now prefer transparent surfaces + strong borders when embedded in same-color containers, to keep component boundaries visible.
 - Contextual link distinguishability hardening (persistent underline + clear CTA/link differentiation).
-- Search reachability harmonized across pages (consistent entry points to the annuaire search).
+- Search reachability harmonized across pages with a single shared global search pattern (`#moteur-recherche-global`).
+- Native tooltip-only `title` attributes removed from alternate head links.
+- Homepage thumbnails now expose empty `alt` when decorative, with card text carrying the informative content.
 - Functional `noscript` fallback reinforced with direct access to key public resources.
 - Mobile reflow hardening (320px width and constrained heights) on public and moderation views.
 - Acronym disambiguation in editorial copy (RGAA / WCAG / UX expansions on first explanatory surfaces).
-- Runtime CSS pairing hardening to avoid text/background declaration drift in utility-heavy stylesheets.
+- Runtime CSS/style pairing hardening to avoid text/background declaration drift in utility-heavy stylesheets.
 - Shared keyboard/focus/live-region behavior maintained across all major routes.
 
 Operational note:

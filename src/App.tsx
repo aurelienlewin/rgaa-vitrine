@@ -4,6 +4,7 @@ import ThemeToggle from './ThemeToggle'
 import { applySeo, createAbsoluteUrl } from './seo'
 import { resolveShowcaseProfilePath } from './siteProfiles'
 import SiteFooter from './SiteFooter'
+import GlobalSearchForm from './GlobalSearchForm'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
 type RgaaBaseline = '4.1' | '5.0-ready'
@@ -129,14 +130,14 @@ const githubProfile = {
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const ctaHoverClass = 'transition-colors duration-150 hover:underline'
-const ctaNeutralClass = `border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${ctaHoverClass}`
+const ctaNeutralClass = `border border-slate-700 dark:border-slate-300 bg-transparent text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${ctaHoverClass}`
 const ctaPrimaryClass = `border border-slate-950 dark:border-slate-50 bg-slate-950 dark:bg-slate-50 text-slate-50 dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-200 ${ctaHoverClass}`
-const ctaSkyClass = `border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 text-sky-900 dark:text-sky-100 hover:bg-sky-100 dark:hover:bg-sky-900/60 ${ctaHoverClass}`
+const ctaSkyClass = `border border-sky-700 dark:border-sky-300 bg-transparent text-sky-900 dark:text-sky-100 hover:bg-sky-50 dark:hover:bg-sky-950 ${ctaHoverClass}`
 const ctaConfirmClass = `border border-sky-800 dark:border-sky-200 bg-sky-800 dark:bg-sky-200 text-sky-50 dark:text-sky-950 hover:bg-sky-900 dark:hover:bg-sky-100 ${ctaHoverClass}`
-const ctaEmeraldClass = `border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 ${ctaHoverClass}`
+const ctaEmeraldClass = `border border-emerald-700 dark:border-emerald-300 bg-transparent text-emerald-900 dark:text-emerald-100 hover:bg-emerald-50 dark:hover:bg-emerald-950 ${ctaHoverClass}`
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
-const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 underline decoration-2 underline-offset-2 shadow-lg ${focusRingClass}`
+const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
 const TILE_BATCH_SIZE = 24
 const CLIENT_VOTER_ID_STORAGE_KEY = 'annuaire-rgaa-voter-id'
 
@@ -1026,6 +1027,9 @@ function App() {
         <a href="#contenu" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, mainContentRef)}>
           Aller au contenu
         </a>
+        <a href="#moteur-recherche-global" className={skipLinkClass}>
+          Aller à la recherche annuaire
+        </a>
         <a href="#filtres-annuaire" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, filtersSectionRef)}>
           Aller aux filtres
         </a>
@@ -1056,7 +1060,7 @@ function App() {
               <p className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Annuaire public RGAA</p>
               <div className="flex flex-wrap items-center gap-2">
                 <ThemeToggle
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 />
                 <a
                   href="#aide-accessibilite"
@@ -1098,7 +1102,7 @@ function App() {
                 <p className="mt-1 text-lg font-semibold text-slate-800 dark:text-slate-100">
                   Le Référentiel général d’amélioration de l’accessibilité (RGAA), visible avec fierté.
                 </p>
-                <span className="mt-3 inline-flex min-h-10 items-center rounded-full border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 px-4 py-1 text-sm font-bold text-sky-900 dark:text-sky-100">
+                <span className="mt-3 inline-flex min-h-10 items-center rounded-full border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950 px-4 py-1 text-sm font-bold text-sky-900 dark:text-sky-100">
                   Annuaire RGAA conforme
                 </span>
               </div>
@@ -1107,6 +1111,7 @@ function App() {
               Une vitrine simple pour référencer et découvrir les sites qui affichent leur conformité RGAA, avec
               filtres et recherche accessibles à tous, alignés sur les WCAG (Web Content Accessibility Guidelines) 2.2.
             </p>
+            <GlobalSearchForm inputId="accueil-recherche-annuaire" className="mt-6" />
           </div>
         </header>
 
@@ -1120,20 +1125,20 @@ function App() {
                 <dt className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Sites référencés</dt>
                 <dd className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">{directoryStats.total}</dd>
               </div>
-              <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 px-4 py-3">
+              <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950 px-4 py-3">
                 <dt className="text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-100">Totalement conformes</dt>
                 <dd className="mt-1 text-2xl font-bold text-emerald-900 dark:text-emerald-100">{directoryStats.full}</dd>
               </div>
-              <div className="rounded-xl bg-amber-50 dark:bg-amber-950/40 px-4 py-3">
+              <div className="rounded-xl bg-amber-50 dark:bg-amber-950 px-4 py-3">
                 <dt className="text-sm font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-100">Partiellement conformes</dt>
                 <dd className="mt-1 text-2xl font-bold text-amber-900 dark:text-amber-100">{directoryStats.partial}</dd>
               </div>
-              <div className="rounded-xl bg-rose-50 dark:bg-rose-950/40 px-4 py-3">
+              <div className="rounded-xl bg-rose-50 dark:bg-rose-950 px-4 py-3">
                 <dt className="text-sm font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-100">Non conformes</dt>
                 <dd className="mt-1 text-2xl font-bold text-rose-900 dark:text-rose-100">{directoryStats.none}</dd>
               </div>
             </dl>
-            <p className="mt-4 rounded-xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-3 text-sm font-medium text-sky-900 dark:text-sky-100">
+            <p className="mt-4 rounded-xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-3 text-sm font-medium text-sky-900 dark:text-sky-100">
               Le score indique une direction. La vraie mesure, c’est un parcours client débloqué et une expérience
               utilisateur (UX) qui laisse passer chaque personne.
             </p>
@@ -1183,7 +1188,7 @@ function App() {
                     placeholder="Titre, URL, catégorie..."
                     aria-controls="liste-vitrines"
                     aria-describedby="recherche-aide"
-                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                   />
                 </div>
 
@@ -1196,7 +1201,7 @@ function App() {
                     value={statusFilter}
                     onChange={(event) => setStatusFilter(event.target.value as ShowcaseStatusFilter)}
                     aria-controls="liste-vitrines"
-                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                   >
                     {Object.entries(showcaseStatusFilterLabels).map(([value, label]) => (
                       <option key={value} value={value}>
@@ -1215,7 +1220,7 @@ function App() {
                     value={categoryFilter}
                     onChange={(event) => setCategoryFilter(event.target.value)}
                     aria-controls="liste-vitrines"
-                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                   >
                     <option value="all">Toutes les catégories</option>
                     {availableCategoryOptions.map((category) => (
@@ -1260,7 +1265,7 @@ function App() {
               <p
                 ref={directoryErrorRef}
                 tabIndex={-1}
-                className="mt-4 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 p-3 text-sm text-rose-800 dark:text-rose-100"
+                className="mt-4 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-3 text-sm text-rose-800 dark:text-rose-100"
                 role="alert"
               >
                 {directoryErrorMessage}
@@ -1282,7 +1287,8 @@ function App() {
                         {entry.thumbnailUrl ? (
                           <img
                             src={entry.thumbnailUrl}
-                            alt={`Aperçu du site ${entry.siteTitle}`}
+                            alt=""
+                            aria-hidden="true"
                             className="h-full w-full object-cover"
                             loading="lazy"
                             referrerPolicy="no-referrer"
@@ -1384,8 +1390,8 @@ function App() {
                               entry.votesBlocked
                                 ? 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                                 : entry.hasUpvoted
-                                ? 'border-emerald-400 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100'
-                                : 'border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50'
+                                ? 'border-emerald-400 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100'
+                                  : 'border-slate-600 dark:border-slate-600 bg-transparent text-slate-900 dark:text-slate-50'
                             } disabled:cursor-not-allowed disabled:opacity-70 ${focusRingClass}`}
                           >
                             <span aria-hidden="true">{entry.votesBlocked ? '◌' : entry.hasUpvoted ? '▲' : '△'}</span>
@@ -1433,7 +1439,7 @@ function App() {
             id="aide-accessibilite"
             ref={helpSectionRef}
             tabIndex={-1}
-            className="mt-8 rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-6"
+            className="mt-8 rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-6"
             aria-labelledby="aide-titre"
           >
             <h2 id="aide-titre" className="text-xl font-semibold text-sky-900 dark:text-sky-100">
@@ -1525,7 +1531,7 @@ function App() {
                   onInput={(event) => {
                     event.currentTarget.setCustomValidity('')
                   }}
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 />
               </div>
 
@@ -1543,7 +1549,7 @@ function App() {
                     setSubmissionPreviewEntry(null)
                     setSubmissionPreviewStatus(null)
                   }}
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 >
                   {showcaseCategories.map((category) => (
                     <option key={category} value={category}>
@@ -1573,7 +1579,7 @@ function App() {
               <section
                 ref={submitConfirmationRef}
                 tabIndex={-1}
-                className={`mt-4 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-4 ${focusRingClass}`}
+                className={`mt-4 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4 ${focusRingClass}`}
                 aria-labelledby="verification-envoi-titre"
                 aria-describedby="verification-envoi-help"
                 aria-busy={isConfirmingSubmission}
@@ -1647,7 +1653,7 @@ function App() {
                 id="url-error"
                 ref={submitErrorRef}
                 tabIndex={-1}
-                className="mt-4 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 p-3 text-sm text-rose-800 dark:text-rose-100"
+                className="mt-4 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-3 text-sm text-rose-800 dark:text-rose-100"
                 role="alert"
               >
                 {submitErrorMessage}
@@ -1658,7 +1664,7 @@ function App() {
               <p
                 ref={submitInfoRef}
                 tabIndex={-1}
-                className="mt-4 rounded-lg border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 p-3 text-sm text-sky-900 dark:text-sky-100"
+                className="mt-4 rounded-lg border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950 p-3 text-sm text-sky-900 dark:text-sky-100"
                 role="status"
                 aria-live="polite"
               >
@@ -1670,7 +1676,7 @@ function App() {
               <p
                 ref={lastAddedRef}
                 tabIndex={-1}
-                className="mt-4 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 p-3 text-sm text-emerald-800 dark:text-emerald-100"
+                className="mt-4 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950 p-3 text-sm text-emerald-800 dark:text-emerald-100"
                 role="status"
               >
                 Site ajouté : <strong>{lastAddedEntry.siteTitle}</strong>
@@ -1687,7 +1693,7 @@ function App() {
               utilisées pour guider la qualité du répertoire.
             </p>
             <aside
-              className="mt-4 rounded-xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-4"
+              className="mt-4 rounded-xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4"
               aria-labelledby="rgaa5-focus-titre"
             >
               <h3 id="rgaa5-focus-titre" className="text-base font-semibold text-sky-900 dark:text-sky-100">

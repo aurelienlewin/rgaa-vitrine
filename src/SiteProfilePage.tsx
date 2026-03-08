@@ -31,7 +31,7 @@ const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
-const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 underline decoration-2 underline-offset-2 shadow-lg ${focusRingClass}`
+const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('fr-FR', {
@@ -495,7 +495,7 @@ function SiteProfilePage() {
         <a href="#contenu-fiche" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, mainRef)}>
           Aller au contenu
         </a>
-        <a href="/#filtres-annuaire" className={skipLinkClass}>
+        <a href="/#moteur-recherche-global" className={skipLinkClass}>
           Aller à la recherche annuaire
         </a>
         <a href="#backlink-fiche" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, backlinkSectionRef)}>
@@ -524,7 +524,7 @@ function SiteProfilePage() {
           {isLoading && <p role="status" aria-live="polite">Chargement de la fiche en cours...</p>}
 
           {!isLoading && errorMessage && (
-            <p className="rounded-xl border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 p-4 text-rose-900 dark:text-rose-100" role="alert">
+            <p className="rounded-xl border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-4 text-rose-900 dark:text-rose-100" role="alert">
               {errorMessage}
             </p>
           )}
@@ -564,7 +564,7 @@ function SiteProfilePage() {
                     target="_blank"
                     rel="noopener external"
                     referrerPolicy="strict-origin-when-cross-origin"
-                    className={`inline-flex min-h-11 items-center rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-4 py-2 font-semibold text-emerald-900 dark:text-emerald-100 ${focusRingClass}`}
+                    className={`inline-flex min-h-11 items-center rounded-xl border border-emerald-700 dark:border-emerald-300 bg-transparent px-4 py-2 font-semibold text-emerald-900 dark:text-emerald-100 ${focusRingClass}`}
                   >
                     Déclaration d’accessibilité
                   </a>
@@ -575,7 +575,7 @@ function SiteProfilePage() {
                 )}
               </div>
 
-              <section id="backlink-fiche" ref={backlinkSectionRef} tabIndex={-1} className="mt-6 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-4" aria-labelledby="backlink-fiche-titre">
+              <section id="backlink-fiche" ref={backlinkSectionRef} tabIndex={-1} className="mt-6 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4" aria-labelledby="backlink-fiche-titre">
                 <h3 id="backlink-fiche-titre" className="text-lg font-semibold text-sky-900 dark:text-sky-100">
                   Lien retour recommandé
                 </h3>
@@ -589,7 +589,7 @@ function SiteProfilePage() {
                   id="backlink-code"
                   readOnly
                   value={backlinkSnippet}
-                  className={`mt-1 min-h-24 w-full rounded-xl border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`mt-1 min-h-24 w-full rounded-xl border border-sky-300 dark:border-sky-700 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 />
                 <button
                   type="button"
@@ -607,7 +607,7 @@ function SiteProfilePage() {
                 )}
               </section>
 
-              <section id="fiches-associees" ref={relatedSectionRef} tabIndex={-1} className="mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4" aria-labelledby="fiches-associees-titre">
+              <section id="fiches-associees" ref={relatedSectionRef} tabIndex={-1} className="mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4" aria-labelledby="fiches-associees-titre">
                 <h3 id="fiches-associees-titre" className="text-lg font-semibold">
                   Fiches associées
                 </h3>
@@ -620,7 +620,7 @@ function SiteProfilePage() {
                   </p>
                 )}
                 {!isLoadingRelated && relatedErrorMessage && (
-                  <p className="mt-3 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 p-3 text-sm text-rose-900 dark:text-rose-100" role="status" aria-live="polite">
+                  <p className="mt-3 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-3 text-sm text-rose-900 dark:text-rose-100" role="status" aria-live="polite">
                     {relatedErrorMessage}
                   </p>
                 )}

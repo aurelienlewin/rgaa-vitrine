@@ -63,3 +63,11 @@ Use this list as a rapid regression filter before running a full RGAA review.
 - Expand jargon and acronyms in editorial text where they first matter for comprehension.
 - Preserve focus continuity after async mutations: next logical control, local summary, or triggering control.
 - Track accessibility status with dated scope and evidence; avoid carrying stale declarations across releases.
+
+## Operational lessons learned (2026-03-08 remediation)
+
+- For criterion `12.5`, use a single shared search component and a single stable anchor (`#moteur-recherche-global`) across routes, footer, and skip links.
+- For criterion `10.13`, avoid `title` on non-visible alternate/discovery links; prefer explicit visible labels in page content.
+- For criterion `1.8`, treat preview screenshots as decorative (`alt=""`) when equivalent site identity is already present in nearby text.
+- For criterion `3.3`, avoid same-color control backgrounds inside same-color containers; prefer either strong filled controls or transparent controls with high-contrast borders.
+- For criterion `10.5`, pair color declarations at multiple levels (stylesheet rules + runtime DOM class/style pairing) to reduce drift in utility-heavy interfaces.

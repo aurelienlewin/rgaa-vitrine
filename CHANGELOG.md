@@ -42,6 +42,12 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Frontend Vercel Web Analytics integration via `@vercel/analytics`.
 
 ### Changed
+- Accessibility declaration (`/accessibilite`) now reflects the latest production audit baseline (`20260307-224947`) with the active non-conformity list (`1.8`, `3.3`, `10.5`, `10.13`, `12.5`) and impacted pages.
+- Shared global search form component now provides an identical annuaire search entry point across homepage and secondary routes (`#moteur-recherche-global`), including skip links and quick-nav links.
+- Homepage showcase thumbnails are now decorative (`alt=""`) when equivalent textual information is already available in card content.
+- Alternate discovery links in `<head>` no longer rely on native `title` tooltips.
+- UI contrast pass: interactive controls now use stronger border-based affordances and high-contrast skip-link styling; same-surface white-on-white controls were removed.
+- Utility color pairing hardening now updates both stylesheet rules and live DOM class/style fallbacks to keep text/background declarations coupled.
 - `POST /api/site-insight` now persists analyzed entries with category.
 - Frontend now loads showcase entries from API persistence instead of in-memory-only state.
 - `GET /api/health` now exposes active storage mode (`redis` or `memory`).

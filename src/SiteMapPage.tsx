@@ -9,7 +9,7 @@ const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
-const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 underline decoration-2 underline-offset-2 shadow-lg ${focusRingClass}`
+const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
 
 type SiteLink = {
   href: string
@@ -46,9 +46,9 @@ const primaryPages: SiteLink[] = [
 
 const directorySections: SiteLink[] = [
   {
-    href: '/#filtres-annuaire',
-    label: 'Section filtres',
-    description: 'Recherche par nom, catégorie et niveau de conformité.',
+    href: '/#moteur-recherche-global',
+    label: 'Moteur de recherche global',
+    description: 'Accès identique à la recherche annuaire depuis toutes les pages.',
   },
   {
     href: '/#ajout-site',
@@ -374,7 +374,7 @@ function SiteMapPage() {
         >
           Aller au contenu
         </a>
-        <a href="/#filtres-annuaire" className={skipLinkClass}>
+        <a href="/#moteur-recherche-global" className={skipLinkClass}>
           Aller à la recherche annuaire
         </a>
         <a
@@ -427,7 +427,7 @@ function SiteMapPage() {
               {primaryPages.map((link) => (
                 <li
                   key={link.href}
-                  className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4"
+                  className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
                 >
                   <a
                     href={link.href}
@@ -452,7 +452,7 @@ function SiteMapPage() {
               {directorySections.map((link) => (
                 <li
                   key={link.href}
-                  className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4"
+                  className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
                 >
                   <a
                     href={link.href}
@@ -485,7 +485,7 @@ function SiteMapPage() {
               </p>
             )}
             {!isLoadingProfiles && profileErrorMessage && (
-              <p className="mt-3 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 p-3 text-sm text-rose-900 dark:text-rose-100" role="status" aria-live="polite">
+              <p className="mt-3 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-3 text-sm text-rose-900 dark:text-rose-100" role="status" aria-live="polite">
                 {profileErrorMessage}
               </p>
             )}
@@ -499,7 +499,7 @@ function SiteMapPage() {
                 {profileLinksForUi.map((entry) => (
                   <li
                     key={entry.normalizedUrl}
-                    className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4"
+                    className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
                   >
                     <a
                       href={entry.profilePath}
@@ -518,7 +518,7 @@ function SiteMapPage() {
 
           <section
             aria-labelledby="liens-techniques-titre"
-            className="mt-8 rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 p-6"
+            className="mt-8 rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-6"
           >
             <h2 id="liens-techniques-titre" className="text-xl font-semibold text-sky-900 dark:text-sky-100">
               Liens techniques SEO

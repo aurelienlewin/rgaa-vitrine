@@ -80,7 +80,7 @@ const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
-const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 underline decoration-2 underline-offset-2 shadow-lg ${focusRingClass}`
+const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
 const MODERATION_SESSION_STORAGE_KEY = 'annuaire-rgaa-moderation-session'
 const MODERATION_SESSION_TTL_MS = 12 * 60 * 60 * 1000
 
@@ -1338,7 +1338,7 @@ function ModerationPage() {
         <a href="#contenu-moderation" className={skipLinkClass} onClick={focusMain}>
           Aller au contenu
         </a>
-        <a href="/#filtres-annuaire" className={skipLinkClass}>
+        <a href="/#moteur-recherche-global" className={skipLinkClass}>
           Aller à la recherche annuaire
         </a>
         {isModerationUnlocked && (
@@ -1411,7 +1411,7 @@ function ModerationPage() {
                   autoComplete="off"
                   required
                   spellCheck={false}
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 />
                 <label className={`mt-3 inline-flex min-h-11 items-center gap-2 text-sm ${focusRingClass}`}>
                   <input
@@ -1459,8 +1459,8 @@ function ModerationPage() {
                 tabIndex={-1}
                 className={`mt-4 rounded-lg border p-3 text-sm ${
                   assertiveMessage
-                    ? 'border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-100'
-                    : 'border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950/40 text-sky-900 dark:text-sky-100'
+                    ? 'border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-100'
+                    : 'border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950 text-sky-900 dark:text-sky-100'
                 }`}
                 role={assertiveMessage ? 'alert' : 'status'}
                 aria-live={assertiveMessage ? 'assertive' : 'polite'}
@@ -1521,7 +1521,7 @@ function ModerationPage() {
                       required
                       onChange={handleArchiveFileChange}
                       aria-describedby="archive-import-help archive-import-selected"
-                      className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                      className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                     />
                     <p id="archive-import-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                       Format attendu: export natif Annuaire RGAA.
@@ -1560,7 +1560,7 @@ function ModerationPage() {
                     </div>
 
                     {archiveImportMode === 'replace' && (
-                      <label className={`mt-3 inline-flex min-h-11 items-start gap-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-sm text-amber-900 dark:text-amber-100 ${focusRingClass}`}>
+                      <label className={`mt-3 inline-flex min-h-11 items-start gap-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 px-3 py-2 text-sm text-amber-900 dark:text-amber-100 ${focusRingClass}`}>
                         <input
                           type="checkbox"
                           checked={allowArchiveRollbackImport}
@@ -1573,7 +1573,7 @@ function ModerationPage() {
                     )}
                   </fieldset>
 
-                  <p className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-900 dark:text-amber-100">
+                  <p className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-3 text-sm text-amber-900 dark:text-amber-100">
                     Le mode <strong>Remplacer</strong> écrase les données existantes avant import.
                   </p>
 
@@ -1625,7 +1625,7 @@ function ModerationPage() {
                           Référentiel: {formatRgaaBaseline(entry.rgaaBaseline)}
                         </p>
                         {entry.reviewReason && (
-                          <p className="mt-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-900 dark:text-amber-100">
+                          <p className="mt-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-3 text-sm text-amber-900 dark:text-amber-100">
                             Motif de validation manuelle: {entry.reviewReason}
                           </p>
                         )}
@@ -1644,7 +1644,7 @@ function ModerationPage() {
                                   [entry.submissionId]: event.target.value,
                                 }))
                               }
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                             />
                           </div>
                           <button
@@ -1735,7 +1735,7 @@ function ModerationPage() {
                           <span
                             className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${
                               isSiteBlocked
-                                ? 'border border-rose-400 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-100'
+                                ? 'border border-rose-400 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 text-rose-900 dark:text-rose-100'
                                 : 'border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200'
                             }`}
                           >
@@ -1744,7 +1744,7 @@ function ModerationPage() {
                           <span
                             className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${
                               areVotesBlocked
-                                ? 'border border-amber-400 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-100'
+                                ? 'border border-amber-400 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 text-amber-900 dark:text-amber-100'
                                 : 'border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200'
                             }`}
                           >
@@ -1763,7 +1763,7 @@ function ModerationPage() {
                               onChange={(event) =>
                                 handlePublishedDraftChange(entry.normalizedUrl, 'siteTitle', event.target.value)
                               }
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                             />
                           </div>
                           <div>
@@ -1780,7 +1780,7 @@ function ModerationPage() {
                                 handlePublishedDraftChange(entry.normalizedUrl, 'category', event.target.value)
                               }
                               aria-describedby={`category-help-${itemId}`}
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                             />
                             <p id={`category-help-${itemId}`} className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                               Suggestions disponibles, ou catégorie personnalisée.
@@ -1800,7 +1800,7 @@ function ModerationPage() {
                                   event.target.value as PublishedEntryDraft['complianceStatus'],
                                 )
                               }
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                             >
                               {complianceStatusOptions.map((statusOption) => (
                                 <option key={statusOption.value || 'unknown'} value={statusOption.value}>
@@ -1823,7 +1823,7 @@ function ModerationPage() {
                                   event.target.value as PublishedEntryDraft['rgaaBaseline'],
                                 )
                               }
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                             >
                               {rgaaBaselineOptions.map((baselineOption) => (
                                 <option key={baselineOption.value} value={baselineOption.value}>
@@ -1848,7 +1848,7 @@ function ModerationPage() {
                                 handlePublishedDraftChange(entry.normalizedUrl, 'complianceScore', event.target.value)
                               }
                               aria-describedby={`score-help-${itemId}`}
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                             />
                             <p id={`score-help-${itemId}`} className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                               Valeur attendue entre 0 et 100 (décimales autorisées).
@@ -1866,7 +1866,7 @@ function ModerationPage() {
                               onChange={(event) =>
                                 handlePublishedDraftChange(entry.normalizedUrl, 'thumbnailUrl', event.target.value)
                               }
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                             />
                           </div>
                           <div className="md:col-span-2">
@@ -1885,7 +1885,7 @@ function ModerationPage() {
                                   event.target.value,
                                 )
                               }
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                             />
                           </div>
                         </div>
@@ -1958,10 +1958,10 @@ function ModerationPage() {
                             tabIndex={-1}
                             className={`mt-3 rounded-lg border px-3 py-2 text-sm ${
                               feedback.tone === 'error'
-                                ? 'border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-100'
+                                ? 'border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-100'
                                 : feedback.tone === 'success'
-                                  ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-100'
-                                  : 'border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-100'
+                                  ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-100'
+                                  : 'border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 text-sky-800 dark:text-sky-100'
                             }`}
                             role={feedback.tone === 'error' ? 'alert' : 'status'}
                             aria-live={feedback.tone === 'error' ? 'assertive' : 'polite'}
@@ -1981,7 +1981,7 @@ function ModerationPage() {
                 id="blocklist-sites"
                 ref={siteBlocklistSectionRef}
                 tabIndex={-1}
-                className="mt-8 rounded-2xl border border-rose-200 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/20 p-6"
+                className="mt-8 rounded-2xl border border-rose-200 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-6"
                 aria-labelledby="blocklist-sites-titre"
               >
             <h2 id="blocklist-sites-titre" className="text-lg font-semibold text-rose-900 dark:text-rose-100">
@@ -2005,7 +2005,7 @@ function ModerationPage() {
                   value={siteBlocklistInput}
                   onChange={(event) => setSiteBlocklistInput(event.target.value)}
                   placeholder="https://www.exemple.fr/"
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-rose-300 dark:border-rose-700 user-invalid:border-rose-800 dark:user-invalid:border-rose-400 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-rose-300 dark:border-rose-700 user-invalid:border-rose-800 dark:user-invalid:border-rose-400 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 />
               </div>
               <button
@@ -2050,7 +2050,7 @@ function ModerationPage() {
                 id="blocklist-votes"
                 ref={voteBlocklistSectionRef}
                 tabIndex={-1}
-                className="mt-8 rounded-2xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20 p-6"
+                className="mt-8 rounded-2xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-6"
                 aria-labelledby="blocklist-votes-titre"
               >
             <h2 id="blocklist-votes-titre" className="text-lg font-semibold text-amber-900 dark:text-amber-100">
@@ -2074,7 +2074,7 @@ function ModerationPage() {
                   value={voteBlocklistInput}
                   onChange={(event) => setVoteBlocklistInput(event.target.value)}
                   placeholder="https://www.exemple.fr/"
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-amber-300 dark:border-amber-700 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-amber-300 dark:border-amber-700 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 />
               </div>
               <button

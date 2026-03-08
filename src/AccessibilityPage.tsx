@@ -8,60 +8,64 @@ const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
-const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-50 underline decoration-2 underline-offset-2 shadow-lg ${focusRingClass}`
+const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
 
 const auditSummary = {
-  score: '100 %',
+  score: 'Remédiation en cours',
   auditDate: '7 mars 2026',
-  scope: '4 pages publiques + 1 espace modération vérifiés',
+  scope: '4 pages publiques vérifiées',
   auditedPages: [
     'https://annuaire-rgaa.fr/',
     'https://annuaire-rgaa.fr/plan-du-site',
     'https://annuaire-rgaa.fr/accessibilite',
     'https://annuaire-rgaa.fr/site/{slug}',
-    'https://annuaire-rgaa.fr/moderation',
   ],
-  applicableCriteria: '151',
-  conclusiveCriteria: '151',
-  reviewCriteria: '0',
-  nonConformitiesCount: '0',
+  applicableCriteria: '424 résultats',
+  conclusiveCriteria: '12 non conformes',
+  nonConformitiesCount: '5 critères',
+  remediationDate: '8 mars 2026',
 }
 
-const complianceCommitments = [
+const currentNonConformities = [
   {
-    id: 'Couleurs et contrastes',
-    title: 'Liens et états visuels renforcés',
+    id: '1.8',
+    title: 'Images de texte dans les vignettes',
     detail:
-      'Les liens restent visuellement distinguables en continu (soulignement + styles robustes) et les actions critiques utilisent des contrastes élevés en mode clair/sombre.',
+      'Certaines vignettes de sites sont analysées comme images de texte porteuses d’information sans mécanisme de remplacement suffisant.',
+    impactedPages: 'Accueil',
+    status: 'Correctif déployé, validation finale en cours.',
+  },
+  {
+    id: '3.3',
+    title: 'Contraste insuffisant sur composants UI',
+    detail:
+      'Des composants d’interface (boutons, badges, blocs d’état) présentent des contrastes insuffisants selon les mesures de contrôle.',
     impactedPages: 'Toutes les pages',
+    status: 'Correctif déployé, validation finale en cours.',
   },
   {
-    id: 'Recherche et navigation',
-    title: 'Moteur de recherche atteignable partout',
+    id: '10.5',
+    title: 'Paires couleur de texte / fond incohérentes',
     detail:
-      'Un accès direct à la recherche annuaire est disponible de manière identique depuis l’ensemble des pages.',
-    impactedPages: 'Toutes les pages',
+      'Des déclarations de couleur de texte et de couleur de fond ne sont pas systématiquement couplées dans les composants stylés.',
+    impactedPages: 'Accueil, page accessibilité',
+    status: 'Correctif déployé, validation finale en cours.',
   },
   {
-    id: 'Clavier et focus',
-    title: 'Parcours clavier cohérent',
+    id: '10.13',
+    title: 'Contenus additionnels non contrôlables',
     detail:
-      'Les liens d’évitement, la visibilité de focus et le retour de focus après action dynamique suivent une logique continue sur tout le site.',
-    impactedPages: 'Toutes les pages',
+      'Des infos contextuelles apparaissent au survol via attribut title natif, sans contrôle utilisateur.',
+    impactedPages: 'Accueil',
+    status: 'Correctif déployé, validation finale en cours.',
   },
   {
-    id: 'Scripts et alternatives',
-    title: 'Fallback sans JavaScript maintenu',
+    id: '12.5',
+    title: 'Accès recherche non homogène entre pages',
     detail:
-      'Le bloc `noscript` conserve des parcours fonctionnels vers les contenus publics essentiels.',
-    impactedPages: 'Accueil, plan du site, accessibilité',
-  },
-  {
-    id: 'Contenus éditoriaux',
-    title: 'Acronymes explicités',
-    detail:
-      'Les sigles critiques sont explicités en clair au premier passage (ex: RGAA, WCAG, UX) pour supprimer les contenus cryptiques.',
-    impactedPages: 'Pages éditoriales',
+      'Le moteur de recherche n’est pas atteignable selon un schéma identique sur l’ensemble des pages publiques.',
+    impactedPages: 'Toutes les pages auditées',
+    status: 'Correctif déployé, validation finale en cours.',
   },
 ]
 
@@ -149,7 +153,7 @@ function AccessibilityPage() {
         <a href="#contenu-accessibilite" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, mainRef)}>
           Aller au contenu
         </a>
-        <a href="/#filtres-annuaire" className={skipLinkClass}>
+        <a href="/#moteur-recherche-global" className={skipLinkClass}>
           Aller à la recherche annuaire
         </a>
         <a href="#non-conformites" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, reportRef)}>
@@ -217,9 +221,7 @@ function AccessibilityPage() {
               Critères applicables évalués: {auditSummary.applicableCriteria}.
             </p>
             <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-              Critères conclusifs (conforme ou non conforme): {auditSummary.conclusiveCriteria}. Critères en revue:
-              {' '}
-              {auditSummary.reviewCriteria}.
+              Résultats non conformes confirmés: {auditSummary.conclusiveCriteria}.
             </p>
           </section>
 
@@ -227,25 +229,32 @@ function AccessibilityPage() {
             id="non-conformites"
             ref={reportRef}
             tabIndex={-1}
-            className="mt-8 rounded-2xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 p-6"
+            className="mt-8 rounded-2xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-6"
             aria-labelledby="non-conformites-titre"
           >
-            <h2 id="non-conformites-titre" className="text-xl font-semibold text-emerald-900 dark:text-emerald-100">
-              Suivi de conformité en continu
+            <h2 id="non-conformites-titre" className="text-xl font-semibold text-amber-900 dark:text-amber-100">
+              Non-conformités en cours de traitement
             </h2>
-            <p className="mt-2 text-sm text-emerald-900 dark:text-emerald-100">
-              Aucun écart bloquant n’est maintenu dans cette version. La surveillance reste active sur les parcours
-              critiques (clavier, focus, annonces dynamiques, reflow mobile et cohérence des liens).
+            <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">
+              Le dernier contrôle du 7 mars 2026 relève <strong>5 critères non conformes</strong> (12 occurrences) sur
+              le périmètre public audité. Le plan de correction ci-dessous est suivi jusqu’à clôture.
+            </p>
+            <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">
+              État d’avancement des corrections: déploiement du <strong>{auditSummary.remediationDate}</strong>, avec
+              validation finale en cours.
             </p>
             <ul className="mt-4 grid gap-3">
-              {complianceCommitments.map((item) => (
-                <li key={item.id} className="rounded-xl border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-900 p-4">
-                  <p className="wrap-anywhere text-base font-semibold text-emerald-900 dark:text-emerald-100">
-                    {item.id} · {item.title}
+              {currentNonConformities.map((item) => (
+                <li key={item.id} className="rounded-xl border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 p-4">
+                  <p className="wrap-anywhere text-base font-semibold text-amber-900 dark:text-amber-100">
+                    Critère {item.id} · {item.title}
                   </p>
                   <p className="mt-1 wrap-anywhere text-sm text-slate-800 dark:text-slate-200">{item.detail}</p>
                   <p className="mt-2 text-sm text-slate-800 dark:text-slate-200">
                     Pages concernées: <strong>{item.impactedPages}</strong>
+                  </p>
+                  <p className="mt-2 text-sm text-slate-800 dark:text-slate-200">
+                    Statut: <strong>{item.status}</strong>
                   </p>
                 </li>
               ))}
@@ -267,11 +276,11 @@ function AccessibilityPage() {
               pour obtenir une alternative accessible.
             </p>
             <ul className="mt-4 grid gap-3">
-              <li className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4">
+              <li className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Contact principal</p>
                 <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">Aurélien Lewin</p>
               </li>
-              <li className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4">
+              <li className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">E-mail</p>
                 <a
                   href="mailto:aurelienlewin@proton.me"
@@ -280,7 +289,7 @@ function AccessibilityPage() {
                   aurelienlewin@proton.me
                 </a>
               </li>
-              <li className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4">
+              <li className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Profil public</p>
                 <a
                   href="https://github.com/aurelienlewin"
