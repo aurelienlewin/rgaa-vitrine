@@ -74,6 +74,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - URL normalization now canonicalizes listings at domain level (dedupe across `www`/path variants).
 - Frontend submission flow now supports `approved`, `duplicate`, and `pending` outcomes with localized feedback.
 - Submission flow now gives the same focused feedback style for URLs already pending moderation as for existing duplicates, with immediate panel display and no extra confirmation step.
+- Successful site-add feedback is now a focusable success panel that includes an explicit `Rafraîchir la page` action.
 - `POST /api/site-insight` now marks already-pending URL collisions with `alreadySubmitted: true` so frontend UX can distinguish “new pending review” from “already under review”.
 - Added explicit browser metadata for light/dark color scheme support (`meta color-scheme` + themed `theme-color`).
 - French contractions now consistently use typographic apostrophes (`’`) in UI and API user-facing messages.

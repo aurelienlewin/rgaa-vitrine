@@ -336,7 +336,7 @@ function App() {
   const duplicateFeedbackRef = useRef<HTMLElement | null>(null)
   const submitConfirmationRef = useRef<HTMLElement | null>(null)
   const confirmSubmissionButtonRef = useRef<HTMLButtonElement | null>(null)
-  const lastAddedRef = useRef<HTMLParagraphElement | null>(null)
+  const lastAddedRef = useRef<HTMLElement | null>(null)
   const loadMoreButtonRef = useRef<HTMLButtonElement | null>(null)
   const tilesSentinelRef = useRef<HTMLDivElement | null>(null)
   const clientVoterIdRef = useRef<string>('')
@@ -868,6 +868,10 @@ function App() {
       urlInputRef.current?.focus()
     }, 0)
   }, [announcePolite])
+
+  const handleRefreshAfterSuccess = useCallback(() => {
+    window.location.reload()
+  }, [])
 
   const handleUpvote = useCallback(
     async (entry: ShowcaseEntry) => {
@@ -1835,14 +1839,29 @@ function App() {
             )}
 
             {lastAddedEntry && !submitErrorMessage && (
-              <p
+              <section
                 ref={lastAddedRef}
                 tabIndex={-1}
                 className="mt-4 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950 p-3 text-sm text-emerald-800 dark:text-emerald-100"
-                role="status"
+                aria-labelledby="site-ajoute-titre"
+                aria-describedby="site-ajoute-detail"
               >
-                Site ajouté : <strong>{lastAddedEntry.siteTitle}</strong>
-              </p>
+                <h3 id="site-ajoute-titre" className="text-base font-semibold">
+                  Site ajouté
+                </h3>
+                <p id="site-ajoute-detail" className="mt-1" role="status" aria-live="polite">
+                  La fiche <strong>{lastAddedEntry.siteTitle}</strong> a été publiée.
+                </p>
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={handleRefreshAfterSuccess}
+                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                  >
+                    Rafraîchir la page
+                  </button>
+                </div>
+              </section>
             )}
           </section>
 
