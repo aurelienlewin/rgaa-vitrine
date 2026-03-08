@@ -29,13 +29,13 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Progressive tile pagination in the directory (`24` cards per batch) with a manual `Charger plus` action.
 - Automatic lazy loading of additional tiles near viewport end (with keyboard-accessible manual fallback).
 - Reddit-like upvote on each directory tile with accessible button state (`aria-pressed`) and live vocal feedback.
-- Each directory tile now includes an explicit RGAA baseline badge (`RGAA 4.1` or `RGAA 5.0 prêt`) with readable explanation text.
-- Submission flow now includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
-- Confirmation CTA now lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.
-- Each listed site now has a dedicated public profile page (`/site/{slug}`) with shareable metadata and backlink snippet.
-- Profile pages now expose stronger SEO/IA signals: dedicated `WebPage` + `Dataset` structured data, direct API link (`/api/showcase?slug={slug}`), and related-profile internal linking.
-- Profile pages now provide a reusable visual backlink badge (`/badge-backlink-annuaire-rgaa.svg`) plus copy-ready HTML snippets with explicit `alt` and `aria-label`.
-- Add-site flow now exposes a visible category dropdown (including `Coopérative et services`) without custom free-text entry.
+- Each directory tile includes an explicit RGAA baseline badge (`RGAA 4.1` or `RGAA 5.0 prêt`) with readable explanation text.
+- Submission flow includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
+- Confirmation CTA lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.
+- Each listed site has a dedicated public profile page (`/site/{slug}`) with shareable metadata and backlink snippet.
+- Profile pages expose stronger SEO/IA signals: dedicated `WebPage` + `Dataset` structured data, direct API link (`/api/showcase?slug={slug}`), and related-profile internal linking.
+- Profile pages provide a reusable visual backlink badge (`/badge-backlink-annuaire-rgaa.svg`) plus copy-ready HTML snippets with explicit `alt` and `aria-label`.
+- Add-site flow exposes a visible category dropdown (including `Coopérative et services`) without custom free-text entry.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - Tailwind v4.2 accessibility helpers are used where relevant: `wrap-anywhere`, `user-valid` / `user-invalid`, and logical utilities (`start-*`, `ps-*`) to avoid direction-specific custom positioning/padding.
 - Showcase thumbnails are treated as decorative visuals when equivalent textual information is already present in cards.
@@ -44,34 +44,34 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Persistent light/dark mode toggle available on both directory and moderation screens.
 - Dark mode styling is consistently applied through Tailwind `dark:` variants to avoid mixed-theme rendering.
 - Discreet footer build stamp (`version + UTC timestamp`) helps detect stale cache quickly.
-- Footer version now resolves from release tags first (with package version fallback) to stay aligned with published GitHub releases.
-- Footer now uses a clearer three-column information architecture (French UI labels: `Projet`, `Navigation rapide`, `Soutien`) on large screens.
-- All pages now share a consistent top `navigation principale` landmark (French UI label) and the same global footer.
+- Footer version resolves from release tags first (with package version fallback) to stay aligned with published GitHub releases.
+- Footer uses a clearer three-column information architecture (French UI labels: `Projet`, `Navigation rapide`, `Soutien`) on large screens.
+- All pages share a consistent top `navigation principale` landmark (French UI label) and the same global footer.
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
 - Route lazy-loading fallback is announced as status (`aria-live="polite"`) to avoid silent loading states.
-- Lazy-loaded completion states are now also announced on `/site/{slug}` and `/plan-du-site` (successful load, empty result, and loading error) via dedicated polite live regions.
+- Lazy-loaded completion states are announced on `/site/{slug}` and `/plan-du-site` (successful load, empty result, and loading error) via dedicated polite live regions.
 - UI typography avoids tiny text; informational content and metadata are rendered at `text-sm` or above.
 - Muted text and status colors are tuned for stronger contrast in both light and dark themes.
-- Default typography now prioritizes `Atkinson Hyperlegible` for broad readability, with `OpenDyslexic` and `Lexend` as accessible fallbacks.
-- Logo strategy is now icon-only in SVG; textual branding is rendered in semantic Tailwind UI for robust responsive display.
+- Default typography prioritizes `Atkinson Hyperlegible` for broad readability, with `OpenDyslexic` and `Lexend` as accessible fallbacks.
+- Logo strategy is icon-only in SVG; textual branding is rendered in semantic Tailwind UI for robust responsive display.
 - Directory-first UX with filters, categories, and search at the core.
 - Score is treated as a compass, not the goal: priority is to unblock customer journeys and deliver usable UX for everyone.
 - URL registration workflow with secure server-side metadata enrichment.
 - Dedicated moderation UI at `/moderation` for approving/rejecting pending submissions.
 - Moderation dashboards and controls stay hidden until a valid moderation token is submitted.
-- Moderation token session can now be restored automatically (tab session by default, optional 12h persistence on the current device) with an explicit sign-out/forget action.
-- Dedicated moderation UI now supports published entry editing and deletion (title, category, score, status, RGAA baseline badge, vignette, accessibility URL).
-- Moderation now includes editable site blocklist and vote-blocklist controls, plus a single action to delete and block a published site.
-- Moderation forms now strengthen input assistance (`required`, typed URL fields, explicit score guidance) and row-level action labels for assistive technologies.
+- Moderation token session can be restored automatically (tab session by default, optional 12h persistence on the current device) with an explicit sign-out/forget action.
+- Dedicated moderation UI supports published entry editing and deletion (title, category, score, status, RGAA baseline badge, vignette, accessibility URL).
+- Moderation includes editable site blocklist and vote-blocklist controls, plus a single action to delete and block a published site.
+- Moderation forms strengthen input assistance (`required`, typed URL fields, explicit score guidance) and row-level action labels for assistive technologies.
 - Public accessibility declaration page at `/accessibilite` including compliance status, follow-up commitments, and contact.
 - Annuaire listing cards designed for disabled people and accessibility enthusiasts.
-- Directory tiles now use a clearer reading hierarchy (status chips, metadata blocks, grouped actions, vote zone) with container-query layout adaptation for mobile and desktop.
+- Directory tiles use a clearer reading hierarchy (status chips, metadata blocks, grouped actions, vote zone) with container-query layout adaptation for mobile and desktop.
 - RGAA awareness sections sourced from official French references.
 - WCAG 2.2 awareness and references embedded in the UI.
 - Tailwind CSS v4 native features used directly (`@theme` tokens + utility-first focus/skip-link patterns).
 - Embedded skills: `rgaa-official-recommendations`, `wcag-22-official-guidelines`.
 - Frontend route bundles are split (`/moderation`, `/plan-du-site`, `/accessibilite`) to reduce initial JavaScript on homepage load.
-- Secondary local fonts (`OpenDyslexic`, `Lexend`) are now loaded after first paint (idle callback), keeping critical render path lighter.
+- Secondary local fonts (`OpenDyslexic`, `Lexend`) load after first paint (idle callback), keeping critical render path lighter.
 
 ## Tech Stack
 
@@ -145,9 +145,9 @@ You can check the active storage mode via:
 - Global rate limiting on API endpoints + stricter hourly limiter for submissions
 - Dedicated moderation-auth hardening: `MODERATION_API_TOKEN` must be strong (minimum `32` chars) and failed moderation auth attempts are throttled.
 - Dedicated vote anti-abuse controls: one-vote safeguards per user/browser fingerprint + per network fingerprint, plus hourly vote rate limiting
-- Forwarded IP headers are now validated as real IPs before contributing to anti-abuse vote fingerprints.
-- Moderation-enforced site blocklist now prevents new submissions on blocked URLs.
-- Moderation-enforced vote blocking now disables upvotes for selected URLs.
+- Forwarded IP headers are validated as real IPs before contributing to anti-abuse vote fingerprints.
+- Moderation-enforced site blocklist prevents new submissions on blocked URLs.
+- Moderation-enforced vote blocking disables upvotes for selected URLs.
 - Moderation archive hardening: optional HMAC-signed exports/imports (`MODERATION_ARCHIVE_SIGNING_SECRET`) and rollback guard for destructive `replace` imports.
 - GitHub notifier hardening: explicit notifier token env vars only, strict public-HTTPS validation for custom GitHub API base URL, and short outbound timeout.
 - Domain-level deduplication via canonical URL normalization (e.g. `www` variants collapse)
@@ -158,16 +158,16 @@ You can check the active storage mode via:
 
 ## Accessibility Preferences
 
-The UI now adapts automatically to operating-system and browser accessibility preferences:
+The UI adapts automatically to operating-system and browser accessibility preferences:
 
 - Dark mode (`prefers-color-scheme`)
 - Reduced motion (`prefers-reduced-motion`)
 - Increased contrast (`prefers-contrast: more`)
 - Forced colors / high-contrast modes (`forced-colors: active`)
 
-## Accessibility Remediation Traceability
+## Accessibility Implementation Traceability
 
-Latest production audit baseline consumed (`20260308-021904`, March 8, 2026) covers:
+Production audit scope covered:
 
 - `/` (home)
 - `/plan-du-site`
@@ -179,18 +179,18 @@ Non-conform criteria identified in that baseline:
 - `3.3` insufficient contrast on one informative graphic in homepage header
 - `10.10` positional-only wording on accessibility declaration
 
-Remediation pass applied (March 8, 2026):
+Implemented remediation items:
 
 - Single shared search form retained in page header (`#moteur-recherche-global`) and homepage duplicate search landmark removed.
-- Homepage search features (query + status + category + submit + reset + keyboard `Échap`) now run through the shared header form.
-- Main navigation landmark is now consistent across all pages (`#navigation-principale`) and skip links now target it explicitly.
+- Homepage search features (query + status + category + submit + reset + keyboard `Échap`) run through the shared header form.
+- Main navigation landmark is consistent across all pages (`#navigation-principale`) and skip links target it explicitly.
 - Homepage logo contrast has been reinforced (dark/light background + border) to address criterion `3.3`.
 - Positional wording has been replaced by explicit section wording on `/accessibilite` to address criterion `10.10`.
 - All dynamic status/error announcements remain localized in French with `aria-live` channels (`polite` and `assertive`).
 
 Operational note:
 
-- If you rely on `rgaa:compliance-*` meta hints for your own site, deploy the latest frontend build before testing submissions, otherwise moderation may still classify the site with stale metadata.
+- If you rely on `rgaa:compliance-*` meta hints for your own site, deploy a frontend build that includes those metadata hints before testing submissions.
 
 ## SEO
 
@@ -198,21 +198,21 @@ Operational note:
 - Legacy `.org` host redirects at edge to `annuaire-rgaa.fr` to avoid duplicate indexing.
 - Open Graph + Twitter Cards
 - Structured data (JSON-LD): `WebSite`, `Organization`, `Person`, `CollectionPage`, `SiteNavigationElement`
-- Structured data now also exposes `SearchAction` on homepage and `BreadcrumbList` on key secondary pages.
+- Structured data exposes `SearchAction` on homepage and `BreadcrumbList` on key secondary pages.
 - Accessible public site map page: `/plan-du-site`
-- Site map page now lists an extract of published `/site/{slug}` links to strengthen crawlable internal discovery.
+- Site map page lists an extract of published `/site/{slug}` links to strengthen crawlable internal discovery.
 - Public accessibility declaration page: `/accessibilite`
 - Auto-generated sitemap endpoint: `/sitemap.xml` (backed by API route `/api/sitemap`)
-- `sitemap.xml` is now served without caching (`no-store`) so newly published entries appear immediately after submission/moderation.
-- Sitemap now includes the public data endpoint (`/api/showcase`) for dataset discovery.
-- Sitemap now includes one public URL per referenced site profile (`/site/{slug}`).
+- `sitemap.xml` is served without caching (`no-store`) so published entries appear immediately after submission/moderation.
+- Sitemap includes the public data endpoint (`/api/showcase`) for dataset discovery.
+- Sitemap includes one public URL per referenced site profile (`/site/{slug}`).
 - AI crawler files: `/llms.txt`, `/llms-full.txt`, `/ai-context.json` (and `/api/ai-context`)
-- AI context now includes explicit site-profile patterns (`/site/{slug}`), API pattern (`/api/showcase?slug={slug}`), and crawl seed profile URLs.
+- AI context includes explicit site-profile patterns (`/site/{slug}`), API pattern (`/api/showcase?slug={slug}`), and crawl seed profile URLs.
 - `public/robots.txt`
 - Public showcase API includes cache headers (`Cache-Control`, `Last-Modified`) for crawler efficiency and reduced load.
-- Serverless API adapter now normalizes absolute/relative request URLs before Express routing, reducing production fallback mismatches on `/api/*`.
+- Serverless API adapter normalizes absolute/relative request URLs before Express routing, reducing production fallback mismatches on `/api/*`.
 - Host-level redirects must avoid cyclic `www`/apex rules, otherwise `/api/*` calls may fail and return non-API HTML payloads.
-- Vercel rewrites now force `/api/*` through the single `/api` function entrypoint with preserved logical path, preventing SPA HTML fallback on API routes.
+- Vercel rewrites force `/api/*` through the single `/api` function entrypoint with preserved logical path, preventing SPA HTML fallback on API routes.
 - Vercel Web Analytics is wired on frontend mount via `@vercel/analytics`.
 
 ## Getting Started
@@ -344,7 +344,7 @@ Vote notes:
 RGAA baseline notes:
 
 - `rgaaBaseline` is exposed in showcase entries (`4.1` or `5.0-ready`).
-- Existing and newly ingested entries default to `4.1` until a moderator explicitly overrides the badge.
+- Existing and ingested entries default to `4.1` until a moderator explicitly overrides the badge.
 - `5.0-ready` is applied only through moderation override.
 
 ### Manual moderation workflow
