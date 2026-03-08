@@ -190,11 +190,6 @@ Implemented remediation items:
 - Positional wording has been replaced by explicit section wording on `/accessibilite` to address criterion `10.10`.
 - All dynamic status/error announcements remain localized in French with `aria-live` channels (`polite` and `assertive`).
 
-Declaration enrichment inputs (consulted on March 8, 2026):
-
-- BE API declaration: https://beapi.fr/accessibilite/ (explicit sections for technologies, test environment, and accessibility evaluation tools)
-- Réseau PAC declaration: https://www.reseau-pac.fr/declaration-accessibilite/ (detailed matrix for technologies, user agents/assistive technologies, and audit tools)
-
 Operational note:
 
 - If you rely on `rgaa:compliance-*` meta hints for your own site, deploy a frontend build that includes those metadata hints before testing submissions.

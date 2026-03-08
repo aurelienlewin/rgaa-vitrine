@@ -60,29 +60,14 @@ const auditEnvironment = [
   'macOS 26.3.1 (build 25D2128)',
   'Node.js 25.2.1',
   'npm 11.6.2',
-  'Audit exécuté en mode MCP Chrome DevTools (voir journal horodaté du 8 mars 2026)',
+  'Audit exécuté avec Chrome DevTools (voir journal horodaté du 8 mars 2026)',
 ]
 
 const accessibilityEvaluationTools = [
   'rgaa-auditor 2.0.1 (outil interne, dossier ../audit)',
-  'Chrome DevTools MCP (captures, snapshots, scripts de vérification ciblés)',
+  'Chrome DevTools (captures, snapshots, scripts de vérification ciblés)',
   'Revue assistée Codex modèle gpt-5.3-codex (journal d’audit)',
   'Contrôles de qualité projet: npm run lint et npm run build',
-]
-
-const externalDeclarationReferences = [
-  {
-    siteName: 'BE API',
-    url: 'https://beapi.fr/accessibilite/',
-    extractedSignals:
-      'Sections explicites « Technologies utilisées », « Environnement de test » et « Outils pour évaluer l’accessibilité ».',
-  },
-  {
-    siteName: 'Réseau PAC',
-    url: 'https://www.reseau-pac.fr/declaration-accessibilite/',
-    extractedSignals:
-      'Présentation détaillée des technologies du site, agents utilisateurs/technologies d’assistance, et outils d’audit (ex. axe DevTools, Lighthouse, Wave).',
-  },
 ]
 
 function AccessibilityPage() {
@@ -313,31 +298,6 @@ function AccessibilityPage() {
             <ul className="mt-2 list-disc space-y-1 ps-5 text-sm text-slate-700 dark:text-slate-300">
               {accessibilityEvaluationTools.map((item) => (
                 <li key={item}>{item}</li>
-              ))}
-            </ul>
-
-            <h3 className="mt-5 text-base font-semibold">Déclarations externes consultées pour structurer cette section</h3>
-            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-              Ces références proviennent de sites déjà référencés dans la vitrine. Consultation effectuée le{' '}
-              <strong>8 mars 2026</strong>.
-            </p>
-            <ul className="mt-2 grid gap-3">
-              {externalDeclarationReferences.map((reference) => (
-                <li
-                  key={reference.url}
-                  className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
-                >
-                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{reference.siteName}</p>
-                  <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{reference.extractedSignals}</p>
-                  <a
-                    href={reference.url}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className={`mt-2 inline-flex min-h-11 items-center wrap-anywhere underline decoration-2 underline-offset-2 ${focusRingClass}`}
-                  >
-                    Consulter la déclaration d’accessibilité
-                  </a>
-                </li>
               ))}
             </ul>
           </section>
