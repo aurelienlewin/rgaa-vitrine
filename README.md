@@ -61,6 +61,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Moderation forms now strengthen input assistance (`required`, typed URL fields, explicit score guidance) and row-level action labels for assistive technologies.
 - Public accessibility declaration page at `/accessibilite` including compliance status, follow-up commitments, and contact.
 - Annuaire listing cards designed for disabled people and accessibility enthusiasts.
+- Directory tiles now use a clearer reading hierarchy (status chips, metadata blocks, grouped actions, vote zone) with container-query layout adaptation for mobile and desktop.
 - RGAA awareness sections sourced from official French references.
 - WCAG 2.2 awareness and references embedded in the UI.
 - Tailwind CSS v4 native features used directly (`@theme` tokens + utility-first focus/skip-link patterns).

@@ -1218,144 +1218,171 @@ function App() {
             )}
 
             {filteredShowcaseEntries.length > 0 && (
-              <ul id="liste-vitrines" className="mt-4 grid gap-4 md:grid-cols-2">
-                {visibleShowcaseEntries.map((entry) => (
-                  <li key={entry.normalizedUrl} className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
-                    <article>
-                      {(() => {
-                        const rgaaBadge = getRgaaBadgePresentation(entry.rgaaBaseline)
-                        const badgeDescriptionId = `rgaa-badge-description-${toDomSafeIdSegment(entry.normalizedUrl)}`
+              <ul id="liste-vitrines" className="mt-4 grid gap-5 md:grid-cols-2">
+                {visibleShowcaseEntries.map((entry) => {
+                  const rgaaBadge = getRgaaBadgePresentation(entry.rgaaBaseline)
+                  const domId = toDomSafeIdSegment(entry.normalizedUrl)
+                  const badgeDescriptionId = `rgaa-badge-description-${domId}`
+                  const votesDescriptionId = `votes-${domId}`
 
-                        return (
-                          <>
-                      <div className="h-40 bg-slate-100 dark:bg-slate-800">
-                        {entry.thumbnailUrl ? (
-                          <img
-                            src={entry.thumbnailUrl}
-                            alt=""
-                            aria-hidden="true"
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center px-3 text-center text-sm text-slate-600 dark:text-slate-300">
-                            Aucune vignette disponible
-                          </div>
-                        )}
-                      </div>
-                      <div className="space-y-2 p-4">
-                        <h3 className="text-lg font-semibold">{entry.siteTitle}</h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-300">Catégorie : {formatCategory(entry.category)}</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-300">Mise à jour : {formatDate(entry.updatedAt)}</p>
-                        <p className="wrap-anywhere text-sm text-slate-600 dark:text-slate-300">{entry.normalizedUrl}</p>
-                        <p className="text-sm">
-                          <a
-                            href={entry.profilePath ?? resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug)}
-                            aria-label={`Ouvrir la fiche annuaire de ${entry.siteTitle}`}
-                            className={`inline-flex min-h-11 items-center rounded-xl px-3 py-2 font-semibold ${ctaSkyClass} ${focusRingClass}`}
-                          >
-                            Voir la fiche annuaire
-                          </a>
-                        </p>
-                        <p className="text-sm">
-                          <a
-                            href={entry.normalizedUrl}
-                            target="_blank"
-                            rel="noopener external"
-                            referrerPolicy="strict-origin-when-cross-origin"
-                            aria-label={`Visiter le site ${entry.siteTitle}`}
-                            className={`inline-flex min-h-11 items-center rounded-xl px-3 py-2 font-semibold ${ctaNeutralClass} ${focusRingClass}`}
-                          >
-                            Visiter le site
-                          </a>
-                        </p>
-                        <p className="text-sm">
-                          {entry.accessibilityPageUrl ? (
-                            <a
-                              href={entry.accessibilityPageUrl}
-                              target="_blank"
-                              rel="noopener external"
-                              referrerPolicy="strict-origin-when-cross-origin"
-                              aria-label={`Ouvrir la déclaration d’accessibilité de ${entry.siteTitle}`}
-                              className={`inline-flex min-h-11 items-center rounded-xl px-3 py-2 font-semibold ${ctaEmeraldClass} ${focusRingClass}`}
-                            >
-                              Déclaration d’accessibilité
-                            </a>
+                  return (
+                    <li
+                      key={entry.normalizedUrl}
+                      className="@container overflow-hidden rounded-3xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm shadow-slate-950/5"
+                    >
+                      <article className="flex h-full flex-col">
+                        <div className="h-44 overflow-hidden border-b border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
+                          {entry.thumbnailUrl ? (
+                            <img
+                              src={entry.thumbnailUrl}
+                              alt=""
+                              aria-hidden="true"
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                            />
                           ) : (
-                            <span className="inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-600 dark:text-slate-300">
-                              Déclaration non détectée
-                            </span>
+                            <div className="flex h-full items-center justify-center px-3 text-center text-sm text-slate-700 dark:text-slate-200">
+                              Aucune vignette disponible
+                            </div>
                           )}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2">
-                          {entry.complianceStatus ? (
+                        </div>
+
+                        <div className="flex flex-1 flex-col gap-4 p-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {entry.complianceStatus ? (
+                              <span
+                                className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${statusClassByValue[entry.complianceStatus]}`}
+                              >
+                                {entry.complianceStatusLabel}
+                              </span>
+                            ) : (
+                              <span className="inline-flex min-h-8 items-center rounded-full border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-50">
+                                Niveau inconnu
+                              </span>
+                            )}
                             <span
-                              className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${statusClassByValue[entry.complianceStatus]}`}
+                              className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${rgaaBadge.className}`}
+                              aria-label={rgaaBadge.ariaLabel}
+                              aria-describedby={badgeDescriptionId}
                             >
-                              {entry.complianceStatusLabel}
+                              {rgaaBadge.shortLabel}
                             </span>
-                          ) : (
-                            <span className="inline-flex min-h-8 items-center rounded-full bg-slate-200 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-50">
-                              Niveau inconnu
+                            <span className="inline-flex min-h-8 items-center rounded-full border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                              Score {formatScore(entry.complianceScore)}
                             </span>
-                          )}
-                          <span
-                            className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${rgaaBadge.className}`}
-                            aria-label={rgaaBadge.ariaLabel}
-                            aria-describedby={badgeDescriptionId}
+                          </div>
+
+                          <header className="space-y-2">
+                            <h3 className="text-lg font-bold leading-tight text-slate-900 dark:text-slate-50">
+                              {entry.siteTitle}
+                            </h3>
+                            <p className="wrap-anywhere rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-200">
+                              {entry.normalizedUrl}
+                            </p>
+                          </header>
+
+                          <dl className="grid grid-cols-1 gap-2 @md:grid-cols-2">
+                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2">
+                              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                                Catégorie
+                              </dt>
+                              <dd className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-50">
+                                {formatCategory(entry.category)}
+                              </dd>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2">
+                              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                                Mise à jour
+                              </dt>
+                              <dd className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-50">
+                                {formatDate(entry.updatedAt)}
+                              </dd>
+                            </div>
+                          </dl>
+
+                          <p
+                            id={badgeDescriptionId}
+                            className="text-sm text-slate-700 dark:text-slate-300"
                           >
-                            {rgaaBadge.shortLabel}
-                          </span>
-                          <span className="inline-flex min-h-8 items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                            Score: {formatScore(entry.complianceScore)}
-                          </span>
+                            {rgaaBadge.description}
+                          </p>
+
+                          <div className="mt-auto space-y-3">
+                            <div className="@container grid grid-cols-1 gap-2 @sm:grid-cols-2">
+                              <a
+                                href={entry.profilePath ?? resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug)}
+                                aria-label={`Ouvrir la fiche annuaire de ${entry.siteTitle}`}
+                                className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
+                              >
+                                Voir la fiche annuaire
+                              </a>
+                              <a
+                                href={entry.normalizedUrl}
+                                target="_blank"
+                                rel="noopener external"
+                                referrerPolicy="strict-origin-when-cross-origin"
+                                aria-label={`Visiter le site ${entry.siteTitle}`}
+                                className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                              >
+                                Visiter le site
+                              </a>
+                              {entry.accessibilityPageUrl ? (
+                                <a
+                                  href={entry.accessibilityPageUrl}
+                                  target="_blank"
+                                  rel="noopener external"
+                                  referrerPolicy="strict-origin-when-cross-origin"
+                                  aria-label={`Ouvrir la déclaration d’accessibilité de ${entry.siteTitle}`}
+                                  className={`@sm:col-span-2 inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaEmeraldClass} ${focusRingClass}`}
+                                >
+                                  Déclaration d’accessibilité
+                                </a>
+                              ) : (
+                                <span className="@sm:col-span-2 inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-600 dark:border-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                  Déclaration non détectée
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-2">
+                              <button
+                                type="button"
+                                onClick={() => void handleUpvote(entry)}
+                                disabled={entry.votesBlocked || upvotePendingByUrl[entry.normalizedUrl]}
+                                aria-pressed={entry.hasUpvoted}
+                                aria-describedby={votesDescriptionId}
+                                aria-label={`${
+                                  entry.votesBlocked
+                                    ? 'Votes indisponibles pour'
+                                    : entry.hasUpvoted
+                                      ? 'Vote déjà enregistré pour'
+                                      : 'Voter pour'
+                                } ${entry.siteTitle}. ${entry.upvoteCount} vote(s).`}
+                                className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold ${
+                                  entry.votesBlocked
+                                    ? 'border-slate-400 dark:border-slate-600 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                                    : entry.hasUpvoted
+                                      ? 'border-emerald-500 dark:border-emerald-600 bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100'
+                                      : 'border-slate-700 dark:border-slate-300 bg-transparent text-slate-900 dark:text-slate-50'
+                                } disabled:cursor-not-allowed disabled:opacity-100 ${focusRingClass}`}
+                              >
+                                <span aria-hidden="true">{entry.votesBlocked ? '◌' : entry.hasUpvoted ? '▲' : '△'}</span>
+                                <span>{entry.votesBlocked ? 'Votes indisponibles' : entry.hasUpvoted ? 'Voté' : 'Soutenir ce site'}</span>
+                              </button>
+                              <span
+                                id={votesDescriptionId}
+                                className="inline-flex min-h-8 items-center rounded-full border border-slate-400 dark:border-slate-500 bg-white dark:bg-slate-900 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200"
+                              >
+                                {entry.upvoteCount} vote(s)
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <p
-                          id={badgeDescriptionId}
-                          className="text-xs text-slate-600 dark:text-slate-300"
-                        >
-                          {rgaaBadge.description}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-3 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => void handleUpvote(entry)}
-                            disabled={entry.votesBlocked || upvotePendingByUrl[entry.normalizedUrl]}
-                            aria-pressed={entry.hasUpvoted}
-                            aria-describedby={`votes-${toDomSafeIdSegment(entry.normalizedUrl)}`}
-                            aria-label={`${
-                              entry.votesBlocked
-                                ? 'Votes indisponibles pour'
-                                : entry.hasUpvoted
-                                  ? 'Vote déjà enregistré pour'
-                                  : 'Voter pour'
-                            } ${entry.siteTitle}. ${entry.upvoteCount} vote(s).`}
-                            className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold ${
-                              entry.votesBlocked
-                                ? 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                                : entry.hasUpvoted
-                                ? 'border-emerald-400 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100'
-                                  : 'border-slate-600 dark:border-slate-600 bg-transparent text-slate-900 dark:text-slate-50'
-                            } disabled:cursor-not-allowed disabled:opacity-70 ${focusRingClass}`}
-                          >
-                            <span aria-hidden="true">{entry.votesBlocked ? '◌' : entry.hasUpvoted ? '▲' : '△'}</span>
-                            <span>{entry.votesBlocked ? 'Votes indisponibles' : entry.hasUpvoted ? 'Voté' : 'Soutenir ce site'}</span>
-                          </button>
-                          <span
-                            id={`votes-${toDomSafeIdSegment(entry.normalizedUrl)}`}
-                            className="inline-flex min-h-8 items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200"
-                          >
-                            {entry.upvoteCount} vote(s)
-                          </span>
-                        </div>
-                      </div>
-                          </>
-                        )
-                      })()}
-                    </article>
-                  </li>
-                ))}
+                      </article>
+                    </li>
+                  )
+                })}
               </ul>
             )}
 

@@ -47,6 +47,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Homepage duplicate search landmark has been removed; results filtering now follows the single shared header search flow.
 - Main navigation landmark is now unified as `#navigation-principale` across all pages, and skip links now expose a consistent target to that landmark.
 - Homepage logo contrast has been reinforced (criterion `3.3` remediation) and positional wording has been removed from `/accessibilite` (criterion `10.10` remediation).
+- Directory tiles were redesigned for stronger UX readability (hierarchical chips, metadata cards, grouped CTAs, separated vote control) while preserving semantic structure and keyboard/screen-reader behavior.
 - Homepage showcase thumbnails are now decorative (`alt=""`) when equivalent textual information is already available in card content.
 - Alternate discovery links in `<head>` no longer rely on native `title` tooltips.
 - UI contrast pass: interactive controls now use stronger border-based affordances and high-contrast skip-link styling; same-surface white-on-white controls were removed.
