@@ -164,7 +164,7 @@ function SiteMapPage() {
   const [profileErrorMessage, setProfileErrorMessage] = useState<string | null>(null)
   const [politeAnnouncement, setPoliteAnnouncement] = useState({ id: 0, message: '' })
   const mainContentRef = useRef<HTMLElement | null>(null)
-  const primaryNavRef = useRef<HTMLElement | null>(null)
+  const siteMapSectionsRef = useRef<HTMLElement | null>(null)
   const profileSectionRef = useRef<HTMLElement | null>(null)
   const footerRef = useRef<HTMLElement | null>(null)
 
@@ -377,12 +377,15 @@ function SiteMapPage() {
         <a href="/#moteur-recherche-global" className={skipLinkClass}>
           Aller à la recherche annuaire
         </a>
+        <a href="#navigation-principale" className={skipLinkClass}>
+          Aller à la navigation principale
+        </a>
         <a
-          href="#navigation-principale"
+          href="#pages-principales-plan"
           className={skipLinkClass}
-          onClick={(event) => handleSkipLinkClick(event, primaryNavRef)}
+          onClick={(event) => handleSkipLinkClick(event, siteMapSectionsRef)}
         >
-          Aller aux liens principaux
+          Aller aux pages principales du plan
         </a>
         <a
           href="#fiches-publiques"
@@ -414,8 +417,8 @@ function SiteMapPage() {
           className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8"
         >
           <nav
-            id="navigation-principale"
-            ref={primaryNavRef}
+            id="pages-principales-plan"
+            ref={siteMapSectionsRef}
             tabIndex={-1}
             aria-labelledby="pages-principales-titre"
             className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"

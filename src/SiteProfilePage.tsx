@@ -495,6 +495,9 @@ function SiteProfilePage() {
         <a href="#contenu-fiche" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, mainRef)}>
           Aller au contenu
         </a>
+        <a href="#navigation-principale" className={skipLinkClass}>
+          Aller à la navigation principale
+        </a>
         <a href="/#moteur-recherche-global" className={skipLinkClass}>
           Aller à la recherche annuaire
         </a>

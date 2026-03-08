@@ -11,8 +11,8 @@ const skipLinksContainerClass =
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
 
 const auditSummary = {
-  score: 'Remédiation en cours',
-  auditDate: '7 mars 2026',
+  score: 'Remédiation finalisée, contre-audit en cours',
+  auditDate: '8 mars 2026',
   scope: '4 pages publiques vérifiées',
   auditedPages: [
     'https://annuaire-rgaa.fr/',
@@ -21,50 +21,26 @@ const auditSummary = {
     'https://annuaire-rgaa.fr/site/{slug}',
   ],
   applicableCriteria: '424 résultats',
-  conclusiveCriteria: '12 non conformes',
-  nonConformitiesCount: '5 critères',
+  conclusiveCriteria: '2 non conformités',
+  nonConformitiesCount: '2 critères',
   remediationDate: '8 mars 2026',
 }
 
 const currentNonConformities = [
   {
-    id: '1.8',
-    title: 'Images de texte dans les vignettes',
-    detail:
-      'Certaines vignettes de sites sont analysées comme images de texte porteuses d’information sans mécanisme de remplacement suffisant.',
-    impactedPages: 'Accueil',
-    status: 'Correctif déployé, validation finale en cours.',
-  },
-  {
     id: '3.3',
-    title: 'Contraste insuffisant sur composants UI',
+    title: 'Contraste insuffisant sur un élément graphique informatif',
     detail:
-      'Des composants d’interface (boutons, badges, blocs d’état) présentent des contrastes insuffisants selon les mesures de contrôle.',
-    impactedPages: 'Toutes les pages',
+      'Le contrôle de contraste de composants d’interface détectait un contraste insuffisant sur le logo informatif d’en-tête de la page d’accueil.',
+    impactedPages: 'Accueil de l’annuaire',
     status: 'Correctif déployé, validation finale en cours.',
   },
   {
-    id: '10.5',
-    title: 'Paires couleur de texte / fond incohérentes',
+    id: '10.10',
+    title: 'Information formulée uniquement par position',
     detail:
-      'Des déclarations de couleur de texte et de couleur de fond ne sont pas systématiquement couplées dans les composants stylés.',
-    impactedPages: 'Accueil, page accessibilité',
-    status: 'Correctif déployé, validation finale en cours.',
-  },
-  {
-    id: '10.13',
-    title: 'Contenus additionnels non contrôlables',
-    detail:
-      'Des infos contextuelles apparaissent au survol via attribut title natif, sans contrôle utilisateur.',
-    impactedPages: 'Accueil',
-    status: 'Correctif déployé, validation finale en cours.',
-  },
-  {
-    id: '12.5',
-    title: 'Accès recherche non homogène entre pages',
-    detail:
-      'Le moteur de recherche n’est pas atteignable selon un schéma identique sur l’ensemble des pages publiques.',
-    impactedPages: 'Toutes les pages auditées',
+      'Un libellé utilisait une indication spatiale. La formulation a été remplacée par une référence explicite de section.',
+    impactedPages: 'Déclaration d’accessibilité',
     status: 'Correctif déployé, validation finale en cours.',
   },
 ]
@@ -153,6 +129,9 @@ function AccessibilityPage() {
         <a href="#contenu-accessibilite" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, mainRef)}>
           Aller au contenu
         </a>
+        <a href="#navigation-principale" className={skipLinkClass}>
+          Aller à la navigation principale
+        </a>
         <a href="/#moteur-recherche-global" className={skipLinkClass}>
           Aller à la recherche annuaire
         </a>
@@ -236,8 +215,8 @@ function AccessibilityPage() {
               Non-conformités en cours de traitement
             </h2>
             <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">
-              Le dernier contrôle du 7 mars 2026 relève <strong>5 critères non conformes</strong> (12 occurrences) sur
-              le périmètre public audité. Le plan de correction ci-dessous est suivi jusqu’à clôture.
+              Le contrôle du 8 mars 2026 relève <strong>2 critères non conformes</strong> (2 occurrences) sur
+              le périmètre public audité. Le plan de correction de cette section est suivi jusqu’à clôture.
             </p>
             <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">
               État d’avancement des corrections: déploiement du <strong>{auditSummary.remediationDate}</strong>, avec

@@ -5,6 +5,13 @@ import { applySeo, createAbsoluteUrl } from './seo'
 import { resolveShowcaseProfilePath } from './siteProfiles'
 import SiteFooter from './SiteFooter'
 import GlobalSearchForm from './GlobalSearchForm'
+import PrimaryNavigation from './PrimaryNavigation'
+import {
+  formatCategory,
+  readStatusFilterFromQuery,
+  showcaseCategories,
+} from './showcaseFilters'
+import type { ShowcaseStatusFilter } from './showcaseFilters'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
 type RgaaBaseline = '4.1' | '5.0-ready'
@@ -27,7 +34,6 @@ type ShowcaseEntry = {
   category: string
 }
 
-type ShowcaseStatusFilter = 'all' | Exclude<ComplianceStatus, null>
 type SubmissionStatus = 'approved' | 'duplicate' | 'pending'
 
 const statusClassByValue: Record<Exclude<ComplianceStatus, null>, string> = {
@@ -36,16 +42,6 @@ const statusClassByValue: Record<Exclude<ComplianceStatus, null>, string> = {
   none: 'border border-rose-700 bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-100',
 }
 
-const showcaseCategories = [
-  'Administration',
-  'E-commerce',
-  'Media',
-  'Sante',
-  'Education',
-  'Associatif',
-  'Coopérative et services',
-  'Autre',
-]
 const publicSubmissionCategoryFallback = 'Autre'
 const publicSubmissionCategoryByNormalized = new Map(
   showcaseCategories.map((category) => [normalizeText(category), category]),
@@ -54,25 +50,6 @@ publicSubmissionCategoryByNormalized.set(
   normalizeText('Cooperative et services'),
   'Coopérative et services',
 )
-
-const categoryLabels: Record<string, string> = {
-  Administration: 'Administration',
-  'E-commerce': 'E-commerce',
-  Media: 'Média',
-  Sante: 'Santé',
-  Education: 'Éducation',
-  Associatif: 'Associatif',
-  'Cooperative et services': 'Coopérative et services',
-  'Coopérative et services': 'Coopérative et services',
-  Autre: 'Autre',
-}
-
-const showcaseStatusFilterLabels: Record<ShowcaseStatusFilter, string> = {
-  all: 'Tous les niveaux',
-  full: 'Totalement conforme',
-  partial: 'Partiellement conforme',
-  none: 'Non conforme',
-}
 
 const officialResources = [
   {
@@ -210,10 +187,6 @@ function normalizeText(value: string) {
     .toLowerCase()
 }
 
-function formatCategory(value: string) {
-  return categoryLabels[value] ?? value
-}
-
 function normalizeCategoryInput(value: string) {
   const trimmed = value.trim()
   if (!trimmed) {
@@ -335,7 +308,8 @@ function App() {
   const [politeAnnouncement, setPoliteAnnouncement] = useState({ id: 0, message: '' })
   const [assertiveAnnouncement, setAssertiveAnnouncement] = useState({ id: 0, message: '' })
   const mainContentRef = useRef<HTMLElement | null>(null)
-  const filtersSectionRef = useRef<HTMLElement | null>(null)
+  const primaryNavigationRef = useRef<HTMLElement | null>(null)
+  const directorySectionRef = useRef<HTMLElement | null>(null)
   const formSectionRef = useRef<HTMLElement | null>(null)
   const helpSectionRef = useRef<HTMLElement | null>(null)
   const footerRef = useRef<HTMLElement | null>(null)
@@ -405,17 +379,27 @@ function App() {
     [focusElement],
   )
 
-  const syncSearchQueryInUrl = useCallback((query: string) => {
+  const syncFiltersInUrl = useCallback((filters: { query: string; status: ShowcaseStatusFilter; category: string }) => {
     if (typeof window === 'undefined') {
       return
     }
 
-    const trimmedQuery = query.trim()
+    const trimmedQuery = filters.query.trim()
     const currentUrl = new URL(window.location.href)
     if (trimmedQuery) {
       currentUrl.searchParams.set('recherche', trimmedQuery)
     } else {
       currentUrl.searchParams.delete('recherche')
+    }
+    if (filters.status === 'all') {
+      currentUrl.searchParams.delete('statut')
+    } else {
+      currentUrl.searchParams.set('statut', filters.status)
+    }
+    if (filters.category === 'all') {
+      currentUrl.searchParams.delete('categorie')
+    } else {
+      currentUrl.searchParams.set('categorie', filters.category)
     }
 
     const nextRelativeUrl = `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`
@@ -429,10 +413,10 @@ function App() {
     setSearchQuery('')
     setStatusFilter('all')
     setCategoryFilter('all')
-    syncSearchQueryInUrl('')
+    syncFiltersInUrl({ query: '', status: 'all', category: 'all' })
     announcePolite('Filtres réinitialisés.')
     searchInputRef.current?.focus()
-  }, [announcePolite, syncSearchQueryInUrl])
+  }, [announcePolite, syncFiltersInUrl])
 
   const filteredShowcaseEntries = useMemo(() => {
     const normalizedQuery = normalizeText(searchQuery.trim())
@@ -468,6 +452,15 @@ function App() {
     return Array.from(options).sort((left, right) => left.localeCompare(right, 'fr'))
   }, [showcaseEntries])
 
+  const categoryFilterOptions = useMemo(
+    () =>
+      availableCategoryOptions.map((category) => ({
+        value: category,
+        label: formatCategory(category),
+      })),
+    [availableCategoryOptions],
+  )
+
   const visibleShowcaseEntries = useMemo(
     () => filteredShowcaseEntries.slice(0, visibleTilesCount),
     [filteredShowcaseEntries, visibleTilesCount],
@@ -478,7 +471,7 @@ function App() {
   const handleSearchSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
-      syncSearchQueryInUrl(searchQuery)
+      syncFiltersInUrl({ query: searchQuery, status: statusFilter, category: categoryFilter })
       announcePolite(
         `Recherche appliquée. ${Math.min(
           filteredShowcaseEntries.length,
@@ -487,7 +480,15 @@ function App() {
       )
       focusElement(resultsSummaryRef.current)
     },
-    [announcePolite, filteredShowcaseEntries.length, focusElement, searchQuery, syncSearchQueryInUrl],
+    [
+      announcePolite,
+      categoryFilter,
+      filteredShowcaseEntries.length,
+      focusElement,
+      searchQuery,
+      statusFilter,
+      syncFiltersInUrl,
+    ],
   )
 
   const directoryStats = useMemo(() => {
@@ -614,12 +615,19 @@ function App() {
       return
     }
 
-    const initialQuery = new URLSearchParams(window.location.search).get('recherche')
-    if (!initialQuery) {
-      return
+    const params = new URLSearchParams(window.location.search)
+    const initialQuery = params.get('recherche')
+    const initialStatus = readStatusFilterFromQuery(params.get('statut'))
+    const initialCategory = params.get('categorie') ?? 'all'
+
+    if (initialQuery) {
+      setSearchQuery(initialQuery.slice(0, 120))
     }
 
-    setSearchQuery(initialQuery.slice(0, 120))
+    setStatusFilter(initialStatus)
+    if (initialCategory === 'all' || initialCategory.trim()) {
+      setCategoryFilter(initialCategory === 'all' ? 'all' : initialCategory.slice(0, 60))
+    }
   }, [])
 
   useEffect(() => {
@@ -1027,11 +1035,14 @@ function App() {
         <a href="#contenu" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, mainContentRef)}>
           Aller au contenu
         </a>
+        <a href="#navigation-principale" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, primaryNavigationRef)}>
+          Aller à la navigation principale
+        </a>
         <a href="#moteur-recherche-global" className={skipLinkClass}>
           Aller à la recherche annuaire
         </a>
-        <a href="#filtres-annuaire" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, filtersSectionRef)}>
-          Aller aux filtres
+        <a href="#resultats-annuaire" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, directorySectionRef)}>
+          Aller aux résultats annuaire
         </a>
         <a href="#ajout-site" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, formSectionRef)}>
           Aller au formulaire d’ajout
@@ -1058,41 +1069,23 @@ function App() {
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Annuaire public RGAA</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <ThemeToggle
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-                />
-                <a
-                  href="#aide-accessibilite"
-                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
-                >
-                  Aide accessibilité
-                </a>
-                <a
-                  href="/plan-du-site"
-                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
-                >
-                  Plan du site
-                </a>
-                <a
-                  href="/accessibilite"
-                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
-                >
-                  Accessibilité
-                </a>
-                <a
-                  href="/moderation"
-                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
-                >
-                  Modération
-                </a>
-              </div>
+              <ThemeToggle
+                className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+              />
             </div>
+            <PrimaryNavigation
+              currentPath="/"
+              navId="navigation-principale"
+              navRef={primaryNavigationRef}
+              className="mt-4"
+              listClassName="flex flex-wrap items-center gap-2"
+              linkClassName={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+            />
             <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
               <img
                 src="/logo-rgaa-vitrine.svg"
                 alt="Icône Annuaire RGAA"
-                className="h-28 w-28 flex-none rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2"
+                className="h-28 w-28 flex-none rounded-2xl border-2 border-slate-800 dark:border-slate-200 bg-slate-900 dark:bg-slate-100 p-2"
                 loading="eager"
               />
               <div className="min-w-0">
@@ -1111,7 +1104,29 @@ function App() {
               Une vitrine simple pour référencer et découvrir les sites qui affichent leur conformité RGAA, avec
               filtres et recherche accessibles à tous, alignés sur les WCAG (Web Content Accessibility Guidelines) 2.2.
             </p>
-            <GlobalSearchForm inputId="accueil-recherche-annuaire" className="mt-6" />
+            <GlobalSearchForm
+              inputId="accueil-recherche-annuaire"
+              className="mt-6"
+              searchValue={searchQuery}
+              statusValue={statusFilter}
+              categoryValue={categoryFilter}
+              categoryOptions={categoryFilterOptions}
+              searchInputRef={searchInputRef}
+              resultsTargetId="liste-vitrines"
+              helperTextId="recherche-aide"
+              helperText="Astuce clavier: appuyez sur Échap dans le champ recherche pour effacer la saisie."
+              onSearchChange={setSearchQuery}
+              onStatusChange={setStatusFilter}
+              onCategoryChange={setCategoryFilter}
+              onSubmit={handleSearchSubmit}
+              onEscapeClear={() => {
+                if (searchQuery) {
+                  setSearchQuery('')
+                  announcePolite('Recherche effacée.')
+                }
+              }}
+              onReset={handleResetFilters}
+            />
           </div>
         </header>
 
@@ -1145,8 +1160,8 @@ function App() {
           </section>
 
           <section
-            id="filtres-annuaire"
-            ref={filtersSectionRef}
+            id="resultats-annuaire"
+            ref={directorySectionRef}
             tabIndex={-1}
             className="mt-8"
             aria-labelledby="galerie-titre"
@@ -1154,97 +1169,12 @@ function App() {
           >
             <div className="flex flex-col gap-2">
               <h2 id="galerie-titre" className="text-xl font-semibold">
-                Rechercher et filtrer
+                Résultats annuaire
               </h2>
-              <p className="text-slate-700 dark:text-slate-300">Trouvez rapidement un site par nom, catégorie ou niveau de conformité.</p>
-              <p id="recherche-aide" className="text-sm text-slate-600 dark:text-slate-300">
-                Astuce clavier: appuyez sur Échap dans la recherche pour effacer la saisie.
+              <p className="text-slate-700 dark:text-slate-300">
+                La recherche et les filtres sont disponibles dans l’en-tête de page, puis les résultats sont listés ici.
               </p>
             </div>
-
-            <form
-              className="@container mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm"
-              role="search"
-              aria-label="Recherche dans l’annuaire des vitrines"
-              onSubmit={handleSearchSubmit}
-            >
-              <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto] @lg:items-end">
-                <div>
-                  <label htmlFor="recherche-vitrine" className="block text-sm font-medium">
-                    Recherche
-                  </label>
-                  <input
-                    ref={searchInputRef}
-                    id="recherche-vitrine"
-                    type="search"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Escape' && searchQuery) {
-                        setSearchQuery('')
-                        announcePolite('Recherche effacée.')
-                      }
-                    }}
-                    placeholder="Titre, URL, catégorie..."
-                    aria-controls="liste-vitrines"
-                    aria-describedby="recherche-aide"
-                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="filtre-statut" className="block text-sm font-medium">
-                    Niveau de conformité
-                  </label>
-                  <select
-                    id="filtre-statut"
-                    value={statusFilter}
-                    onChange={(event) => setStatusFilter(event.target.value as ShowcaseStatusFilter)}
-                    aria-controls="liste-vitrines"
-                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
-                  >
-                    {Object.entries(showcaseStatusFilterLabels).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="filtre-categorie" className="block text-sm font-medium">
-                    Catégorie
-                  </label>
-                  <select
-                    id="filtre-categorie"
-                    value={categoryFilter}
-                    onChange={(event) => setCategoryFilter(event.target.value)}
-                    aria-controls="liste-vitrines"
-                    className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
-                  >
-                    <option value="all">Toutes les catégories</option>
-                    {availableCategoryOptions.map((category) => (
-                      <option key={category} value={category}>
-                        {formatCategory(category)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  type="submit"
-                  className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold @lg:w-auto ${ctaPrimaryClass} ${focusRingClass}`}
-                >
-                  Rechercher
-                </button>
-                <button
-                  type="button"
-                  onClick={handleResetFilters}
-                  className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold @lg:w-auto ${ctaNeutralClass} ${focusRingClass}`}
-                >
-                  Réinitialiser les filtres
-                </button>
-              </div>
-            </form>
 
             <p ref={resultsSummaryRef} tabIndex={-1} className="mt-3 text-sm text-slate-700 dark:text-slate-300">
               {visibleShowcaseEntries.length} carte(s) affichée(s) sur {filteredShowcaseEntries.length} résultat(s) ({showcaseEntries.length}{' '}

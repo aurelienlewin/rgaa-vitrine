@@ -1338,6 +1338,9 @@ function ModerationPage() {
         <a href="#contenu-moderation" className={skipLinkClass} onClick={focusMain}>
           Aller au contenu
         </a>
+        <a href="#navigation-principale" className={skipLinkClass}>
+          Aller à la navigation principale
+        </a>
         <a href="/#moteur-recherche-global" className={skipLinkClass}>
           Aller à la recherche annuaire
         </a>
@@ -1422,7 +1425,7 @@ function ModerationPage() {
                   Mémoriser sur cet appareil pendant 12 heures
                 </label>
                 <p id="token-session-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                  La session est conservée dans cet onglet. Avec l’option ci-dessus, elle est aussi conservée sur cet appareil pendant 12 heures.
+                  La session est conservée dans cet onglet. Avec l’option “Mémoriser sur cet appareil”, elle est aussi conservée pendant 12 heures.
                 </p>
               </div>
               <button
