@@ -1,6 +1,5 @@
 import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Analytics } from '@vercel/analytics/next'
 import '@fontsource/atkinson-hyperlegible/latin-400.css'
 import '@fontsource/atkinson-hyperlegible/latin-700.css'
 import './index.css'
@@ -24,6 +23,37 @@ function scheduleCssColorPairsCheck() {
   }
 
   window.setTimeout(run, 700)
+}
+
+function scheduleAnalyticsLoad() {
+  if (!import.meta.env.PROD) {
+    return
+  }
+
+  const loadAnalytics = () => {
+    void import('@vercel/analytics/react')
+      .then(({ Analytics }) => {
+        if (!document.body || document.getElementById('annuaire-rgaa-analytics-root')) {
+          return
+        }
+
+        const analyticsRoot = document.createElement('div')
+        analyticsRoot.id = 'annuaire-rgaa-analytics-root'
+        analyticsRoot.setAttribute('aria-hidden', 'true')
+        document.body.append(analyticsRoot)
+        createRoot(analyticsRoot).render(<Analytics />)
+      })
+      .catch((error: unknown) => {
+        console.error('Unable to load analytics', error)
+      })
+  }
+
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(loadAnalytics, { timeout: 3500 })
+    return
+  }
+
+  window.setTimeout(loadAnalytics, 1800)
 }
 
 if (canUseDom) {
@@ -71,8 +101,9 @@ if (canUseDom) {
         }
       >
         <RootComponent />
-        <Analytics />
       </Suspense>
     </StrictMode>,
   )
+
+  scheduleAnalyticsLoad()
 }
