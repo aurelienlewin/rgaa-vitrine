@@ -132,6 +132,14 @@ function upsertHeadLink(id: string, attributes: Record<string, string>) {
   }
 }
 
+function escapeHtmlAttribute(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+}
+
 function SiteProfilePage() {
   const [entry, setEntry] = useState<ShowcaseEntry | null>(null)
   const [relatedEntries, setRelatedEntries] = useState<ShowcaseEntry[]>([])
@@ -197,7 +205,16 @@ function SiteProfilePage() {
 
     return `${createAbsoluteUrl('/api/showcase')}?slug=${encodeURIComponent(resolvedSlug)}`
   }, [resolvedSlug])
-  const backlinkSnippet = `<a href="${profileUrl}">Référencé sur Annuaire RGAA</a>`
+  const backlinkBadgeUrl = createAbsoluteUrl('/badge-backlink-annuaire-rgaa.svg')
+  const backlinkSiteTitle = entry?.siteTitle ?? 'ce site'
+  const backlinkLinkAriaLabel = escapeHtmlAttribute(
+    `Voir la fiche de ${backlinkSiteTitle} sur Annuaire RGAA`,
+  )
+  const backlinkBadgeAlt = escapeHtmlAttribute(
+    `Badge Annuaire RGAA : voir la fiche de ${backlinkSiteTitle}`,
+  )
+  const backlinkTextSnippet = `<a href="${profileUrl}" aria-label="${backlinkLinkAriaLabel}">Référencé sur Annuaire RGAA</a>`
+  const backlinkBadgeSnippet = `<a href="${profileUrl}" aria-label="${backlinkLinkAriaLabel}"><img src="${backlinkBadgeUrl}" alt="${backlinkBadgeAlt}" width="252" height="64" loading="lazy" decoding="async" /></a>`
 
   const announcePolite = useCallback((message: string) => {
     setPoliteAnnouncement((previous) => ({ id: previous.id + 1, message }))
@@ -473,14 +490,14 @@ function SiteProfilePage() {
     }
   }, [copyMessage, focusElement])
 
-  const handleCopyBacklink = useCallback(async () => {
+  const handleCopyBacklink = useCallback(async (snippet: string, successMessage: string) => {
     try {
-      await navigator.clipboard.writeText(backlinkSnippet)
-      setCopyMessage('Code copié. Vous pouvez le coller dans votre site.')
+      await navigator.clipboard.writeText(snippet)
+      setCopyMessage(successMessage)
     } catch {
       setCopyMessage('Copie automatique indisponible. Sélectionnez puis copiez le code manuellement.')
     }
-  }, [backlinkSnippet])
+  }, [])
 
   return (
     <>
@@ -587,23 +604,68 @@ function SiteProfilePage() {
                 <p className="mt-2 text-sm text-sky-900 dark:text-sky-100">
                   Pour faciliter la découverte mutuelle, vous pouvez publier ce lien vers votre fiche annuaire.
                 </p>
-                <label htmlFor="backlink-code" className="mt-3 block text-sm font-semibold text-sky-900 dark:text-sky-100">
-                  Code HTML prêt à copier
+
+                <div className="mt-3 rounded-xl border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 p-3">
+                  <p className="text-sm font-semibold text-sky-900 dark:text-sky-100">Aperçu du badge visuel</p>
+                  <a
+                    href={profileUrl}
+                    aria-label={`Voir la fiche de ${backlinkSiteTitle} sur Annuaire RGAA`}
+                    className={`mt-2 inline-flex rounded-lg ${focusRingClass}`}
+                  >
+                    <img
+                      src="/badge-backlink-annuaire-rgaa.svg"
+                      alt={`Badge Annuaire RGAA : voir la fiche de ${backlinkSiteTitle}`}
+                      width={252}
+                      height={64}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-16 w-auto"
+                    />
+                  </a>
+                </div>
+
+                <label htmlFor="backlink-code-badge" className="mt-3 block text-sm font-semibold text-sky-900 dark:text-sky-100">
+                  Code HTML du badge (recommandé)
                 </label>
                 <textarea
-                  id="backlink-code"
+                  id="backlink-code-badge"
                   readOnly
-                  value={backlinkSnippet}
+                  value={backlinkBadgeSnippet}
+                  className={`mt-1 min-h-28 w-full rounded-xl border border-sky-300 dark:border-sky-700 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleCopyBacklink(
+                      backlinkBadgeSnippet,
+                      'Code du badge copié. Vous pouvez le coller dans votre site.',
+                    )
+                  }}
+                  className={`mt-3 inline-flex min-h-11 items-center rounded-xl bg-sky-700 px-4 py-2 font-semibold text-white ${focusRingClass}`}
+                >
+                  Copier le code du badge
+                </button>
+
+                <label htmlFor="backlink-code-text" className="mt-4 block text-sm font-semibold text-sky-900 dark:text-sky-100">
+                  Alternative texte seule
+                </label>
+                <textarea
+                  id="backlink-code-text"
+                  readOnly
+                  value={backlinkTextSnippet}
                   className={`mt-1 min-h-24 w-full rounded-xl border border-sky-300 dark:border-sky-700 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 />
                 <button
                   type="button"
                   onClick={() => {
-                    void handleCopyBacklink()
+                    void handleCopyBacklink(
+                      backlinkTextSnippet,
+                      'Code texte copié. Vous pouvez le coller dans votre site.',
+                    )
                   }}
-                  className={`mt-3 inline-flex min-h-11 items-center rounded-xl bg-sky-700 px-4 py-2 font-semibold text-white ${focusRingClass}`}
+                  className={`mt-3 inline-flex min-h-11 items-center rounded-xl border border-sky-700 bg-transparent px-4 py-2 font-semibold text-sky-900 dark:border-sky-300 dark:text-sky-100 ${focusRingClass}`}
                 >
-                  Copier le code
+                  Copier le code texte
                 </button>
                 {copyMessage && (
                   <p ref={copyMessageRef} tabIndex={-1} className="mt-3 text-sm text-sky-900 dark:text-sky-100" role="status" aria-live="polite">

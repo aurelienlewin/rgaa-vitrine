@@ -1,0 +1,26 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="252"
+  height="64"
+  viewBox="0 0 252 64"
+  role="img"
+  aria-labelledby="badgeTitle badgeDesc"
+>
+  <title id="badgeTitle">Badge Annuaire RGAA</title>
+  <desc id="badgeDesc">
+    Badge visuel indiquant qu'un site est référencé sur Annuaire RGAA, avec lien vers sa fiche.
+  </desc>
+  <rect x="1.5" y="1.5" width="249" height="61" rx="13" fill="#0F172A" stroke="#38BDF8" stroke-width="3" />
+  <rect x="10" y="10" width="44" height="44" rx="10" fill="#BAE6FD" />
+  <circle cx="32" cy="32" r="12" fill="#0F172A" />
+  <path d="M26 32.5L30 36.5L38 28.5" fill="none" stroke="#BAE6FD" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
+  <text x="64" y="25" fill="#F8FAFC" font-family="Atkinson Hyperlegible, Arial, sans-serif" font-size="12" font-weight="700">
+    Référencé sur
+  </text>
+  <text x="64" y="42" fill="#F8FAFC" font-family="Atkinson Hyperlegible, Arial, sans-serif" font-size="16" font-weight="700">
+    Annuaire RGAA
+  </text>
+  <text x="176" y="56" fill="#BAE6FD" font-family="Atkinson Hyperlegible, Arial, sans-serif" font-size="10" font-weight="700">
+    Voir la fiche
+  </text>
+</svg>

@@ -31,6 +31,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Confirmation CTA now lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.
 - Each listed site now has a dedicated public profile page (`/site/{slug}`) with shareable metadata and backlink snippet.
 - Profile pages now expose stronger SEO/IA signals: dedicated `WebPage` + `Dataset` structured data, direct API link (`/api/showcase?slug={slug}`), and related-profile internal linking.
+- Profile pages now provide a reusable visual backlink badge (`/badge-backlink-annuaire-rgaa.svg`) plus copy-ready HTML snippets with explicit `alt` and `aria-label`.
 - Add-site flow now exposes a visible category dropdown (including `Coopérative et services`) without custom free-text entry.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - Tailwind v4.2 accessibility helpers are used where relevant: `wrap-anywhere`, `user-valid` / `user-invalid`, and logical utilities (`start-*`, `ps-*`) to avoid direction-specific custom positioning/padding.

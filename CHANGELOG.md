@@ -40,6 +40,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Dedicated Vercel serverless handlers for showcase routes: `api/showcase/index.js` and `api/showcase/upvote.js`.
 - New moderation rule endpoints for editable site blocklist and vote blocklist, plus `delete-and-block` action on published entries.
 - Frontend Vercel Web Analytics integration via `@vercel/analytics`.
+- New public backlink badge asset (`/badge-backlink-annuaire-rgaa.svg`) aligned with Annuaire RGAA branding.
 
 ### Changed
 - Accessibility declaration (`/accessibilite`) now reflects the latest production audit baseline (`20260308-021904`) with the active non-conformity list (`3.3`, `10.10`) and impacted pages.
@@ -48,6 +49,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - Main navigation landmark is now unified as `#navigation-principale` across all pages, and skip links now expose a consistent target to that landmark.
 - Homepage logo contrast has been reinforced (criterion `3.3` remediation) and positional wording has been removed from `/accessibilite` (criterion `10.10` remediation).
 - Directory tiles were redesigned for stronger UX readability (hierarchical chips, metadata cards, grouped CTAs, separated vote control) while preserving semantic structure and keyboard/screen-reader behavior.
+- Profile backlink section now exposes two copy-ready snippets: a visual badge variant with explicit `alt` + link `aria-label`, and a text-only fallback variant.
 - Homepage showcase thumbnails are now decorative (`alt=""`) when equivalent textual information is already available in card content.
 - Alternate discovery links in `<head>` no longer rely on native `title` tooltips.
 - UI contrast pass: interactive controls now use stronger border-based affordances and high-contrast skip-link styling; same-surface white-on-white controls were removed.
