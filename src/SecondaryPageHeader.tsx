@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import type { ReactNode } from 'react'
+import type { RefObject } from 'react'
 import ThemeToggle from './ThemeToggle'
 import GlobalSearchForm from './GlobalSearchForm'
 import PrimaryNavigation from './PrimaryNavigation'
@@ -9,12 +10,18 @@ type SecondaryPageHeaderProps = {
   title: string
   description?: ReactNode
   currentPath?: '/plan-du-site' | '/accessibilite' | '/moderation' | null
+  navigationRef?: RefObject<HTMLElement | null>
 }
 
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 
-function SecondaryPageHeader({ title, description, currentPath = null }: SecondaryPageHeaderProps) {
+function SecondaryPageHeader({
+  title,
+  description,
+  currentPath = null,
+  navigationRef,
+}: SecondaryPageHeaderProps) {
   const defaultSearchValues = useMemo(() => {
     const params =
       typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams('')
@@ -43,6 +50,7 @@ function SecondaryPageHeader({ title, description, currentPath = null }: Seconda
         </div>
         <PrimaryNavigation
           currentPath={currentPath === null ? null : currentPath}
+          navRef={navigationRef}
           className="mt-4"
           listClassName="flex flex-wrap items-center gap-2"
           linkClassName={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}

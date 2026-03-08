@@ -351,6 +351,7 @@ function ModerationPage() {
   const siteBlocklistInputRef = useRef<HTMLInputElement | null>(null)
   const voteBlocklistInputRef = useRef<HTMLInputElement | null>(null)
   const footerRef = useRef<HTMLElement | null>(null)
+  const navigationRef = useRef<HTMLElement | null>(null)
 
   const hasToken = useMemo(() => moderationToken.trim().length > 0, [moderationToken])
   const availableModerationCategoryOptions = useMemo(() => {
@@ -399,6 +400,10 @@ function ModerationPage() {
 
   const focusFooter = useCallback(() => {
     focusElement(footerRef.current)
+  }, [focusElement])
+
+  const focusNavigation = useCallback(() => {
+    focusElement(navigationRef.current)
   }, [focusElement])
 
   const focusTokenInput = useCallback(() => {
@@ -1338,7 +1343,7 @@ function ModerationPage() {
         <a href="#contenu-moderation" className={skipLinkClass} onClick={focusMain}>
           Aller au contenu
         </a>
-        <a href="#navigation-principale" className={skipLinkClass}>
+        <a href="#navigation-principale" className={skipLinkClass} onClick={focusNavigation}>
           Aller à la navigation principale
         </a>
         <a href="/#moteur-recherche-global" className={skipLinkClass}>
@@ -1375,6 +1380,7 @@ function ModerationPage() {
       <div className="min-h-screen bg-brand-surface text-brand-ink">
         <SecondaryPageHeader
           title="Modération Annuaire RGAA"
+          navigationRef={navigationRef}
           description="Validez ou rejetez les soumissions en attente sans passer par `curl`."
           currentPath="/moderation"
         />

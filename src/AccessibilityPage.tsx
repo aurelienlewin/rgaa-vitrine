@@ -47,6 +47,7 @@ const currentNonConformities = [
 
 function AccessibilityPage() {
   const mainRef = useRef<HTMLElement | null>(null)
+  const navigationRef = useRef<HTMLElement | null>(null)
   const reportRef = useRef<HTMLElement | null>(null)
   const contactRef = useRef<HTMLElement | null>(null)
   const legalRef = useRef<HTMLElement | null>(null)
@@ -129,7 +130,7 @@ function AccessibilityPage() {
         <a href="#contenu-accessibilite" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, mainRef)}>
           Aller au contenu
         </a>
-        <a href="#navigation-principale" className={skipLinkClass}>
+        <a href="#navigation-principale" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, navigationRef)}>
           Aller à la navigation principale
         </a>
         <a href="/#moteur-recherche-global" className={skipLinkClass}>
@@ -152,6 +153,7 @@ function AccessibilityPage() {
       <div className="min-h-screen bg-brand-surface text-brand-ink">
         <SecondaryPageHeader
           title="Déclaration d’accessibilité"
+          navigationRef={navigationRef}
           description={
             <>
               Cette déclaration s’applique au site <strong>https://annuaire-rgaa.fr/</strong> et couvre les exigences

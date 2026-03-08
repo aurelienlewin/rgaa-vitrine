@@ -325,6 +325,7 @@ function App() {
   const loadMoreButtonRef = useRef<HTMLButtonElement | null>(null)
   const tilesSentinelRef = useRef<HTMLDivElement | null>(null)
   const clientVoterIdRef = useRef<string>('')
+  const shouldFocusResultsAfterQueryInitRef = useRef(false)
 
   const announcePolite = useCallback((message: string) => {
     setPoliteAnnouncement((current) => ({ id: current.id + 1, message }))
@@ -619,6 +620,8 @@ function App() {
     const initialQuery = params.get('recherche')
     const initialStatus = readStatusFilterFromQuery(params.get('statut'))
     const initialCategory = params.get('categorie') ?? 'all'
+    shouldFocusResultsAfterQueryInitRef.current =
+      Boolean(initialQuery?.trim()) || initialStatus !== 'all' || initialCategory !== 'all'
 
     if (initialQuery) {
       setSearchQuery(initialQuery.slice(0, 120))
@@ -629,6 +632,18 @@ function App() {
       setCategoryFilter(initialCategory === 'all' ? 'all' : initialCategory.slice(0, 60))
     }
   }, [])
+
+  useEffect(() => {
+    if (loadingDirectory || directoryErrorMessage || !shouldFocusResultsAfterQueryInitRef.current) {
+      return
+    }
+
+    shouldFocusResultsAfterQueryInitRef.current = false
+    window.setTimeout(() => {
+      focusElement(resultsSummaryRef.current)
+      announcePolite('Filtres de recherche appliqués depuis l’URL.')
+    }, 0)
+  }, [announcePolite, directoryErrorMessage, focusElement, loadingDirectory])
 
   useEffect(() => {
     setVisibleTilesCount(Math.min(TILE_BATCH_SIZE, filteredShowcaseEntries.length))

@@ -142,6 +142,7 @@ function SiteProfilePage() {
   const [copyMessage, setCopyMessage] = useState('')
   const [politeAnnouncement, setPoliteAnnouncement] = useState({ id: 0, message: '' })
   const mainRef = useRef<HTMLElement | null>(null)
+  const navigationRef = useRef<HTMLElement | null>(null)
   const backlinkSectionRef = useRef<HTMLElement | null>(null)
   const relatedSectionRef = useRef<HTMLElement | null>(null)
   const footerRef = useRef<HTMLElement | null>(null)
@@ -495,7 +496,7 @@ function SiteProfilePage() {
         <a href="#contenu-fiche" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, mainRef)}>
           Aller au contenu
         </a>
-        <a href="#navigation-principale" className={skipLinkClass}>
+        <a href="#navigation-principale" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, navigationRef)}>
           Aller à la navigation principale
         </a>
         <a href="/#moteur-recherche-global" className={skipLinkClass}>
@@ -515,6 +516,7 @@ function SiteProfilePage() {
       <div className="min-h-screen bg-brand-surface text-brand-ink">
         <SecondaryPageHeader
           title="Fiche annuaire"
+          navigationRef={navigationRef}
           description="Consultez les informations publiques d’un site référencé et ses liens utiles d’accessibilité."
         />
 
