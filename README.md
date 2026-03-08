@@ -33,6 +33,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Submission flow includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
 - Confirmation CTA lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.
 - Duplicate submissions now trigger a dedicated accessible feedback panel (`Site déjà référencé`) with polite live announcement, programmatic focus, dismiss action, and direct moderation contact links.
+- URLs already submitted and still under manual review now trigger a dedicated accessible feedback panel (`Site déjà soumis et en cours de revue`) so users do not repeat the same submission.
 - Each listed site has a dedicated public profile page (`/site/{slug}`) with shareable metadata and backlink snippet.
 - Profile pages expose stronger SEO/IA signals: dedicated `WebPage` + `Dataset` structured data, direct API link (`/api/showcase?slug={slug}`), and related-profile internal linking.
 - Profile pages provide a reusable visual backlink badge (`/badge-backlink-annuaire-rgaa.svg`) plus copy-ready HTML snippets with explicit `alt` and `aria-label`.
@@ -254,9 +255,11 @@ Local services:
 - `200` + `submissionStatus: "approved"` when published
 - `200` + `submissionStatus: "duplicate"` when site already exists
 - `202` + `submissionStatus: "pending"` when the site requires manual review
+- `202` + `submissionStatus: "pending"` + `alreadySubmitted: true` when the same URL is already pending moderation
 - `4xx` when rejected by validation/anti-abuse rules (spam, invalid input, etc.)
 - Public submissions accept only moderator-approved category values from the dropdown; unknown values are normalized to `Autre`.
 - For `duplicate`, the frontend displays an explicit guidance block that links to the existing profile and moderation contact (`/accessibilite#contact-accessibilite`) before any re-listing request.
+- For `pending` + `alreadySubmitted: true`, the frontend skips confirmation and displays an explicit guidance block to avoid duplicate pending submissions.
 
 `POST /api/site-insight?preview=1` behavior:
 
@@ -264,6 +267,7 @@ Local services:
 - returns extracted metadata (`siteTitle`, `accessibilityPageUrl`, `complianceStatus`, `complianceScore`)
 - returns projected `submissionStatus` (`approved`, `pending`, `duplicate`) with explanatory `message`
 - when projected status is `duplicate`, the submission confirmation flow is skipped and the duplicate guidance panel is shown immediately.
+- when projected status is `pending` with `alreadySubmitted: true`, the submission confirmation flow is also skipped and a dedicated “already under review” guidance panel is shown immediately.
 
 Public profile pages:
 

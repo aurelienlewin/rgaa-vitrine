@@ -946,8 +946,10 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       response.status(202).json({
         ...withShowcasePublicMetadata(existingPending),
         submissionStatus: 'pending',
+        alreadySubmitted: true,
         preview: previewMode,
-        message: 'Ce site est déjà en attente de validation manuelle.',
+        message:
+          'Ce site a déjà été soumis et reste en attente de validation manuelle. Inutile de le renvoyer.',
       })
       return
     }

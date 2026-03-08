@@ -35,10 +35,12 @@ type ShowcaseEntry = {
 }
 
 type SubmissionStatus = 'approved' | 'duplicate' | 'pending'
-type DuplicateSubmissionFeedback = {
+type SubmissionFeedbackKind = 'duplicate' | 'already-pending'
+type SubmissionFeedback = {
   id: number
   entry: ShowcaseEntry
   message: string
+  kind: SubmissionFeedbackKind
 }
 
 const statusClassByValue: Record<Exclude<ComplianceStatus, null>, string> = {
@@ -266,6 +268,10 @@ function readSubmissionMessage(payload: Record<string, unknown>) {
   return typeof payload.message === 'string' ? payload.message : null
 }
 
+function readAlreadySubmittedFlag(payload: Record<string, unknown>) {
+  return payload.alreadySubmitted === true
+}
+
 async function readApiPayload(response: Response) {
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
   const rawBody = await response.text()
@@ -302,7 +308,7 @@ function App() {
   const [directoryErrorMessage, setDirectoryErrorMessage] = useState<string | null>(null)
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null)
   const [submitInfoMessage, setSubmitInfoMessage] = useState<string | null>(null)
-  const [duplicateSubmissionFeedback, setDuplicateSubmissionFeedback] = useState<DuplicateSubmissionFeedback | null>(null)
+  const [submissionFeedback, setSubmissionFeedback] = useState<SubmissionFeedback | null>(null)
   const [isSubmitConfirmationStep, setIsSubmitConfirmationStep] = useState(false)
   const [submissionPreviewEntry, setSubmissionPreviewEntry] = useState<ShowcaseEntry | null>(null)
   const [submissionPreviewStatus, setSubmissionPreviewStatus] = useState<SubmissionStatus | null>(null)
@@ -801,10 +807,10 @@ function App() {
   }, [submitErrorMessage, focusElement])
 
   useEffect(() => {
-    if (duplicateSubmissionFeedback && !submitErrorMessage) {
+    if (submissionFeedback && !submitErrorMessage) {
       focusElement(duplicateFeedbackRef.current)
     }
-  }, [duplicateSubmissionFeedback, focusElement, submitErrorMessage])
+  }, [submissionFeedback, focusElement, submitErrorMessage])
 
   const isSubmissionBusy = isPreAnalyzing || isConfirmingSubmission
 
@@ -822,25 +828,30 @@ function App() {
     }
   }, [focusElement, lastAddedEntry])
 
-  const handleDismissDuplicateFeedback = useCallback(() => {
-    setDuplicateSubmissionFeedback(null)
-    announcePolite('Message “site déjà référencé” fermé.')
+  const handleDismissSubmissionFeedback = useCallback(() => {
+    const closedMessage =
+      submissionFeedback?.kind === 'already-pending'
+        ? 'Message “site déjà soumis et en cours de revue” fermé.'
+        : 'Message “site déjà référencé” fermé.'
+    setSubmissionFeedback(null)
+    announcePolite(closedMessage)
     window.setTimeout(() => {
       urlInputRef.current?.focus()
     }, 0)
-  }, [announcePolite])
+  }, [announcePolite, submissionFeedback?.kind])
 
-  const handleDuplicateSubmissionFeedback = useCallback(
-    (entry: ShowcaseEntry, message: string) => {
+  const handleSubmissionFeedback = useCallback(
+    (kind: SubmissionFeedbackKind, entry: ShowcaseEntry, message: string) => {
       setIsSubmitConfirmationStep(false)
       setSubmissionPreviewEntry(null)
       setSubmissionPreviewStatus(null)
       setLastAddedEntry(null)
       setSubmitInfoMessage(null)
-      setDuplicateSubmissionFeedback((current) => ({
+      setSubmissionFeedback((current) => ({
         id: (current?.id ?? 0) + 1,
         entry,
         message,
+        kind,
       }))
       announcePolite(message)
     },
@@ -937,7 +948,7 @@ function App() {
     setSubmitErrorMessage(null)
     setSubmitInfoMessage(null)
     setLastAddedEntry(null)
-    setDuplicateSubmissionFeedback(null)
+    setSubmissionFeedback(null)
     const categoryForSubmission = normalizePublicSubmissionCategory(inputCategory)
 
     if (!inputUrl.trim()) {
@@ -981,7 +992,19 @@ function App() {
         const duplicateMessage =
           submissionMessage ??
           'Ce site est déjà référencé. Contactez la modération pour demander le retrait avant une nouvelle soumission.'
-        handleDuplicateSubmissionFeedback(normalizeShowcaseEntry(payload), duplicateMessage)
+        handleSubmissionFeedback('duplicate', normalizeShowcaseEntry(payload), duplicateMessage)
+        return
+      }
+
+      if (submissionStatus === 'pending' && readAlreadySubmittedFlag(payload)) {
+        if (!isShowcaseEntry(payload)) {
+          throw new Error('Pré-analyse invalide du serveur.')
+        }
+
+        const alreadyPendingMessage =
+          submissionMessage ??
+          'Ce site a déjà été soumis et reste en cours de validation manuelle. Inutile de le renvoyer.'
+        handleSubmissionFeedback('already-pending', normalizeShowcaseEntry(payload), alreadyPendingMessage)
         return
       }
 
@@ -1025,7 +1048,7 @@ function App() {
     setSubmitErrorMessage(null)
     setSubmitInfoMessage(null)
     setLastAddedEntry(null)
-    setDuplicateSubmissionFeedback(null)
+    setSubmissionFeedback(null)
     const categoryForSubmission = normalizePublicSubmissionCategory(inputCategory)
 
     setIsConfirmingSubmission(true)
@@ -1053,6 +1076,18 @@ function App() {
         throw new Error(payload.error)
       }
 
+      if ((submissionStatus === 'pending' || response.status === 202) && readAlreadySubmittedFlag(payload)) {
+        if (!isShowcaseEntry(payload)) {
+          throw new Error('Réponse serveur invalide.')
+        }
+
+        const alreadyPendingMessage =
+          submissionMessage ??
+          'Ce site a déjà été soumis et reste en cours de validation manuelle. Inutile de le renvoyer.'
+        handleSubmissionFeedback('already-pending', normalizeShowcaseEntry(payload), alreadyPendingMessage)
+        return
+      }
+
       if (submissionStatus === 'pending' || response.status === 202) {
         const pendingMessage =
           submissionMessage ??
@@ -1075,7 +1110,7 @@ function App() {
         const duplicateMessage =
           submissionMessage ??
           'Ce site est déjà référencé. Contactez la modération pour demander le retrait avant une nouvelle soumission.'
-        handleDuplicateSubmissionFeedback(normalizeShowcaseEntry(payload), duplicateMessage)
+        handleSubmissionFeedback('duplicate', normalizeShowcaseEntry(payload), duplicateMessage)
         return
       }
 
@@ -1107,7 +1142,7 @@ function App() {
     announceAssertive,
     announcePolite,
     focusElement,
-    handleDuplicateSubmissionFeedback,
+    handleSubmissionFeedback,
     inputCategory,
     inputUrl,
     isSubmitConfirmationStep,
@@ -1566,7 +1601,7 @@ function App() {
                   value={inputUrl}
                   onChange={(event) => {
                     setInputUrl(event.target.value)
-                    setDuplicateSubmissionFeedback(null)
+                    setSubmissionFeedback(null)
                     setIsSubmitConfirmationStep(false)
                     setSubmissionPreviewEntry(null)
                     setSubmissionPreviewStatus(null)
@@ -1593,7 +1628,7 @@ function App() {
                   value={inputCategory}
                   onChange={(event) => {
                     setInputCategory(event.target.value)
-                    setDuplicateSubmissionFeedback(null)
+                    setSubmissionFeedback(null)
                     setIsSubmitConfirmationStep(false)
                     setSubmissionPreviewEntry(null)
                     setSubmissionPreviewStatus(null)
@@ -1697,46 +1732,61 @@ function App() {
               </section>
             )}
 
-            {duplicateSubmissionFeedback && !submitErrorMessage && (
+            {submissionFeedback && !submitErrorMessage && (
               <section
-                key={duplicateSubmissionFeedback.id}
+                key={submissionFeedback.id}
                 ref={duplicateFeedbackRef}
                 tabIndex={-1}
                 className="mt-4 rounded-xl border border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950 p-4 text-amber-950 dark:text-amber-100 focus:outline-3 focus:outline-offset-3 focus:outline-brand-focus"
                 role="status"
                 aria-live="polite"
                 aria-atomic="true"
-                aria-labelledby="site-deja-reference-titre"
-                aria-describedby="site-deja-reference-aide site-deja-reference-raisons"
+                aria-labelledby="soumission-deja-presente-titre"
+                aria-describedby="soumission-deja-presente-aide soumission-deja-presente-raisons"
               >
-                <h3 id="site-deja-reference-titre" className="text-base font-semibold">
-                  Site déjà référencé
+                <h3 id="soumission-deja-presente-titre" className="text-base font-semibold">
+                  {submissionFeedback.kind === 'already-pending'
+                    ? 'Site déjà soumis et en cours de revue'
+                    : 'Site déjà référencé'}
                 </h3>
-                <p id="site-deja-reference-aide" className="mt-2 text-sm">
-                  {duplicateSubmissionFeedback.message}
+                <p id="soumission-deja-presente-aide" className="mt-2 text-sm">
+                  {submissionFeedback.message}
                 </p>
                 <p className="mt-2 text-sm">
-                  Pour une nouvelle publication, demandez d’abord la suppression de la fiche actuelle auprès de
-                  l’administration/modération.
+                  {submissionFeedback.kind === 'already-pending'
+                    ? 'Une demande existe déjà pour cette URL. La modération reviendra vers vous après traitement.'
+                    : 'Pour une nouvelle publication, demandez d’abord la suppression de la fiche actuelle auprès de l’administration/modération.'}
                 </p>
-                <ul id="site-deja-reference-raisons" className="mt-2 list-disc space-y-1 ps-5 text-sm">
-                  <li>Nouvel audit d’accessibilité.</li>
-                  <li>Nouveau score RGAA.</li>
-                  <li>Améliorations fonctionnelles ou correctifs significatifs.</li>
+                <ul id="soumission-deja-presente-raisons" className="mt-2 list-disc space-y-1 ps-5 text-sm">
+                  {submissionFeedback.kind === 'already-pending' ? (
+                    <>
+                      <li>La soumission reste en file de validation manuelle.</li>
+                      <li>Évitez les renvois multiples de la même URL.</li>
+                      <li>Pour ajouter du contexte, contactez directement la modération.</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>Nouvel audit d’accessibilité.</li>
+                      <li>Nouveau score RGAA.</li>
+                      <li>Améliorations fonctionnelles ou correctifs significatifs.</li>
+                    </>
+                  )}
                 </ul>
                 <div className="mt-4 flex flex-wrap gap-3">
-                  <a
-                    href={
-                      duplicateSubmissionFeedback.entry.profilePath ??
-                      resolveShowcaseProfilePath(
-                        duplicateSubmissionFeedback.entry.normalizedUrl,
-                        duplicateSubmissionFeedback.entry.slug,
-                      )
-                    }
-                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
-                  >
-                    Voir la fiche existante
-                  </a>
+                  {submissionFeedback.kind === 'duplicate' && (
+                    <a
+                      href={
+                        submissionFeedback.entry.profilePath ??
+                        resolveShowcaseProfilePath(
+                          submissionFeedback.entry.normalizedUrl,
+                          submissionFeedback.entry.slug,
+                        )
+                      }
+                      className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                    >
+                      Voir la fiche existante
+                    </a>
+                  )}
                   <a
                     href={moderationContactPath}
                     className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
@@ -1751,7 +1801,7 @@ function App() {
                   </a>
                   <button
                     type="button"
-                    onClick={handleDismissDuplicateFeedback}
+                    onClick={handleDismissSubmissionFeedback}
                     className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
                   >
                     Fermer ce message
