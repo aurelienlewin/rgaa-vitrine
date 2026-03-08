@@ -65,7 +65,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Dedicated moderation UI supports published entry editing and deletion (title, category, score, status, RGAA baseline badge, vignette, accessibility URL).
 - Moderation includes editable site blocklist and vote-blocklist controls, plus a single action to delete and block a published site.
 - Moderation forms strengthen input assistance (`required`, typed URL fields, explicit score guidance) and row-level action labels for assistive technologies.
-- Public accessibility declaration page at `/accessibilite` including compliance status, follow-up commitments, and contact.
+- Public accessibility declaration page at `/accessibilite` including compliance status, non-conformity follow-up, technology stack, test environment, tooling, and contact.
 - Annuaire listing cards designed for disabled people and accessibility enthusiasts.
 - Directory tiles use a clearer reading hierarchy (status chips, metadata blocks, grouped actions, vote zone) with container-query layout adaptation for mobile and desktop.
 - RGAA awareness sections sourced from official French references.
@@ -189,6 +189,11 @@ Implemented remediation items:
 - Homepage logo contrast has been reinforced (dark/light background + border) to address criterion `3.3`.
 - Positional wording has been replaced by explicit section wording on `/accessibilite` to address criterion `10.10`.
 - All dynamic status/error announcements remain localized in French with `aria-live` channels (`polite` and `assertive`).
+
+Declaration enrichment inputs (consulted on March 8, 2026):
+
+- BE API declaration: https://beapi.fr/accessibilite/ (explicit sections for technologies, test environment, and accessibility evaluation tools)
+- Réseau PAC declaration: https://www.reseau-pac.fr/declaration-accessibilite/ (detailed matrix for technologies, user agents/assistive technologies, and audit tools)
 
 Operational note:
 

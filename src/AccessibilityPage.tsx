@@ -45,6 +45,46 @@ const currentNonConformities = [
   },
 ]
 
+const implementationTechnologies = [
+  'HTML5',
+  'CSS (Tailwind CSS 4.2.1)',
+  'JavaScript',
+  'TypeScript 5.9.3',
+  'React 19.2.0',
+  'Vite 7.3.1',
+  'Node.js 25.2.1',
+  'Express 5.2.1',
+]
+
+const auditEnvironment = [
+  'macOS 26.3.1 (build 25D2128)',
+  'Node.js 25.2.1',
+  'npm 11.6.2',
+  'Audit exécuté en mode MCP Chrome DevTools (voir journal horodaté du 8 mars 2026)',
+]
+
+const accessibilityEvaluationTools = [
+  'rgaa-auditor 2.0.1 (outil interne, dossier ../audit)',
+  'Chrome DevTools MCP (captures, snapshots, scripts de vérification ciblés)',
+  'Revue assistée Codex modèle gpt-5.3-codex (journal d’audit)',
+  'Contrôles de qualité projet: npm run lint et npm run build',
+]
+
+const externalDeclarationReferences = [
+  {
+    siteName: 'BE API',
+    url: 'https://beapi.fr/accessibilite/',
+    extractedSignals:
+      'Sections explicites « Technologies utilisées », « Environnement de test » et « Outils pour évaluer l’accessibilité ».',
+  },
+  {
+    siteName: 'Réseau PAC',
+    url: 'https://www.reseau-pac.fr/declaration-accessibilite/',
+    extractedSignals:
+      'Présentation détaillée des technologies du site, agents utilisateurs/technologies d’assistance, et outils d’audit (ex. axe DevTools, Lighthouse, Wave).',
+  },
+]
+
 function AccessibilityPage() {
   const mainRef = useRef<HTMLElement | null>(null)
   const navigationRef = useRef<HTMLElement | null>(null)
@@ -81,7 +121,7 @@ function AccessibilityPage() {
     applySeo({
       title: 'Accessibilité | Annuaire RGAA',
       description:
-        'Déclaration d’accessibilité de l’annuaire RGAA: statut de conformité, engagements de suivi, contact et voies de recours.',
+        'Déclaration d’accessibilité de l’annuaire RGAA: statut de conformité, méthodologie de test, stack technique, outils, contact et voies de recours.',
       path: '/accessibilite',
       structuredData: {
         '@context': 'https://schema.org',
@@ -96,7 +136,7 @@ function AccessibilityPage() {
               '@id': createAbsoluteUrl('/#website'),
             },
             description:
-              'Déclaration d’accessibilité incluant statut de conformité, engagements de suivi, contact et voies de recours.',
+              'Déclaration d’accessibilité incluant statut de conformité, méthodologie, technologies, outils, contact et voies de recours.',
           },
           {
             '@type': 'BreadcrumbList',
@@ -238,6 +278,65 @@ function AccessibilityPage() {
                   <p className="mt-2 text-sm text-slate-800 dark:text-slate-200">
                     Statut: <strong>{item.status}</strong>
                   </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section
+            className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
+            aria-labelledby="methodologie-titre"
+          >
+            <h2 id="methodologie-titre" className="text-xl font-semibold">
+              Technologies, environnement de test et outils
+            </h2>
+            <p className="mt-2 text-slate-700 dark:text-slate-300">
+              Les éléments ci-dessous décrivent la base technique réellement utilisée pour la réalisation du service
+              et la campagne d’audit de référence du <strong>8 mars 2026</strong>.
+            </p>
+
+            <h3 className="mt-5 text-base font-semibold">Technologies utilisées pour la réalisation du site</h3>
+            <ul className="mt-2 list-disc space-y-1 ps-5 text-sm text-slate-700 dark:text-slate-300">
+              {implementationTechnologies.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+
+            <h3 className="mt-5 text-base font-semibold">Environnement de test de référence</h3>
+            <ul className="mt-2 list-disc space-y-1 ps-5 text-sm text-slate-700 dark:text-slate-300">
+              {auditEnvironment.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+
+            <h3 className="mt-5 text-base font-semibold">Outils utilisés pour évaluer l’accessibilité</h3>
+            <ul className="mt-2 list-disc space-y-1 ps-5 text-sm text-slate-700 dark:text-slate-300">
+              {accessibilityEvaluationTools.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+
+            <h3 className="mt-5 text-base font-semibold">Déclarations externes consultées pour structurer cette section</h3>
+            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+              Ces références proviennent de sites déjà référencés dans la vitrine. Consultation effectuée le{' '}
+              <strong>8 mars 2026</strong>.
+            </p>
+            <ul className="mt-2 grid gap-3">
+              {externalDeclarationReferences.map((reference) => (
+                <li
+                  key={reference.url}
+                  className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
+                >
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{reference.siteName}</p>
+                  <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{reference.extractedSignals}</p>
+                  <a
+                    href={reference.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className={`mt-2 inline-flex min-h-11 items-center wrap-anywhere underline decoration-2 underline-offset-2 ${focusRingClass}`}
+                  >
+                    Consulter la déclaration d’accessibilité
+                  </a>
                 </li>
               ))}
             </ul>
