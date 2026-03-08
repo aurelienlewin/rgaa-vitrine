@@ -10,40 +10,31 @@ import { initializeTheme } from './theme'
 
 const canUseDom = typeof window !== 'undefined' && typeof document !== 'undefined'
 
+function scheduleCssColorPairsCheck() {
+  const run = () => {
+    ensureCssColorPairs()
+    window.setTimeout(() => {
+      ensureCssColorPairs()
+    }, 250)
+  }
+
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(run, { timeout: 2200 })
+    return
+  }
+
+  window.setTimeout(run, 700)
+}
+
 if (canUseDom) {
   initializeTheme()
-  ensureCssColorPairs()
-  window.setTimeout(() => {
-    ensureCssColorPairs()
-  }, 250)
+  scheduleCssColorPairsCheck()
 }
 
 const ModerationPage = lazy(() => import('./ModerationPage.tsx'))
 const SiteMapPage = lazy(() => import('./SiteMapPage.tsx'))
 const AccessibilityPage = lazy(() => import('./AccessibilityPage.tsx'))
 const SiteProfilePage = lazy(() => import('./SiteProfilePage.tsx'))
-
-function loadSecondaryFonts() {
-  return Promise.all([
-    import('@fontsource/opendyslexic/latin-400.css'),
-    import('@fontsource/opendyslexic/latin-700.css'),
-    import('@fontsource/lexend/latin-400.css'),
-    import('@fontsource/lexend/latin-700.css'),
-  ])
-}
-
-function scheduleSecondaryFontsLoad() {
-  const load = () => {
-    void loadSecondaryFonts()
-  }
-
-  if (typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(load, { timeout: 1800 })
-    return
-  }
-
-  window.setTimeout(load, 1000)
-}
 
 function normalizePathname(pathname: string) {
   if (pathname === '/') {
@@ -68,10 +59,6 @@ const RootComponent = isModerationRoute
       : isSiteProfileRoute
         ? SiteProfilePage
       : App
-
-if (canUseDom) {
-  scheduleSecondaryFontsLoad()
-}
 
 if (canUseDom) {
   createRoot(document.getElementById('root')!).render(

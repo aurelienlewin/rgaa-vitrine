@@ -752,7 +752,31 @@ function App() {
   }, [announceAssertive, announcePolite, getClientVoterId])
 
   useEffect(() => {
-    void loadShowcaseEntries()
+    let timeoutId: number | null = null
+    let idleId: number | null = null
+    let cancelled = false
+    const loadDirectory = () => {
+      if (cancelled) {
+        return
+      }
+      void loadShowcaseEntries()
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(loadDirectory, { timeout: 2200 })
+    } else {
+      timeoutId = window.setTimeout(loadDirectory, 650)
+    }
+
+    return () => {
+      cancelled = true
+      if (idleId !== null && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleId)
+      }
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId)
+      }
+    }
   }, [loadShowcaseEntries])
 
   useEffect(() => {
