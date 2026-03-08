@@ -48,9 +48,33 @@ function resolveBuildVersion() {
 
 const buildVersion = resolveBuildVersion()
 
+function makeStylesheetNonBlocking(html: string) {
+  const stylesheetPattern = /<link rel="stylesheet" crossorigin href="([^"]+)">/g
+  return html.replaceAll(stylesheetPattern, (_fullMatch, href) => {
+    const safeHref = String(href)
+    return [
+      `<link rel="preload" href="${safeHref}" as="style" crossorigin>`,
+      `<link rel="stylesheet" href="${safeHref}" media="print" onload="this.media='all'" crossorigin>`,
+      '<noscript>',
+      `  <link rel="stylesheet" href="${safeHref}" crossorigin>`,
+      '</noscript>',
+    ].join('\n')
+  })
+}
+
+function nonBlockingStylesheetsPlugin() {
+  return {
+    name: 'non-blocking-stylesheets',
+    enforce: 'post' as const,
+    transformIndexHtml(html: string) {
+      return makeStylesheetNonBlocking(html)
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), nonBlockingStylesheetsPlugin()],
   resolve: {
     alias: {
       '@vercel/analytics/next': '@vercel/analytics/react',
