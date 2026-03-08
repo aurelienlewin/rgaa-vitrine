@@ -71,3 +71,14 @@ Use this list as a rapid regression filter before running a full RGAA review.
 - For criterion `1.8`, treat preview screenshots as decorative (`alt=""`) when equivalent site identity is already present in nearby text.
 - For criterion `3.3`, avoid same-color control backgrounds inside same-color containers; prefer either strong filled controls or transparent controls with high-contrast borders.
 - For criterion `10.5`, pair color declarations at multiple levels (stylesheet rules + runtime DOM class/style pairing) to reduce drift in utility-heavy interfaces.
+
+## Operational lessons learned (2026-03-08 UX journey hardening)
+
+- Avoid duplicate journey entry points: keep exactly one primary `role="search"` form per page and route all quick links to that single anchor.
+- Keep a stable global navigation landmark (`#navigation-principale`) across routes and make skip-link landings focus the landmark programmatically, not only by hash jump.
+- When filters are preloaded from URL parameters, move focus to the results summary after data load so keyboard/screen-reader users immediately receive contextual feedback.
+- For card-heavy directories, preserve semantic structure (`ul > li > article`) even when redesigning visuals; group metadata and actions without flattening heading hierarchy.
+- Keep action targets at least 44px high and maintain explicit focus styling after any visual redesign.
+- For reciprocal discovery features (backlinks), provide both a visual badge snippet and a text-only fallback snippet.
+- In backlink embed code, always ship explicit `alt` on `img` and explicit `aria-label` on the wrapping link; do not rely on surrounding context.
+- For decorative thumbnails in cards, continue using `alt=""` + `aria-hidden="true"` when equivalent text is present in adjacent content.

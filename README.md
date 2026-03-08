@@ -13,12 +13,15 @@ Annuaire RGAA is an open-source French-first directory that lets organizations p
 public RGAA pride listing: site metadata, detected accessibility statement page, and
 declared compliance indicators.
 
+Project documentation (`README`, `CHANGELOG`, release notes) is maintained in English.
+Interface labels remain in French by design for the target audience.
+
 Planned public website: **https://annuaire-rgaa.fr**
 
 ## Highlights
 
 - Simple French UI focused on listing discovery first.
-- Multiple skip links for keyboard navigation (`contenu`, `navigation principale`, `recherche`, `résultats`, `ajout`, `aide`, `pied de page`), hidden by default and revealed on keyboard focus.
+- Multiple skip links for keyboard navigation (French UI labels: `contenu`, `navigation principale`, `recherche`, `résultats`, `ajout`, `aide`, `pied de page`), hidden by default and revealed on keyboard focus.
 - Programmatic focus management on skip-link targets and dynamic feedback blocks (errors/status).
 - Keyboard filter ergonomics: `Échap` clears search input and a dedicated reset button restores all filters from the shared header search.
 - Explicit filter CTA with a `Rechercher` button for clear submit action and predictable keyboard flow.
@@ -42,8 +45,8 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Dark mode styling is consistently applied through Tailwind `dark:` variants to avoid mixed-theme rendering.
 - Discreet footer build stamp (`version + UTC timestamp`) helps detect stale cache quickly.
 - Footer version now resolves from release tags first (with package version fallback) to stay aligned with published GitHub releases.
-- Footer now uses a clearer three-column information architecture (`Projet`, `Navigation rapide`, `Soutien`) on large screens.
-- All pages now share a consistent top `navigation principale` landmark and the same global footer.
+- Footer now uses a clearer three-column information architecture (French UI labels: `Projet`, `Navigation rapide`, `Soutien`) on large screens.
+- All pages now share a consistent top `navigation principale` landmark (French UI label) and the same global footer.
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
 - Route lazy-loading fallback is announced as status (`aria-live="polite"`) to avoid silent loading states.
 - Lazy-loaded completion states are now also announced on `/site/{slug}` and `/plan-du-site` (successful load, empty result, and loading error) via dedicated polite live regions.

@@ -3,6 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows semantic-style commit topics.
+Changelog entries are written in English; referenced UI labels remain in French where relevant.
 
 ## [Unreleased]
 
@@ -11,7 +12,7 @@ The format is based on Keep a Changelog and this project follows semantic-style 
 - New `GET /api/showcase` endpoint with optional filters (`search`, `status`, `category`, `limit`).
 - `.env.example` for Redis configuration.
 - Directory-first UI blocks with showcase KPIs (total / full / partial / none).
-- Multi skip-link navigation (`contenu`, `filtres`, `ajout`) for keyboard users.
+- Multi skip-link navigation for keyboard users (French UI labels: `contenu`, `filtres`, `ajout`).
 - Dedicated polite live region announcements (`role=\"status\"`, `aria-live=\"polite\"`).
 - Official RGAA 5 awareness article added to project references and embedded skill sources.
 - Dedicated WCAG 2.2 skill with official W3C references and review checklist.
