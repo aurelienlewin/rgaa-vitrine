@@ -1,3 +1,5 @@
+import { buildAccessibilityStatementSnapshot } from '../shared/accessibilityStatement.js'
+
 const DEFAULT_REPOSITORY_URL = 'https://github.com/aurelienlewin/rgaa-pride-vitrine'
 const DEFAULT_LICENSE_URL = 'https://opensource.org/license/mit/'
 
@@ -94,6 +96,7 @@ function summarizeTopEntries(entries, baseUrl, maxItems = 20) {
 export function buildAiContextPayload({ baseUrl, entries }) {
   const repositoryUrl = process.env.PUBLIC_REPOSITORY_URL || DEFAULT_REPOSITORY_URL
   const lastUpdated = readLastUpdated(entries)
+  const accessibilityStatement = buildAccessibilityStatementSnapshot(baseUrl)
   const sampleProfileUrls = entries
     .map((entry) => createAbsoluteUrl(baseUrl, resolveProfilePath(entry) ?? '/'))
     .filter((value) => typeof value === 'string' && value.includes('/site/'))
@@ -114,11 +117,13 @@ export function buildAiContextPayload({ baseUrl, entries }) {
       description:
         'Annuaire francophone de sites web affichant un niveau de conformité RGAA et des ressources officielles d’accessibilité.',
       repositoryUrl,
+      accessibilityStatementUrl: accessibilityStatement.url,
       license: {
         name: 'MIT',
         url: DEFAULT_LICENSE_URL,
       },
     },
+    accessibilityStatement,
     discovery: {
       sitemap: `${baseUrl}/sitemap.xml`,
       llms: `${baseUrl}/llms.txt`,

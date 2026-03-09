@@ -3,73 +3,19 @@ import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
 import { applySeo, createAbsoluteUrl } from './seo'
 import SecondaryPageHeader from './SecondaryPageHeader'
 import SiteFooter from './SiteFooter'
+import {
+  accessibilityAuditEnvironment,
+  accessibilityAuditSummary as auditSummary,
+  accessibilityEvaluationTools,
+  accessibilityImplementationTechnologies as implementationTechnologies,
+  accessibilityNonConformities as currentNonConformities,
+} from '../shared/accessibilityStatement.js'
 
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
-
-const auditSummary = {
-  status: 'Partiellement conforme',
-  score: '96,8 % (estimation)',
-  auditDate: '8 mars 2026',
-  auditDateIso: '2026-03-08',
-  scope: '4 pages publiques vérifiées',
-  auditedPages: [
-    'https://www.annuaire-rgaa.fr/',
-    'https://www.annuaire-rgaa.fr/plan-du-site',
-    'https://www.annuaire-rgaa.fr/accessibilite',
-    'https://www.annuaire-rgaa.fr/site/access42-net-h0nx3j',
-  ],
-  applicableCriteria: '424 critères vérifiés',
-  nonConformitiesCount: '2 critères',
-  remediationStatus: 'Plan d’action en cours',
-}
-
-const currentNonConformities = [
-  {
-    id: '10.5',
-    title: 'Déclarations de couleurs de texte et de fond à compléter',
-    detail:
-      'Certaines zones de texte doivent expliciter plus systématiquement leur couleur de fond associée pour garantir une lecture stable quel que soit le contexte d’affichage.',
-    impactedPages: 'Accueil de l’annuaire',
-    status: 'Correction en cours',
-  },
-  {
-    id: '10.11',
-    title: 'Adaptation aux petites hauteurs d’affichage',
-    detail:
-      'Le contenu doit être ajusté pour limiter le recours au défilement vertical dans des fenêtres de faible hauteur, tout en conservant toutes les informations et fonctionnalités.',
-    impactedPages: 'Accueil de l’annuaire',
-    status: 'Correction en cours',
-  },
-]
-
-const implementationTechnologies = [
-  'HTML5',
-  'CSS (Tailwind CSS 4.2.1)',
-  'JavaScript',
-  'TypeScript 5.9.3',
-  'React 19.2.0',
-  'Vite 7.3.1',
-  'Node.js 25.2.1',
-  'Express 5.2.1',
-]
-
-const auditEnvironment = [
-  'macOS 26.3.1 (build 25D2128)',
-  'Node.js 25.2.1',
-  'npm 11.6.2',
-  'Audit exécuté avec Chrome DevTools (voir journal horodaté du 8 mars 2026)',
-]
-
-const accessibilityEvaluationTools = [
-  'rgaa-auditor 2.0.1 (outil interne, dossier ../audit)',
-  'Chrome DevTools (captures, snapshots, scripts de vérification ciblés)',
-  'Revue assistée Codex modèle gpt-5.3-codex (journal d’audit)',
-  'Contrôles de qualité projet: npm run lint et npm run build',
-]
 
 function AccessibilityPage() {
   const mainRef = useRef<HTMLElement | null>(null)
@@ -331,7 +277,7 @@ function AccessibilityPage() {
 
             <h3 className="mt-5 text-base font-semibold">Environnement de test de référence</h3>
             <ul className="mt-2 list-disc space-y-1 ps-5 text-sm text-slate-700 dark:text-slate-300">
-              {auditEnvironment.map((item) => (
+              {accessibilityAuditEnvironment.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>

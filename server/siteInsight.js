@@ -3,6 +3,7 @@ import { isIP } from 'node:net'
 import { load } from 'cheerio'
 
 const MAX_HTML_BYTES = 800_000
+const MAX_JSON_BYTES = 400_000
 const FETCH_TIMEOUT_MS = 7000
 const MAX_REDIRECTS = 5
 
@@ -27,6 +28,10 @@ const commonAccessibilityPaths = [
   '/accessibilite-numerique',
   '/declaration-accessibilite',
   '/accessibilite-et-conformite',
+]
+const commonAiContextPaths = [
+  '/ai-context.json',
+  '/api/ai-context',
 ]
 
 export class SiteInsightError extends Error {
@@ -244,7 +249,16 @@ function isRedirectStatus(statusCode) {
   return statusCode >= 300 && statusCode < 400
 }
 
-async function fetchHtml(url, redirectCount = 0) {
+async function fetchTextDocument(
+  url,
+  {
+    acceptHeader,
+    invalidContentMessage,
+    isExpectedContentType,
+    maxBytes,
+  },
+  redirectCount = 0,
+) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
@@ -255,7 +269,7 @@ async function fetchHtml(url, redirectCount = 0) {
       signal: controller.signal,
       headers: {
         'user-agent': 'Annuaire-RGAA/1.0 (+https://annuaire-rgaa.fr)',
-        accept: 'text/html,application/xhtml+xml',
+        accept: acceptHeader,
       },
     })
 
@@ -272,7 +286,16 @@ async function fetchHtml(url, redirectCount = 0) {
 
       const nextParsedUrl = new URL(nextUrl)
       await validatePublicHost(nextParsedUrl.hostname)
-      return fetchHtml(nextUrl, redirectCount + 1)
+      return fetchTextDocument(
+        nextUrl,
+        {
+          acceptHeader,
+          invalidContentMessage,
+          isExpectedContentType,
+          maxBytes,
+        },
+        redirectCount + 1,
+      )
     }
 
     if (!response.ok) {
@@ -280,13 +303,12 @@ async function fetchHtml(url, redirectCount = 0) {
     }
 
     const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
-    const isHtml = contentType.includes('text/html') || contentType.includes('application/xhtml+xml')
-    if (!isHtml) {
-      throw new SiteInsightError('Le contenu cible n’est pas une page HTML.', 422)
+    if (!isExpectedContentType(contentType)) {
+      throw new SiteInsightError(invalidContentMessage, 422)
     }
 
-    const html = await readBodyWithLimit(response, MAX_HTML_BYTES)
-    return { finalUrl: url, html }
+    const text = await readBodyWithLimit(response, maxBytes)
+    return { finalUrl: url, text }
   } catch (error) {
     if (error instanceof SiteInsightError) {
       throw error
@@ -299,6 +321,48 @@ async function fetchHtml(url, redirectCount = 0) {
     throw new SiteInsightError('Impossible de récupérer les métadonnées de ce site.', 502)
   } finally {
     clearTimeout(timeout)
+  }
+}
+
+async function fetchHtml(url, redirectCount = 0) {
+  const { finalUrl, text } = await fetchTextDocument(
+    url,
+    {
+      acceptHeader: 'text/html,application/xhtml+xml',
+      invalidContentMessage: 'Le contenu cible n’est pas une page HTML.',
+      isExpectedContentType: (contentType) =>
+        contentType.includes('text/html') || contentType.includes('application/xhtml+xml'),
+      maxBytes: MAX_HTML_BYTES,
+    },
+    redirectCount,
+  )
+
+  return {
+    finalUrl,
+    html: text,
+  }
+}
+
+async function fetchJson(url, redirectCount = 0) {
+  const { finalUrl, text } = await fetchTextDocument(
+    url,
+    {
+      acceptHeader: 'application/json,application/ld+json',
+      invalidContentMessage: 'Le contenu cible n’est pas un JSON exploitable.',
+      isExpectedContentType: (contentType) =>
+        contentType.includes('application/json') || contentType.includes('+json'),
+      maxBytes: MAX_JSON_BYTES,
+    },
+    redirectCount,
+  )
+
+  try {
+    return {
+      finalUrl,
+      json: JSON.parse(text),
+    }
+  } catch {
+    throw new SiteInsightError('Le contenu JSON détecté est invalide.', 422)
   }
 }
 
@@ -351,6 +415,37 @@ function findAccessibilityPageUrl($, baseUrl) {
     if (!bestMatch || /accessibil/i.test(href)) {
       bestMatch = absolute
     }
+  })
+
+  return bestMatch
+}
+
+function findAiContextUrl($, baseUrl) {
+  let bestMatch = null
+
+  $('link[href]').each((_, element) => {
+    const href = $(element).attr('href')?.trim() ?? ''
+    const rel = normalizeForMatch($(element).attr('rel') ?? '')
+    const type = normalizeForMatch($(element).attr('type') ?? '')
+
+    if (!rel.includes('alternate')) {
+      return
+    }
+
+    if (!normalizeForMatch(href).includes('ai-context')) {
+      return
+    }
+
+    if (type && !type.includes('json')) {
+      return
+    }
+
+    const absolute = toAbsoluteUrl(href, baseUrl)
+    if (!absolute) {
+      return
+    }
+
+    bestMatch = absolute
   })
 
   return bestMatch
@@ -586,6 +681,41 @@ async function resolveAccessibilityPageUrl(baseUrl, detectedAccessibilityPageUrl
   return null
 }
 
+function looksLikeAiContextPayload(payload) {
+  return Boolean(payload && typeof payload === 'object' && !Array.isArray(payload))
+}
+
+async function resolveAiContextUrl(baseUrl, detectedAiContextUrl) {
+  const candidates = []
+
+  if (detectedAiContextUrl) {
+    candidates.push(detectedAiContextUrl)
+  }
+
+  for (const path of commonAiContextPaths) {
+    const candidateUrl = toAbsoluteUrl(path, baseUrl)
+    if (candidateUrl && !candidates.includes(candidateUrl)) {
+      candidates.push(candidateUrl)
+    }
+  }
+
+  for (const candidateUrl of candidates) {
+    try {
+      const parsedCandidate = new URL(candidateUrl)
+      await validatePublicHost(parsedCandidate.hostname)
+      const { finalUrl, json } = await fetchJson(candidateUrl)
+
+      if (looksLikeAiContextPayload(json)) {
+        return finalUrl
+      }
+    } catch {
+      // Tentative suivante.
+    }
+  }
+
+  return null
+}
+
 function extractMetaInformation(html, baseUrl) {
   const $ = load(html)
 
@@ -600,11 +730,13 @@ function extractMetaInformation(html, baseUrl) {
     toAbsoluteUrl($('meta[name="twitter:image"]').attr('content')?.trim() ?? '', baseUrl)
 
   const accessibilityPageUrl = findAccessibilityPageUrl($, baseUrl)
+  const aiContextUrl = findAiContextUrl($, baseUrl)
 
   return {
     siteTitle,
     thumbnailUrl,
     accessibilityPageUrl,
+    aiContextUrl,
   }
 }
 
@@ -724,7 +856,62 @@ async function extractComplianceFromAccessibilityPage(accessibilityPageUrl) {
     complianceStatus,
     complianceScore,
     rgaaBaseline,
+    scoreSource:
+      textBased.complianceScore !== null ? 'text' : metaBased.complianceScore !== null ? 'meta' : null,
   }
+}
+
+function extractComplianceFromAiContextPayload(payload) {
+  const statement =
+    payload && typeof payload === 'object' && typeof payload.accessibilityStatement === 'object'
+      ? payload.accessibilityStatement
+      : null
+
+  if (!statement) {
+    return {
+      complianceStatus: null,
+      complianceScore: null,
+      rgaaBaseline: null,
+    }
+  }
+
+  const explicitStatus = parseComplianceStatusValue(
+    statement.complianceStatus ?? statement.complianceStatusLabel ?? statement.status,
+  )
+  const rawScore =
+    typeof statement.complianceScore === 'number' || typeof statement.complianceScore === 'string'
+      ? `${statement.complianceScore}`
+      : typeof statement.scoreLabel === 'string'
+        ? statement.scoreLabel.match(/(\d{1,3}(?:[.,]\d{1,2})?)/)?.[1] ?? ''
+        : ''
+  const complianceScore = parseScoreValue(rawScore)
+  const rgaaBaseline = detectRgaaBaseline(
+    normalizeForMatch(`${statement.rgaaBaseline ?? statement.baseline ?? ''}`),
+  )
+  const normalizedStatementText = normalizeForMatch(JSON.stringify(statement))
+  const complianceStatus = resolveComplianceStatus(explicitStatus, complianceScore, normalizedStatementText)
+
+  return {
+    complianceStatus,
+    complianceScore,
+    rgaaBaseline,
+  }
+}
+
+async function extractComplianceFromAiContext(aiContextUrl) {
+  if (!aiContextUrl) {
+    return {
+      complianceStatus: null,
+      complianceScore: null,
+      rgaaBaseline: null,
+    }
+  }
+
+  const parsed = new URL(aiContextUrl)
+  await validatePublicHost(parsed.hostname)
+
+  const { json } = await fetchJson(aiContextUrl)
+  return extractComplianceFromAiContextPayload(json)
 }
 
 export async function buildSiteInsight(inputUrl) {
@@ -734,18 +921,37 @@ export async function buildSiteInsight(inputUrl) {
   const homepage = await fetchHtml(parsed.toString())
   const metadata = extractMetaInformation(homepage.html, homepage.finalUrl)
   const accessibilityPageUrl = await resolveAccessibilityPageUrl(homepage.finalUrl, metadata.accessibilityPageUrl)
+  const aiContextUrl = await resolveAiContextUrl(homepage.finalUrl, metadata.aiContextUrl)
 
   let complianceStatus = null
   let complianceScore = null
   let rgaaBaseline = null
+  let accessibilityPageScoreSource = null
 
   try {
     const compliance = await extractComplianceFromAccessibilityPage(accessibilityPageUrl)
     complianceStatus = compliance.complianceStatus
     complianceScore = compliance.complianceScore
     rgaaBaseline = compliance.rgaaBaseline
+    accessibilityPageScoreSource = compliance.scoreSource
   } catch {
     // Accessibility page parsing is best effort and should not fail the main result.
+  }
+
+  try {
+    const aiContextCompliance = await extractComplianceFromAiContext(aiContextUrl)
+
+    if (aiContextCompliance.complianceScore !== null && accessibilityPageScoreSource !== 'text') {
+      complianceScore = aiContextCompliance.complianceScore
+    }
+
+    if (aiContextCompliance.complianceStatus && accessibilityPageScoreSource !== 'text') {
+      complianceStatus = aiContextCompliance.complianceStatus
+    }
+
+    rgaaBaseline = rgaaBaseline ?? aiContextCompliance.rgaaBaseline
+  } catch {
+    // AI context parsing is best effort and should not fail the main result.
   }
 
   if (!complianceStatus || complianceScore === null) {
