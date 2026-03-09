@@ -241,11 +241,6 @@ Local services:
 - Frontend: `http://127.0.0.1:5173`
 - API: `http://127.0.0.1:8787`
 
-Dependency maintenance note:
-
-- Dependency refresh completed on `2026-03-09`: `@upstash/redis` `1.36.4`, `@eslint/js` `10.0.1`, `eslint` `10.0.3`, `@types/node` `25.3.5`, `eslint-plugin-react-refresh` `0.5.2`, `globals` `17.4.0`
-- `npm outdated` returned no remaining upgrades after the refresh on `2026-03-09`
-
 ## API endpoints
 
 - `POST /api/site-insight` registers/enriches one site entry in the directory
