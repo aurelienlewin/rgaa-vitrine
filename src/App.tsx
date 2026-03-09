@@ -1464,7 +1464,7 @@ function App() {
                               />
                             </div>
                           ) : (
-                            <div className="site-thumbnail-canvas flex items-center justify-center px-3 text-center text-sm text-slate-700 dark:text-slate-200">
+                            <div className="site-thumbnail-canvas flex items-center justify-center px-3 text-center text-sm font-medium text-slate-800 dark:text-slate-800">
                               Aucune vignette disponible
                             </div>
                           )}
