@@ -9,11 +9,14 @@ type ComplianceStatus = 'full' | 'partial' | 'none' | null
 
 type ShowcaseEntry = {
   normalizedUrl: string
+  siteHost?: string | null
+  siteOrigin?: string | null
   slug?: string
   profilePath?: string
   siteTitle: string
   thumbnailUrl: string | null
   accessibilityPageUrl: string | null
+  hasAccessibilityPage?: boolean
   complianceStatus: ComplianceStatus
   complianceStatusLabel: string | null
   complianceScore: number | null
@@ -67,6 +70,14 @@ function readSafeSlug(value: unknown) {
 
 function normalizeRgaaBaseline(value: unknown): ShowcaseEntry['rgaaBaseline'] {
   return value === '5.0-ready' ? '5.0-ready' : '4.1'
+}
+
+function readSiteHost(normalizedUrl: string) {
+  try {
+    return new URL(normalizedUrl).hostname.replace(/^www\./i, '')
+  } catch {
+    return null
+  }
 }
 
 function normalizeShowcaseEntry(entry: ShowcaseEntry): ShowcaseEntry {
@@ -236,6 +247,13 @@ function SiteProfilePage() {
 
   useEffect(() => {
     if (entry) {
+      const websiteId = `${createAbsoluteUrl('/')}#website`
+      const organizationId = `${createAbsoluteUrl('/')}#organization`
+      const dataCatalogId = `${createAbsoluteUrl('/')}#data-catalog`
+      const referencedSiteId = `${profileUrl}#referenced-site`
+      const datasetEntryId = `${profileUrl}#dataset-entry`
+      const accessibilityStatementId = `${profileUrl}#accessibility-statement`
+      const siteHost = entry.siteHost ?? readSiteHost(entry.normalizedUrl)
       const relatedItemElements = relatedEntries.map((candidate, index) => ({
         '@type': 'ListItem',
         position: index + 1,
@@ -247,7 +265,7 @@ function SiteProfilePage() {
         title: `${entry.siteTitle} | Fiche annuaire RGAA`,
         description: `${entry.siteTitle} est référencé sur annuaire-rgaa.fr avec catégorie, niveau détecté, score et liens utiles d’accessibilité.`,
         path: profilePath,
-        ogType: 'profile',
+        ogType: 'website',
         structuredData: {
           '@context': 'https://schema.org',
           '@graph': [
@@ -261,33 +279,92 @@ function SiteProfilePage() {
                 'Fiche publique d’un site référencé dans l’annuaire RGAA avec informations de conformité et liens utiles.',
               isPartOf: {
                 '@type': 'WebSite',
-                '@id': `${createAbsoluteUrl('/')}#website`,
+                '@id': websiteId,
                 url: createAbsoluteUrl('/'),
                 name: 'Annuaire RGAA',
               },
               mainEntity: {
-                '@id': `${profileUrl}#referenced-site`,
+                '@id': referencedSiteId,
+              },
+              about: {
+                '@id': datasetEntryId,
               },
             },
             {
-              '@type': 'Organization',
-              '@id': `${profileUrl}#referenced-site`,
+              '@type': 'WebSite',
+              '@id': referencedSiteId,
               name: entry.siteTitle,
               url: entry.normalizedUrl,
-              sameAs: entry.accessibilityPageUrl ? [entry.accessibilityPageUrl] : undefined,
+              identifier: entry.slug,
+              mainEntityOfPage: {
+                '@id': `${profileUrl}#webpage`,
+              },
+              subjectOf: entry.accessibilityPageUrl
+                ? {
+                    '@id': accessibilityStatementId,
+                  }
+                : undefined,
             },
+            ...(entry.accessibilityPageUrl
+              ? [
+                  {
+                    '@type': 'WebPage',
+                    '@id': accessibilityStatementId,
+                    url: entry.accessibilityPageUrl,
+                    name: `Déclaration d’accessibilité de ${entry.siteTitle}`,
+                    isPartOf: {
+                      '@id': referencedSiteId,
+                    },
+                  },
+                ]
+              : []),
             {
               '@type': 'Dataset',
-              '@id': `${profileUrl}#dataset-entry`,
+              '@id': datasetEntryId,
               name: `Données publiques de la fiche ${entry.siteTitle}`,
               description:
                 'Extrait machine-readable de la fiche annuaire: catégorie, score détecté, niveau et URL de référence.',
               inLanguage: 'fr-FR',
               url: profileApiUrl,
-              isPartOf: {
-                '@id': `${createAbsoluteUrl('/')}#dataset-showcase`,
+              isAccessibleForFree: true,
+              license: 'https://opensource.org/license/mit/',
+              includedInDataCatalog: {
+                '@id': dataCatalogId,
               },
               dateModified: entry.updatedAt,
+              about: {
+                '@id': referencedSiteId,
+              },
+              creator: {
+                '@id': organizationId,
+              },
+              measurementTechnique: [
+                'Analyse automatisée de métadonnées publiques',
+                'Détection de déclaration d’accessibilité',
+                'Revue éditoriale de la fiche publiée',
+              ],
+              variableMeasured: [
+                { '@type': 'PropertyValue', name: 'Nom du site référencé', value: entry.siteTitle },
+                { '@type': 'PropertyValue', name: 'Hôte du site', value: siteHost ?? entry.normalizedUrl },
+                { '@type': 'PropertyValue', name: 'Catégorie éditoriale', value: entry.category },
+                {
+                  '@type': 'PropertyValue',
+                  name: 'Statut de conformité RGAA détecté',
+                  value: entry.complianceStatusLabel ?? 'Inconnu',
+                },
+                {
+                  '@type': 'PropertyValue',
+                  name: 'Score de conformité détecté',
+                  value: entry.complianceScore ?? 'N/A',
+                },
+                { '@type': 'PropertyValue', name: 'Baseline RGAA', value: entry.rgaaBaseline },
+              ],
+              keywords: [
+                'RGAA',
+                'accessibilité numérique',
+                entry.category,
+                siteHost ?? entry.siteTitle,
+              ],
               distribution: [
                 {
                   '@type': 'DataDownload',

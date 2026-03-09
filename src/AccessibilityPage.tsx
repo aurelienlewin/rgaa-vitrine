@@ -14,6 +14,7 @@ const auditSummary = {
   status: 'Partiellement conforme',
   score: '96,8 % (estimation)',
   auditDate: '8 mars 2026',
+  auditDateIso: '2026-03-08',
   scope: '4 pages publiques vérifiées',
   auditedPages: [
     'https://www.annuaire-rgaa.fr/',
@@ -103,6 +104,9 @@ function AccessibilityPage() {
   )
 
   useEffect(() => {
+    const websiteId = createAbsoluteUrl('/#website')
+    const accessibilityPageId = createAbsoluteUrl('/accessibilite#webpage')
+    const accessibilityStatementId = createAbsoluteUrl('/accessibilite#statement')
     applySeo({
       title: 'Accessibilité | Annuaire RGAA',
       description:
@@ -113,15 +117,53 @@ function AccessibilityPage() {
         '@graph': [
           {
             '@type': 'WebPage',
-            '@id': createAbsoluteUrl('/accessibilite#webpage'),
+            '@id': accessibilityPageId,
             url: createAbsoluteUrl('/accessibilite'),
             name: 'Déclaration d’accessibilité | Annuaire RGAA',
             inLanguage: 'fr-FR',
             isPartOf: {
-              '@id': createAbsoluteUrl('/#website'),
+              '@id': websiteId,
             },
             description:
               'Déclaration d’accessibilité incluant statut de conformité, méthodologie, technologies, outils, contact et voies de recours.',
+            accessibilitySummary:
+              'Page de déclaration d’accessibilité avec état de conformité, plan de correction, environnement d’audit et voies de recours.',
+            accessibilityFeature: [
+              'highContrastDisplay',
+              'displayTransformability',
+              'largePrint',
+            ],
+            accessibilityControl: [
+              'fullKeyboardControl',
+              'fullMouseControl',
+              'fullTouchControl',
+            ],
+            accessMode: ['textual', 'visual'],
+            accessModeSufficient: ['textual', 'visual'],
+            mainEntity: {
+              '@id': accessibilityStatementId,
+            },
+          },
+          {
+            '@type': 'CreativeWork',
+            '@id': accessibilityStatementId,
+            name: 'Déclaration d’accessibilité Annuaire RGAA',
+            url: createAbsoluteUrl('/accessibilite'),
+            inLanguage: 'fr-FR',
+            dateModified: auditSummary.auditDateIso,
+            abstract:
+              'Déclaration publique de conformité RGAA avec statut partiel, score estimatif, non-conformités connues et moyens de contact.',
+            about: [
+              {
+                '@type': 'Thing',
+                name: 'Référentiel général d’amélioration de l’accessibilité (RGAA)',
+              },
+              {
+                '@type': 'Thing',
+                name: 'WCAG 2.2',
+              },
+            ],
+            accessibilitySummary: `État déclaré: ${auditSummary.status}. ${auditSummary.nonConformitiesCount} actuellement suivis.`,
           },
           {
             '@type': 'BreadcrumbList',

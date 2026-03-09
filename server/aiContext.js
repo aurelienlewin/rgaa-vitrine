@@ -75,6 +75,8 @@ function summarizeTopEntries(entries, baseUrl, maxItems = 20) {
   return entries.slice(0, maxItems).map((entry) => ({
     title: entry.siteTitle,
     url: entry.normalizedUrl,
+    siteHost: typeof entry.siteHost === 'string' ? entry.siteHost : null,
+    siteOrigin: typeof entry.siteOrigin === 'string' ? entry.siteOrigin : null,
     slug: typeof entry.slug === 'string' ? entry.slug : null,
     profilePath: resolveProfilePath(entry),
     profileUrl: createAbsoluteUrl(baseUrl, resolveProfilePath(entry) ?? '/'),
@@ -85,6 +87,7 @@ function summarizeTopEntries(entries, baseUrl, maxItems = 20) {
     rgaaBaseline: entry.rgaaBaseline === '5.0-ready' ? '5.0-ready' : '4.1',
     updatedAt: toIsoDate(entry.updatedAt),
     accessibilityPageUrl: entry.accessibilityPageUrl,
+    hasAccessibilityPage: entry.hasAccessibilityPage === true,
   }))
 }
 
@@ -164,11 +167,14 @@ export function buildAiContextPayload({ baseUrl, entries }) {
           parameters: ['search', 'status', 'category', 'slug', 'limit'],
           sampleFields: [
             'normalizedUrl',
+            'siteHost',
+            'siteOrigin',
             'slug',
             'profilePath',
             'siteTitle',
             'thumbnailUrl',
             'accessibilityPageUrl',
+            'hasAccessibilityPage',
             'complianceStatus',
             'complianceStatusLabel',
             'complianceScore',

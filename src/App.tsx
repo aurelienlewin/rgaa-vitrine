@@ -18,11 +18,14 @@ type RgaaBaseline = '4.1' | '5.0-ready'
 
 type ShowcaseEntry = {
   normalizedUrl: string
+  siteHost?: string | null
+  siteOrigin?: string | null
   slug?: string
   profilePath?: string
   siteTitle: string
   thumbnailUrl: string | null
   accessibilityPageUrl: string | null
+  hasAccessibilityPage?: boolean
   complianceStatus: ComplianceStatus
   complianceStatusLabel: string | null
   complianceScore: number | null
@@ -535,20 +538,31 @@ function App() {
       '@type': 'ListItem',
       position: index + 1,
       name: entry.siteTitle,
-      url: createAbsoluteUrl(resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug)),
+      item: createAbsoluteUrl(resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug)),
     }))
+    const websiteId = createAbsoluteUrl('/#website')
+    const organizationId = createAbsoluteUrl('/#organization')
+    const creatorId = createAbsoluteUrl('/#creator')
+    const collectionId = createAbsoluteUrl('/#collection')
+    const homePageId = createAbsoluteUrl('/#webpage')
+    const webApplicationId = createAbsoluteUrl('/#webapplication')
+    const dataCatalogId = createAbsoluteUrl('/#data-catalog')
+    const showcaseDatasetId = createAbsoluteUrl('/#dataset-showcase')
 
     return {
       '@context': 'https://schema.org',
       '@graph': [
         {
           '@type': 'WebSite',
-          '@id': createAbsoluteUrl('/#website'),
+          '@id': websiteId,
           url: createAbsoluteUrl('/'),
           name: 'Annuaire RGAA',
           inLanguage: 'fr-FR',
           description:
             'Annuaire français pour valoriser les sites engagés dans la conformité RGAA et l’accessibilité numérique.',
+          publisher: {
+            '@id': organizationId,
+          },
           potentialAction: {
             '@type': 'SearchAction',
             target: `${createAbsoluteUrl('/')}?recherche={search_term_string}`,
@@ -556,8 +570,56 @@ function App() {
           },
         },
         {
+          '@type': 'WebPage',
+          '@id': homePageId,
+          url: createAbsoluteUrl('/'),
+          name: 'Annuaire RGAA | Vitrine française de conformité accessibilité',
+          inLanguage: 'fr-FR',
+          description:
+            'Page d’accueil de l’annuaire RGAA avec recherche, filtres, soumission de site et accès au jeu de données public.',
+          isPartOf: {
+            '@id': websiteId,
+          },
+          mainEntity: {
+            '@id': collectionId,
+          },
+          about: [
+            {
+              '@id': webApplicationId,
+            },
+            {
+              '@id': showcaseDatasetId,
+            },
+          ],
+        },
+        {
+          '@type': 'WebApplication',
+          '@id': webApplicationId,
+          name: 'Annuaire RGAA',
+          url: createAbsoluteUrl('/'),
+          applicationCategory: 'AccessibilityApplication',
+          operatingSystem: 'Any',
+          browserRequirements: 'Navigateur web moderne avec JavaScript activé pour l’interface complète.',
+          inLanguage: 'fr-FR',
+          isAccessibleForFree: true,
+          offers: {
+            '@type': 'Offer',
+            price: '0',
+            priceCurrency: 'EUR',
+          },
+          publisher: {
+            '@id': organizationId,
+          },
+          featureList: [
+            'Recherche et filtres de sites référencés',
+            'Fiches publiques par site avec URL partageable',
+            'Téléchargement JSON des données publiques',
+            'Repères RGAA et WCAG 2.2',
+          ],
+        },
+        {
           '@type': 'Organization',
-          '@id': createAbsoluteUrl('/#organization'),
+          '@id': organizationId,
           name: 'Annuaire RGAA',
           url: createAbsoluteUrl('/'),
           logo: createAbsoluteUrl('/logo-rgaa-vitrine.svg'),
@@ -565,18 +627,18 @@ function App() {
         },
         {
           '@type': 'Person',
-          '@id': createAbsoluteUrl('/#creator'),
+          '@id': creatorId,
           name: githubProfile.name,
           url: githubProfile.profileUrl,
         },
         {
           '@type': 'CollectionPage',
-          '@id': createAbsoluteUrl('/#collection'),
+          '@id': collectionId,
           url: createAbsoluteUrl('/'),
           name: 'Annuaire RGAA',
           inLanguage: 'fr-FR',
           isPartOf: {
-            '@id': createAbsoluteUrl('/#website'),
+            '@id': websiteId,
           },
           mainEntity: {
             '@type': 'ItemList',
@@ -586,8 +648,25 @@ function App() {
           },
         },
         {
+          '@type': 'DataCatalog',
+          '@id': dataCatalogId,
+          name: 'Catalogue de données Annuaire RGAA',
+          description:
+            'Catalogue public des données éditoriales et techniques publiées par Annuaire RGAA pour l’indexation et la réutilisation.',
+          url: createAbsoluteUrl('/api/showcase'),
+          inLanguage: 'fr-FR',
+          creator: {
+            '@id': organizationId,
+          },
+          dataset: [
+            {
+              '@id': showcaseDatasetId,
+            },
+          ],
+        },
+        {
           '@type': 'Dataset',
-          '@id': createAbsoluteUrl('/#dataset-showcase'),
+          '@id': showcaseDatasetId,
           name: 'Vitrine RGAA - données publiques',
           description:
             'Jeu de données public des sites référencés dans l’annuaire RGAA, incluant catégorie et indicateurs de conformité.',
@@ -596,9 +675,35 @@ function App() {
           license: 'https://opensource.org/license/mit/',
           url: createAbsoluteUrl('/api/showcase'),
           dateModified: latestUpdatedAt,
-          creator: {
-            '@id': createAbsoluteUrl('/#organization'),
+          includedInDataCatalog: {
+            '@id': dataCatalogId,
           },
+          creator: {
+            '@id': organizationId,
+          },
+          publisher: {
+            '@id': organizationId,
+          },
+          measurementTechnique: [
+            'Analyse automatisée de métadonnées publiques',
+            'Détection de déclaration d’accessibilité',
+            'Revue éditoriale des soumissions publiées',
+          ],
+          variableMeasured: [
+            { '@type': 'PropertyValue', name: 'URL canonique du site référencé' },
+            { '@type': 'PropertyValue', name: 'Catégorie éditoriale' },
+            { '@type': 'PropertyValue', name: 'Statut de conformité RGAA détecté' },
+            { '@type': 'PropertyValue', name: 'Score de conformité détecté' },
+            { '@type': 'PropertyValue', name: 'Baseline RGAA appliquée' },
+            { '@type': 'PropertyValue', name: 'Date de dernière mise à jour' },
+          ],
+          keywords: [
+            'RGAA',
+            'accessibilité numérique',
+            'jeu de données public',
+            'conformité web',
+            'annuaire',
+          ],
           distribution: [
             {
               '@type': 'DataDownload',

@@ -35,7 +35,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Duplicate submissions now trigger a dedicated accessible feedback panel (`Site déjà référencé`) with polite live announcement, programmatic focus, dismiss action, and direct moderation contact links.
 - URLs already submitted and still under manual review now trigger a dedicated accessible feedback panel (`Site déjà soumis et en cours de revue`) so users do not repeat the same submission.
 - Each listed site has a dedicated public profile page (`/site/{slug}`) with shareable metadata and backlink snippet.
-- Profile pages expose stronger SEO/IA signals: dedicated `WebPage` + `Dataset` structured data, direct API link (`/api/showcase?slug={slug}`), and related-profile internal linking.
+- Profile pages expose stronger SEO/IA signals: dedicated `WebPage` + referenced `WebSite` + `Dataset` structured data, direct API link (`/api/showcase?slug={slug}`), explicit accessibility-statement linking when detected, and related-profile internal linking.
 - Profile pages provide a reusable visual backlink badge (`/badge-backlink-annuaire-rgaa.svg`) plus copy-ready HTML snippets with explicit `alt` and `aria-label`.
 - Add-site flow exposes a visible category dropdown (including `Coopérative et services`) without custom free-text entry.
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
@@ -199,11 +199,14 @@ Operational note:
 - Rich metadata: description, robots, canonical, hreflang
 - Legacy `.org` host redirects at edge to `annuaire-rgaa.fr` to avoid duplicate indexing.
 - Open Graph + Twitter Cards
-- Structured data (JSON-LD): `WebSite`, `Organization`, `Person`, `CollectionPage`, `SiteNavigationElement`
-- Structured data exposes `SearchAction` on homepage and `BreadcrumbList` on key secondary pages.
+- Structured data (JSON-LD) on homepage now combines `WebSite`, `WebPage`, `WebApplication`, `Organization`, `Person`, `CollectionPage`, `DataCatalog`, and `Dataset`.
+- Structured data exposes `SearchAction` on homepage, `BreadcrumbList` on key secondary pages, and richer `Dataset` semantics (`variableMeasured`, `measurementTechnique`, distributions).
+- Profile pages publish a referenced-site `WebSite`, a per-profile `Dataset`, and a dedicated accessibility-statement `WebPage` node when a declaration URL is known.
+- Static `index.html` keeps a stronger metadata fallback graph so non-hydrated crawlers still discover the main site entities and dataset endpoint.
 - Accessible public site map page: `/plan-du-site`
 - Site map page lists an extract of published `/site/{slug}` links to strengthen crawlable internal discovery.
 - Public accessibility declaration page: `/accessibilite`
+- Accessibility declaration structured data now includes accessibility-specific properties (`accessibilitySummary`, `accessibilityFeature`, `accessibilityControl`, `accessMode`).
 - Auto-generated sitemap endpoint: `/sitemap.xml` (backed by API route `/api/sitemap`)
 - `sitemap.xml` is served without caching (`no-store`) so published entries appear immediately after submission/moderation.
 - Sitemap includes the public data endpoint (`/api/showcase`) for dataset discovery.
@@ -234,7 +237,7 @@ Local services:
 - `POST /api/site-insight` registers/enriches one site entry in the directory
 - `POST /api/site-insight?preview=1` runs pre-analysis without persistence (used by confirmation step)
 - `GET /api/showcase` returns persisted showcase entries (supports `search`, `status`, `category`, `limit`, `clientVoterId`)
-- `GET /api/showcase` also supports `slug` for single-profile retrieval and returns `slug` + `profilePath` for each entry.
+- `GET /api/showcase` also supports `slug` for single-profile retrieval and returns `slug`, `profilePath`, `siteHost`, `siteOrigin`, and `hasAccessibilityPage` for each public entry.
 - `POST /api/showcase/upvote` records one upvote for one listed site
 - `GET /api/health` returns service status and active storage mode
 - `GET /api/moderation/pending` returns pending moderation entries (protected)
@@ -353,6 +356,13 @@ RGAA baseline notes:
 - `rgaaBaseline` is exposed in showcase entries (`4.1` or `5.0-ready`).
 - Existing and ingested entries default to `4.1` until a moderator explicitly overrides the badge.
 - `5.0-ready` is applied only through moderation override.
+
+Public showcase metadata notes:
+
+- `siteHost` exposes the normalized hostname used for lightweight machine grouping and profile labeling.
+- `siteOrigin` exposes the site origin when the stored URL is valid.
+- `hasAccessibilityPage` is a boolean convenience field derived from `accessibilityPageUrl`.
+- The AI context endpoint (`/ai-context.json`) mirrors these discovery-oriented fields in its documented sample schema.
 
 ### Manual moderation workflow
 

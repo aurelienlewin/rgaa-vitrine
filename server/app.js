@@ -504,6 +504,22 @@ function buildShowcaseEntrySlug(normalizedUrl) {
   }
 }
 
+function readSiteHost(normalizedUrl) {
+  try {
+    return new URL(normalizedUrl).hostname.replace(/^www\./i, '')
+  } catch {
+    return null
+  }
+}
+
+function readSiteOrigin(normalizedUrl) {
+  try {
+    return new URL(normalizedUrl).origin
+  } catch {
+    return null
+  }
+}
+
 function extractShowcaseSlug(value) {
   if (typeof value !== 'string') {
     return null
@@ -523,10 +539,15 @@ function withShowcasePublicMetadata(entry) {
   }
 
   const slug = buildShowcaseEntrySlug(entry.normalizedUrl)
+  const siteHost = readSiteHost(entry.normalizedUrl)
+  const siteOrigin = readSiteOrigin(entry.normalizedUrl)
   return {
     ...entry,
     slug,
     profilePath: `/site/${slug}`,
+    siteHost,
+    siteOrigin,
+    hasAccessibilityPage: Boolean(entry.accessibilityPageUrl),
   }
 }
 

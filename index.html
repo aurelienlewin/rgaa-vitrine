@@ -23,6 +23,12 @@
     />
     <link rel="alternate" type="text/plain" href="/llms.txt" />
     <link rel="alternate" type="application/json" href="/ai-context.json" />
+    <link
+      rel="alternate"
+      type="application/json"
+      href="https://annuaire-rgaa.fr/api/showcase"
+      title="Jeu de données public Annuaire RGAA"
+    />
     <link rel="canonical" href="https://annuaire-rgaa.fr/" />
     <link rel="alternate" href="https://annuaire-rgaa.fr/" hreflang="fr-FR" />
     <link rel="alternate" href="https://annuaire-rgaa.fr/" hreflang="x-default" />
@@ -54,21 +60,102 @@
     <script id="app-jsonld" type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "Annuaire RGAA",
-        "inLanguage": "fr-FR",
-        "description": "Plateforme de valorisation de la conformité RGAA des sites web.",
-        "publisher": {
-          "@type": "Organization",
-          "name": "Annuaire RGAA",
-          "url": "https://github.com/aurelienlewin",
-          "logo": "https://annuaire-rgaa.fr/logo-rgaa-vitrine.svg"
-        },
-        "creator": {
-          "@type": "Person",
-          "name": "Aurélien Lewin",
-          "url": "https://github.com/aurelienlewin"
-        }
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://annuaire-rgaa.fr/#website",
+            "name": "Annuaire RGAA",
+            "url": "https://annuaire-rgaa.fr/",
+            "inLanguage": "fr-FR",
+            "description": "Plateforme de valorisation de la conformité RGAA des sites web.",
+            "publisher": {
+              "@id": "https://annuaire-rgaa.fr/#organization"
+            },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://annuaire-rgaa.fr/?recherche={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          },
+          {
+            "@type": "WebPage",
+            "@id": "https://annuaire-rgaa.fr/#webpage",
+            "url": "https://annuaire-rgaa.fr/",
+            "name": "Annuaire RGAA",
+            "inLanguage": "fr-FR",
+            "isPartOf": {
+              "@id": "https://annuaire-rgaa.fr/#website"
+            },
+            "mainEntity": {
+              "@id": "https://annuaire-rgaa.fr/#collection"
+            }
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://annuaire-rgaa.fr/#webapplication",
+            "name": "Annuaire RGAA",
+            "url": "https://annuaire-rgaa.fr/",
+            "applicationCategory": "AccessibilityApplication",
+            "operatingSystem": "Any",
+            "inLanguage": "fr-FR",
+            "isAccessibleForFree": true,
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "EUR"
+            }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://annuaire-rgaa.fr/#organization",
+            "name": "Annuaire RGAA",
+            "url": "https://annuaire-rgaa.fr/",
+            "logo": "https://annuaire-rgaa.fr/logo-rgaa-vitrine.svg",
+            "sameAs": [
+              "https://github.com/aurelienlewin"
+            ]
+          },
+          {
+            "@type": "Person",
+            "@id": "https://annuaire-rgaa.fr/#creator",
+            "name": "Aurélien Lewin",
+            "url": "https://github.com/aurelienlewin"
+          },
+          {
+            "@type": "CollectionPage",
+            "@id": "https://annuaire-rgaa.fr/#collection",
+            "url": "https://annuaire-rgaa.fr/",
+            "name": "Annuaire RGAA",
+            "inLanguage": "fr-FR",
+            "isPartOf": {
+              "@id": "https://annuaire-rgaa.fr/#website"
+            }
+          },
+          {
+            "@type": "DataCatalog",
+            "@id": "https://annuaire-rgaa.fr/#data-catalog",
+            "name": "Catalogue de données Annuaire RGAA",
+            "url": "https://annuaire-rgaa.fr/api/showcase",
+            "inLanguage": "fr-FR",
+            "dataset": [
+              {
+                "@id": "https://annuaire-rgaa.fr/#dataset-showcase"
+              }
+            ]
+          },
+          {
+            "@type": "Dataset",
+            "@id": "https://annuaire-rgaa.fr/#dataset-showcase",
+            "name": "Vitrine RGAA - données publiques",
+            "url": "https://annuaire-rgaa.fr/api/showcase",
+            "inLanguage": "fr-FR",
+            "isAccessibleForFree": true,
+            "license": "https://opensource.org/license/mit/",
+            "includedInDataCatalog": {
+              "@id": "https://annuaire-rgaa.fr/#data-catalog"
+            }
+          }
+        ]
       }
     </script>
     <script>
@@ -92,8 +179,10 @@
         var url = window.location.origin + window.location.pathname;
         var canonical = document.querySelector('link[rel="canonical"]');
         var ogUrl = document.querySelector('meta[property="og:url"]');
+        var twitterUrl = document.querySelector('meta[name="twitter:url"]');
         if (canonical) canonical.setAttribute("href", url);
         if (ogUrl) ogUrl.setAttribute("content", url);
+        if (twitterUrl) twitterUrl.setAttribute("content", url);
       })();
     </script>
   </head>

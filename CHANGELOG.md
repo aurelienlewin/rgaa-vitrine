@@ -8,6 +8,9 @@ Changelog entries are written in English; referenced UI labels remain in French 
 ## [Unreleased]
 
 ### Added
+- Homepage structured data now exposes a broader entity graph (`WebPage`, `WebApplication`, `DataCatalog`) around the existing `WebSite` and public showcase dataset.
+- Public showcase metadata now includes discovery-oriented fields: `siteHost`, `siteOrigin`, and `hasAccessibilityPage`.
+- Accessibility declaration structured data now exposes explicit accessibility properties (`accessibilitySummary`, `accessibilityFeature`, `accessibilityControl`, `accessMode`) plus a dedicated declaration entity.
 - Redis persistence wiring for showcase entries via Upstash Redis (`@upstash/redis`).
 - New `GET /api/showcase` endpoint with optional filters (`search`, `status`, `category`, `limit`).
 - `.env.example` for Redis configuration.
@@ -44,6 +47,9 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - New public backlink badge asset (`/badge-backlink-annuaire-rgaa.svg`) aligned with Annuaire RGAA branding.
 
 ### Changed
+- Profile pages now model referenced sites as `WebSite` entities instead of `Organization`, link detected accessibility declarations as dedicated `WebPage` nodes, and enrich per-profile datasets with measured variables and reuse metadata.
+- Static `index.html` metadata fallback is now aligned with runtime JSON-LD and advertises the public showcase dataset through alternate discovery links.
+- AI context schema documentation now lists the new public showcase discovery fields (`siteHost`, `siteOrigin`, `hasAccessibilityPage`).
 - Accessibility declaration (`/accessibilite`) now reflects the latest production audit baseline (`20260308-021904`) with the active non-conformity list (`3.3`, `10.10`) and impacted pages.
 - Shared global search form now carries the full homepage search feature set (query, status, category, submit, reset, `Échap`) across homepage and secondary routes (`#moteur-recherche-global`).
 - Homepage duplicate search landmark has been removed; results filtering now follows the single shared header search flow.
