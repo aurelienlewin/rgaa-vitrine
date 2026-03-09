@@ -41,6 +41,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - Tailwind v4.2 accessibility helpers are used where relevant: `wrap-anywhere`, `user-valid` / `user-invalid`, and logical utilities (`start-*`, `ps-*`) to avoid direction-specific custom positioning/padding.
 - Showcase thumbnails are treated as decorative visuals when equivalent textual information is already present in cards.
+- Showcase thumbnails now render in a framed `contain` layout with adaptive light/dark backdrop and dual halo shadowing, so transparent logos remain legible without cover-cropping.
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
 - High-contrast color system tuned for low-vision navigation in both light and dark modes (including stronger visited-link and status semantics).
 - Persistent light/dark mode toggle available on both directory and moderation screens.

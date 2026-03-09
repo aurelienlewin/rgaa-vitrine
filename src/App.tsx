@@ -1450,14 +1450,15 @@ function App() {
                       className="@container overflow-hidden rounded-3xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm shadow-slate-950/5"
                     >
                       <article className="flex h-full flex-col">
-                        <div className="h-44 overflow-hidden border-b border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
+                        <div className="site-thumbnail-frame h-44 overflow-hidden border-b border-slate-200 dark:border-slate-700">
                           {entry.thumbnailUrl ? (
                             <img
                               src={entry.thumbnailUrl}
                               alt=""
                               aria-hidden="true"
-                              className="h-full w-full object-cover"
+                              className="site-thumbnail-image h-full w-full"
                               loading="lazy"
+                              decoding="async"
                               referrerPolicy="no-referrer"
                             />
                           ) : (

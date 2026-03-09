@@ -7,6 +7,9 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+### Changed
+- Showcase thumbnails now render in a framed `contain` layout with adaptive light/dark backdrop and dual halo shadowing, improving contrast for transparent logos and preventing `cover` cropping on directory cards.
+
 ## [2026-03-09]
 
 ### Added
