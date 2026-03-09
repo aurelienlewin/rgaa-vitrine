@@ -243,8 +243,8 @@ Local services:
 
 Dependency maintenance note:
 
-- Patch upgrades currently applied in the lockfile: `@upstash/redis` `1.36.4`, `@eslint/js` `9.39.4`, `eslint` `9.39.4`
-- Remaining upgrades reported by `npm outdated` are major-only or outside the current ranges (`eslint` 10, `@eslint/js` 10, `@types/node` 25, `eslint-plugin-react-refresh` 0.5, `globals` 17)
+- Dependency refresh completed on `2026-03-09`: `@upstash/redis` `1.36.4`, `@eslint/js` `10.0.1`, `eslint` `10.0.3`, `@types/node` `25.3.5`, `eslint-plugin-react-refresh` `0.5.2`, `globals` `17.4.0`
+- `npm outdated` returned no remaining upgrades after the refresh on `2026-03-09`
 
 ## API endpoints
 

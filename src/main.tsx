@@ -61,10 +61,10 @@ if (canUseDom) {
   scheduleCssColorPairsCheck()
 }
 
-const ModerationPage = lazy(() => import('./ModerationPage.tsx'))
-const SiteMapPage = lazy(() => import('./SiteMapPage.tsx'))
-const AccessibilityPage = lazy(() => import('./AccessibilityPage.tsx'))
-const SiteProfilePage = lazy(() => import('./SiteProfilePage.tsx'))
+export const ModerationPage = lazy(() => import('./ModerationPage.tsx'))
+export const SiteMapPage = lazy(() => import('./SiteMapPage.tsx'))
+export const AccessibilityPage = lazy(() => import('./AccessibilityPage.tsx'))
+export const SiteProfilePage = lazy(() => import('./SiteProfilePage.tsx'))
 
 function normalizePathname(pathname: string) {
   if (pathname === '/') {
@@ -80,7 +80,7 @@ const isSiteMapRoute = currentPathname === '/plan-du-site'
 const isAccessibilityRoute = currentPathname === '/accessibilite'
 const isSiteProfileRoute = currentPathname.startsWith('/site/')
 
-const RootComponent = isModerationRoute
+export const RootComponent = isModerationRoute
   ? ModerationPage
   : isSiteMapRoute
     ? SiteMapPage

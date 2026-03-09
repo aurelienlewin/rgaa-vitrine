@@ -358,17 +358,22 @@ function App() {
       return clientVoterIdRef.current
     }
 
-    let voterId = ''
     try {
       const stored = window.localStorage.getItem(CLIENT_VOTER_ID_STORAGE_KEY)
       if (stored && /^[a-zA-Z0-9_-]{16,120}$/.test(stored)) {
-        voterId = stored
-      } else {
-        voterId = createClientVoterId()
-        window.localStorage.setItem(CLIENT_VOTER_ID_STORAGE_KEY, voterId)
+        clientVoterIdRef.current = stored
+        return stored
       }
     } catch {
-      voterId = createClientVoterId()
+      // Fall through to a fresh in-memory identifier.
+    }
+
+    const voterId = createClientVoterId()
+
+    try {
+      window.localStorage.setItem(CLIENT_VOTER_ID_STORAGE_KEY, voterId)
+    } catch {
+      // Keep the generated identifier for the current session even if persistence fails.
     }
 
     clientVoterIdRef.current = voterId
