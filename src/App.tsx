@@ -1452,17 +1452,19 @@ function App() {
                       <article className="flex h-full flex-col">
                         <div className="site-thumbnail-frame h-44 overflow-hidden border-b border-slate-200 dark:border-slate-700">
                           {entry.thumbnailUrl ? (
-                            <img
-                              src={entry.thumbnailUrl}
-                              alt=""
-                              aria-hidden="true"
-                              className="site-thumbnail-image h-full w-full"
-                              loading="lazy"
-                              decoding="async"
-                              referrerPolicy="no-referrer"
-                            />
+                            <div className="site-thumbnail-canvas">
+                              <img
+                                src={entry.thumbnailUrl}
+                                alt=""
+                                aria-hidden="true"
+                                className="site-thumbnail-image h-full w-full"
+                                loading="lazy"
+                                decoding="async"
+                                referrerPolicy="no-referrer"
+                              />
+                            </div>
                           ) : (
-                            <div className="flex h-full items-center justify-center px-3 text-center text-sm text-slate-700 dark:text-slate-200">
+                            <div className="site-thumbnail-canvas flex items-center justify-center px-3 text-center text-sm text-slate-700 dark:text-slate-200">
                               Aucune vignette disponible
                             </div>
                           )}
