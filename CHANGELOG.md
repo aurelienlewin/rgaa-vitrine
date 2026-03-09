@@ -7,6 +7,18 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+## [2026-03-09]
+
+### Added
+- Shared accessibility-statement snapshot module reused across frontend and server code.
+- `ai-context.json` now exposes a machine-readable accessibility-statement snapshot (`complianceStatus`, `complianceScore`, `rgaaBaseline`) for shell-only route discovery.
+
+### Changed
+- Accessibility statement data is now centralized in a shared snapshot reused by `/accessibilite`, `/ai-context.json`, and static metadata fallbacks; pre-analysis can fall back to AI context when a SPA route only exposes stale shell metadata.
+- Static fallback metadata now aligns the published RGAA compliance score with the current accessibility declaration (`96.8`).
+
+## [2026-03-08]
+
 ### Added
 - Homepage structured data now exposes a broader entity graph (`WebPage`, `WebApplication`, `DataCatalog`) around the existing `WebSite` and public showcase dataset.
 - Public showcase metadata now includes discovery-oriented fields: `siteHost`, `siteOrigin`, and `hasAccessibilityPage`.
@@ -49,8 +61,9 @@ Changelog entries are written in English; referenced UI labels remain in French 
 ### Changed
 - Profile pages now model referenced sites as `WebSite` entities instead of `Organization`, link detected accessibility declarations as dedicated `WebPage` nodes, and enrich per-profile datasets with measured variables and reuse metadata.
 - Static `index.html` metadata fallback is now aligned with runtime JSON-LD and advertises the public showcase dataset through alternate discovery links.
-- AI context schema documentation now lists the new public showcase discovery fields (`siteHost`, `siteOrigin`, `hasAccessibilityPage`).
+- AI context schema documentation now lists the new public showcase discovery fields (`siteHost`, `siteOrigin`, `hasAccessibilityPage`) and the service accessibility snapshot used for shell-only route discovery.
 - Accessibility declaration (`/accessibilite`) now reflects the latest production audit baseline (`20260308-021904`) with the active non-conformity list (`3.3`, `10.10`) and impacted pages.
+- Accessibility statement data is now centralized in a shared snapshot reused by `/accessibilite`, `/ai-context.json`, and static metadata fallbacks; pre-analysis can fall back to AI context when a SPA route only exposes stale shell metadata.
 - Shared global search form now carries the full homepage search feature set (query, status, category, submit, reset, `Échap`) across homepage and secondary routes (`#moteur-recherche-global`).
 - Homepage duplicate search landmark has been removed; results filtering now follows the single shared header search flow.
 - Main navigation landmark is now unified as `#navigation-principale` across all pages, and skip links now expose a consistent target to that landmark.

@@ -66,6 +66,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Moderation includes editable site blocklist and vote-blocklist controls, plus a single action to delete and block a published site.
 - Moderation forms strengthen input assistance (`required`, typed URL fields, explicit score guidance) and row-level action labels for assistive technologies.
 - Public accessibility declaration page at `/accessibilite` including compliance status, non-conformity follow-up, technology stack, test environment, tooling, and contact.
+- Accessibility declaration data is centralized in a shared snapshot reused by `/accessibilite` and `/ai-context.json`, reducing score drift between UI and machine-readable discovery.
 - Annuaire listing cards designed for disabled people and accessibility enthusiasts.
 - Directory tiles use a clearer reading hierarchy (status chips, metadata blocks, grouped actions, vote zone) with container-query layout adaptation for mobile and desktop.
 - RGAA awareness sections sourced from official French references.
@@ -192,7 +193,7 @@ Implemented remediation items:
 
 Operational note:
 
-- If you rely on `rgaa:compliance-*` meta hints for your own site, deploy a frontend build that includes those metadata hints before testing submissions.
+- SPA routes can expose stale static `<meta>` hints in the raw HTML shell. Pre-analysis now also consumes `/ai-context.json` when available, so the accessibility declaration score stays discoverable without JavaScript execution.
 
 ## SEO
 
@@ -212,7 +213,7 @@ Operational note:
 - Sitemap includes the public data endpoint (`/api/showcase`) for dataset discovery.
 - Sitemap includes one public URL per referenced site profile (`/site/{slug}`).
 - AI crawler files: `/llms.txt`, `/llms-full.txt`, `/ai-context.json` (and `/api/ai-context`)
-- AI context includes explicit site-profile patterns (`/site/{slug}`), API pattern (`/api/showcase?slug={slug}`), and crawl seed profile URLs.
+- AI context includes explicit site-profile patterns (`/site/{slug}`), API pattern (`/api/showcase?slug={slug}`), crawl seed profile URLs, and a machine-readable accessibility-statement snapshot (`complianceStatus`, `complianceScore`, `rgaaBaseline`).
 - `public/robots.txt`
 - Public showcase API includes cache headers (`Cache-Control`, `Last-Modified`) for crawler efficiency and reduced load.
 - Serverless API adapter normalizes absolute/relative request URLs before Express routing, reducing production fallback mismatches on `/api/*`.
