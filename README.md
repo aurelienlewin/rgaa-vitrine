@@ -224,6 +224,13 @@ Operational note:
 
 ## Getting Started
 
+Toolchain is pinned with Volta and npm metadata in [`package.json`](./package.json):
+
+- Node.js `25.2.1`
+- npm `11.6.2`
+
+If you use Volta locally, entering the project directory is enough to pick the pinned versions automatically.
+
 ```bash
 npm install
 npm run dev
@@ -233,6 +240,11 @@ Local services:
 
 - Frontend: `http://127.0.0.1:5173`
 - API: `http://127.0.0.1:8787`
+
+Dependency maintenance note:
+
+- Patch upgrades currently applied in the lockfile: `@upstash/redis` `1.36.4`, `@eslint/js` `9.39.4`, `eslint` `9.39.4`
+- Remaining upgrades reported by `npm outdated` are major-only or outside the current ranges (`eslint` 10, `@eslint/js` 10, `@types/node` 25, `eslint-plugin-react-refresh` 0.5, `globals` 17)
 
 ## API endpoints
 

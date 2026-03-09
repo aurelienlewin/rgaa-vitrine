@@ -7,7 +7,12 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+### Added
+- Project toolchain is now pinned in `package.json` with `packageManager: npm@11.6.2` and Volta metadata (`node 25.2.1`, `npm 11.6.2`) to keep local installs and audits on an explicit runtime baseline.
+
 ### Changed
+- Patch dependency refresh: `@upstash/redis` `1.36.4`, `@eslint/js` `9.39.4`, and `eslint` `9.39.4`.
+- Accessibility statement technical references now reflect the explicit project toolchain and the currently resolved frontend/runtime stack used for the audited service.
 - Showcase thumbnails now render in a framed `contain` layout with an inner adaptive canvas, improving contrast for transparent logos with dark or light strokes in both themes and preventing `cover` cropping on directory cards.
 
 ## [2026-03-09]

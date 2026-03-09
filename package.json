@@ -3,6 +3,11 @@
   "private": true,
   "version": "0.4.1",
   "type": "module",
+  "packageManager": "npm@11.6.2",
+  "volta": {
+    "node": "25.2.1",
+    "npm": "11.6.2"
+  },
   "scripts": {
     "dev": "concurrently -k \"npm:dev:api\" \"npm:dev:web\"",
     "dev:web": "vite",
@@ -17,7 +22,7 @@
     "@fontsource/lexend": "^5.2.11",
     "@fontsource/opendyslexic": "^5.2.5",
     "@tailwindcss/vite": "^4.2.1",
-    "@upstash/redis": "^1.36.3",
+    "@upstash/redis": "^1.36.4",
     "@vercel/analytics": "^1.6.1",
     "cheerio": "^1.2.0",
     "express": "^5.2.1",
@@ -28,13 +33,13 @@
     "tailwindcss": "^4.2.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
+    "@eslint/js": "^9.39.4",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "concurrently": "^9.2.1",
-    "eslint": "^9.39.1",
+    "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",

@@ -44,16 +44,18 @@ export const accessibilityImplementationTechnologies = [
   'CSS (Tailwind CSS 4.2.1)',
   'JavaScript',
   'TypeScript 5.9.3',
-  'React 19.2.0',
+  'React 19.2.4',
   'Vite 7.3.1',
   'Node.js 25.2.1',
+  'npm 11.6.2 (package manager)',
   'Express 5.2.1',
+  'Upstash Redis 1.36.4 (si configuré)',
 ]
 
 export const accessibilityAuditEnvironment = [
   'macOS 26.3.1 (build 25D2128)',
-  'Node.js 25.2.1',
-  'npm 11.6.2',
+  'Node.js 25.2.1 (baseline Volta du projet)',
+  'npm 11.6.2 (baseline Volta du projet)',
   'Audit exécuté avec Chrome DevTools (voir journal horodaté du 8 mars 2026)',
 ]
 
