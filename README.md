@@ -16,7 +16,7 @@ declared compliance indicators.
 Project documentation (`README`, `CHANGELOG`, release notes) is maintained in English.
 Interface labels remain in French by design for the target audience.
 
-Planned public website: **https://annuaire-rgaa.fr**
+Public website: **https://annuaire-rgaa.fr**
 
 ## Highlights
 
@@ -32,8 +32,8 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Each directory tile includes an explicit RGAA baseline badge (`RGAA 4.1` or `RGAA 5.0 prêt`) with readable explanation text.
 - Submission flow includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
 - Confirmation CTA lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.
-- Duplicate submissions now trigger a dedicated accessible feedback panel (`Site déjà référencé`) with polite live announcement, programmatic focus, dismiss action, and direct moderation contact links.
-- URLs already submitted and still under manual review now trigger a dedicated accessible feedback panel (`Site déjà soumis et en cours de revue`) so users do not repeat the same submission.
+- Duplicate submissions trigger a dedicated accessible feedback panel (`Site déjà référencé`) with polite live announcement, programmatic focus, dismiss action, and direct moderation contact links.
+- URLs already submitted and still under manual review trigger a dedicated accessible feedback panel (`Site déjà soumis et en cours de revue`) so users do not repeat the same submission.
 - Each listed site has a dedicated public profile page (`/site/{slug}`) with shareable metadata and backlink snippet.
 - Profile pages expose stronger SEO/IA signals: dedicated `WebPage` + referenced `WebSite` + `Dataset` structured data, direct API link (`/api/showcase?slug={slug}`), explicit accessibility-statement linking when detected, and related-profile internal linking.
 - Profile pages provide a reusable visual backlink badge (`/badge-backlink-annuaire-rgaa.svg`) plus copy-ready HTML snippets with explicit `alt` and `aria-label`.
@@ -41,7 +41,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
 - Tailwind v4.2 accessibility helpers are used where relevant: `wrap-anywhere`, `user-valid` / `user-invalid`, and logical utilities (`start-*`, `ps-*`) to avoid direction-specific custom positioning/padding.
 - Showcase thumbnails are treated as decorative visuals when equivalent textual information is already present in cards.
-- Showcase thumbnails now render in a framed `contain` layout with an inner adaptive canvas, so transparent logos with dark or light strokes stay legible in both themes without cover-cropping.
+- Showcase thumbnails use a framed `contain` layout with an inner adaptive canvas, so transparent logos with dark or light strokes stay legible in both themes without cover-cropping.
 - User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
 - High-contrast color system tuned for low-vision navigation in both light and dark modes (including stronger visited-link and status semantics).
 - Persistent light/dark mode toggle available on both directory and moderation screens.
@@ -67,7 +67,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Moderation includes editable site blocklist and vote-blocklist controls, plus a single action to delete and block a published site.
 - Moderation forms strengthen input assistance (`required`, typed URL fields, explicit score guidance) and row-level action labels for assistive technologies.
 - Public accessibility declaration page at `/accessibilite` including compliance status, non-conformity follow-up, technology stack, test environment, tooling, and contact.
-- Accessibility declaration data is centralized in a shared snapshot reused by `/accessibilite` and `/ai-context.json`, reducing score drift between UI and machine-readable discovery.
+- Accessibility declaration data comes from a shared snapshot reused by `/accessibilite` and `/ai-context.json`.
 - Annuaire listing cards designed for disabled people and accessibility enthusiasts.
 - Directory tiles use a clearer reading hierarchy (status chips, metadata blocks, grouped actions, vote zone) with container-query layout adaptation for mobile and desktop.
 - RGAA awareness sections sourced from official French references.
@@ -75,7 +75,7 @@ Planned public website: **https://annuaire-rgaa.fr**
 - Tailwind CSS v4 native features used directly (`@theme` tokens + utility-first focus/skip-link patterns).
 - Embedded skills: `rgaa-official-recommendations`, `wcag-22-official-guidelines`.
 - Frontend route bundles are split (`/moderation`, `/plan-du-site`, `/accessibilite`) to reduce initial JavaScript on homepage load.
-- Secondary local fonts (`OpenDyslexic`, `Lexend`) load after first paint (idle callback), keeping critical render path lighter.
+- Secondary local fonts (`OpenDyslexic`, `Lexend`) are deferred after first paint (idle callback).
 
 ## Tech Stack
 
@@ -121,10 +121,10 @@ This enables short-lived server-side caching for Redis-backed listing/moderation
 
 Storage optimization notes:
 
-- Pending lookup no longer persists a separate URL index hash: submission IDs are deterministic from normalized URLs.
-- New writes use compact Redis hash fields and unix timestamps to reduce bytes stored per entry.
+- Submission IDs are deterministic from normalized URLs.
+- Redis writes use compact hash fields and unix timestamps to reduce bytes stored per entry.
 - Vote fingerprint tokens are stored as short hashed tokens (`h:*`) to reduce set memory usage.
-- Backward compatibility is preserved for previously stored legacy records and vote tokens.
+- Legacy records and vote tokens remain supported.
 
 Optional vote hardening setting:
 
@@ -169,46 +169,27 @@ The UI adapts automatically to operating-system and browser accessibility prefer
 - Increased contrast (`prefers-contrast: more`)
 - Forced colors / high-contrast modes (`forced-colors: active`)
 
-## Accessibility Implementation Traceability
+## Accessibility
 
-Production audit scope covered:
-
-- `/` (home)
-- `/plan-du-site`
-- `/accessibilite`
-- `/site/{slug}`
-
-Non-conform criteria identified in that baseline:
-
-- `3.3` insufficient contrast on one informative graphic in homepage header
-- `10.10` positional-only wording on accessibility declaration
-
-Implemented remediation items:
-
-- Single shared search form retained in page header (`#moteur-recherche-global`) and homepage duplicate search landmark removed.
-- Homepage search features (query + status + category + submit + reset + keyboard `Échap`) run through the shared header form.
-- Main navigation landmark is consistent across all pages (`#navigation-principale`) and skip links target it explicitly.
-- Homepage logo contrast has been reinforced (dark/light background + border) to address criterion `3.3`.
-- Positional wording has been replaced by explicit section wording on `/accessibilite` to address criterion `10.10`.
-- All dynamic status/error announcements remain localized in French with `aria-live` channels (`polite` and `assertive`).
-
-Operational note:
-
-- SPA routes can expose stale static `<meta>` hints in the raw HTML shell. Pre-analysis now also consumes `/ai-context.json` when available, so the accessibility declaration score stays discoverable without JavaScript execution.
+- Public accessibility declaration: `/accessibilite`
+- Machine-readable accessibility snapshot: `/ai-context.json`
+- Public pages explicitly covered by the declaration include `/`, `/plan-du-site`, `/accessibilite`, and `/site/{slug}`.
+- Dynamic status and error feedback uses localized French live regions (`aria-live="polite"` and `aria-live="assertive"`).
+- Accessibility implementation references are listed in the `Accessibility Sources Embedded` section below.
 
 ## SEO
 
 - Rich metadata: description, robots, canonical, hreflang
 - Legacy `.org` host redirects at edge to `annuaire-rgaa.fr` to avoid duplicate indexing.
 - Open Graph + Twitter Cards
-- Structured data (JSON-LD) on homepage now combines `WebSite`, `WebPage`, `WebApplication`, `Organization`, `Person`, `CollectionPage`, `DataCatalog`, and `Dataset`.
+- Structured data (JSON-LD) on homepage combines `WebSite`, `WebPage`, `WebApplication`, `Organization`, `Person`, `CollectionPage`, `DataCatalog`, and `Dataset`.
 - Structured data exposes `SearchAction` on homepage, `BreadcrumbList` on key secondary pages, and richer `Dataset` semantics (`variableMeasured`, `measurementTechnique`, distributions).
 - Profile pages publish a referenced-site `WebSite`, a per-profile `Dataset`, and a dedicated accessibility-statement `WebPage` node when a declaration URL is known.
 - Static `index.html` keeps a stronger metadata fallback graph so non-hydrated crawlers still discover the main site entities and dataset endpoint.
 - Accessible public site map page: `/plan-du-site`
 - Site map page lists an extract of published `/site/{slug}` links to strengthen crawlable internal discovery.
 - Public accessibility declaration page: `/accessibilite`
-- Accessibility declaration structured data now includes accessibility-specific properties (`accessibilitySummary`, `accessibilityFeature`, `accessibilityControl`, `accessMode`).
+- Accessibility declaration structured data includes accessibility-specific properties (`accessibilitySummary`, `accessibilityFeature`, `accessibilityControl`, `accessMode`).
 - Auto-generated sitemap endpoint: `/sitemap.xml` (backed by API route `/api/sitemap`)
 - `sitemap.xml` is served without caching (`no-store`) so published entries appear immediately after submission/moderation.
 - Sitemap includes the public data endpoint (`/api/showcase`) for dataset discovery.
