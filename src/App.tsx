@@ -1462,6 +1462,8 @@ function App() {
               <img
                 src="/logo-rgaa-vitrine.svg"
                 alt="Icône Annuaire RGAA"
+                width={112}
+                height={112}
                 className="h-28 w-28 flex-none rounded-2xl border-2 border-slate-800 dark:border-slate-200 bg-slate-900 dark:bg-slate-100 p-2"
                 loading="eager"
               />

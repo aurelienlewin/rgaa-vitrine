@@ -14,6 +14,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Dependency refresh: `@upstash/redis` `1.36.4`, `@eslint/js` `9.39.4`, `eslint` `9.39.4`, `@types/node` `25.3.5`, `eslint-plugin-react-refresh` `0.5.2`, and `globals` `17.4.0`.
 - Kept ESLint on the `9.x` line so clean installs remain compatible with `eslint-plugin-react-hooks` `7.0.1`, including Vercel `npm install` runs.
 - Accessibility statement technical references now reflect the explicit project toolchain and the currently resolved frontend/runtime stack used for the audited service.
+- Homepage logo and footer GitHub avatar now declare intrinsic `width`/`height`, which reserves layout space earlier and reduces CLS without changing semantics, labels, or keyboard flow.
 - Showcase thumbnails now render in a framed `contain` layout with an inner adaptive canvas, improving contrast for transparent logos with dark or light strokes in both themes and preventing `cover` cropping on directory cards.
 - Submission error feedback on the homepage now prioritizes short French user guidance, moves focus to a dismissable alert panel, and keeps raw technical diagnostics behind an explicit expandable disclosure.
 - Site analysis now caches host-validation lookups during a single run, only follows `ai-context` when the target site explicitly advertises it, and reuses short-lived preview results during final confirmation to avoid duplicate remote fetches.

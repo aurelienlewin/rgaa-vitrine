@@ -52,6 +52,7 @@ Public website: **https://annuaire-rgaa.fr**
 - Discreet footer build stamp (`version + UTC timestamp`) helps detect stale cache quickly.
 - Footer version resolves from release tags first (with package version fallback) to stay aligned with published GitHub releases.
 - Footer uses a clearer three-column information architecture (French UI labels: `Projet`, `Navigation rapide`, `Soutien`) on large screens.
+- Header logo and footer avatar declare explicit intrinsic image dimensions to reserve layout space early and reduce CLS without altering French accessible names.
 - All pages share a consistent top `navigation principale` landmark (French UI label) and the same global footer.
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
 - Route lazy-loading fallback is announced as status (`aria-live="polite"`) to avoid silent loading states.

@@ -44,6 +44,8 @@ function SiteFooter({ id = 'pied-page', footerRef, helpHref = '/#aide-accessibil
             <img
               src={githubProfile.avatarUrl}
               alt={`Avatar GitHub de ${githubProfile.name}`}
+              width={48}
+              height={48}
               className="h-12 w-12 rounded-full border border-slate-300 dark:border-slate-600"
               loading="lazy"
               referrerPolicy="no-referrer"
