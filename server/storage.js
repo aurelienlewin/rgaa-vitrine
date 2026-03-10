@@ -11,6 +11,7 @@ const VOTE_BLOCKLIST_KEY = 'rgaa:vitrine:moderation:blocklist:votes'
 const PENDING_INDEX_KEY = 'rgaa:vitrine:moderation:pending:index'
 const PENDING_ENTRY_PREFIX = 'rgaa:vitrine:moderation:pending:'
 const PENDING_BY_URL_HASH_KEY = 'rgaa:vitrine:moderation:pending:by-url'
+const GITHUB_NOTIFY_WINDOW_KEY_PREFIX = 'rgaa:vitrine:notifications:github:window:'
 const MAX_STORED_ENTRIES = 500
 const MAX_PENDING_STORED_ENTRIES = 2000
 const MAX_LIST_LIMIT = MAX_STORED_ENTRIES
@@ -787,6 +788,7 @@ class InMemoryShowcaseStorage {
     this.siteBlocklist = new Set()
     this.voteBlocklist = new Set()
     this.slugRedirectsBySlug = new Map()
+    this.githubNotificationCountByWindow = new Map()
   }
 
   async upsert(entry) {
@@ -975,6 +977,25 @@ class InMemoryShowcaseStorage {
     }
 
     return entry
+  }
+
+  async reserveGithubNotificationSlot({ limit, windowMs }) {
+    const currentWindow = Math.floor(Date.now() / windowMs)
+
+    for (const bucket of this.githubNotificationCountByWindow.keys()) {
+      if (bucket !== currentWindow) {
+        this.githubNotificationCountByWindow.delete(bucket)
+      }
+    }
+
+    const nextCount = (this.githubNotificationCountByWindow.get(currentWindow) ?? 0) + 1
+    this.githubNotificationCountByWindow.set(currentWindow, nextCount)
+
+    return {
+      allowed: nextCount <= limit,
+      remaining: Math.max(0, limit - nextCount),
+      resetAt: new Date((currentWindow + 1) * windowMs).toISOString(),
+    }
   }
 
   async getPendingById(submissionId) {
@@ -1691,6 +1712,28 @@ class UpstashShowcaseStorage {
     } catch (error) {
       console.error('Redis upsertPending failed', error)
       throw new ShowcaseStorageError('Échec de persistance de la file de modération.', 503)
+    }
+  }
+
+  async reserveGithubNotificationSlot({ limit, windowMs }) {
+    const currentWindow = Math.floor(Date.now() / windowMs)
+    const key = `${GITHUB_NOTIFY_WINDOW_KEY_PREFIX}${currentWindow}`
+    const ttlSeconds = Math.max(1, Math.ceil(windowMs / 1000) + 60)
+
+    try {
+      const nextCount = await this.redis.incr(key)
+      if (nextCount === 1) {
+        await this.redis.expire(key, ttlSeconds)
+      }
+
+      return {
+        allowed: nextCount <= limit,
+        remaining: Math.max(0, limit - nextCount),
+        resetAt: new Date((currentWindow + 1) * windowMs).toISOString(),
+      }
+    } catch (error) {
+      console.error('Redis reserveGithubNotificationSlot failed', error)
+      throw new ShowcaseStorageError('Protection anti-abus des notifications indisponible.', 503)
     }
   }
 

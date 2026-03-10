@@ -142,6 +142,10 @@ function markdownEscapeInline(value) {
     .trim()
 }
 
+function neutralizeGithubMentions(value) {
+  return String(value).replace(/@/g, '@\u200b')
+}
+
 function compactText(value) {
   return String(value).replace(/\s+/g, ' ').trim()
 }
@@ -173,17 +177,26 @@ async function readJsonSafely(response) {
 }
 
 function buildIssuePayload(entry) {
-  const shortSubmissionId = truncate(markdownEscapeInline(entry.submissionId), 18)
-  const safeTitle = truncate(markdownEscapeInline(compactText(entry.siteTitle || 'Site sans titre')), 90)
-  const safeUrl = truncate(markdownEscapeInline(compactText(entry.normalizedUrl || 'N/A')), 250)
-  const safeCategory = truncate(markdownEscapeInline(compactText(entry.category || 'Autre')), 40)
-  const safeStatus = truncate(markdownEscapeInline(compactText(entry.complianceStatusLabel || 'Niveau inconnu')), 80)
+  const shortSubmissionId = truncate(markdownEscapeInline(neutralizeGithubMentions(entry.submissionId)), 18)
+  const safeTitle = truncate(markdownEscapeInline(neutralizeGithubMentions(compactText(entry.siteTitle || 'Site sans titre'))), 90)
+  const safeUrl = truncate(markdownEscapeInline(neutralizeGithubMentions(compactText(entry.normalizedUrl || 'N/A'))), 250)
+  const safeCategory = truncate(markdownEscapeInline(neutralizeGithubMentions(compactText(entry.category || 'Autre'))), 40)
+  const safeStatus = truncate(
+    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.complianceStatusLabel || 'Niveau inconnu'))),
+    80,
+  )
   const safeScore =
     typeof entry.complianceScore === 'number' && Number.isFinite(entry.complianceScore)
       ? `${entry.complianceScore}%`
       : 'N/A'
-  const safeReason = truncate(markdownEscapeInline(compactText(entry.reviewReason || 'Non précisé')), 300)
-  const safeCreatedAt = truncate(markdownEscapeInline(compactText(entry.createdAt || new Date().toISOString())), 80)
+  const safeReason = truncate(
+    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.reviewReason || 'Non précisé'))),
+    300,
+  )
+  const safeCreatedAt = truncate(
+    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.createdAt || new Date().toISOString()))),
+    80,
+  )
   const moderationUrl = githubNotifierConfig?.appBaseUrl
     ? `${githubNotifierConfig.appBaseUrl}/moderation`
     : '/moderation'

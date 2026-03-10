@@ -9,10 +9,12 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ### Added
 - Project toolchain is now pinned in `package.json` with `packageManager: npm@11.6.2` and Volta metadata (`node 25.2.1`, `npm 11.6.2`) to keep local installs and audits on an explicit runtime baseline.
+- GitHub-native moderation notifications now support optional per-window anti-abuse limits via `GITHUB_NOTIFY_MAX_PER_WINDOW` and `GITHUB_NOTIFY_WINDOW_SECONDS`.
 
 ### Changed
 - Dependency refresh: `@upstash/redis` `1.36.4`, `@eslint/js` `9.39.4`, `eslint` `9.39.4`, `@types/node` `25.3.5`, `eslint-plugin-react-refresh` `0.5.2`, and `globals` `17.4.0`.
 - Kept ESLint on the `9.x` line so clean installs remain compatible with `eslint-plugin-react-hooks` `7.0.1`, including Vercel `npm install` runs.
+- GitHub moderation issue payloads now neutralize GitHub mentions from submitted site metadata, and notifier issue creation is throttled per time window so public pending submissions cannot fan out into unbounded issue spam while still staying in the moderation queue.
 - Accessibility statement technical references now reflect the explicit project toolchain and the currently resolved frontend/runtime stack used for the audited service.
 - Homepage logo and footer GitHub avatar now declare intrinsic `width`/`height`, which reserves layout space earlier and reduces CLS without changing semantics, labels, or keyboard flow.
 - Homepage bootstrap no longer scans live stylesheets or mutates DOM class/style pairs after first paint; the text/background fallback guard is now CSS-only, reducing startup recalculation pressure while preserving contrast-safe defaults.

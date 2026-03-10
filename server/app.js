@@ -48,6 +48,12 @@ const ARCHIVE_INTEGRITY_ALGORITHM = 'hmac-sha256'
 const MIN_ARCHIVE_SIGNING_SECRET_LENGTH = 32
 const SITE_INSIGHT_PREVIEW_CACHE_TTL_MS = 10 * 60 * 1000
 const SITE_INSIGHT_PREVIEW_CACHE_MAX_ENTRIES = 200
+const DEFAULT_GITHUB_NOTIFY_WINDOW_SECONDS = 60 * 60
+const MIN_GITHUB_NOTIFY_WINDOW_SECONDS = 60
+const MAX_GITHUB_NOTIFY_WINDOW_SECONDS = 24 * 60 * 60
+const DEFAULT_GITHUB_NOTIFY_MAX_PER_WINDOW = 12
+const MIN_GITHUB_NOTIFY_MAX_PER_WINDOW = 1
+const MAX_GITHUB_NOTIFY_MAX_PER_WINDOW = 200
 const PUBLIC_SUBMISSION_CATEGORY_FALLBACK = 'Autre'
 const PUBLIC_SUBMISSION_CATEGORIES = [
   'Administration',
@@ -67,6 +73,7 @@ PUBLIC_SUBMISSION_CATEGORY_BY_NORMALIZED.set(
   'Coopérative et services',
 )
 const siteInsightPreviewCache = new Map()
+const githubNotificationQuota = readGithubNotificationQuota()
 
 app.disable('x-powered-by')
 app.set('trust proxy', false)
@@ -93,6 +100,39 @@ function readArchiveSigningSecret() {
 
   const trimmed = rawValue.trim()
   return trimmed || null
+}
+
+function parseBoundedInteger(rawValue, fallback, { min, max }) {
+  const parsed = Number.parseInt(String(rawValue ?? ''), 10)
+  if (Number.isNaN(parsed)) {
+    return fallback
+  }
+
+  return Math.min(Math.max(parsed, min), max)
+}
+
+function readGithubNotificationQuota() {
+  const windowSeconds = parseBoundedInteger(
+    process.env.GITHUB_NOTIFY_WINDOW_SECONDS,
+    DEFAULT_GITHUB_NOTIFY_WINDOW_SECONDS,
+    {
+      min: MIN_GITHUB_NOTIFY_WINDOW_SECONDS,
+      max: MAX_GITHUB_NOTIFY_WINDOW_SECONDS,
+    },
+  )
+  const maxPerWindow = parseBoundedInteger(
+    process.env.GITHUB_NOTIFY_MAX_PER_WINDOW,
+    DEFAULT_GITHUB_NOTIFY_MAX_PER_WINDOW,
+    {
+      min: MIN_GITHUB_NOTIFY_MAX_PER_WINDOW,
+      max: MAX_GITHUB_NOTIFY_MAX_PER_WINDOW,
+    },
+  )
+
+  return {
+    windowMs: windowSeconds * 1000,
+    maxPerWindow,
+  }
 }
 
 function isStrongArchiveSigningSecret(secret) {
@@ -1108,7 +1148,18 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
 
       if (isGithubNotifierEnabled()) {
         try {
-          await notifyPendingModerationOnGithub(savedPendingSubmission)
+          const notificationSlot = await showcaseStorage.reserveGithubNotificationSlot({
+            limit: githubNotificationQuota.maxPerWindow,
+            windowMs: githubNotificationQuota.windowMs,
+          })
+
+          if (!notificationSlot.allowed) {
+            console.warn(
+              `GitHub moderation notification skipped: quota reached until ${notificationSlot.resetAt}.`,
+            )
+          } else {
+            await notifyPendingModerationOnGithub(savedPendingSubmission)
+          }
         } catch (notificationError) {
           console.error('GitHub moderation notification failed', notificationError)
         }

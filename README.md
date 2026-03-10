@@ -413,6 +413,8 @@ Optional:
 
 ```bash
 GITHUB_NOTIFY_LABELS=moderation,annuaire-rgaa
+GITHUB_NOTIFY_MAX_PER_WINDOW=12
+GITHUB_NOTIFY_WINDOW_SECONDS=3600
 PUBLIC_APP_URL=https://annuaire-rgaa.fr
 # For GitHub Enterprise/API proxy only (must be public HTTPS, no localhost/private hosts)
 # GITHUB_API_URL=https://github.example.com/api/v3
@@ -421,6 +423,8 @@ PUBLIC_APP_URL=https://annuaire-rgaa.fr
 Behavior:
 
 - On new `pending` moderation submission, the API creates one GitHub issue in `GITHUB_NOTIFY_REPO`.
+- Notification issue content neutralizes GitHub mentions from submitted site metadata before issue creation.
+- GitHub issue creation is rate-limited per time window; over-quota submissions still stay in pending moderation, but no new issue is created.
 - GitHub notifications are then handled natively by your repo notification settings.
 - Notification failure does not block user submission flow.
 - The notifier does not read `GITHUB_TOKEN`; use `GITHUB_NOTIFY_TOKEN` or `RGAA_NOTIFY_TOKEN` explicitly.
