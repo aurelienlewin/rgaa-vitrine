@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { normalizeDomainContext } from './domainGroups'
+import {
+  focusElementWithScroll,
+  focusTargetClass,
+  focusTargetScrollMarginClass,
+  useHashTargetFocus,
+} from './hashNavigation'
 import { applySeo } from './seo'
 import SecondaryPageHeader from './SecondaryPageHeader'
 import SiteFooter from './SiteFooter'
@@ -405,12 +411,9 @@ function ModerationPage() {
   }, [publishedEntries])
 
   const focusElement = useCallback((element: HTMLElement | null) => {
-    if (!element) {
-      return
-    }
-    element.focus({ preventScroll: true })
-    element.scrollIntoView({ block: 'start' })
+    focusElementWithScroll(element)
   }, [])
+  useHashTargetFocus(focusElement)
 
   const focusMain = useCallback(() => {
     focusElement(mainRef.current)
@@ -1431,7 +1434,7 @@ function ModerationPage() {
           id="contenu-moderation"
           ref={mainRef}
           tabIndex={-1}
-          className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8"
+          className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
         >
           <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
             <h2 className="text-lg font-semibold">Authentification modérateur</h2>
@@ -1536,7 +1539,7 @@ function ModerationPage() {
                 id="archive-donnees"
                 ref={archiveRef}
                 tabIndex={-1}
-                className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
+                className={`mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                 aria-labelledby="archive-donnees-titre"
               >
                 <h2 id="archive-donnees-titre" className="text-lg font-semibold">
@@ -1841,7 +1844,7 @@ function ModerationPage() {
                 id="annuaire-publie"
                 ref={publishedRef}
                 tabIndex={-1}
-                className="mt-8"
+                className={`mt-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                 aria-busy={isLoadingPublished}
               >
             <h2 className="text-lg font-semibold">Annuaire publié (édition et suppression)</h2>
@@ -2180,7 +2183,7 @@ function ModerationPage() {
                 id="blocklist-sites"
                 ref={siteBlocklistSectionRef}
                 tabIndex={-1}
-                className="mt-8 rounded-2xl border border-rose-200 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-6"
+                className={`mt-8 rounded-2xl border border-rose-200 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                 aria-labelledby="blocklist-sites-titre"
               >
             <h2 id="blocklist-sites-titre" className="text-lg font-semibold text-rose-900 dark:text-rose-100">
@@ -2249,7 +2252,7 @@ function ModerationPage() {
                 id="blocklist-votes"
                 ref={voteBlocklistSectionRef}
                 tabIndex={-1}
-                className="mt-8 rounded-2xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-6"
+                className={`mt-8 rounded-2xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                 aria-labelledby="blocklist-votes-titre"
               >
             <h2 id="blocklist-votes-titre" className="text-lg font-semibold text-amber-900 dark:text-amber-100">

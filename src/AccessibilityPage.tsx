@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
 import { applySeo, createAbsoluteUrl } from './seo'
+import {
+  focusElementWithScroll,
+  focusTargetClass,
+  focusTargetScrollMarginClass,
+  useHashTargetFocus,
+} from './hashNavigation'
 import SecondaryPageHeader from './SecondaryPageHeader'
 import SiteFooter from './SiteFooter'
 import {
@@ -26,12 +32,7 @@ function AccessibilityPage() {
   const footerRef = useRef<HTMLElement | null>(null)
 
   const focusElement = useCallback((element: HTMLElement | null) => {
-    if (!element) {
-      return
-    }
-
-    element.focus({ preventScroll: true })
-    element.scrollIntoView({ block: 'start' })
+    focusElementWithScroll(element)
   }, [])
 
   const handleSkipLinkClick = useCallback(
@@ -133,6 +134,7 @@ function AccessibilityPage() {
       },
     })
   }, [])
+  useHashTargetFocus(focusElement)
 
   return (
     <>
@@ -180,7 +182,7 @@ function AccessibilityPage() {
           id="contenu-accessibilite"
           ref={mainRef}
           tabIndex={-1}
-          className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8"
+          className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
         >
           <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
             <h2 className="text-xl font-semibold">État actuel</h2>
@@ -226,7 +228,7 @@ function AccessibilityPage() {
             id="non-conformites"
             ref={reportRef}
             tabIndex={-1}
-            className="mt-8 rounded-2xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-6"
+            className={`mt-8 ${focusTargetScrollMarginClass} rounded-2xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-6 ${focusTargetClass}`}
             aria-labelledby="non-conformites-titre"
           >
             <h2 id="non-conformites-titre" className="text-xl font-semibold text-amber-900 dark:text-amber-100">
@@ -294,7 +296,7 @@ function AccessibilityPage() {
             id="contact-accessibilite"
             ref={contactRef}
             tabIndex={-1}
-            className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
+            className={`mt-8 ${focusTargetScrollMarginClass} rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetClass}`}
             aria-labelledby="contact-titre"
           >
             <h2 id="contact-titre" className="text-xl font-semibold">
@@ -340,7 +342,7 @@ function AccessibilityPage() {
             id="voies-recours"
             ref={legalRef}
             tabIndex={-1}
-            className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
+            className={`mt-8 ${focusTargetScrollMarginClass} rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetClass}`}
             aria-labelledby="recours-titre"
           >
             <h2 id="recours-titre" className="text-xl font-semibold">

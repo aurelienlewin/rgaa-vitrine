@@ -9,6 +9,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ### Fixed
 - `/plan-du-site` now exposes direct skip links to every major link block on the page and labels its discovery resources as landmarks, keeping keyboard navigation aligned with the latest RGAA/WCAG 2.2 review checklist used in the project skills.
+- Fragment links now move focus to the targeted landmark/section on route load and `hashchange`, with visible focus styling on shared search, primary navigation, footer, and hash-targeted sections across homepage, site map, accessibility, profile, domain, and moderation pages.
 - Dark-mode search/help text now stays contrast-safe from the first SSR paint on public detail pages: the critical secondary-header CSS now styles the keyboard helper and search placeholders in dark mode before hydration, avoiding low-contrast flashes on slow connections.
 
 ### Changed

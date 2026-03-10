@@ -3,6 +3,12 @@ import type { FormEvent, MouseEvent as ReactMouseEvent, RefObject } from 'react'
 import ThemeToggle from './ThemeToggle'
 import type { DomainContext, DomainStatusSummary } from './domainGroups'
 import { resolveDomainGroupPath, normalizeDomainContext } from './domainGroups'
+import {
+  focusElementWithScroll,
+  focusTargetClass,
+  focusTargetScrollMarginClass,
+  useHashTargetFocus,
+} from './hashNavigation'
 import { applySeo, createAbsoluteUrl } from './seo'
 import { resolveShowcaseProfilePath } from './siteProfiles'
 import SiteFooter from './SiteFooter'
@@ -711,11 +717,7 @@ function App() {
   }, [])
 
   const focusElement = useCallback((element: HTMLElement | null) => {
-    if (!element) {
-      return
-    }
-    element.focus({ preventScroll: true })
-    element.scrollIntoView({ block: 'start' })
+    focusElementWithScroll(element)
   }, [])
 
   const handleSkipLinkClick = useCallback(
@@ -732,6 +734,7 @@ function App() {
     },
     [focusElement],
   )
+  useHashTargetFocus(focusElement)
 
   const syncFiltersInUrl = useCallback((filters: { query: string; status: ShowcaseStatusFilter; category: string }) => {
     if (typeof window === 'undefined') {
@@ -1823,7 +1826,7 @@ function App() {
           </div>
         </header>
 
-        <main id="contenu" ref={mainContentRef} tabIndex={-1} className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <main id="contenu" ref={mainContentRef} tabIndex={-1} className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}>
           <section aria-labelledby="annuaire-titre" className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
             <h2 id="annuaire-titre" className="text-xl font-semibold">
               Annuaire
@@ -1856,7 +1859,7 @@ function App() {
             id="resultats-annuaire"
             ref={directorySectionRef}
             tabIndex={-1}
-            className="mt-8"
+            className={`mt-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
             aria-labelledby="galerie-titre"
             aria-busy={loadingDirectory}
           >
@@ -1957,7 +1960,7 @@ function App() {
             )}
 
             {filteredDirectoryItems.length > 0 && (
-              <ul id="liste-vitrines" className="mt-4 grid gap-5 md:grid-cols-2">
+              <ul id="liste-vitrines" tabIndex={-1} className={`mt-4 grid gap-5 md:grid-cols-2 ${focusTargetScrollMarginClass} ${focusTargetClass}`}>
                 {visibleDirectoryItems.map((item) => {
                   if (item.kind === 'group') {
                     const primaryEntry = item.primaryEntry ?? item.children[0] ?? null
@@ -2279,7 +2282,7 @@ function App() {
             id="aide-accessibilite"
             ref={helpSectionRef}
             tabIndex={-1}
-            className="mt-8 rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-6"
+            className={`mt-8 rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
             aria-labelledby="aide-titre"
           >
             <h2 id="aide-titre" className="text-xl font-semibold text-sky-900 dark:text-sky-100">
@@ -2313,7 +2316,7 @@ function App() {
             id="ajout-site"
             ref={formSectionRef}
             tabIndex={-1}
-            className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
+            className={`mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetScrollMarginClass} ${focusTargetClass}`}
             aria-labelledby="formulaire-titre"
           >
             <h2 id="formulaire-titre" className="text-xl font-semibold">
@@ -2708,7 +2711,7 @@ function App() {
             )}
           </section>
 
-          <section className="mt-8" aria-labelledby="sources-titre">
+          <section id="ressources-officielles" tabIndex={-1} className={`mt-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`} aria-labelledby="sources-titre">
             <h2 id="sources-titre" className="text-xl font-semibold">
               Ressources officielles RGAA
             </h2>

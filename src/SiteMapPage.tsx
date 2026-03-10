@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
 import { normalizeDomainGroup, type DomainGroup } from './domainGroups'
+import {
+  focusElementWithScroll,
+  focusTargetClass,
+  focusTargetScrollMarginClass,
+  useHashTargetFocus,
+} from './hashNavigation'
 import { applySeo, createAbsoluteUrl } from './seo'
 import { resolveShowcaseProfilePath } from './siteProfiles'
 import SecondaryPageHeader from './SecondaryPageHeader'
@@ -63,7 +69,7 @@ const directorySections: SiteLink[] = [
     description: 'Repères WCAG 2.2 et ressources officielles.',
   },
   {
-    href: '/#sources-titre',
+    href: '/#ressources-officielles',
     label: 'Ressources officielles RGAA',
     description: 'Liens de référence pour les équipes design et développement.',
   },
@@ -192,11 +198,7 @@ function SiteMapPage() {
   const footerRef = useRef<HTMLElement | null>(null)
 
   const focusElement = useCallback((element: HTMLElement | null) => {
-    if (!element) {
-      return
-    }
-    element.focus({ preventScroll: true })
-    element.scrollIntoView({ block: 'start' })
+    focusElementWithScroll(element)
   }, [])
 
   const handleSkipLinkClick = useCallback(
@@ -309,6 +311,7 @@ function SiteMapPage() {
       cancelled = true
     }
   }, [announcePolite])
+  useHashTargetFocus(focusElement)
 
   const profileLinksForSeo = useMemo(
     () => profileEntries.slice(0, 30).map((entry) => createAbsoluteUrl(entry.profilePath ?? '/')),
@@ -498,14 +501,14 @@ function SiteMapPage() {
           id="contenu-plan"
           ref={mainContentRef}
           tabIndex={-1}
-          className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8"
+          className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
         >
           <nav
             id="pages-principales-plan"
             ref={siteMapSectionsRef}
             tabIndex={-1}
             aria-labelledby="pages-principales-titre"
-            className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
+            className={`rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetScrollMarginClass} ${focusTargetClass}`}
           >
             <h2 id="pages-principales-titre" className="text-xl font-semibold">
               Pages principales
@@ -533,7 +536,7 @@ function SiteMapPage() {
             ref={homeSectionsRef}
             tabIndex={-1}
             aria-labelledby="sections-annuaire-titre"
-            className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
+            className={`mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetScrollMarginClass} ${focusTargetClass}`}
           >
             <h2 id="sections-annuaire-titre" className="text-xl font-semibold">
               Sections de la page d’accueil
@@ -561,7 +564,7 @@ function SiteMapPage() {
             ref={profileSectionRef}
             tabIndex={-1}
             aria-labelledby="fiches-publiques-titre"
-            className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
+            className={`mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetScrollMarginClass} ${focusTargetClass}`}
             aria-busy={isLoadingProfiles || isLoadingDomainGroups}
           >
             <h2 id="fiches-publiques-titre" className="text-xl font-semibold">
@@ -654,7 +657,7 @@ function SiteMapPage() {
             ref={technicalResourcesRef}
             tabIndex={-1}
             aria-labelledby="liens-techniques-titre"
-            className="mt-8 rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-6"
+            className={`mt-8 rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
           >
             <h2 id="liens-techniques-titre" className="text-xl font-semibold text-sky-900 dark:text-sky-100">
               Ressources techniques et données publiques

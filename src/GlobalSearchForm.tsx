@@ -1,4 +1,5 @@
 import type { ChangeEvent, FormEvent, KeyboardEvent, RefObject } from 'react'
+import { focusTargetClass, focusTargetScrollMarginClass } from './hashNavigation'
 import { showcaseStatusFilterLabels } from './showcaseFilters'
 import type { ShowcaseStatusFilter } from './showcaseFilters'
 
@@ -90,12 +91,13 @@ function GlobalSearchForm({
   return (
     <form
       id={id}
+      tabIndex={-1}
       action={action}
       method="get"
       role="search"
       aria-label="Recherche globale dans l’annuaire"
       onSubmit={onSubmit}
-      className={`app-global-search-form @container mt-4 rounded-2xl border border-slate-600 dark:border-slate-500 bg-slate-50 dark:bg-slate-800 p-4 shadow-sm ${className}`.trim()}
+      className={`app-global-search-form @container mt-4 ${focusTargetScrollMarginClass} rounded-2xl border border-slate-600 dark:border-slate-500 bg-slate-50 dark:bg-slate-800 p-4 shadow-sm ${focusTargetClass} ${className}`.trim()}
     >
       <div className="app-global-search-form__grid grid grid-cols-1 gap-4 @md:grid-cols-2 @lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto] @lg:items-end">
         <div className="app-global-search-form__field app-global-search-form__field--search">

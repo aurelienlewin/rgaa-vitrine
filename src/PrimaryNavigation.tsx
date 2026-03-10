@@ -1,4 +1,5 @@
 import type { RefObject } from 'react'
+import { focusTargetClass, focusTargetScrollMarginClass } from './hashNavigation'
 
 type PrimaryNavigationPath = '/' | '/plan-du-site' | '/accessibilite' | '/moderation'
 
@@ -40,7 +41,7 @@ function PrimaryNavigation({
       ref={navRef}
       tabIndex={-1}
       aria-label="Navigation principale"
-      className={className}
+      className={`${focusTargetScrollMarginClass} ${focusTargetClass} ${className}`.trim()}
     >
       <ul className={listClassName}>
         {navLinks.map((link) => (

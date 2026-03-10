@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
 import { normalizeDomainContext } from './domainGroups'
+import {
+  focusElementWithScroll,
+  focusTargetClass,
+  focusTargetScrollMarginClass,
+  useHashTargetFocus,
+} from './hashNavigation'
 import { preloadRouteApi, readPreloadedRouteApi, type RouteApiResult } from './routeData'
 import { applySeo, createAbsoluteUrl } from './seo'
 import { readSiteSlugFromPath, resolveShowcaseProfilePath } from './siteProfiles'
@@ -268,11 +274,7 @@ function SiteProfilePage() {
   const [isLoading, setIsLoading] = useState(initialResolvedState.isLoading)
 
   const focusElement = useCallback((element: HTMLElement | null) => {
-    if (!element) {
-      return
-    }
-    element.focus({ preventScroll: true })
-    element.scrollIntoView({ block: 'start' })
+    focusElementWithScroll(element)
   }, [])
 
   const handleSkipLinkClick = useCallback(
@@ -289,6 +291,7 @@ function SiteProfilePage() {
     },
     [focusElement],
   )
+  useHashTargetFocus(focusElement)
 
   const resolvedSlug = useMemo(() => {
     if (entry) {
@@ -758,7 +761,7 @@ function SiteProfilePage() {
           id="contenu-fiche"
           ref={mainRef}
           tabIndex={-1}
-          className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8"
+          className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
           aria-busy={isLoading}
         >
           {isLoading && <p role="status" aria-live="polite">Chargement de la fiche en cours...</p>}
@@ -820,7 +823,7 @@ function SiteProfilePage() {
                   id="meme-domaine"
                   ref={sameDomainSectionRef}
                   tabIndex={-1}
-                  className="mt-6 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4"
+                  className={`mt-6 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                   aria-labelledby="meme-domaine-titre"
                 >
                   <h3 id="meme-domaine-titre" className="text-lg font-semibold text-sky-900 dark:text-sky-100">
@@ -870,7 +873,7 @@ function SiteProfilePage() {
                 </section>
               ) : null}
 
-              <section id="backlink-fiche" ref={backlinkSectionRef} tabIndex={-1} className="mt-6 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4" aria-labelledby="backlink-fiche-titre">
+              <section id="backlink-fiche" ref={backlinkSectionRef} tabIndex={-1} className={`mt-6 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4 ${focusTargetScrollMarginClass} ${focusTargetClass}`} aria-labelledby="backlink-fiche-titre">
                 <h3 id="backlink-fiche-titre" className="text-lg font-semibold text-sky-900 dark:text-sky-100">
                   Lien retour recommandé
                 </h3>
@@ -947,7 +950,7 @@ function SiteProfilePage() {
                 )}
               </section>
 
-              <section id="fiches-associees" ref={relatedSectionRef} tabIndex={-1} className="mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4" aria-labelledby="fiches-associees-titre" aria-busy={isLoadingRelated}>
+              <section id="fiches-associees" ref={relatedSectionRef} tabIndex={-1} className={`mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4 ${focusTargetScrollMarginClass} ${focusTargetClass}`} aria-labelledby="fiches-associees-titre" aria-busy={isLoadingRelated}>
                 <h3 id="fiches-associees-titre" className="text-lg font-semibold">
                   Fiches associées
                 </h3>

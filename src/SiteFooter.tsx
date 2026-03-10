@@ -1,4 +1,5 @@
 import type { RefObject } from 'react'
+import { focusTargetClass, focusTargetScrollMarginClass } from './hashNavigation'
 
 type SiteFooterProps = {
   id?: string
@@ -32,7 +33,7 @@ function SiteFooter({ id = 'pied-page', footerRef, helpHref = '/#aide-accessibil
       ref={footerRef}
       tabIndex={-1}
       role="contentinfo"
-      className="mt-12 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+      className={`mt-12 ${focusTargetScrollMarginClass} border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 ${focusTargetClass}`}
       aria-label="Informations de bas de page"
     >
       <div className="mx-auto grid max-w-5xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1.4fr_1fr_1fr] lg:py-8 lg:px-8">

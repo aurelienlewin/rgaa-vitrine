@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
 import { normalizeDomainGroup, readDomainGroupSlugFromPath, type DomainGroup } from './domainGroups'
+import {
+  focusElementWithScroll,
+  focusTargetClass,
+  focusTargetScrollMarginClass,
+  useHashTargetFocus,
+} from './hashNavigation'
 import { preloadRouteApi, readPreloadedRouteApi } from './routeData'
 import { applySeo, createAbsoluteUrl } from './seo'
 import { resolveShowcaseProfilePath } from './siteProfiles'
@@ -109,11 +115,7 @@ function DomainGroupPage() {
   const [isLoading, setIsLoading] = useState(initialResolvedState.isLoading)
 
   const focusElement = useCallback((element: HTMLElement | null) => {
-    if (!element) {
-      return
-    }
-    element.focus({ preventScroll: true })
-    element.scrollIntoView({ block: 'start' })
+    focusElementWithScroll(element)
   }, [])
 
   const handleSkipLinkClick = useCallback(
@@ -186,6 +188,7 @@ function DomainGroupPage() {
       cancelled = true
     }
   }, [announcePolite, initialResolvedState.errorMessage, initialResolvedState.group, routeApiUrl, slug])
+  useHashTargetFocus(focusElement)
 
   const statusSummaryText = useMemo(() => {
     if (!group) {
@@ -302,7 +305,7 @@ function DomainGroupPage() {
           id="contenu-domaine"
           ref={mainRef}
           tabIndex={-1}
-          className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8"
+          className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
           aria-busy={isLoading}
         >
           {isLoading ? (
@@ -386,7 +389,7 @@ function DomainGroupPage() {
                 id="liste-domaine"
                 ref={listRef}
                 tabIndex={-1}
-                className="mt-6"
+                className={`mt-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                 aria-labelledby="liste-domaine-titre"
               >
                 <h3 id="liste-domaine-titre" className="text-lg font-semibold">
