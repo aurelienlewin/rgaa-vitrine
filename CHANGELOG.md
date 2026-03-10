@@ -7,6 +7,8 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+## [2026-03-10 / v0.5.2]
+
 ### Changed
 - Homepage multi-site cards now keep a simplified, card-consistent layout: sibling site previews were moved back to the dedicated domain detail page and the card now exposes a single explicit CTA to reduce tab stops and link-list ambiguity.
 - Added a general score disclaimer on homepage and accessibility contact page so the declarative nature of submitted scores is stated once, without live-region noise, and moderation remains the path for documented re-evaluations.
@@ -16,6 +18,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Route-aware head fallbacks now update title, description, canonical URL, and robots earlier on key public/detail paths so first-paint metadata stays coherent before React hydration.
 - Site and domain detail pages now expose clearer new-tab labels, explicit busy states, and non-disruptive copy feedback while keeping loading announcements polite.
 - `/plan-du-site` now lists public multi-site domain pages directly, keeping crawlable internal discovery aligned with the generated XML sitemap.
+- Homepage directory summaries now explicitly distinguish referenced `fiches` from grouped `cartes`, and reuse the same wording in visible text and polite live announcements.
 
 ## [2026-03-10]
 
