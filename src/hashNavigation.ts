@@ -27,6 +27,7 @@ function readHashTargetId(hash: string) {
 
 export function useHashTargetFocus(
   focusElement: (element: HTMLElement | null) => void = focusElementWithScroll,
+  resolveTarget?: (targetId: string) => HTMLElement | null,
 ) {
   const focusHashTarget = useCallback(() => {
     if (typeof window === 'undefined') {
@@ -39,10 +40,10 @@ export function useHashTargetFocus(
     }
 
     window.setTimeout(() => {
-      const target = document.getElementById(targetId)
+      const target = resolveTarget?.(targetId) ?? document.getElementById(targetId)
       focusElement(target instanceof HTMLElement ? target : null)
     }, 0)
-  }, [focusElement])
+  }, [focusElement, resolveTarget])
 
   useEffect(() => {
     focusHashTarget()

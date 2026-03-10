@@ -734,7 +734,21 @@ function App() {
     },
     [focusElement],
   )
-  useHashTargetFocus(focusElement)
+  const resolveHashTarget = useCallback(
+    (targetId: string) => {
+      if (targetId === 'moteur-recherche-global') {
+        return searchInputRef.current
+      }
+
+      if (targetId === 'ajout-site') {
+        return urlInputRef.current
+      }
+
+      return document.getElementById(targetId)
+    },
+    [],
+  )
+  useHashTargetFocus(focusElement, resolveHashTarget)
 
   const syncFiltersInUrl = useCallback((filters: { query: string; status: ShowcaseStatusFilter; category: string }) => {
     if (typeof window === 'undefined') {
@@ -1737,7 +1751,7 @@ function App() {
         <a href="#resultats-annuaire" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, directorySectionRef)}>
           Aller aux résultats annuaire
         </a>
-        <a href="#ajout-site" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, formSectionRef)}>
+        <a href="#ajout-site" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, urlInputRef)}>
           Aller au formulaire d’ajout
         </a>
         <a href="#aide-accessibilite" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, helpSectionRef)}>

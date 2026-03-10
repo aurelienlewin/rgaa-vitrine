@@ -74,12 +74,12 @@ const directorySections: SiteLink[] = [
     description: 'Liens de référence pour les équipes design et développement.',
   },
   {
-    href: '/#liste-vitrines',
+    href: '/#resultats-annuaire',
     label: 'Fiches par site',
     description: 'Chaque carte mène à une fiche dédiée (`/site/{slug}`) indexable et partageable.',
   },
   {
-    href: '/#liste-vitrines',
+    href: '/#resultats-annuaire',
     label: 'Pages domaine multi-sites',
     description: 'Les domaines déjà présents avec plusieurs sous-sites disposent d’une page dédiée (`/domaine/{slug}`).',
   },
