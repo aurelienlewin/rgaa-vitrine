@@ -53,6 +53,8 @@ Public website: **https://annuaire-rgaa.fr**
 - Footer version resolves from release tags first (with package version fallback) to stay aligned with published GitHub releases.
 - Footer uses a clearer three-column information architecture (French UI labels: `Projet`, `Navigation rapide`, `Soutien`) on large screens.
 - Header logo and footer avatar declare explicit intrinsic image dimensions to reserve layout space early and reduce CLS without altering French accessible names.
+- Homepage no longer performs runtime DOM/style color-pair patching after first paint; the contrast-safe text/background guard now stays CSS-only to reduce startup recalculation pressure.
+- Homepage now preloads the logo, marks it with high fetch priority, fetches the public directory immediately on mount, and hydrates client vote state separately so the first annuaire fetch can start earlier and stay cache-friendly.
 - All pages share a consistent top `navigation principale` landmark (French UI label) and the same global footer.
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
 - Route lazy-loading fallback is announced as status (`aria-live="polite"`) to avoid silent loading states.

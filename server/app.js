@@ -937,6 +937,28 @@ app.get('/api/showcase', async (request, response) => {
   }
 })
 
+app.get('/api/showcase/vote-state', async (request, response) => {
+  try {
+    const clientVoterId = extractClientVoterId(firstQueryValue(request.query.clientVoterId))
+    const clientVoteIndexId = buildClientVoteIndexId(clientVoterId)
+    const votedUrls = clientVoteIndexId ? await showcaseStorage.listClientVotedUrls(clientVoteIndexId) : new Set()
+
+    response.setHeader('cache-control', 'private, max-age=60, stale-while-revalidate=300')
+    response.json({
+      votedUrls: Array.from(votedUrls).sort((left, right) => left.localeCompare(right, 'fr')),
+      total: votedUrls.size,
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/showcase/vote-state', error)
+    sendJsonError(response, 500, "Erreur lors de la lecture de l'état des votes.")
+  }
+})
+
 app.post('/api/showcase/upvote', voteLimiter, async (request, response) => {
   const normalizedUrl = extractNormalizedUrl(request.body?.normalizedUrl)
   if (!normalizedUrl) {

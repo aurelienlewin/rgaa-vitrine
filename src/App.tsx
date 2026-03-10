@@ -454,6 +454,7 @@ function App() {
   const tilesSentinelRef = useRef<HTMLDivElement | null>(null)
   const clientVoterIdRef = useRef<string>('')
   const shouldFocusResultsAfterQueryInitRef = useRef(false)
+  const shouldSyncVoteStateAfterDirectoryLoadRef = useRef(false)
 
   const announcePolite = useCallback((message: string) => {
     setPoliteAnnouncement((current) => ({ id: current.id + 1, message }))
@@ -949,8 +950,7 @@ function App() {
     announcePolite('Chargement de l’annuaire en cours.')
 
     try {
-      const voterId = getClientVoterId()
-      const response = await fetch(`/api/showcase?clientVoterId=${encodeURIComponent(voterId)}`)
+      const response = await fetch('/api/showcase', { credentials: 'omit' })
       const payload = await readApiPayload(response)
 
       if (!response.ok) {
@@ -975,8 +975,10 @@ function App() {
 
       const parsedEntries = responseEntries.filter(isShowcaseEntry).map((entry) => normalizeShowcaseEntry(entry))
       setShowcaseEntries(parsedEntries)
+      shouldSyncVoteStateAfterDirectoryLoadRef.current = parsedEntries.length > 0
       announcePolite(`${parsedEntries.length} site(s) chargé(s) dans l’annuaire.`)
     } catch (error) {
+      shouldSyncVoteStateAfterDirectoryLoadRef.current = false
       console.error('Unable to load showcase entries', error)
       const localizedMessage = error instanceof Error ? error.message : 'Erreur de chargement de l’annuaire.'
       setDirectoryErrorMessage(localizedMessage)
@@ -984,23 +986,74 @@ function App() {
     } finally {
       setLoadingDirectory(false)
     }
-  }, [announceAssertive, announcePolite, getClientVoterId])
+  }, [announceAssertive, announcePolite])
 
   useEffect(() => {
+    void loadShowcaseEntries()
+  }, [loadShowcaseEntries])
+
+  const loadClientVoteState = useCallback(async () => {
+    try {
+      const voterId = getClientVoterId()
+      const response = await fetch(`/api/showcase/vote-state?clientVoterId=${encodeURIComponent(voterId)}`, {
+        credentials: 'omit',
+      })
+      const payload = await readApiPayload(response)
+
+      if (!response.ok) {
+        throw new Error(typeof payload?.error === 'string' ? payload.error : 'Chargement des votes impossible.')
+      }
+
+      if (typeof payload.error === 'string') {
+        throw new Error(payload.error)
+      }
+
+      const votedUrls = Array.isArray((payload as { votedUrls?: unknown }).votedUrls)
+        ? (payload as { votedUrls: unknown[] }).votedUrls.filter(
+            (value): value is string => typeof value === 'string' && value.trim().length > 0,
+          )
+        : null
+
+      if (!votedUrls) {
+        throw new Error('État des votes invalide.')
+      }
+
+      const votedUrlSet = new Set(votedUrls)
+      setShowcaseEntries((current) =>
+        current.map((entry) =>
+          votedUrlSet.has(entry.normalizedUrl)
+            ? {
+                ...entry,
+                hasUpvoted: true,
+              }
+            : entry,
+        ),
+      )
+    } catch (error) {
+      console.error('Unable to load client vote state', error)
+    }
+  }, [getClientVoterId])
+
+  useEffect(() => {
+    if (loadingDirectory || directoryErrorMessage || !shouldSyncVoteStateAfterDirectoryLoadRef.current) {
+      return
+    }
+
+    shouldSyncVoteStateAfterDirectoryLoadRef.current = false
     let timeoutId: number | null = null
     let idleId: number | null = null
     let cancelled = false
-    const loadDirectory = () => {
+    const syncVoteState = () => {
       if (cancelled) {
         return
       }
-      void loadShowcaseEntries()
+      void loadClientVoteState()
     }
 
     if (typeof window.requestIdleCallback === 'function') {
-      idleId = window.requestIdleCallback(loadDirectory, { timeout: 2200 })
+      idleId = window.requestIdleCallback(syncVoteState, { timeout: 1800 })
     } else {
-      timeoutId = window.setTimeout(loadDirectory, 650)
+      timeoutId = window.setTimeout(syncVoteState, 450)
     }
 
     return () => {
@@ -1012,7 +1065,7 @@ function App() {
         window.clearTimeout(timeoutId)
       }
     }
-  }, [loadShowcaseEntries])
+  }, [directoryErrorMessage, loadClientVoteState, loadingDirectory])
 
   useEffect(() => {
     if (directoryErrorMessage) {
@@ -1464,6 +1517,7 @@ function App() {
                 alt="Icône Annuaire RGAA"
                 width={112}
                 height={112}
+                fetchPriority="high"
                 className="h-28 w-28 flex-none rounded-2xl border-2 border-slate-800 dark:border-slate-200 bg-slate-900 dark:bg-slate-100 p-2"
                 loading="eager"
               />

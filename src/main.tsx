@@ -4,26 +4,9 @@ import '@fontsource/atkinson-hyperlegible/latin-400.css'
 import '@fontsource/atkinson-hyperlegible/latin-700.css'
 import './index.css'
 import App from './App.tsx'
-import { ensureCssColorPairs } from './ensureCssColorPairs'
 import { initializeTheme } from './theme'
 
 const canUseDom = typeof window !== 'undefined' && typeof document !== 'undefined'
-
-function scheduleCssColorPairsCheck() {
-  const run = () => {
-    ensureCssColorPairs()
-    window.setTimeout(() => {
-      ensureCssColorPairs()
-    }, 250)
-  }
-
-  if (typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(run, { timeout: 2200 })
-    return
-  }
-
-  window.setTimeout(run, 700)
-}
 
 function scheduleAnalyticsLoad() {
   if (!import.meta.env.PROD) {
@@ -58,7 +41,6 @@ function scheduleAnalyticsLoad() {
 
 if (canUseDom) {
   initializeTheme()
-  scheduleCssColorPairsCheck()
 }
 
 export const ModerationPage = lazy(() => import('./ModerationPage.tsx'))
