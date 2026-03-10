@@ -1844,17 +1844,8 @@ function App() {
 
                     const rgaaBadge = getRgaaBadgePresentation(primaryEntry.rgaaBaseline)
                     const domId = toDomSafeIdSegment(`group-${item.groupSlug}`)
-                    const summaryId = `resume-domaine-${item.groupSlug}`
-                    const childrenId = `sous-sites-domaine-${item.groupSlug}`
-                    const statusParts = [
-                      item.statusSummary.full > 0 ? `${item.statusSummary.full} totalement conforme(s)` : null,
-                      item.statusSummary.partial > 0
-                        ? `${item.statusSummary.partial} partiellement conforme(s)`
-                        : null,
-                      item.statusSummary.none > 0 ? `${item.statusSummary.none} non conforme(s)` : null,
-                      item.statusSummary.unknown > 0 ? `${item.statusSummary.unknown} niveau(x) inconnu(s)` : null,
-                    ].filter((value): value is string => Boolean(value))
                     const badgeDescriptionId = `rgaa-badge-description-${domId}`
+                    const summaryId = `resume-domaine-${item.groupSlug}`
 
                     return (
                       <li
@@ -1921,9 +1912,14 @@ function App() {
                               {primaryEntry.normalizedUrl}
                             </p>
                             <p id={summaryId} className="text-sm text-slate-700 dark:text-slate-300">
-                              Domaine racine: <strong>{item.registrableDomain}</strong>. Dernière mise à jour sur ce
-                              domaine: {formatDate(item.updatedAt)}.
+                              Domaine racine: <strong>{item.registrableDomain}</strong>. {item.totalSiteCount} fiche(s)
+                              publiée(s) pour ce domaine. Dernière mise à jour: {formatDate(item.updatedAt)}.
                             </p>
+                            {item.matchingSiteCount < item.totalSiteCount ? (
+                              <p className="text-sm text-slate-700 dark:text-slate-300">
+                                {item.matchingSiteCount} fiche(s) de ce domaine correspondent aux filtres actuels.
+                              </p>
+                            ) : null}
                           </header>
 
                           <dl className="grid grid-cols-1 gap-2 @md:grid-cols-2">
@@ -1949,111 +1945,15 @@ function App() {
                             {rgaaBadge.description}
                           </p>
 
-                          <section aria-labelledby={childrenId} className="rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4">
-                              <h4 id={childrenId} className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-                                Sous-sites déjà référencés
-                              </h4>
-                              <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                                {statusParts.length > 0
-                                  ? statusParts.join(', ')
-                                  : 'Aucun niveau de conformité exploitable pour ce domaine.'}
-                              </p>
-                              <ul className="mt-3 grid gap-2">
-                                {item.children
-                                  .filter((child) => child.normalizedUrl !== primaryEntry.normalizedUrl)
-                                  .slice(0, 4)
-                                  .map((child) => (
-                                  <li
-                                    key={child.normalizedUrl}
-                                    className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-3"
-                                  >
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                      <div className="min-w-0">
-                                        <a
-                                          href={child.profilePath ?? resolveShowcaseProfilePath(child.normalizedUrl, child.slug)}
-                                          className={`inline-flex min-h-11 items-center text-sm font-semibold text-slate-900 underline dark:text-slate-50 ${focusRingClass}`}
-                                        >
-                                          {child.siteTitle}
-                                        </a>
-                                        <p className="wrap-anywhere text-sm text-slate-700 dark:text-slate-300">
-                                          {child.normalizedUrl}
-                                        </p>
-                                      </div>
-                                      {child.domainContext?.role === 'primary' ? (
-                                        <span className="inline-flex min-h-8 items-center rounded-full border border-sky-700 dark:border-sky-300 bg-sky-100 dark:bg-sky-950 px-3 py-1 text-sm font-semibold text-sky-900 dark:text-sky-100">
-                                          Site principal
-                                        </span>
-                                      ) : null}
-                                    </div>
-                                  </li>
-                                ))}
-                              </ul>
-                              {item.children.filter((child) => child.normalizedUrl !== primaryEntry.normalizedUrl).length > 4 ? (
-                                <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-                                  {item.children.filter((child) => child.normalizedUrl !== primaryEntry.normalizedUrl).length - 4} autre(s)
-                                  sous-site(s) visible(s) dans cette vue.
-                                </p>
-                              ) : null}
-                          </section>
-
-                          <div className="mt-auto grid grid-cols-1 gap-2 @sm:grid-cols-2">
+                          <div className="mt-auto">
                             <a
-                              href={primaryEntry.profilePath ?? resolveShowcaseProfilePath(primaryEntry.normalizedUrl, primaryEntry.slug)}
-                              aria-label={`Ouvrir la fiche annuaire de ${primaryEntry.siteTitle}`}
+                              href={item.groupPath}
+                              aria-label={`Voir les ${item.totalSiteCount} fiches du domaine ${item.registrableDomain}`}
+                              aria-describedby={summaryId}
                               className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
                             >
-                              Voir la fiche annuaire
+                              Voir les {item.totalSiteCount} fiches du domaine
                             </a>
-                            <a
-                              href={primaryEntry.normalizedUrl}
-                              target="_blank"
-                              rel="noopener external"
-                              referrerPolicy="strict-origin-when-cross-origin"
-                              aria-label={`Visiter le site ${primaryEntry.siteTitle}`}
-                              className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
-                            >
-                              Visiter le site
-                            </a>
-                            {primaryEntry.accessibilityPageUrl ? (
-                              <a
-                                href={primaryEntry.accessibilityPageUrl}
-                                target="_blank"
-                                rel="noopener external"
-                                referrerPolicy="strict-origin-when-cross-origin"
-                                aria-label={`Ouvrir la déclaration d’accessibilité de ${primaryEntry.siteTitle}`}
-                                className={`@sm:col-span-2 inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaEmeraldClass} ${focusRingClass}`}
-                              >
-                                Déclaration d’accessibilité
-                              </a>
-                            ) : (
-                              <span className="@sm:col-span-2 inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-600 dark:border-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                Déclaration non détectée
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-1 gap-2">
-                            {item.matchingSiteCount < item.totalSiteCount ? (
-                              <p className="text-sm text-slate-700 dark:text-slate-300">
-                                {item.matchingSiteCount} fiche(s) de ce domaine correspondent aux filtres actuels.
-                              </p>
-                            ) : null}
-                            <div className="grid grid-cols-1 gap-2 @sm:grid-cols-2">
-                              <a
-                                href={item.groupPath}
-                                aria-label={`Voir toutes les fiches du domaine ${item.registrableDomain}`}
-                                className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
-                              >
-                                Voir les fiches du domaine
-                              </a>
-                              <a
-                                href={item.primaryProfilePath ?? primaryEntry.profilePath ?? resolveShowcaseProfilePath(primaryEntry.normalizedUrl, primaryEntry.slug)}
-                                aria-label={`Ouvrir le site principal du domaine ${item.registrableDomain}`}
-                                className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
-                              >
-                                Voir le site principal
-                              </a>
-                            </div>
                           </div>
                         </div>
                         </article>

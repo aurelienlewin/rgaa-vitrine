@@ -30,7 +30,7 @@ Public website: **https://annuaire-rgaa.fr**
 - Automatic lazy loading of additional tiles near viewport end (with keyboard-accessible manual fallback).
 - Reddit-like upvote on each directory tile with accessible button state (`aria-pressed`) and live vocal feedback.
 - Each directory tile includes an explicit RGAA baseline badge (`RGAA 4.1` or `RGAA 5.0 prêt`) with readable explanation text.
-- Domains with multiple public entries are now grouped into a dedicated multi-site card on homepage, with a dedicated public page (`/domaine/{groupSlug}`) that lists the referenced sub-sites without flattening their individual metadata.
+- Domains with multiple public entries are now grouped into a simplified multi-site card on homepage with a single explicit CTA, while the detailed sibling listing and secondary actions live on the dedicated public page (`/domaine/{groupSlug}`) so homepage tiles stay visually homogeneous and keyboard flow stays shorter.
 - Submission flow includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
 - Submission flow now detects when the URL belongs to a domain already represented in the annuaire, announces that context in French live feedback, and clarifies that the URL will be treated as a distinct sub-site rather than an exact duplicate.
 - Confirmation CTA lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.
@@ -198,7 +198,7 @@ The UI adapts automatically to operating-system and browser accessibility prefer
 - Structured data (JSON-LD) on homepage combines `WebSite`, `WebPage`, `WebApplication`, `Organization`, `Person`, `CollectionPage`, `DataCatalog`, and `Dataset`.
 - Structured data exposes `SearchAction` on homepage, `BreadcrumbList` on key secondary pages, and richer `Dataset` semantics (`variableMeasured`, `measurementTechnique`, distributions).
 - Profile pages publish a referenced-site `WebSite`, a per-profile `Dataset`, and a dedicated accessibility-statement `WebPage` node when a declaration URL is known.
-- Domain-group pages (`/domaine/{groupSlug}`) are now crawlable public collection pages linked from homepage multi-site tiles and included in sitemap generation.
+- Domain-group pages (`/domaine/{groupSlug}`) are now crawlable public collection pages linked from simplified homepage multi-site tiles and included in sitemap generation.
 - Static `index.html` keeps a stronger metadata fallback graph so non-hydrated crawlers still discover the main site entities and dataset endpoint.
 - Accessible public site map page: `/plan-du-site`
 - Site map page lists an extract of published `/site/{slug}` links to strengthen crawlable internal discovery.
