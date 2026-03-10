@@ -14,7 +14,7 @@ const githubProfile = {
 }
 
 const supportProfile = {
-  buyMeACoffeeUrl: 'https://buymeacoffee.com/aurelienlewin',
+  koFiUrl: 'https://ko-fi.com/aurelienlewin',
 }
 
 const buildVersion = import.meta.env.VITE_BUILD_VERSION ?? '0.0.0'
@@ -125,11 +125,11 @@ function SiteFooter({ id = 'pied-page', footerRef, helpHref = '/#aide-accessibil
             Le score est une boussole, pas la destination: la priorité reste de libérer les parcours et l’usage.
           </p>
           <a
-            href={supportProfile.buyMeACoffeeUrl}
+            href={supportProfile.koFiUrl}
             target="_blank"
             rel="noreferrer noopener"
             className={`mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-900 dark:border-amber-100 bg-transparent px-4 py-2 text-sm font-semibold text-amber-900 dark:text-amber-100 ${focusRingClass}`}
-            aria-label="M’offrir un café via Buy Me a Coffee"
+            aria-label="M’offrir un café via Ko-fi"
           >
             <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
               <path d="M3 5h14a1 1 0 0 1 1 1v2h2a2 2 0 0 1 2 2v1a4 4 0 0 1-4 4h-1.1a5 5 0 0 1-4.9 4H8a5 5 0 0 1-5-5V6a1 1 0 0 1 1-1Zm15 8h1a2 2 0 0 0 2-2v-1h-3v3Zm-4 6a1 1 0 1 1 0 2H7a1 1 0 1 1 0-2h7Z" />

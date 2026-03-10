@@ -472,7 +472,7 @@ I launched this directory so RGAA would not remain a label, but become a promise
 When empathy guides product decisions, business grows with fairness instead of friction.
 The score is a compass, not the destination: the true target is unblocked journeys and usable experiences.
 
-- Buy me a coffee: https://buymeacoffee.com/aurelienlewin
+- Ko-fi: https://ko-fi.com/aurelienlewin
 
 ## Accessibility Sources Embedded
 
