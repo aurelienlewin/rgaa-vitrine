@@ -8,9 +8,12 @@ Changelog entries are written in English; referenced UI labels remain in French 
 ## [Unreleased]
 
 ### Fixed
+- `/plan-du-site` now exposes direct skip links to every major link block on the page and labels its discovery resources as landmarks, keeping keyboard navigation aligned with the latest RGAA/WCAG 2.2 review checklist used in the project skills.
 - Dark-mode search/help text now stays contrast-safe from the first SSR paint on public detail pages: the critical secondary-header CSS now styles the keyboard helper and search placeholders in dark mode before hydration, avoiding low-contrast flashes on slow connections.
 
 ### Changed
+- Discovery resources are now synchronized around the current public surface: `llms.txt`, `llms-full.txt`, `robots.txt`, `/sitemap.xml`, and `/ai-context.json` all reference domain-group pages and the public `/api/domain-groups` dataset where relevant.
+- README now documents which discovery assets are server-generated (`/sitemap.xml`, `/ai-context.json`) and which remain static versioned files (`public/robots.txt`, `public/llms.txt`, `public/llms-full.txt`).
 - Homepage directory loading now uses a more visible non-interactive status panel with reserved card placeholders, making slow-connection waits clearer without adding extra polite live announcements or extra API calls.
 
 ## [2026-03-10 / v0.5.2]

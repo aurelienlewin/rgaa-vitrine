@@ -209,16 +209,17 @@ The UI adapts automatically to operating-system and browser accessibility prefer
 - Domain-group pages (`/domaine/{groupSlug}`) are crawlable public collection pages linked from simplified homepage multi-site tiles and included in sitemap generation.
 - Static `index.html` keeps a stronger metadata fallback graph so non-hydrated crawlers still discover the main site entities and dataset endpoint.
 - Accessible public site map page: `/plan-du-site`
-- Site map page lists an extract of published `/site/{slug}` links to strengthen crawlable internal discovery.
+- Site map page lists an extract of published `/site/{slug}` links, domain-group pages, and the main public discovery/data resources with dedicated skip links to each major link block.
 - Public accessibility declaration page: `/accessibilite`
 - Accessibility declaration structured data includes accessibility-specific properties (`accessibilitySummary`, `accessibilityFeature`, `accessibilityControl`, `accessMode`).
 - Auto-generated sitemap endpoint: `/sitemap.xml` (backed by API route `/api/sitemap`)
+- Auto-generated AI context endpoint: `/ai-context.json` (backed by API route `/api/ai-context`)
 - `sitemap.xml` is served without caching (`no-store`) so published entries appear immediately after submission/moderation.
-- Sitemap includes the public data endpoint (`/api/showcase`) for dataset discovery.
+- Sitemap includes the public data endpoints (`/api/showcase`, `/api/domain-groups`) for dataset discovery.
 - Sitemap includes one public URL per referenced site profile (`/site/{slug}`).
 - AI crawler files: `/llms.txt`, `/llms-full.txt`, `/ai-context.json` (and `/api/ai-context`)
-- AI context includes explicit site-profile patterns (`/site/{slug}`), API pattern (`/api/showcase?slug={slug}`), crawl seed profile URLs, and a machine-readable accessibility-statement snapshot (`complianceStatus`, `complianceScore`, `rgaaBaseline`).
-- `public/robots.txt`
+- AI context includes explicit site-profile patterns (`/site/{slug}`), domain-group patterns (`/domaine/{groupSlug}`), API patterns (`/api/showcase?slug={slug}`, `/api/domain-groups?slug={groupSlug}`), crawl seed profile URLs, and a machine-readable accessibility-statement snapshot (`complianceStatus`, `complianceScore`, `rgaaBaseline`).
+- Static versioned discovery files live in `public/`: `robots.txt`, `llms.txt`, `llms-full.txt`
 - Public showcase API includes cache headers (`Cache-Control`, `Last-Modified`) for crawler efficiency and reduced load.
 - Serverless API adapter normalizes absolute/relative request URLs before Express routing, reducing production fallback mismatches on `/api/*`.
 - Host-level redirects must avoid cyclic `www`/apex rules, otherwise `/api/*` calls may fail and return non-API HTML payloads.
