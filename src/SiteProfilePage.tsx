@@ -174,11 +174,16 @@ function SiteProfilePage() {
   const relatedSectionRef = useRef<HTMLElement | null>(null)
   const footerRef = useRef<HTMLElement | null>(null)
   const sameDomainSectionRef = useRef<HTMLElement | null>(null)
-  const copyMessageRef = useRef<HTMLParagraphElement | null>(null)
   const slug =
     typeof window !== 'undefined'
       ? readSiteSlugFromPath(window.location.pathname)
       : null
+  const requestedPath =
+    typeof window !== 'undefined'
+      ? window.location.pathname
+      : slug
+        ? `/site/${slug}`
+        : '/site'
 
   const focusElement = useCallback((element: HTMLElement | null) => {
     if (!element) {
@@ -402,15 +407,36 @@ function SiteProfilePage() {
       return
     }
 
+    if (isLoading && slug) {
+      applySeo({
+        title: 'Fiche annuaire | Annuaire RGAA',
+        description:
+          'Consultez les informations publiques d’un site référencé dans l’annuaire RGAA et ses liens utiles d’accessibilité.',
+        path: requestedPath,
+        ogType: 'website',
+        structuredData: {
+          '@context': 'https://schema.org',
+          '@type': 'WebPage',
+          '@id': `${createAbsoluteUrl(requestedPath)}#webpage`,
+          url: createAbsoluteUrl(requestedPath),
+          name: 'Fiche annuaire | Annuaire RGAA',
+          inLanguage: 'fr-FR',
+          description:
+            'Fiche publique d’un site référencé dans l’annuaire RGAA avec informations de conformité et liens utiles.',
+        },
+      })
+      return
+    }
+
     applySeo({
       title: 'Fiche annuaire introuvable | Annuaire RGAA',
       description:
         'La fiche demandée n’a pas été trouvée dans l’annuaire RGAA. Retournez à l’accueil pour parcourir les sites référencés.',
-      path: profilePath,
+      path: requestedPath,
       robots: 'noindex,follow',
       structuredData: null,
     })
-  }, [entry, profileApiUrl, profilePath, profileUrl, relatedEntries])
+  }, [entry, isLoading, profileApiUrl, profilePath, profileUrl, relatedEntries, requestedPath, slug])
 
   useEffect(() => {
     if (!resolvedSlug) {
@@ -600,12 +626,6 @@ function SiteProfilePage() {
     }
   }, [announcePolite, entry])
 
-  useEffect(() => {
-    if (copyMessage) {
-      focusElement(copyMessageRef.current)
-    }
-  }, [copyMessage, focusElement])
-
   const handleCopyBacklink = useCallback(async (snippet: string, successMessage: string) => {
     try {
       await navigator.clipboard.writeText(snippet)
@@ -667,6 +687,7 @@ function SiteProfilePage() {
           ref={mainRef}
           tabIndex={-1}
           className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8"
+          aria-busy={isLoading}
         >
           {isLoading && <p role="status" aria-live="polite">Chargement de la fiche en cours...</p>}
 
@@ -703,7 +724,7 @@ function SiteProfilePage() {
                   referrerPolicy="strict-origin-when-cross-origin"
                   className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 >
-                  Visiter le site d’origine
+                  Visiter le site d’origine (nouvel onglet)
                 </a>
                 {entry.accessibilityPageUrl ? (
                   <a
@@ -713,7 +734,7 @@ function SiteProfilePage() {
                     referrerPolicy="strict-origin-when-cross-origin"
                     className={`inline-flex min-h-11 items-center rounded-xl border border-emerald-700 dark:border-emerald-300 bg-transparent px-4 py-2 font-semibold text-emerald-900 dark:text-emerald-100 ${focusRingClass}`}
                   >
-                    Déclaration d’accessibilité
+                    Déclaration d’accessibilité (nouvel onglet)
                   </a>
                 ) : (
                   <span className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-4 py-2 text-slate-700 dark:text-slate-300">
@@ -848,13 +869,13 @@ function SiteProfilePage() {
                   Copier le code texte
                 </button>
                 {copyMessage && (
-                  <p ref={copyMessageRef} tabIndex={-1} className="mt-3 text-sm text-sky-900 dark:text-sky-100" role="status" aria-live="polite">
+                  <p className="mt-3 text-sm text-sky-900 dark:text-sky-100" role="status" aria-live="polite">
                     {copyMessage}
                   </p>
                 )}
               </section>
 
-              <section id="fiches-associees" ref={relatedSectionRef} tabIndex={-1} className="mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4" aria-labelledby="fiches-associees-titre">
+              <section id="fiches-associees" ref={relatedSectionRef} tabIndex={-1} className="mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4" aria-labelledby="fiches-associees-titre" aria-busy={isLoadingRelated}>
                 <h3 id="fiches-associees-titre" className="text-lg font-semibold">
                   Fiches associées
                 </h3>

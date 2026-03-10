@@ -180,12 +180,54 @@
     <script>
       (function () {
         var url = window.location.origin + window.location.pathname;
+        var pathname = window.location.pathname;
         var canonical = document.querySelector('link[rel="canonical"]');
         var ogUrl = document.querySelector('meta[property="og:url"]');
         var twitterUrl = document.querySelector('meta[name="twitter:url"]');
+        var description = document.querySelector('meta[name="description"]');
+        var ogTitle = document.querySelector('meta[property="og:title"]');
+        var ogDescription = document.querySelector('meta[property="og:description"]');
+        var twitterTitle = document.querySelector('meta[name="twitter:title"]');
+        var twitterDescription = document.querySelector('meta[name="twitter:description"]');
+        var robots = document.querySelector('meta[name="robots"]');
+        var title = 'Annuaire RGAA';
+        var metaDescription = 'Annuaire français pour valoriser la conformité RGAA : page de déclaration, score et bonnes pratiques officielles.';
+        var robotsValue = 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1';
+        if (/^\/plan-du-site\/?$/.test(pathname)) {
+          title = 'Plan du site | Annuaire RGAA';
+          metaDescription = 'Plan du site de l’annuaire RGAA: pages publiques, fiches site indexables et ressources techniques SEO.';
+        } else if (/^\/accessibilite\/?$/.test(pathname)) {
+          title = 'Accessibilité | Annuaire RGAA';
+          metaDescription = 'Déclaration d’accessibilité de l’annuaire RGAA: statut de conformité, méthodologie de test, stack technique, outils, contact et voies de recours.';
+        } else if (/^\/site\/[a-z0-9-]{4,120}\/?$/.test(pathname)) {
+          title = 'Fiche annuaire | Annuaire RGAA';
+          metaDescription = 'Consultez les informations publiques d’un site référencé dans l’annuaire RGAA et ses liens utiles d’accessibilité.';
+        } else if (pathname.indexOf('/site/') === 0) {
+          title = 'Fiche annuaire introuvable | Annuaire RGAA';
+          metaDescription = 'La fiche demandée n’a pas été trouvée dans l’annuaire RGAA. Retournez à l’accueil pour parcourir les sites référencés.';
+          robotsValue = 'noindex,follow';
+        } else if (/^\/domaine\/[a-z0-9-]{4,120}\/?$/.test(pathname)) {
+          title = 'Domaine multi-sites | Annuaire RGAA';
+          metaDescription = 'Consultez toutes les fiches publiques rattachées à un même domaine racine dans l’annuaire RGAA.';
+        } else if (pathname.indexOf('/domaine/') === 0) {
+          title = 'Domaine multi-sites introuvable | Annuaire RGAA';
+          metaDescription = 'Le domaine demandé n’a pas été trouvé dans l’annuaire RGAA. Retournez à l’accueil pour parcourir les fiches publiques.';
+          robotsValue = 'noindex,follow';
+        } else if (pathname.indexOf('/moderation') === 0) {
+          title = 'Modération | Annuaire RGAA';
+          metaDescription = 'Espace de modération de l’annuaire RGAA.';
+          robotsValue = 'noindex,follow';
+        }
         if (canonical) canonical.setAttribute("href", url);
         if (ogUrl) ogUrl.setAttribute("content", url);
         if (twitterUrl) twitterUrl.setAttribute("content", url);
+        if (description) description.setAttribute("content", metaDescription);
+        if (ogTitle) ogTitle.setAttribute("content", title);
+        if (ogDescription) ogDescription.setAttribute("content", metaDescription);
+        if (twitterTitle) twitterTitle.setAttribute("content", title);
+        if (twitterDescription) twitterDescription.setAttribute("content", metaDescription);
+        if (robots) robots.setAttribute("content", robotsValue);
+        document.title = title;
       })();
     </script>
   </head>

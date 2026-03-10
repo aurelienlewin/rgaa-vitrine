@@ -48,6 +48,12 @@ function DomainGroupPage() {
     typeof window !== 'undefined'
       ? readDomainGroupSlugFromPath(window.location.pathname)
       : null
+  const requestedPath =
+    typeof window !== 'undefined'
+      ? window.location.pathname
+      : slug
+        ? `/domaine/${slug}`
+        : '/domaine'
 
   const focusElement = useCallback((element: HTMLElement | null) => {
     if (!element) {
@@ -151,44 +157,71 @@ function DomainGroupPage() {
   }, [group])
 
   useEffect(() => {
-    if (!group) {
+    if (group) {
+      applySeo({
+        title: `Domaine ${group.registrableDomain} | Annuaire RGAA`,
+        description: `Consultez les ${group.siteCount} fiches publiques déjà référencées pour le domaine ${group.registrableDomain}.`,
+        path: group.groupPath,
+        ogType: 'website',
+        structuredData: {
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'CollectionPage',
+              '@id': `${createAbsoluteUrl(group.groupPath)}#webpage`,
+              url: createAbsoluteUrl(group.groupPath),
+              name: `Domaine ${group.registrableDomain}`,
+              inLanguage: 'fr-FR',
+              description: `Page domaine multi-sites listant ${group.siteCount} fiches publiques pour ${group.registrableDomain}.`,
+            },
+            {
+              '@type': 'ItemList',
+              '@id': `${createAbsoluteUrl(group.groupPath)}#item-list`,
+              name: `Sous-sites référencés pour ${group.registrableDomain}`,
+              numberOfItems: group.siteCount,
+              itemListElement: group.children.map((entry, index) => ({
+                '@type': 'ListItem',
+                position: index + 1,
+                name: entry.siteTitle,
+                item: createAbsoluteUrl(
+                  entry.profilePath ?? resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug),
+                ),
+              })),
+            },
+          ],
+        },
+      })
+      return
+    }
+
+    if (isLoading && slug) {
+      applySeo({
+        title: 'Domaine multi-sites | Annuaire RGAA',
+        description: 'Consultez toutes les fiches publiques rattachées à un même domaine racine dans l’annuaire RGAA.',
+        path: requestedPath,
+        ogType: 'website',
+        structuredData: {
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          '@id': `${createAbsoluteUrl(requestedPath)}#webpage`,
+          url: createAbsoluteUrl(requestedPath),
+          name: 'Domaine multi-sites | Annuaire RGAA',
+          inLanguage: 'fr-FR',
+          description: 'Page domaine multi-sites de l’annuaire RGAA.',
+        },
+      })
       return
     }
 
     applySeo({
-      title: `Domaine ${group.registrableDomain} | Annuaire RGAA`,
-      description: `Consultez les ${group.siteCount} fiches publiques déjà référencées pour le domaine ${group.registrableDomain}.`,
-      path: group.groupPath,
-      ogType: 'website',
-      structuredData: {
-        '@context': 'https://schema.org',
-        '@graph': [
-          {
-            '@type': 'CollectionPage',
-            '@id': `${createAbsoluteUrl(group.groupPath)}#webpage`,
-            url: createAbsoluteUrl(group.groupPath),
-            name: `Domaine ${group.registrableDomain}`,
-            inLanguage: 'fr-FR',
-            description: `Page domaine multi-sites listant ${group.siteCount} fiches publiques pour ${group.registrableDomain}.`,
-          },
-          {
-            '@type': 'ItemList',
-            '@id': `${createAbsoluteUrl(group.groupPath)}#item-list`,
-            name: `Sous-sites référencés pour ${group.registrableDomain}`,
-            numberOfItems: group.siteCount,
-            itemListElement: group.children.map((entry, index) => ({
-              '@type': 'ListItem',
-              position: index + 1,
-              name: entry.siteTitle,
-              item: createAbsoluteUrl(
-                entry.profilePath ?? resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug),
-              ),
-            })),
-          },
-        ],
-      },
+      title: 'Domaine multi-sites introuvable | Annuaire RGAA',
+      description:
+        'Le domaine demandé n’a pas été trouvé dans l’annuaire RGAA. Retournez à l’accueil pour parcourir les fiches publiques.',
+      path: requestedPath,
+      robots: 'noindex,follow',
+      structuredData: null,
     })
-  }, [group])
+  }, [group, isLoading, requestedPath, slug])
 
   return (
     <>
@@ -224,6 +257,7 @@ function DomainGroupPage() {
           ref={mainRef}
           tabIndex={-1}
           className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8"
+          aria-busy={isLoading}
         >
           {isLoading ? <p role="status" aria-live="polite">Chargement du domaine en cours...</p> : null}
 
@@ -319,7 +353,7 @@ function DomainGroupPage() {
                               referrerPolicy="strict-origin-when-cross-origin"
                               className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-700 dark:border-slate-300 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                             >
-                              Visiter le site
+                              Visiter le site (nouvel onglet)
                             </a>
                             {entry.accessibilityPageUrl ? (
                               <a
@@ -329,7 +363,7 @@ function DomainGroupPage() {
                                 referrerPolicy="strict-origin-when-cross-origin"
                                 className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-700 dark:border-emerald-300 px-3 py-2 text-sm font-semibold text-emerald-900 dark:text-emerald-100 ${focusRingClass}`}
                               >
-                                Déclaration d’accessibilité
+                                Déclaration d’accessibilité (nouvel onglet)
                               </a>
                             ) : (
                               <span className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-500 dark:border-slate-400 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
