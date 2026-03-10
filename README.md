@@ -431,6 +431,56 @@ Recommended GitHub setup:
 2. Use a fine-grained PAT scoped to one repository with Issues write access.
 3. Keep `GITHUB_API_URL` unset unless required by GitHub Enterprise routing.
 
+Step-by-step setup and verification:
+
+1. Create a fine-grained PAT on GitHub scoped to the target repository only, with `Issues: Read and write`.
+2. Set `RGAA_NOTIFY_REPO=owner/repo` and `RGAA_NOTIFY_TOKEN=github_pat_xxx` in the deployment runtime environment.
+3. If you use Vercel, configure those values in Vercel Project Settings -> Environment Variables for the production environment.
+4. Use GitHub repository secrets/variables only if you also need the same values in GitHub Actions; they do not enable production notifications by themselves.
+5. Ensure the target repository has Issues enabled and either create the default `moderation` label or override it with `GITHUB_NOTIFY_LABELS` using labels that already exist.
+6. Optionally set `PUBLIC_APP_URL=https://annuaire-rgaa.fr` so created issues include a direct link to `/moderation`.
+7. Redeploy the application after changing runtime variables.
+8. Verify the runtime configuration with:
+
+```bash
+curl -sSfL https://annuaire-rgaa.fr/api/health
+```
+
+Expected fragment:
+
+```json
+{
+  "notifications": {
+    "githubIssues": true
+  }
+}
+```
+
+9. Test the `pending` path with a preview request first:
+
+```bash
+curl -sSfL 'https://annuaire-rgaa.fr/api/site-insight?preview=1' \
+  -H 'content-type: application/json' \
+  --data '{"url":"https://www.iana.org/","category":"Autre"}'
+```
+
+If the response returns `202` with `submissionStatus: "pending"` and a `previewToken`, submit the final request:
+
+```bash
+curl -sSfL 'https://annuaire-rgaa.fr/api/site-insight' \
+  -H 'content-type: application/json' \
+  --data '{"url":"https://www.iana.org/","category":"Autre","previewToken":"<previewToken>"}'
+```
+
+10. Confirm the GitHub issue was created:
+
+```bash
+gh issue list --state open --label moderation
+```
+
+11. If you still do not receive notifications, check your personal GitHub notification preference on the target repository (`Watch -> Custom -> Issues`).
+12. Clean up the test submission from `/moderation` or directly in GitHub once validation is complete.
+
 ## Deployment (Vercel)
 
 The repository uses consolidated Vercel serverless handlers in `api/`:
