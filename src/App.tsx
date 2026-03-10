@@ -1837,6 +1837,13 @@ function App() {
               <ul id="liste-vitrines" className="mt-4 grid gap-5 md:grid-cols-2">
                 {visibleDirectoryItems.map((item) => {
                   if (item.kind === 'group') {
+                    const primaryEntry = item.primaryEntry ?? item.children[0] ?? null
+                    if (!primaryEntry) {
+                      return null
+                    }
+
+                    const rgaaBadge = getRgaaBadgePresentation(primaryEntry.rgaaBaseline)
+                    const domId = toDomSafeIdSegment(`group-${item.groupSlug}`)
                     const summaryId = `resume-domaine-${item.groupSlug}`
                     const childrenId = `sous-sites-domaine-${item.groupSlug}`
                     const statusParts = [
@@ -1847,42 +1854,102 @@ function App() {
                       item.statusSummary.none > 0 ? `${item.statusSummary.none} non conforme(s)` : null,
                       item.statusSummary.unknown > 0 ? `${item.statusSummary.unknown} niveau(x) inconnu(s)` : null,
                     ].filter((value): value is string => Boolean(value))
+                    const badgeDescriptionId = `rgaa-badge-description-${domId}`
 
                     return (
                       <li
                         key={`group-${item.groupSlug}`}
                         className="@container overflow-hidden rounded-3xl border-2 border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 shadow-sm shadow-slate-950/5"
                       >
-                        <article className="flex h-full flex-col">
-                          <div className="border-b border-sky-200 dark:border-sky-700 bg-linear-to-br from-sky-50 via-white to-emerald-50 dark:from-sky-950 dark:via-slate-900 dark:to-emerald-950 p-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="inline-flex min-h-8 items-center rounded-full border border-sky-700 dark:border-sky-300 bg-sky-100 dark:bg-sky-950 px-3 py-1 text-sm font-semibold text-sky-900 dark:text-sky-100">
-                                Domaine multi-sites
-                              </span>
-                              <span className="inline-flex min-h-8 items-center rounded-full border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                                {item.totalSiteCount} fiche(s) publiées
-                              </span>
-                              {item.matchingSiteCount < item.totalSiteCount ? (
-                                <span className="inline-flex min-h-8 items-center rounded-full border border-amber-700 dark:border-amber-300 bg-amber-100 dark:bg-amber-950 px-3 py-1 text-sm font-semibold text-amber-900 dark:text-amber-100">
-                                  {item.matchingSiteCount} visible(s) avec les filtres
-                                </span>
-                              ) : null}
+                      <article className="flex h-full flex-col">
+                        <div className="site-thumbnail-frame h-44 overflow-hidden border-b border-slate-200 dark:border-slate-700">
+                          {primaryEntry.thumbnailUrl ? (
+                            <div className="site-thumbnail-canvas">
+                              <img
+                                src={primaryEntry.thumbnailUrl}
+                                alt=""
+                                aria-hidden="true"
+                                className="site-thumbnail-image h-full w-full"
+                                loading="lazy"
+                                decoding="async"
+                                referrerPolicy="no-referrer"
+                              />
                             </div>
-                            <header className="mt-3 space-y-2">
-                              <h3 className="text-lg font-bold leading-tight text-slate-900 dark:text-slate-50">
-                                {item.registrableDomain}
-                              </h3>
-                              <p id={summaryId} className="text-sm text-slate-700 dark:text-slate-300">
-                                {item.primaryTitle
-                                  ? `Site principal repéré: ${item.primaryTitle}. `
-                                  : ''}
-                                Dernière mise à jour sur ce domaine: {formatDate(item.updatedAt)}.
-                              </p>
-                            </header>
+                          ) : (
+                            <div className="site-thumbnail-canvas flex items-center justify-center bg-linear-to-br from-sky-50 via-white to-emerald-50 px-3 text-center text-sm font-medium text-slate-800 dark:from-sky-950 dark:via-slate-900 dark:to-emerald-950 dark:text-slate-100">
+                              Aucune vignette disponible
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex flex-1 flex-col gap-4 p-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex min-h-8 items-center rounded-full border border-sky-700 dark:border-sky-300 bg-sky-100 dark:bg-sky-950 px-3 py-1 text-sm font-semibold text-sky-900 dark:text-sky-100">
+                              Domaine multi-sites
+                            </span>
+                            {primaryEntry.complianceStatus ? (
+                              <span
+                                className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${statusClassByValue[primaryEntry.complianceStatus]}`}
+                              >
+                                {primaryEntry.complianceStatusLabel}
+                              </span>
+                            ) : (
+                              <span className="inline-flex min-h-8 items-center rounded-full border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-50">
+                                Niveau inconnu
+                              </span>
+                            )}
+                            <span
+                              className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${rgaaBadge.className}`}
+                              aria-label={rgaaBadge.ariaLabel}
+                              aria-describedby={badgeDescriptionId}
+                            >
+                              {rgaaBadge.shortLabel}
+                            </span>
+                            <span className="inline-flex min-h-8 items-center rounded-full border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                              Score {formatScore(primaryEntry.complianceScore)}
+                            </span>
+                            <span className="inline-flex min-h-8 items-center rounded-full border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                              {item.totalSiteCount} fiche(s) publiées
+                            </span>
                           </div>
 
-                          <div className="flex flex-1 flex-col gap-4 p-4">
-                            <section aria-labelledby={childrenId}>
+                          <header className="space-y-2">
+                            <h3 className="text-lg font-bold leading-tight text-slate-900 dark:text-slate-50">
+                              {primaryEntry.siteTitle}
+                            </h3>
+                            <p className="wrap-anywhere rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-200">
+                              {primaryEntry.normalizedUrl}
+                            </p>
+                            <p id={summaryId} className="text-sm text-slate-700 dark:text-slate-300">
+                              Domaine racine: <strong>{item.registrableDomain}</strong>. Dernière mise à jour sur ce
+                              domaine: {formatDate(item.updatedAt)}.
+                            </p>
+                          </header>
+
+                          <dl className="grid grid-cols-1 gap-2 @md:grid-cols-2">
+                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2">
+                              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                                Catégorie
+                              </dt>
+                              <dd className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-50">
+                                {formatCategory(primaryEntry.category)}
+                              </dd>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2">
+                              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                                Mise à jour
+                              </dt>
+                              <dd className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-50">
+                                {formatDate(primaryEntry.updatedAt)}
+                              </dd>
+                            </div>
+                          </dl>
+
+                          <p id={badgeDescriptionId} className="text-sm text-slate-700 dark:text-slate-300">
+                            {rgaaBadge.description}
+                          </p>
+
+                          <section aria-labelledby={childrenId} className="rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4">
                               <h4 id={childrenId} className="text-sm font-semibold text-slate-900 dark:text-slate-50">
                                 Sous-sites déjà référencés
                               </h4>
@@ -1892,7 +1959,10 @@ function App() {
                                   : 'Aucun niveau de conformité exploitable pour ce domaine.'}
                               </p>
                               <ul className="mt-3 grid gap-2">
-                                {item.children.slice(0, 4).map((child) => (
+                                {item.children
+                                  .filter((child) => child.normalizedUrl !== primaryEntry.normalizedUrl)
+                                  .slice(0, 4)
+                                  .map((child) => (
                                   <li
                                     key={child.normalizedUrl}
                                     className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-3"
@@ -1918,14 +1988,57 @@ function App() {
                                   </li>
                                 ))}
                               </ul>
-                              {item.children.length > 4 ? (
+                              {item.children.filter((child) => child.normalizedUrl !== primaryEntry.normalizedUrl).length > 4 ? (
                                 <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-                                  {item.children.length - 4} autre(s) sous-site(s) visible(s) dans cette vue.
+                                  {item.children.filter((child) => child.normalizedUrl !== primaryEntry.normalizedUrl).length - 4} autre(s)
+                                  sous-site(s) visible(s) dans cette vue.
                                 </p>
                               ) : null}
-                            </section>
+                          </section>
 
-                            <div className="mt-auto grid grid-cols-1 gap-2 @sm:grid-cols-2">
+                          <div className="mt-auto grid grid-cols-1 gap-2 @sm:grid-cols-2">
+                            <a
+                              href={primaryEntry.profilePath ?? resolveShowcaseProfilePath(primaryEntry.normalizedUrl, primaryEntry.slug)}
+                              aria-label={`Ouvrir la fiche annuaire de ${primaryEntry.siteTitle}`}
+                              className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
+                            >
+                              Voir la fiche annuaire
+                            </a>
+                            <a
+                              href={primaryEntry.normalizedUrl}
+                              target="_blank"
+                              rel="noopener external"
+                              referrerPolicy="strict-origin-when-cross-origin"
+                              aria-label={`Visiter le site ${primaryEntry.siteTitle}`}
+                              className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                            >
+                              Visiter le site
+                            </a>
+                            {primaryEntry.accessibilityPageUrl ? (
+                              <a
+                                href={primaryEntry.accessibilityPageUrl}
+                                target="_blank"
+                                rel="noopener external"
+                                referrerPolicy="strict-origin-when-cross-origin"
+                                aria-label={`Ouvrir la déclaration d’accessibilité de ${primaryEntry.siteTitle}`}
+                                className={`@sm:col-span-2 inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaEmeraldClass} ${focusRingClass}`}
+                              >
+                                Déclaration d’accessibilité
+                              </a>
+                            ) : (
+                              <span className="@sm:col-span-2 inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-600 dark:border-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                Déclaration non détectée
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-2">
+                            {item.matchingSiteCount < item.totalSiteCount ? (
+                              <p className="text-sm text-slate-700 dark:text-slate-300">
+                                {item.matchingSiteCount} fiche(s) de ce domaine correspondent aux filtres actuels.
+                              </p>
+                            ) : null}
+                            <div className="grid grid-cols-1 gap-2 @sm:grid-cols-2">
                               <a
                                 href={item.groupPath}
                                 aria-label={`Voir toutes les fiches du domaine ${item.registrableDomain}`}
@@ -1933,17 +2046,16 @@ function App() {
                               >
                                 Voir les fiches du domaine
                               </a>
-                              {item.primaryEntry ? (
-                                <a
-                                  href={item.primaryProfilePath ?? item.primaryEntry.profilePath ?? resolveShowcaseProfilePath(item.primaryEntry.normalizedUrl, item.primaryEntry.slug)}
-                                  aria-label={`Ouvrir la fiche principale du domaine ${item.registrableDomain}`}
-                                  className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
-                                >
-                                  Voir le site principal
-                                </a>
-                              ) : null}
+                              <a
+                                href={item.primaryProfilePath ?? primaryEntry.profilePath ?? resolveShowcaseProfilePath(primaryEntry.normalizedUrl, primaryEntry.slug)}
+                                aria-label={`Ouvrir le site principal du domaine ${item.registrableDomain}`}
+                                className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                              >
+                                Voir le site principal
+                              </a>
                             </div>
                           </div>
+                        </div>
                         </article>
                       </li>
                     )
