@@ -9,6 +9,10 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [2026-03-10]
 
+### Fixed
+- Hotfix `0.5.1`: restored `GET /api/showcase` after the multi-site domain grouping rollout by reading the grouped-domain payload with the correct object shape, so public directory requests no longer fail with `TypeError: groups.filter is not a function`.
+- Disabled the noisy `express-rate-limit` forwarded-header validation on the deployed proxy path so production logs no longer emit misleading validation errors while request limiting behavior stays unchanged.
+
 ### Added
 - Project toolchain is now pinned in `package.json` with `packageManager: npm@11.6.2` and Volta metadata (`node 25.2.1`, `npm 11.6.2`) to keep local installs and audits on an explicit runtime baseline.
 - GitHub-native moderation notifications now support optional per-window anti-abuse limits via `GITHUB_NOTIFY_MAX_PER_WINDOW` and `GITHUB_NOTIFY_WINDOW_SECONDS`.

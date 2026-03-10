@@ -83,6 +83,9 @@ PUBLIC_SUBMISSION_CATEGORY_BY_NORMALIZED.set(
 )
 const siteInsightPreviewCache = new Map()
 const githubNotificationQuota = readGithubNotificationQuota()
+const rateLimitValidationOptions = {
+  forwardedHeader: false,
+}
 
 app.disable('x-powered-by')
 app.set('trust proxy', false)
@@ -1021,6 +1024,7 @@ app.use(
     max: 40,
     standardHeaders: true,
     legacyHeaders: false,
+    validate: rateLimitValidationOptions,
     handler: (_request, response, _next, options) => {
       sendJsonError(
         response,
@@ -1038,6 +1042,7 @@ const submissionLimiter = rateLimit({
   max: 8,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: rateLimitValidationOptions,
   message: {
     error: "Trop de soumissions. Merci de réessayer dans une heure.",
   },
@@ -1048,6 +1053,7 @@ const voteLimiter = rateLimit({
   max: 25,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: rateLimitValidationOptions,
   message: {
     error: "Trop de votes. Merci de réessayer dans une heure.",
   },
@@ -1058,6 +1064,7 @@ const moderationAuthLimiter = rateLimit({
   max: 25,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: rateLimitValidationOptions,
   skipSuccessfulRequests: true,
   message: {
     error: 'Trop de tentatives d’accès modération. Réessayez dans quelques minutes.',
@@ -1227,7 +1234,7 @@ app.get('/api/showcase', async (request, response) => {
       hasUpvoted: clientVoteIndexId ? votedUrls.has(entry.normalizedUrl) : false,
       votesBlocked: voteBlocklist.has(entry.normalizedUrl),
     })).map((entry) => withShowcasePublicMetadata(entry))
-    const { groups, entries: entriesWithDomainContext } = attachDomainContextToPublishedEntries(
+    const { groups: domainGroups, entries: entriesWithDomainContext } = attachDomainContextToPublishedEntries(
       entriesWithVoteState,
     )
     let filteredEntries = slugFilter
@@ -1257,7 +1264,7 @@ app.get('/api/showcase', async (request, response) => {
     response.json({
       entries: filteredEntries,
       total: filteredEntries.length,
-      domainGroups: groups
+      domainGroups: domainGroups.groups
         .filter((group) => group.siteCount > 1)
         .map((group) => toPublicDomainGroup(group))
         .filter(Boolean),
