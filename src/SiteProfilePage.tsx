@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
 import { normalizeDomainContext } from './domainGroups'
-import { preloadRouteApi } from './routeData'
+import { preloadRouteApi, readPreloadedRouteApi, type RouteApiResult } from './routeData'
 import { applySeo, createAbsoluteUrl } from './seo'
 import { readSiteSlugFromPath, resolveShowcaseProfilePath } from './siteProfiles'
 import SecondaryPageHeader from './SecondaryPageHeader'
@@ -159,13 +159,56 @@ function escapeHtmlAttribute(value: string) {
     .replaceAll('>', '&gt;')
 }
 
+function readSiteProfileStateFromApiResult(
+  result: RouteApiResult,
+  siteSlug: string,
+): {
+  entry: ShowcaseEntry | null
+  errorMessage: string | null
+  redirectPath: string | null
+} {
+  const redirectPath = readCanonicalRedirectPath(result.payload)
+
+  if (!result.ok) {
+    throw new Error(
+      typeof result.payload.error === 'string' ? result.payload.error : 'Chargement de la fiche impossible.',
+    )
+  }
+
+  if (redirectPath && redirectPath !== `/site/${siteSlug}`) {
+    return {
+      entry: null,
+      errorMessage: null,
+      redirectPath,
+    }
+  }
+
+  const responseEntries = Array.isArray(result.payload.entries)
+    ? (result.payload.entries as unknown[])
+    : Array.isArray(result.payload)
+      ? result.payload
+      : null
+
+  if (!responseEntries) {
+    throw new Error('Réponse annuaire invalide.')
+  }
+
+  const firstEntry = responseEntries.find((candidate) => isShowcaseEntry(candidate))
+  if (!firstEntry) {
+    throw new Error('Aucune fiche ne correspond à cette adresse.')
+  }
+
+  return {
+    entry: normalizeShowcaseEntry(firstEntry),
+    errorMessage: null,
+    redirectPath: null,
+  }
+}
+
 function SiteProfilePage() {
-  const [entry, setEntry] = useState<ShowcaseEntry | null>(null)
   const [relatedEntries, setRelatedEntries] = useState<ShowcaseEntry[]>([])
   const [isLoadingRelated, setIsLoadingRelated] = useState(false)
   const [relatedErrorMessage, setRelatedErrorMessage] = useState<string | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const [copyMessage, setCopyMessage] = useState('')
   const [politeAnnouncement, setPoliteAnnouncement] = useState({ id: 0, message: '' })
   const mainRef = useRef<HTMLElement | null>(null)
@@ -184,6 +227,45 @@ function SiteProfilePage() {
       : slug
         ? `/site/${slug}`
         : '/site'
+  const routeApiUrl = slug ? `/api/showcase?slug=${encodeURIComponent(slug)}&limit=500` : null
+  const preloadedRouteResult = routeApiUrl ? readPreloadedRouteApi(routeApiUrl) : null
+  const initialResolvedState = useMemo(() => {
+    if (!slug || !routeApiUrl) {
+      return {
+        entry: null,
+        errorMessage: 'Lien de fiche invalide.',
+        isLoading: false,
+        redirectPath: null,
+      }
+    }
+
+    if (!preloadedRouteResult) {
+      return {
+        entry: null,
+        errorMessage: null,
+        isLoading: true,
+        redirectPath: null,
+      }
+    }
+
+    try {
+      const resolvedState = readSiteProfileStateFromApiResult(preloadedRouteResult, slug)
+      return {
+        ...resolvedState,
+        isLoading: resolvedState.redirectPath ? true : false,
+      }
+    } catch (error) {
+      return {
+        entry: null,
+        errorMessage: error instanceof Error ? error.message : 'Erreur de chargement.',
+        isLoading: false,
+        redirectPath: null,
+      }
+    }
+  }, [preloadedRouteResult, routeApiUrl, slug])
+  const [entry, setEntry] = useState<ShowcaseEntry | null>(initialResolvedState.entry)
+  const [errorMessage, setErrorMessage] = useState<string | null>(initialResolvedState.errorMessage)
+  const [isLoading, setIsLoading] = useState(initialResolvedState.isLoading)
 
   const focusElement = useCallback((element: HTMLElement | null) => {
     if (!element) {
@@ -463,28 +545,28 @@ function SiteProfilePage() {
   }, [profileApiUrl, resolvedSlug])
 
   useEffect(() => {
-    if (!slug) {
+    if (!slug || !routeApiUrl) {
+      setEntry(null)
       setIsLoading(false)
       setErrorMessage('Lien de fiche invalide.')
       return
     }
     const siteSlug = slug
+    const safeRouteApiUrl = routeApiUrl
 
     let cancelled = false
 
     async function loadEntry() {
-      setIsLoading(true)
+      if (!initialResolvedState.entry && !initialResolvedState.errorMessage) {
+        setIsLoading(true)
+      }
       setErrorMessage(null)
 
       try {
-        const { ok, payload } = await preloadRouteApi(
-          `/api/showcase?slug=${encodeURIComponent(siteSlug)}&limit=500`,
-        )
-        const redirectPath = readCanonicalRedirectPath(payload)
-
-        if (!ok) {
-          throw new Error(typeof payload.error === 'string' ? payload.error : 'Chargement de la fiche impossible.')
-        }
+        const routeApiResult =
+          readPreloadedRouteApi(safeRouteApiUrl) ?? (await preloadRouteApi(safeRouteApiUrl))
+        const resolvedState = readSiteProfileStateFromApiResult(routeApiResult, siteSlug)
+        const redirectPath = resolvedState.redirectPath
 
         if (redirectPath && redirectPath !== `/site/${siteSlug}`) {
           if (!cancelled) {
@@ -494,25 +576,11 @@ function SiteProfilePage() {
           return
         }
 
-        const responseEntries = Array.isArray(payload.entries)
-          ? (payload.entries as unknown[])
-          : Array.isArray(payload)
-            ? payload
-            : null
-
-        if (!responseEntries) {
-          throw new Error('Réponse annuaire invalide.')
-        }
-
-        const firstEntry = responseEntries.find((candidate) => isShowcaseEntry(candidate))
-        if (!firstEntry) {
-          throw new Error('Aucune fiche ne correspond à cette adresse.')
-        }
-
         if (!cancelled) {
-          const normalizedEntry = normalizeShowcaseEntry(firstEntry)
-          setEntry(normalizedEntry)
-          announcePolite(`Chargement terminé. Fiche ouverte: ${normalizedEntry.siteTitle}.`)
+          setEntry(resolvedState.entry)
+          if (resolvedState.entry) {
+            announcePolite(`Chargement terminé. Fiche ouverte: ${resolvedState.entry.siteTitle}.`)
+          }
         }
       } catch (error) {
         if (!cancelled) {
@@ -528,12 +596,16 @@ function SiteProfilePage() {
       }
     }
 
+    if (initialResolvedState.entry || initialResolvedState.errorMessage) {
+      return
+    }
+
     void loadEntry()
 
     return () => {
       cancelled = true
     }
-  }, [announcePolite, slug])
+  }, [announcePolite, initialResolvedState.entry, initialResolvedState.errorMessage, routeApiUrl, slug])
 
   useEffect(() => {
     if (!entry) {
