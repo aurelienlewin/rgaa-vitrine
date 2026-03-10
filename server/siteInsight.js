@@ -480,6 +480,163 @@ function findAiContextUrl($, baseUrl) {
   return bestMatch
 }
 
+function findFirstAbsoluteUrl(baseUrl, ...candidates) {
+  for (const candidate of candidates) {
+    const absolute = toAbsoluteUrl(typeof candidate === 'string' ? candidate.trim() : '', baseUrl)
+    if (absolute) {
+      return absolute
+    }
+  }
+
+  return null
+}
+
+function findLogoValueInStructuredData(value, depth = 0) {
+  if (depth > 8 || value === null || value === undefined) {
+    return null
+  }
+
+  if (typeof value === 'string') {
+    return null
+  }
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const nested = findLogoValueInStructuredData(entry, depth + 1)
+      if (nested) {
+        return nested
+      }
+    }
+    return null
+  }
+
+  if (typeof value !== 'object') {
+    return null
+  }
+
+  const directLogo = value.logo
+  if (typeof directLogo === 'string' && directLogo.trim()) {
+    return directLogo.trim()
+  }
+
+  if (directLogo && typeof directLogo === 'object') {
+    if (typeof directLogo.url === 'string' && directLogo.url.trim()) {
+      return directLogo.url.trim()
+    }
+
+    if (typeof directLogo.contentUrl === 'string' && directLogo.contentUrl.trim()) {
+      return directLogo.contentUrl.trim()
+    }
+
+    const recursiveDirectLogo = findLogoValueInStructuredData(directLogo, depth + 1)
+    if (recursiveDirectLogo) {
+      return recursiveDirectLogo
+    }
+  }
+
+  for (const nestedValue of Object.values(value)) {
+    const nested = findLogoValueInStructuredData(nestedValue, depth + 1)
+    if (nested) {
+      return nested
+    }
+  }
+
+  return null
+}
+
+function findStructuredDataLogoUrl($, baseUrl) {
+  let bestMatch = null
+
+  $('script[type="application/ld+json"]').each((_, element) => {
+    if (bestMatch) {
+      return
+    }
+
+    const rawJson = $(element).contents().text().trim()
+    if (!rawJson) {
+      return
+    }
+
+    try {
+      const parsed = JSON.parse(rawJson)
+      const logoValue = findLogoValueInStructuredData(parsed)
+      const absolute = findFirstAbsoluteUrl(baseUrl, logoValue)
+      if (absolute) {
+        bestMatch = absolute
+      }
+    } catch {
+      // Ignore invalid JSON-LD blocks.
+    }
+  })
+
+  return bestMatch
+}
+
+function findHtmlLogoUrl($, baseUrl) {
+  const selectors = [
+    'img[itemprop="logo"]',
+    'img[alt*="logo" i]',
+    'img[class*="logo" i]',
+    'img[id*="logo" i]',
+    '[class*="logo" i] img',
+    '[id*="logo" i] img',
+    'img[src*="logo" i]',
+    'header img',
+  ]
+
+  for (const selector of selectors) {
+    let bestMatch = null
+
+    $(selector).each((_, element) => {
+      if (bestMatch) {
+        return
+      }
+
+      const absolute = findFirstAbsoluteUrl(
+        baseUrl,
+        $(element).attr('src'),
+        $(element).attr('data-src'),
+        $(element).attr('data-lazy-src'),
+      )
+
+      if (absolute) {
+        bestMatch = absolute
+      }
+    })
+
+    if (bestMatch) {
+      return bestMatch
+    }
+  }
+
+  return null
+}
+
+function findSiteIconUrl($, baseUrl) {
+  return findFirstAbsoluteUrl(
+    baseUrl,
+    $('link[rel="apple-touch-icon"]').attr('href'),
+    $('link[rel="apple-touch-icon-precomposed"]').attr('href'),
+    $('link[rel="shortcut icon"]').attr('href'),
+    $('link[rel~="icon"]').attr('href'),
+    '/favicon.ico',
+  )
+}
+
+function findThumbnailUrl($, baseUrl) {
+  return (
+    findFirstAbsoluteUrl(
+      baseUrl,
+      $('meta[property="og:image"]').attr('content'),
+      $('meta[property="og:image:secure_url"]').attr('content'),
+      $('meta[name="twitter:image"]').attr('content'),
+    ) ||
+    findStructuredDataLogoUrl($, baseUrl) ||
+    findHtmlLogoUrl($, baseUrl) ||
+    findSiteIconUrl($, baseUrl)
+  )
+}
+
 function extractCompliance(text) {
   const normalized = normalizeForMatch(text)
 
@@ -749,9 +906,7 @@ function extractMetaInformation(html, baseUrl) {
     $('title').first().text().trim() ||
     new URL(baseUrl).hostname
 
-  const thumbnailUrl =
-    toAbsoluteUrl($('meta[property="og:image"]').attr('content')?.trim() ?? '', baseUrl) ||
-    toAbsoluteUrl($('meta[name="twitter:image"]').attr('content')?.trim() ?? '', baseUrl)
+  const thumbnailUrl = findThumbnailUrl($, baseUrl)
 
   const accessibilityPageUrl = findAccessibilityPageUrl($, baseUrl)
   const aiContextUrl = findAiContextUrl($, baseUrl)
