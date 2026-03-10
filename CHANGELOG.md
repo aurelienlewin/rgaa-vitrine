@@ -15,6 +15,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 ### Changed
 - Discovery resources are now synchronized around the current public surface: `llms.txt`, `llms-full.txt`, `robots.txt`, `/sitemap.xml`, and `/ai-context.json` all reference domain-group pages and the public `/api/domain-groups` dataset where relevant.
 - README now documents which discovery assets are server-generated (`/sitemap.xml`, `/ai-context.json`) and which remain static versioned files (`public/robots.txt`, `public/llms.txt`, `public/llms-full.txt`).
+- README was rewritten to focus on current architecture, operations, accessibility, and discovery behavior, while detailed release-by-release history stays in `CHANGELOG.md`.
 - Homepage directory loading now uses a more visible non-interactive status panel with reserved card placeholders, making slow-connection waits clearer without adding extra polite live announcements or extra API calls.
 
 ## [2026-03-10 / v0.5.2]

@@ -1,6 +1,6 @@
 # Annuaire RGAA
 
-> Showcase and celebrate RGAA compliance in French web ecosystems.
+> Showcase and operationalize RGAA visibility for the French web.
 
 ![Annuaire RGAA logo](./public/logo-rgaa-vitrine.svg)
 
@@ -9,232 +9,171 @@
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-v4-06B6D4.svg)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org/)
 
-Annuaire RGAA is an open-source French-first directory that lets organizations publish a
-public RGAA pride listing: site metadata, detected accessibility statement page, and
-declared compliance indicators.
+Annuaire RGAA is a French-first directory for websites that publish accessibility signals:
+public site metadata, detected accessibility statement URLs, declared compliance status,
+declared RGAA baseline, and public profile pages designed for both humans and crawlers.
 
-Project documentation (`README`, `CHANGELOG`, release notes) is maintained in English.
-Interface labels remain in French by design for the target audience.
+The product is intentionally split into two surfaces:
+
+- a public, crawlable annuaire with search, filters, profile pages, domain-group pages, a site map, and machine-readable discovery assets
+- a protected moderation console for approving, editing, deleting, blocking, exporting, and restoring entries
+
+Project documentation is maintained in English. User-facing UI, announcements, and editorial
+content remain in French by design.
 
 Public website: **https://annuaire-rgaa.fr**
 
-## Highlights
+Detailed release history lives in [CHANGELOG.md](./CHANGELOG.md). The README describes the
+current system, not the full timeline of incremental changes.
 
-- Simple French UI focused on listing discovery first.
-- Multiple skip links for keyboard navigation (French UI labels: `contenu`, `navigation principale`, `recherche`, `résultats`, `ajout`, `aide`, `pied de page`), hidden by default and revealed on keyboard focus.
-- Programmatic focus management on skip-link targets and dynamic feedback blocks (errors/status).
-- Keyboard filter ergonomics: `Échap` clears search input and a dedicated reset button restores all filters from the shared header search.
-- Explicit filter CTA with a `Rechercher` button for clear submit action and predictable keyboard flow.
-- Shared global search entry point (`#moteur-recherche-global`) reused across homepage, secondary pages, and quick links.
-- Progressive tile pagination in the directory (`24` cards per batch) with a manual `Charger plus` action.
-- Automatic lazy loading of additional tiles near viewport end (with keyboard-accessible manual fallback).
-- Reddit-like upvote on each directory tile with accessible button state (`aria-pressed`) and live vocal feedback.
-- Each directory tile includes an explicit RGAA baseline badge (`RGAA 4.1` or `RGAA 5.0 prêt`) with readable explanation text.
-- Domains with multiple public entries are grouped into a simplified multi-site homepage card with a single explicit CTA, while the detailed sibling listing and secondary actions live on the dedicated public page (`/domaine/{groupSlug}`).
-- A general, non-live disclaimer clarifies that listed scores are declarative values provided by submitters, do not engage Annuaire RGAA editorial responsibility, and can be re-evaluated by contacting moderation.
-- Submission flow includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
-- Submission flow detects when the URL belongs to a domain already represented in the annuaire, announces that context in French live feedback, and clarifies that the URL is treated as a distinct sub-site rather than an exact duplicate.
-- Confirmation CTA lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.
-- Final confirmation reuses a short-lived server-side preview token when available, so users do not pay the full remote analysis cost twice in a row.
-- Pre-analysis thumbnail detection falls back from social preview images to site logos and icons when no richer image is exposed.
-- Duplicate submissions trigger a dedicated accessible feedback panel (`Site déjà référencé`) with polite live announcement, programmatic focus, dismiss action, and direct moderation contact links.
-- URLs already submitted and still under manual review trigger a dedicated accessible feedback panel (`Site déjà soumis et en cours de revue`) so users do not repeat the same submission.
-- Submission errors use a dedicated accessible panel with simplified French wording, automatic focus, dismiss action, and optional collapsed technical details for support/debug handoff.
-- Each listed site has a dedicated public profile page (`/site/{slug}`) with shareable metadata and backlink snippet.
-- Profile pages expose stronger SEO/IA signals: dedicated `WebPage` + referenced `WebSite` + `Dataset` structured data, direct API link (`/api/showcase?slug={slug}`), explicit accessibility-statement linking when detected, and related-profile internal linking.
-- Profile pages provide a reusable visual backlink badge (`/badge-backlink-annuaire-rgaa.svg`) plus copy-ready HTML snippets with explicit `alt` and `aria-label`.
-- Add-site flow exposes a visible category dropdown (including `Coopérative et services`) without custom free-text entry.
-- Localized live region announcements for dynamic feedback (`polite` for status, `assertive` for errors).
-- Tailwind v4.2 accessibility helpers are used where relevant: `wrap-anywhere`, `user-valid` / `user-invalid`, and logical utilities (`start-*`, `ps-*`) to avoid direction-specific custom positioning/padding.
-- Showcase thumbnails are treated as decorative visuals when equivalent textual information is already present in cards.
-- Showcase thumbnails use a framed `contain` layout with an inner adaptive canvas, so transparent logos with dark or light strokes stay legible in both themes without cover-cropping.
-- User preference support for low vision and motion sensitivity (`prefers-color-scheme`, `prefers-reduced-motion`, `prefers-contrast`, `forced-colors`).
-- High-contrast color system tuned for low-vision navigation in both light and dark modes (including stronger visited-link and status semantics).
-- Persistent light/dark mode toggle available on both directory and moderation screens.
-- Dark mode styling is consistently applied through Tailwind `dark:` variants to avoid mixed-theme rendering.
-- Discreet footer build stamp (`version + UTC timestamp`) helps detect stale cache quickly.
-- Footer version resolves from release tags first (with package version fallback) to stay aligned with published GitHub releases.
-- Footer uses a clearer three-column information architecture (French UI labels: `Projet`, `Navigation rapide`, `Soutien`) on large screens.
-- Header logo and footer avatar declare explicit intrinsic image dimensions to reserve layout space early and reduce CLS without altering French accessible names.
-- Homepage relies on CSS-only contrast-safe text/background guards rather than runtime DOM/style patching after first paint.
-- Homepage preloads the logo, marks it with high fetch priority, fetches the public directory immediately on mount, and hydrates client vote state separately so the first annuaire fetch can start earlier and stay cache-friendly.
-- Live-region announcers use immediate inline visually-hidden styles instead of relying only on the delayed `sr-only` stylesheet, and homepage stats/results summaries reserve stable text space to reduce CLS during app bootstrap and directory hydration.
-- All pages share a consistent top `navigation principale` landmark (French UI label) and the same global footer.
-- Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
-- Route lazy-loading fallback is announced as status (`aria-live="polite"`) to avoid silent loading states.
-- Lazy-loaded completion states are announced on `/site/{slug}` and `/plan-du-site` (successful load, empty result, and loading error) via dedicated polite live regions.
-- UI typography avoids tiny text; informational content and metadata are rendered at `text-sm` or above.
-- Muted text and status colors are tuned for stronger contrast in both light and dark themes.
-- Default typography prioritizes `Atkinson Hyperlegible` for broad readability, with `OpenDyslexic` and `Lexend` as accessible fallbacks.
-- Logo strategy is icon-only in SVG; textual branding is rendered in semantic Tailwind UI for robust responsive display.
-- Directory-first UX with filters, categories, and search at the core.
-- Score is treated as a compass, not the goal: priority is to unblock customer journeys and deliver usable UX for everyone.
-- URL registration workflow with secure server-side metadata enrichment.
-- Dedicated moderation UI at `/moderation` for approving/rejecting pending submissions.
-- Moderation dashboards and controls stay hidden until a valid moderation token is submitted.
-- Moderation token session can be restored automatically (tab session by default, optional 12h persistence on the current device) with an explicit sign-out/forget action.
-- Pending moderation submissions use a more urgent high-contrast review treatment (section alert summary, stronger card framing, explicit `À traiter` badges, and emphasized approve/reject actions).
-- Moderation exposes domain-level context on both pending and published entries (existing sibling sites, pending submissions on the same domain, and direct access to the public domain page) to help reviewers process multi-site submissions consistently.
-- Dedicated moderation UI supports published entry editing and deletion (title, category, score, status, RGAA baseline badge, vignette, accessibility URL).
-- Moderation includes editable site blocklist and vote-blocklist controls, plus a single action to delete and block a published site.
-- Moderation forms strengthen input assistance (`required`, typed URL fields, explicit score guidance) and row-level action labels for assistive technologies.
-- Public accessibility declaration page at `/accessibilite` including compliance status, non-conformity follow-up, technology stack, test environment, tooling, and contact.
-- Accessibility declaration data comes from a shared snapshot reused by `/accessibilite` and `/ai-context.json`.
-- Annuaire listing cards designed for disabled people and accessibility enthusiasts.
-- Directory tiles use a clearer reading hierarchy (status chips, metadata blocks, grouped actions, vote zone) with container-query layout adaptation for mobile and desktop.
-- RGAA awareness sections sourced from official French references.
-- WCAG 2.2 awareness and references embedded in the UI.
-- Tailwind CSS v4 native features used directly (`@theme` tokens + utility-first focus/skip-link patterns).
-- Embedded skills: `rgaa-official-recommendations`, `wcag-22-official-guidelines`.
-- Frontend route bundles are split (`/moderation`, `/plan-du-site`, `/accessibilite`) to reduce initial JavaScript on homepage load.
-- Public detail routes (`/site/{slug}` and `/domaine/{groupSlug}`) preload their API payload as soon as the route is detected and bootstrap only the active page module, which shortens the critical request chain on direct-entry detail pages.
-- Public detail routes reuse any already-settled preloaded API response at first render and prime route-specific module preloads from the initial HTML shell, limiting blank-loading states on direct entry.
-- Public detail routes inline a compact critical CSS shell for the shared secondary header/search area, preload the primary Atkinson Hyperlegible woff2 assets, and defer the full app stylesheet non-blockingly so first paint stays stable without keeping the full CSS file on the critical rendering path.
-- Route-aware head fallbacks set canonical/title/description/robots earlier on `/site/*`, `/domaine/*`, `/plan-du-site`, `/accessibilite`, and `/moderation`, improving first-paint SEO consistency before React hydration.
-- Public detail pages keep loading states polite, mark busy regions explicitly, preserve focus on copy CTAs, and label new-tab links directly in visible text for RGAA/WCAG consistency.
-- The public site map lists dedicated domain-group pages as first-class crawlable links, matching the XML sitemap and reinforcing internal discovery.
-- Secondary local fonts (`OpenDyslexic`, `Lexend`) are deferred after first paint (idle callback).
+## Overview
+
+Annuaire RGAA is not an automated legal audit platform. It is a submission, enrichment,
+publication, and moderation pipeline with strong accessibility and crawlability constraints.
+
+Core characteristics:
+
+- French-first public interface oriented around directory discovery
+- server-side URL analysis and metadata enrichment
+- explicit moderation queue for non-auto-publishable submissions
+- dedicated public profile route per listed site: `/site/{slug}`
+- dedicated public domain route for multi-site domains: `/domaine/{groupSlug}`
+- public discovery assets for search engines and AI crawlers: `/sitemap.xml`, `/robots.txt`, `/llms.txt`, `/llms-full.txt`, `/ai-context.json`
+- protected moderation workflows for published entries, site blocklists, vote blocklists, and archive import/export
+
+## Product Surface
+
+### Public routes
+
+- `/`: homepage, shared search entry point, results, submission flow, accessibility guidance
+- `/plan-du-site`: public site map with crawl-oriented internal links
+- `/accessibilite`: accessibility declaration and contact/recourse information
+- `/site/{slug}`: one public profile page per referenced site
+- `/domaine/{groupSlug}`: grouped page for a domain with multiple public entries
+
+### Public machine-readable routes
+
+- `/api/showcase`: public dataset of published entries
+- `/api/domain-groups`: public dataset of grouped domains
+- `/api/health`: service health and storage mode
+- `/sitemap.xml`: generated XML sitemap
+- `/ai-context.json`: generated AI/discovery context payload
+- `/robots.txt`, `/llms.txt`, `/llms-full.txt`: static versioned discovery files
+
+### Protected moderation routes
+
+- `/moderation`: moderation UI
+- `/api/moderation/*`: moderation endpoints guarded by `MODERATION_API_TOKEN`
+
+## What The App Optimizes For
+
+- discoverability first: search, filters, internal linking, canonical public routes
+- accessibility first: semantic HTML, keyboard flow, visible focus, non-silent async states
+- moderation continuity: reviewers keep domain context, editable metadata, and rollback options
+- crawl consistency: public routes, sitemap, site map page, and machine-readable assets expose the same public patterns
+- low-friction operations: Vercel deployment, optional Redis persistence, optional GitHub notifications
+
+## Architecture
+
+The repository is a Vite + React frontend paired with a Node + Express backend.
+
+- frontend rendering and route bootstrapping live in `src/`
+- API and route generation live in `server/`
+- Vercel serverless adapters live in `api/`
+- static public assets live in `public/`
+- shared accessibility declaration data lives in `shared/`
+
+Important architectural choices:
+
+- public detail routes preload only the route-specific API payload they need
+- route-aware metadata is applied before React hydration where possible
+- shared secondary-page primitives keep search, navigation, footer, and skip-link behavior aligned
+- fragment targets move real DOM focus on load and on `hashchange`
+- orientation fragments focus their landmark or section, while `#moteur-recherche-global` and `#ajout-site` move directly to the first useful field
+- generated discovery endpoints and static discovery files are intentionally redundant for crawler resilience
+
+## Accessibility Model
+
+This project treats accessibility as a runtime constraint, not a garnish.
+
+Implemented principles:
+
+- French UI labels and announcements
+- semantic HTML before ARIA
+- visible focus and non-obscured focus targets
+- keyboard-first skip-link navigation
+- route-level and local live regions for async status and error feedback
+- shared search entry point across homepage and secondary routes
+- focus continuity after action outcomes and section jumps
+- minimum `44px`-class interaction targets on primary controls
+- consistent fragment-focus behavior across `/`, `/plan-du-site`, `/accessibilite`, `/site/{slug}`, `/domaine/{groupSlug}`, and `/moderation`
+
+Accessibility-specific public assets:
+
+- `/accessibilite`
+- `/ai-context.json`
+
+Embedded implementation references:
+
+- `skill/rgaa-official-recommendations/SKILL.md`
+- `skill/rgaa-official-recommendations/references/official-developer-recommendations.md`
+- `skill/wcag-22-official-guidelines/SKILL.md`
+- `skill/wcag-22-official-guidelines/references/wcag-22-official-summary.md`
+
+## SEO And Discovery
+
+The app is designed so that public discovery does not depend on JavaScript interpretation alone.
+
+Current discovery strategy:
+
+- canonical public routes for homepage, site map, accessibility, profile, and domain-group pages
+- JSON-LD on public routes
+- XML sitemap generated by the API layer
+- static `robots.txt`, `llms.txt`, and `llms-full.txt`
+- generated `ai-context.json` with site, route, dataset, and accessibility snapshot metadata
+- internal linking between homepage, site map, profiles, related profiles, and domain groups
+- non-indexable moderation surface
+
+Discovery asset lifecycle:
+
+- generated: `/sitemap.xml`, `/ai-context.json`
+- static versioned files from `public/`: `/robots.txt`, `/llms.txt`, `/llms-full.txt`
 
 ## Tech Stack
 
-- Vite + React + TypeScript
-- Tailwind CSS v4 via `@tailwindcss/vite`
-- Node + Express API
-- Upstash Redis (optional but recommended) for persistent showcase storage
-- API-side in-memory Redis cache (TTL-based) to reduce repeated Upstash reads
-- Vote-state retrieval optimized for Redis limits (client vote index + TTL cache), avoiding per-tile membership bursts
-- Redis payloads are compacted on write (short field names, epoch timestamps, hashed vote fingerprints) to lower Upstash storage footprint
-- Local self-hosted fonts via `@fontsource` (`opendyslexic`, `atkinson-hyperlegible`, `lexend`)
+- Vite 7
+- React 19
+- TypeScript 5
+- Tailwind CSS 4
+- Express 5
+- Upstash Redis, optional but recommended for persistence
+- `tldts` for registrable-domain grouping
+- `@fontsource` local font assets (`atkinson-hyperlegible`, `opendyslexic`, `lexend`)
 
-## Persistence (Redis)
+## Storage And Runtime Modes
 
 The API supports two storage modes:
 
-- `redis` when Upstash env variables are configured
-- `memory` fallback when Redis config is missing (non-persistent)
+- `redis`: enabled when Upstash-compatible environment variables are configured
+- `memory`: fallback mode without persistence
 
-Create a local env file from `.env.example` and configure:
+Use `GET /api/health` to inspect the active mode.
 
-```bash
-UPSTASH_REDIS_REST_URL=...
-UPSTASH_REDIS_REST_TOKEN=...
-```
+Redis-related runtime notes:
 
-Alternative compatible names are also supported:
-
-```bash
-KV_REST_API_URL=...
-KV_REST_API_TOKEN=...
-```
-
-API scripts auto-load `.env.local` when present.
-
-Optional performance setting:
-
-```bash
-REDIS_CACHE_TTL_MS=15000
-```
-
-This enables short-lived server-side caching for Redis-backed listing/moderation reads and vote-state hydration, to avoid unnecessary Upstash queries on repeated requests.
-
-Storage optimization notes:
-
-- Submission IDs are deterministic from normalized URLs.
-- Redis writes use compact hash fields and unix timestamps to reduce bytes stored per entry.
-- Vote fingerprint tokens are stored as short hashed tokens (`h:*`) to reduce set memory usage.
-- Legacy records and vote tokens remain supported.
-
-Optional vote hardening setting:
-
-```bash
-VOTE_FINGERPRINT_SALT=change-this-random-secret
-```
-
-Use a custom secret in production so vote fingerprints cannot be reproduced across environments.
-
-You can check the active storage mode via:
-
-- `GET /api/health`
-- `GET /api/showcase`
-
-## Security by default
-
-- Strict URL validation (`http/https` only)
-- SSRF protections (localhost/private/internal targets blocked)
-- Redirect-by-redirect SSRF validation (each HTTP redirection target is revalidated before fetch)
-- DNS resolution checks before remote fetch
-- Response timeout and maximum HTML size limits
-- Global rate limiting on API endpoints + stricter hourly limiter for submissions
-- Dedicated moderation-auth hardening: `MODERATION_API_TOKEN` must be strong (minimum `32` chars) and failed moderation auth attempts are throttled.
-- Dedicated vote anti-abuse controls: one-vote safeguards per user/browser fingerprint + per network fingerprint, plus hourly vote rate limiting
-- Forwarded IP headers are validated as real IPs before contributing to anti-abuse vote fingerprints.
-- Moderation-enforced site blocklist prevents new submissions on blocked URLs.
-- Moderation-enforced vote blocking disables upvotes for selected URLs.
-- Moderation archive hardening: optional HMAC-signed exports/imports (`MODERATION_ARCHIVE_SIGNING_SECRET`) and rollback guard for destructive `replace` imports.
-- GitHub notifier hardening: explicit notifier token env vars only, strict public-HTTPS validation for custom GitHub API base URL, and short outbound timeout.
-- Domain-level deduplication via canonical URL normalization (e.g. `www` variants collapse)
-- Exact duplicate detection remains URL-based, while same-domain submissions are preserved as distinct sub-sites and grouped under a dedicated public domain view.
-- Honeypot field validation to reduce automated spam submissions
-- Automatic spam/marketing signal rejection (quality filter)
-- Manual-review queue for non-auto-publishable submissions (pending until moderator action)
-- No execution of remote page scripts
-
-## Accessibility Preferences
-
-The UI adapts automatically to operating-system and browser accessibility preferences:
-
-- Dark mode (`prefers-color-scheme`)
-- Reduced motion (`prefers-reduced-motion`)
-- Increased contrast (`prefers-contrast: more`)
-- Forced colors / high-contrast modes (`forced-colors: active`)
-
-## Accessibility
-
-- Public accessibility declaration: `/accessibilite`
-- Machine-readable accessibility snapshot: `/ai-context.json`
-- Public pages explicitly covered by the declaration include `/`, `/plan-du-site`, `/accessibilite`, `/site/{slug}`, and `/domaine/{groupSlug}`.
-- The deferred-stylesheet strategy keeps the shared secondary header search usable before the full CSS bundle arrives: labels stay explicit, target heights remain at least `44px`, and tab order/focus affordances do not depend on late-loaded styles.
-- Deep links to fragment targets move real DOM focus on load and on hash changes across routed pages (`/`, `/plan-du-site`, `/accessibilite`, `/site/{slug}`, `/domaine/{groupSlug}`, `/moderation`): orientation targets focus their landmark/section, while `#moteur-recherche-global` and `#ajout-site` move directly to the search field and URL field.
-- Dynamic status and error feedback uses localized French live regions (`aria-live="polite"` and `aria-live="assertive"`).
-- Submission error feedback keeps technical diagnostics out of the primary message and exposes them only through an explicit expandable disclosure.
-- Accessibility implementation references are listed in the `Accessibility Sources Embedded` section below.
-
-## SEO
-
-- Rich metadata: description, robots, canonical, hreflang
-- Legacy `.org` host redirects at edge to `annuaire-rgaa.fr` to avoid duplicate indexing.
-- Open Graph + Twitter Cards
-- Structured data (JSON-LD) on homepage combines `WebSite`, `WebPage`, `WebApplication`, `Organization`, `Person`, `CollectionPage`, `DataCatalog`, and `Dataset`.
-- Structured data exposes `SearchAction` on homepage, `BreadcrumbList` on key secondary pages, and richer `Dataset` semantics (`variableMeasured`, `measurementTechnique`, distributions).
-- Profile pages publish a referenced-site `WebSite`, a per-profile `Dataset`, and a dedicated accessibility-statement `WebPage` node when a declaration URL is known.
-- Domain-group pages (`/domaine/{groupSlug}`) are crawlable public collection pages linked from simplified homepage multi-site tiles and included in sitemap generation.
-- Static `index.html` keeps a stronger metadata fallback graph so non-hydrated crawlers still discover the main site entities and dataset endpoint.
-- Accessible public site map page: `/plan-du-site`
-- Site map page lists an extract of published `/site/{slug}` links, domain-group pages, and the main public discovery/data resources with dedicated skip links to each major link block.
-- Public accessibility declaration page: `/accessibilite`
-- Accessibility declaration structured data includes accessibility-specific properties (`accessibilitySummary`, `accessibilityFeature`, `accessibilityControl`, `accessMode`).
-- Auto-generated sitemap endpoint: `/sitemap.xml` (backed by API route `/api/sitemap`)
-- Auto-generated AI context endpoint: `/ai-context.json` (backed by API route `/api/ai-context`)
-- `sitemap.xml` is served without caching (`no-store`) so published entries appear immediately after submission/moderation.
-- Sitemap includes the public data endpoints (`/api/showcase`, `/api/domain-groups`) for dataset discovery.
-- Sitemap includes one public URL per referenced site profile (`/site/{slug}`).
-- AI crawler files: `/llms.txt`, `/llms-full.txt`, `/ai-context.json` (and `/api/ai-context`)
-- AI context includes explicit site-profile patterns (`/site/{slug}`), domain-group patterns (`/domaine/{groupSlug}`), API patterns (`/api/showcase?slug={slug}`, `/api/domain-groups?slug={groupSlug}`), crawl seed profile URLs, and a machine-readable accessibility-statement snapshot (`complianceStatus`, `complianceScore`, `rgaaBaseline`).
-- Static versioned discovery files live in `public/`: `robots.txt`, `llms.txt`, `llms-full.txt`
-- Public showcase API includes cache headers (`Cache-Control`, `Last-Modified`) for crawler efficiency and reduced load.
-- Serverless API adapter normalizes absolute/relative request URLs before Express routing, reducing production fallback mismatches on `/api/*`.
-- Host-level redirects must avoid cyclic `www`/apex rules, otherwise `/api/*` calls may fail and return non-API HTML payloads.
-- Vercel rewrites force `/api/*` through the single `/api` function entrypoint with preserved logical path, preventing SPA HTML fallback on API routes.
-- Vercel Web Analytics is wired on frontend mount via `@vercel/analytics`.
+- submission IDs are deterministic from normalized URLs
+- payloads are compacted on write
+- vote-state reads are optimized to avoid excessive Redis fan-out
+- a short-lived in-memory cache reduces repeated read pressure
 
 ## Getting Started
 
-Toolchain is pinned with Volta and npm metadata in [`package.json`](./package.json):
+Toolchain is pinned in [`package.json`](./package.json):
 
 - Node.js `25.2.1`
 - npm `11.6.2`
 
-If you use Volta locally, entering the project directory is enough to pick the pinned versions automatically.
+Install and run:
 
 ```bash
 npm install
@@ -243,157 +182,35 @@ npm run dev
 
 Local services:
 
-- Frontend: `http://127.0.0.1:5173`
+- frontend: `http://127.0.0.1:5173`
 - API: `http://127.0.0.1:8787`
 
-## API endpoints
+## Configuration
 
-- `POST /api/site-insight` registers/enriches one site entry in the directory
-- `POST /api/site-insight?preview=1` runs pre-analysis without persistence (used by confirmation step)
-- `GET /api/showcase` returns persisted showcase entries (supports `search`, `status`, `category`, `limit`, `clientVoterId`)
-- `GET /api/showcase` also supports `slug` for single-profile retrieval and returns `slug`, `profilePath`, `siteHost`, `siteOrigin`, `registrableDomain`, `domainGroupSlug`, `domainGroupPath`, `domainContext`, and `hasAccessibilityPage` for each public entry.
-- `GET /api/domain-groups` returns public multi-site domain groups and supports `slug` for direct access to one domain page.
-- `POST /api/showcase/upvote` records one upvote for one listed site
-- `GET /api/health` returns service status and active storage mode
-- `GET /api/moderation/pending` returns pending moderation entries (protected)
-- `POST /api/moderation/approve` approves one pending submission (protected)
-- `POST /api/moderation/reject` rejects one pending submission (protected)
-- `GET /api/moderation/showcase` lists published entries for admin operations (protected)
-- `POST /api/moderation/showcase/update` updates one published entry (protected)
-- `POST /api/moderation/showcase/delete` deletes one published entry (protected)
-- `POST /api/moderation/showcase/delete-and-block` deletes and blocklists one published entry (protected)
-- `GET /api/moderation/blocklist` returns site and vote blocklists (protected)
-- `POST /api/moderation/blocklist/site` updates site blocklist state (protected)
-- `POST /api/moderation/blocklist/votes` updates vote blocklist state (protected)
-- `GET /api/moderation/archive` exports a full moderation archive (protected)
-- `POST /api/moderation/archive/import` imports an archive in `merge` or `replace` mode (protected)
+### Persistence
 
-`POST /api/site-insight` behavior:
+Configure either naming scheme:
 
-- `200` + `submissionStatus: "approved"` when published
-- `200` + `submissionStatus: "duplicate"` when site already exists
-- `202` + `submissionStatus: "pending"` when the site requires manual review
-- `202` + `submissionStatus: "pending"` + `alreadySubmitted: true` when the same URL is already pending moderation
-- Domain-context metadata is included when the submitted URL belongs to a domain that already has published or pending sibling sites, so UI can announce “same domain, distinct sub-site” instead of mislabeling it as a duplicate.
-- `4xx` when rejected by validation/anti-abuse rules (spam, invalid input, etc.)
-- Public submissions accept only moderator-approved category values from the dropdown; unknown values are normalized to `Autre`.
-- For `duplicate`, the frontend displays an explicit guidance block that links to the existing profile and moderation contact (`/accessibilite#contact-accessibilite`) before any re-listing request.
-- For submission/runtime failures, the frontend displays a focused French error summary first, then an optional `Afficher les détails techniques` disclosure that can be ignored by most users.
-- For `pending` + `alreadySubmitted: true`, the frontend skips confirmation and displays an explicit guidance block to avoid duplicate pending submissions.
-
-`POST /api/site-insight?preview=1` behavior:
-
-- never persists data
-- returns extracted metadata (`siteTitle`, `accessibilityPageUrl`, `complianceStatus`, `complianceScore`)
-- tries to resolve `thumbnailUrl` from social preview metadata first, then from the site logo/icon when needed
-- returns projected `submissionStatus` (`approved`, `pending`, `duplicate`) with explanatory `message`
-- returns a short-lived `previewToken` for the confirmation step when the site remains eligible for submission
-- when projected status is `duplicate`, the submission confirmation flow is skipped and the duplicate guidance panel is shown immediately.
-- when projected status is `pending` with `alreadySubmitted: true`, the submission confirmation flow is also skipped and a dedicated “already under review” guidance panel is shown immediately.
-
-Public profile pages:
-
-- `/site/{slug}` exposes one dedicated page per referenced site with canonical metadata, outbound links, backlink snippet, and a direct dataset endpoint.
-- Each profile page also links to related profiles in the same category to strengthen internal crawl paths.
-- Outbound links to referenced sites use `noopener` without `noreferrer` so referral analytics can identify annuaire-rgaa.fr.
-
-`POST /api/moderation/showcase/update` body:
-
-```json
-{
-  "normalizedUrl": "https://impots.gouv.fr/",
-  "siteTitle": "impots.gouv.fr",
-  "category": "Administration",
-  "complianceStatus": "partial",
-  "complianceScore": 96.51,
-  "rgaaBaseline": "4.1",
-  "thumbnailUrl": "https://www.impots.gouv.fr/example-image.jpg",
-  "accessibilityPageUrl": "https://www.impots.gouv.fr/accessibilite"
-}
+```bash
+UPSTASH_REDIS_REST_URL=...
+UPSTASH_REDIS_REST_TOKEN=...
 ```
 
-`POST /api/moderation/showcase/delete` body:
+or:
 
-```json
-{
-  "normalizedUrl": "https://impots.gouv.fr/"
-}
+```bash
+KV_REST_API_URL=...
+KV_REST_API_TOKEN=...
 ```
 
-`POST /api/moderation/archive/import` body:
+Optional:
 
-```json
-{
-  "mode": "merge",
-  "allowRollback": false,
-  "archive": {
-    "format": "annuaire-rgaa-archive",
-    "version": 1,
-    "exportedAt": "2026-03-06T18:45:00.000Z",
-    "storageMode": "redis",
-    "data": {
-      "entries": [],
-      "pendingEntries": [],
-      "siteBlocklist": [],
-      "voteBlocklist": [],
-      "voteTokensByUrl": [],
-      "clientVotesByIndex": []
-    }
-  }
-}
+```bash
+REDIS_CACHE_TTL_MS=15000
+VOTE_FINGERPRINT_SALT=change-this-random-secret
 ```
 
-Notes:
-
-- `complianceScore` accepts decimals (example: `96.51`) and is normalized between `0` and `100`.
-- `rgaaBaseline` accepts `4.1` or `5.0-ready` to control the public RGAA badge.
-- `thumbnailUrl` and `accessibilityPageUrl` are optional; send `null` (or an empty UI value) to clear them.
-- Edited URLs are validated server-side (public HTTP/HTTPS only).
-- `mode: "merge"` merges archive content with current storage; `mode: "replace"` clears storage before importing.
-- `allowRollback` is optional (`false` by default). Keep it `false` for safe imports; set `true` only when intentionally restoring an older archive in `replace` mode.
-- Exported archive payload is readable JSON (entries, pending queue, blocklists, vote fingerprints, client vote indexes).
-- If `MODERATION_ARCHIVE_SIGNING_SECRET` is configured, archive exports include an `integrity` HMAC signature and imports require a valid signature.
-
-`POST /api/showcase/upvote` body:
-
-```json
-{
-  "normalizedUrl": "https://www.impots.gouv.fr/",
-  "clientVoterId": "voter_q8r7m5h4q3w2e1z9"
-}
-```
-
-Vote notes:
-
-- `clientVoterId` is generated and persisted in browser storage by the frontend.
-- The API combines client and network-based fingerprints to block repeated votes on the same site.
-- Successful response returns the updated entry (`upvoteCount`, `hasUpvoted`, `votesBlocked`) plus a localized `message`.
-- When moderation blocks votes on one URL, public vote controls are dimmed and unavailable for this tile.
-
-RGAA baseline notes:
-
-- `rgaaBaseline` is exposed in showcase entries (`4.1` or `5.0-ready`).
-- Existing and ingested entries default to `4.1` until a moderator explicitly overrides the badge.
-- `5.0-ready` is applied only through moderation override.
-
-Public showcase metadata notes:
-
-- `siteHost` exposes the normalized hostname used for lightweight machine grouping and profile labeling.
-- `siteOrigin` exposes the site origin when the stored URL is valid.
-- `hasAccessibilityPage` is a boolean convenience field derived from `accessibilityPageUrl`.
-- The AI context endpoint (`/ai-context.json`) mirrors these discovery-oriented fields in its documented sample schema.
-
-### Manual moderation workflow
-
-1. A submission requiring human review is stored server-side as `pending`.
-2. A moderator opens `/moderation`, enters the moderation token, and loads the pending queue.
-3. The moderator approves or rejects each entry from the UI (the page calls moderation APIs with `submissionId`).
-4. The moderator can edit, delete, delete+block, manage site/vote blocklists, set custom categories, and archive/restore the full database directly from `/moderation`.
-5. To re-list a site that is already published, the current entry must first be removed by moderation/admin after requester justification (new audit, new score, significant improvements, etc.).
-
-Endpoints are protected by `MODERATION_API_TOKEN`.
-
-Set it in local/Vercel environment:
+### Moderation
 
 ```bash
 MODERATION_API_TOKEN=replace-with-a-long-random-token
@@ -401,25 +218,20 @@ MODERATION_API_TOKEN=replace-with-a-long-random-token
 
 Security requirement: use at least `32` characters.
 
-Send it via header:
+Optional archive signing:
 
 ```bash
-x-moderation-token: <MODERATION_API_TOKEN>
+MODERATION_ARCHIVE_SIGNING_SECRET=replace-with-a-long-random-secret
 ```
 
-### GitHub-native moderation notifications
-
-You can trigger free GitHub notifications each time a new submission enters manual review.
-
-Set these environment variables:
+### GitHub Notifications For Pending Moderation
 
 ```bash
 GITHUB_NOTIFY_REPO=owner/repo
 GITHUB_NOTIFY_TOKEN=github_pat_xxx
 ```
 
-If you store values in GitHub Actions secrets/variables, use these fallback names instead
-(GitHub blocks secret/variable names starting with `GITHUB_`):
+Fallback names for environments where `GITHUB_*` variables are restricted:
 
 ```bash
 RGAA_NOTIFY_REPO=owner/repo
@@ -433,97 +245,93 @@ GITHUB_NOTIFY_LABELS=moderation,annuaire-rgaa
 GITHUB_NOTIFY_MAX_PER_WINDOW=12
 GITHUB_NOTIFY_WINDOW_SECONDS=3600
 PUBLIC_APP_URL=https://annuaire-rgaa.fr
-# For GitHub Enterprise/API proxy only (must be public HTTPS, no localhost/private hosts)
 # GITHUB_API_URL=https://github.example.com/api/v3
 ```
 
-Behavior:
+## API Surface
 
-- On new `pending` moderation submission, the API creates one GitHub issue in `GITHUB_NOTIFY_REPO`.
-- Notification issue content neutralizes GitHub mentions from submitted site metadata before issue creation.
-- GitHub issue creation is rate-limited per time window; over-quota submissions still stay in pending moderation, but no new issue is created.
-- GitHub notifications are then handled natively by your repo notification settings.
-- Notification failure does not block user submission flow.
-- The notifier does not read `GITHUB_TOKEN`; use `GITHUB_NOTIFY_TOKEN` or `RGAA_NOTIFY_TOKEN` explicitly.
+### Public APIs
 
-Recommended GitHub setup:
+- `POST /api/site-insight`: submit and enrich one site
+- `POST /api/site-insight?preview=1`: preview-only pre-analysis without persistence
+- `GET /api/showcase`: list public entries
+- `GET /api/showcase?slug={slug}`: retrieve one public profile payload
+- `GET /api/domain-groups`: list grouped public domains
+- `GET /api/domain-groups?slug={groupSlug}`: retrieve one domain-group payload
+- `POST /api/showcase/upvote`: submit one vote
+- `GET /api/health`: service status and storage mode
 
-1. Enable repository notifications for Issues (or Watch -> Custom -> Issues).
-2. Use a fine-grained PAT scoped to one repository with Issues write access.
-3. Keep `GITHUB_API_URL` unset unless required by GitHub Enterprise routing.
+### Protected moderation APIs
 
-Step-by-step setup and verification:
+- `GET /api/moderation/pending`
+- `GET /api/moderation/showcase`
+- `GET /api/moderation/blocklist`
+- `GET /api/moderation/archive`
+- `POST /api/moderation/approve`
+- `POST /api/moderation/reject`
+- `POST /api/moderation/showcase/update`
+- `POST /api/moderation/showcase/delete`
+- `POST /api/moderation/showcase/delete-and-block`
+- `POST /api/moderation/blocklist/site`
+- `POST /api/moderation/blocklist/votes`
+- `POST /api/moderation/archive/import`
 
-1. Create a fine-grained PAT on GitHub scoped to the target repository only, with `Issues: Read and write`.
-2. Set `RGAA_NOTIFY_REPO=owner/repo` and `RGAA_NOTIFY_TOKEN=github_pat_xxx` in the deployment runtime environment.
-3. If you use Vercel, configure those values in Vercel Project Settings -> Environment Variables for the production environment.
-4. Use GitHub repository secrets/variables only if you also need the same values in GitHub Actions; they do not enable production notifications by themselves.
-5. Ensure the target repository has Issues enabled and either create the default `moderation` label or override it with `GITHUB_NOTIFY_LABELS` using labels that already exist.
-6. Optionally set `PUBLIC_APP_URL=https://annuaire-rgaa.fr` so created issues include a direct link to `/moderation`.
-7. Redeploy the application after changing runtime variables.
-8. Verify the runtime configuration with:
-
-```bash
-curl -sSfL https://annuaire-rgaa.fr/api/health
-```
-
-Expected fragment:
-
-```json
-{
-  "notifications": {
-    "githubIssues": true
-  }
-}
-```
-
-9. Test the `pending` path with a preview request first:
+Moderation requests must send:
 
 ```bash
-curl -sSfL 'https://annuaire-rgaa.fr/api/site-insight?preview=1' \
-  -H 'content-type: application/json' \
-  --data '{"url":"https://www.iana.org/","category":"Autre"}'
+x-moderation-token: <MODERATION_API_TOKEN>
 ```
 
-If the response returns `202` with `submissionStatus: "pending"` and a `previewToken`, submit the final request:
+### Public Submission Semantics
 
-```bash
-curl -sSfL 'https://annuaire-rgaa.fr/api/site-insight' \
-  -H 'content-type: application/json' \
-  --data '{"url":"https://www.iana.org/","category":"Autre","previewToken":"<previewToken>"}'
-```
+`POST /api/site-insight` can return:
 
-10. Confirm the GitHub issue was created:
+- `approved`: published immediately
+- `duplicate`: already listed
+- `pending`: stored for moderation
 
-```bash
-gh issue list --state open --label moderation
-```
+Preview mode:
 
-11. If you still do not receive notifications, check your personal GitHub notification preference on the target repository (`Watch -> Custom -> Issues`).
-12. Clean up the test submission from `/moderation` or directly in GitHub once validation is complete.
+- never persists data
+- returns extracted metadata and projected submission status
+- may return a short-lived `previewToken` reused by the confirmation step
 
-## Deployment (Vercel)
+## Security Posture
 
-The repository uses consolidated Vercel serverless handlers in `api/`:
+The app is hardened around URL intake and public moderation exposure.
 
-- `api/index.js` for `/api`
-- `api/[...slug].js` for all nested API routes (`/api/*`)
-- `api/_run-app.js` shared adapter toward `server/app.js`
+Key controls:
 
-This avoids production `NOT_FOUND` responses on `/api/*` routes when the frontend is deployed as a Vite app.
-It also keeps function count low for Vercel Hobby plan limits.
-Vercel rewrites also ensure SPA routes (including `/moderation`) resolve to `index.html` instead of returning 404 on refresh/direct access.
+- public HTTP/HTTPS validation only
+- SSRF protection, including localhost/private-host rejection
+- redirect-by-redirect target revalidation
+- DNS checks before remote fetch
+- response size and timeout limits
+- rate limiting on public endpoints, with stricter submission and vote controls
+- moderation token strength checks and auth throttling
+- no remote script execution
+- moderation-managed site blocklist and vote blocklist
+- optional signed moderation archive exports/imports
+- GitHub notifier restricted to explicit notifier tokens and public HTTPS API bases
 
-Ensure these environment variables are configured in Vercel project settings:
+## Deployment
 
-- `KV_REST_API_URL` and `KV_REST_API_TOKEN`
-or
-- `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
-- `MODERATION_API_TOKEN` (required to enable manual moderation API)
-- `MODERATION_ARCHIVE_SIGNING_SECRET` (optional but recommended; signs archive exports and enforces signature verification on imports)
-- `GITHUB_NOTIFY_REPO` and `GITHUB_NOTIFY_TOKEN` (optional, enables GitHub issue notifications for pending moderation)
-- `GITHUB_NOTIFY_LABELS` and `PUBLIC_APP_URL` (optional)
-- `GITHUB_API_URL` (optional, GitHub Enterprise/API gateway only; must be a public HTTPS URL)
+The repository is designed for Vercel deployment with a single-function API entry strategy.
+
+Important deployment characteristics:
+
+- `api/index.js` and `api/[...slug].js` funnel requests into the Express app
+- rewrites keep `/api/*`, `/sitemap.xml`, and `/ai-context.json` on the server path
+- SPA routes resolve to `index.html` on refresh/direct access
+- host-level redirects should avoid cyclic apex/`www` rules
+
+Recommended production environment variables:
+
+- Redis: `KV_REST_API_URL` + `KV_REST_API_TOKEN` or `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`
+- moderation: `MODERATION_API_TOKEN`
+- optional archive signing: `MODERATION_ARCHIVE_SIGNING_SECRET`
+- optional GitHub notifications: `GITHUB_NOTIFY_REPO`, `GITHUB_NOTIFY_TOKEN`
+- optional public URL/discovery helpers: `PUBLIC_APP_URL`
 
 ## Scripts
 
@@ -544,20 +352,15 @@ npm run start:api
 
 ## Support
 
-I launched this directory so RGAA would not remain a label, but become a promise kept for every person.
-When empathy guides product decisions, business grows with fairness instead of friction.
-The score is a compass, not the destination: the true target is unblocked journeys and usable experiences.
+Annuaire RGAA exists to make accessibility claims more visible, inspectable, and discussable in
+public. The score is a compass, not the destination: the real target is unblocked journeys and
+usable interfaces.
 
 - Ko-fi: https://ko-fi.com/aurelienlewin
 
-## Accessibility Sources Embedded
+## Official Reference Sources
 
-- `skill/rgaa-official-recommendations/SKILL.md`
-- `skill/rgaa-official-recommendations/references/official-developer-recommendations.md`
-- `skill/wcag-22-official-guidelines/SKILL.md`
-- `skill/wcag-22-official-guidelines/references/wcag-22-official-summary.md`
-
-Official references include:
+RGAA:
 
 - https://design.numerique.gouv.fr/articles/2026-03-02-rgaa5/
 - https://disic.github.io/guide-developpeur/
@@ -566,6 +369,9 @@ Official references include:
 - https://design.numerique.gouv.fr/outils/checklist-dev/
 - https://www.info.gouv.fr/accessibilite/developpement/bibliotheque-de-reference-des-restitutions-des-composants-javascript-aria
 - https://www.info.gouv.fr/accessibilite/developpement/le-guide-des-composants-javascript-accessibles
+
+WCAG 2.2:
+
 - https://www.w3.org/WAI/standards-guidelines/wcag/fr
 - https://www.w3.org/WAI/standards-guidelines/wcag/new-in-22/
 - https://www.w3.org/WAI/WCAG22/quickref/
