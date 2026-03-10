@@ -7,12 +7,17 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+### Added
+- Moderation now includes a persisted maintenance-mode control with editable public message, plus `GET /api/moderation/maintenance`, `POST /api/moderation/maintenance`, and public `GET /api/maintenance` endpoints.
+
 ### Fixed
 - `/plan-du-site` now exposes direct skip links to every major link block on the page and labels its discovery resources as landmarks, keeping keyboard navigation aligned with the latest RGAA/WCAG 2.2 review checklist used in the project skills.
 - Fragment links now move focus to the targeted landmark/section on route load and `hashchange`, with direct first-control focus for `#moteur-recherche-global` and `#ajout-site`, plus visible focus styling across homepage, site map, accessibility, profile, domain, and moderation pages.
 - Dark-mode search/help text now stays contrast-safe from the first SSR paint on public detail pages: the critical secondary-header CSS now styles the keyboard helper and search placeholders in dark mode before hydration, avoiding low-contrast flashes on slow connections.
 
 ### Changed
+- Maintenance state is now included in moderation archive export/import, in rollback freshness checks, and in `GET /api/health` so operators do not lose service posture during restores.
+- Public JSON/XML endpoints now return `503` with `Retry-After` during maintenance, while the static Vite shell probes `/api/maintenance` before hydration and swaps public SPA routes to an accessible French maintenance screen without exposing the moderation surface.
 - Discovery resources are now synchronized around the current public surface: `llms.txt`, `llms-full.txt`, `robots.txt`, `/sitemap.xml`, and `/ai-context.json` all reference domain-group pages and the public `/api/domain-groups` dataset where relevant.
 - README now documents which discovery assets are server-generated (`/sitemap.xml`, `/ai-context.json`) and which remain static versioned files (`public/robots.txt`, `public/llms.txt`, `public/llms-full.txt`).
 - README was rewritten to focus on current architecture, operations, accessibility, and discovery behavior, while detailed release-by-release history stays in `CHANGELOG.md`.

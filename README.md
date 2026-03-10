@@ -39,7 +39,7 @@ Core characteristics:
 - dedicated public profile route per listed site: `/site/{slug}`
 - dedicated public domain route for multi-site domains: `/domaine/{groupSlug}`
 - public discovery assets for search engines and AI crawlers: `/sitemap.xml`, `/robots.txt`, `/llms.txt`, `/llms-full.txt`, `/ai-context.json`
-- protected moderation workflows for published entries, site blocklists, vote blocklists, and archive import/export
+- protected moderation workflows for published entries, site blocklists, vote blocklists, archive import/export, and operator-triggered maintenance mode
 
 ## Product Surface
 
@@ -56,6 +56,7 @@ Core characteristics:
 - `/api/showcase`: public dataset of published entries
 - `/api/domain-groups`: public dataset of grouped domains
 - `/api/health`: service health and storage mode
+- `/api/maintenance`: current public maintenance-state payload
 - `/sitemap.xml`: generated XML sitemap
 - `/ai-context.json`: generated AI/discovery context payload
 - `/robots.txt`, `/llms.txt`, `/llms-full.txt`: static versioned discovery files
@@ -71,7 +72,7 @@ Core characteristics:
 - accessibility first: semantic HTML, keyboard flow, visible focus, non-silent async states
 - moderation continuity: reviewers keep domain context, editable metadata, and rollback options
 - crawl consistency: public routes, sitemap, site map page, and machine-readable assets expose the same public patterns
-- low-friction operations: Vercel deployment, optional Redis persistence, optional GitHub notifications
+- low-friction operations: Vercel deployment, optional Redis persistence, optional GitHub notifications, and one-click maintenance activation from moderation
 
 ## Architecture
 
@@ -91,6 +92,7 @@ Important architectural choices:
 - fragment targets move real DOM focus on load and on `hashchange`
 - orientation fragments focus their landmark or section, while `#moteur-recherche-global` and `#ajout-site` move directly to the first useful field
 - generated discovery endpoints and static discovery files are intentionally redundant for crawler resilience
+- maintenance mode is persisted server-side; public JSON/XML routes answer `503`, and the static Vite shell swaps to an accessible maintenance screen before React mounts on public SPA routes
 
 ## Accessibility Model
 
@@ -158,6 +160,7 @@ The API supports two storage modes:
 - `memory`: fallback mode without persistence
 
 Use `GET /api/health` to inspect the active mode.
+Use `GET /api/maintenance` to inspect whether the public site is currently in maintenance mode.
 
 Redis-related runtime notes:
 
@@ -218,6 +221,8 @@ MODERATION_API_TOKEN=replace-with-a-long-random-token
 
 Security requirement: use at least `32` characters.
 
+Maintenance mode does not require extra environment variables. Authorized moderators can toggle it from `/moderation`, and the persisted state is included in archive export/import.
+
 Optional archive signing:
 
 ```bash
@@ -260,15 +265,18 @@ PUBLIC_APP_URL=https://annuaire-rgaa.fr
 - `GET /api/domain-groups?slug={groupSlug}`: retrieve one domain-group payload
 - `POST /api/showcase/upvote`: submit one vote
 - `GET /api/health`: service status and storage mode
+- `GET /api/maintenance`: current public maintenance state
 
 ### Protected moderation APIs
 
 - `GET /api/moderation/pending`
 - `GET /api/moderation/showcase`
 - `GET /api/moderation/blocklist`
+- `GET /api/moderation/maintenance`
 - `GET /api/moderation/archive`
 - `POST /api/moderation/approve`
 - `POST /api/moderation/reject`
+- `POST /api/moderation/maintenance`
 - `POST /api/moderation/showcase/update`
 - `POST /api/moderation/showcase/delete`
 - `POST /api/moderation/showcase/delete-and-block`
