@@ -87,6 +87,8 @@ Public website: **https://annuaire-rgaa.fr**
 - Tailwind CSS v4 native features used directly (`@theme` tokens + utility-first focus/skip-link patterns).
 - Embedded skills: `rgaa-official-recommendations`, `wcag-22-official-guidelines`.
 - Frontend route bundles are split (`/moderation`, `/plan-du-site`, `/accessibilite`) to reduce initial JavaScript on homepage load.
+- Public detail routes (`/site/{slug}` and `/domaine/{groupSlug}`) now preload their API payload as soon as the route is detected and bootstrap only the active page module, which shortens the critical request chain on direct-entry detail pages.
+- The app stylesheet is now loaded as a regular blocking stylesheet again so the secondary header search form and surrounding layout render in their final dimensions without CSS-onload shifts.
 - Secondary local fonts (`OpenDyslexic`, `Lexend`) are deferred after first paint (idle callback).
 
 ## Tech Stack

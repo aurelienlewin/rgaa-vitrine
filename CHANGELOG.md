@@ -10,6 +10,8 @@ Changelog entries are written in English; referenced UI labels remain in French 
 ### Changed
 - Homepage multi-site cards now keep a simplified, card-consistent layout: sibling site previews were moved back to the dedicated domain detail page and the card now exposes a single explicit CTA to reduce tab stops and link-list ambiguity.
 - Added a general score disclaimer on homepage and accessibility contact page so the declarative nature of submitted scores is stated once, without live-region noise, and moderation remains the path for documented re-evaluations.
+- Public detail routes now preload their API payload before React mounts and bootstrap only the active page module, reducing direct-entry request chains and JavaScript waste on `/site/*` and `/domaine/*`.
+- The main app stylesheet is again loaded in the normal blocking path so the secondary-page search form and header layout render with stable dimensions instead of shifting when CSS finishes loading.
 
 ## [2026-03-10]
 
