@@ -428,6 +428,39 @@ function describeDomainContext(domainContext: DomainContext | null | undefined) 
   return `Le domaine ${domainContext.registrableDomain} compte déjà ${parts.join(' et ')}.`
 }
 
+function buildDirectorySummaryText({
+  visibleCardCount,
+  totalCardCount,
+  filteredEntryCount,
+  totalEntryCount,
+}: {
+  visibleCardCount: number
+  totalCardCount: number
+  filteredEntryCount: number
+  totalEntryCount: number
+}) {
+  const usesGrouping = filteredEntryCount !== totalCardCount || totalEntryCount !== totalCardCount
+
+  if (usesGrouping) {
+    const entryLabel =
+      filteredEntryCount === totalEntryCount
+        ? `${totalEntryCount} fiche(s) référencée(s)`
+        : `${filteredEntryCount} fiche(s) filtrée(s), ${totalEntryCount} fiche(s) référencée(s) au total`
+    const cardLabel =
+      visibleCardCount === totalCardCount
+        ? `${totalCardCount} carte(s) après regroupement par domaine`
+        : `${visibleCardCount} carte(s) affichée(s) sur ${totalCardCount} après regroupement par domaine`
+
+    return `${entryLabel}, ${cardLabel}.`
+  }
+
+  if (filteredEntryCount === totalEntryCount) {
+    return `${visibleCardCount} fiche(s) affichée(s) sur ${totalEntryCount} fiche(s) référencée(s).`
+  }
+
+  return `${visibleCardCount} fiche(s) affichée(s) sur ${filteredEntryCount} fiche(s) filtrée(s), ${totalEntryCount} fiche(s) référencée(s) au total.`
+}
+
 function createClientVoterId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return `voter_${crypto.randomUUID().replace(/-/g, '_')}`
@@ -793,16 +826,34 @@ function App() {
   )
 
   const hasMoreTiles = visibleTilesCount < filteredDirectoryItems.length
+  const directorySummaryText = useMemo(
+    () =>
+      buildDirectorySummaryText({
+        visibleCardCount: visibleDirectoryItems.length,
+        totalCardCount: filteredDirectoryItems.length,
+        filteredEntryCount: filteredShowcaseEntries.length,
+        totalEntryCount: showcaseEntries.length,
+      }),
+    [
+      filteredDirectoryItems.length,
+      filteredShowcaseEntries.length,
+      showcaseEntries.length,
+      visibleDirectoryItems.length,
+    ],
+  )
 
   const handleSearchSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
       syncFiltersInUrl({ query: searchQuery, status: statusFilter, category: categoryFilter })
+      const nextVisibleCardCount = Math.min(filteredDirectoryItems.length, TILE_BATCH_SIZE)
       announcePolite(
-        `Recherche appliquée. ${Math.min(
-          filteredDirectoryItems.length,
-          TILE_BATCH_SIZE,
-        )} carte(s) affichée(s) sur ${filteredDirectoryItems.length} résultat(s).`,
+        `Recherche appliquée. ${buildDirectorySummaryText({
+          visibleCardCount: nextVisibleCardCount,
+          totalCardCount: filteredDirectoryItems.length,
+          filteredEntryCount: filteredShowcaseEntries.length,
+          totalEntryCount: showcaseEntries.length,
+        })}`,
       )
       focusElement(resultsSummaryRef.current)
     },
@@ -810,8 +861,10 @@ function App() {
       announcePolite,
       categoryFilter,
       filteredDirectoryItems.length,
+      filteredShowcaseEntries.length,
       focusElement,
       searchQuery,
+      showcaseEntries.length,
       statusFilter,
       syncFiltersInUrl,
     ],
@@ -1087,7 +1140,14 @@ function App() {
       setVisibleTilesCount((current) => {
         const next = Math.min(current + TILE_BATCH_SIZE, filteredDirectoryItems.length)
         if (next > current && source === 'button') {
-          announcePolite(`${next} carte(s) affichée(s) sur ${filteredDirectoryItems.length} résultat(s).`)
+          announcePolite(
+            buildDirectorySummaryText({
+              visibleCardCount: next,
+              totalCardCount: filteredDirectoryItems.length,
+              filteredEntryCount: filteredShowcaseEntries.length,
+              totalEntryCount: showcaseEntries.length,
+            }),
+          )
           if (next >= filteredDirectoryItems.length) {
             window.setTimeout(() => {
               focusElement(resultsSummaryRef.current)
@@ -1097,7 +1157,14 @@ function App() {
         return next
       })
     },
-    [announcePolite, filteredDirectoryItems.length, focusElement, hasMoreTiles],
+    [
+      announcePolite,
+      filteredDirectoryItems.length,
+      filteredShowcaseEntries.length,
+      focusElement,
+      hasMoreTiles,
+      showcaseEntries.length,
+    ],
   )
 
   useEffect(() => {
@@ -1133,9 +1200,9 @@ function App() {
   useEffect(() => {
     setPoliteAnnouncement((current) => ({
       id: current.id + 1,
-      message: `${visibleDirectoryItems.length} carte(s) affichée(s) sur ${filteredDirectoryItems.length} résultat(s).`,
+      message: directorySummaryText,
     }))
-  }, [visibleDirectoryItems.length, filteredDirectoryItems.length])
+  }, [directorySummaryText])
 
   const loadShowcaseEntries = useCallback(async () => {
     setDirectoryErrorMessage(null)
@@ -1169,7 +1236,7 @@ function App() {
       const parsedEntries = responseEntries.filter(isShowcaseEntry).map((entry) => normalizeShowcaseEntry(entry))
       setShowcaseEntries(parsedEntries)
       shouldSyncVoteStateAfterDirectoryLoadRef.current = parsedEntries.length > 0
-      announcePolite(`${parsedEntries.length} site(s) chargé(s) dans l’annuaire.`)
+      announcePolite(`${parsedEntries.length} fiche(s) chargée(s) dans l’annuaire.`)
     } catch (error) {
       shouldSyncVoteStateAfterDirectoryLoadRef.current = false
       console.error('Unable to load showcase entries', error)
@@ -1763,7 +1830,7 @@ function App() {
             </h2>
             <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
-                <dt className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Sites référencés</dt>
+                <dt className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Fiches référencées</dt>
                 <dd className={`${statsValueClass} text-slate-900 dark:text-slate-50`}>{directoryStats.total}</dd>
               </div>
               <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950 px-4 py-3">
@@ -1807,9 +1874,7 @@ function App() {
               tabIndex={-1}
               className="mt-3 min-h-[3rem] text-sm text-slate-700 dark:text-slate-300 [font-variant-numeric:tabular-nums] sm:min-h-6"
             >
-              {visibleDirectoryItems.length} carte(s) affichée(s) sur {filteredDirectoryItems.length} résultat(s) (
-              {filteredShowcaseEntries.length} site(s) filtré(s), {showcaseEntries.length} site(s) total dans
-              l’annuaire).
+              {directorySummaryText}
             </p>
 
             {showcaseEntries.length > 0 && (
