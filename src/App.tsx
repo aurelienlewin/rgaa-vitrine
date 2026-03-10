@@ -1889,7 +1889,53 @@ function App() {
               </p>
             )}
 
-            {loadingDirectory && <p className="mt-3 text-slate-700 dark:text-slate-300">Chargement de l’annuaire...</p>}
+            {loadingDirectory && (
+              <section
+                className="mt-4 rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4 shadow-sm"
+                aria-labelledby="annuaire-chargement-titre"
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h3
+                      id="annuaire-chargement-titre"
+                      className="text-base font-semibold text-sky-900 dark:text-sky-100"
+                    >
+                      Chargement de l’annuaire en cours
+                    </h3>
+                    <p className="text-sm text-sky-900 dark:text-sky-100">
+                      Les fiches publiques arrivent. Cela peut prendre quelques secondes sur une connexion lente.
+                    </p>
+                  </div>
+                  <span
+                    className="inline-flex min-h-10 items-center rounded-full border border-sky-300 dark:border-sky-600 bg-white/70 dark:bg-slate-900/50 px-4 py-1 text-sm font-semibold text-sky-900 dark:text-sky-100"
+                  >
+                    Patientez…
+                  </span>
+                </div>
+
+                <div aria-hidden="true" className="mt-4 grid gap-4 md:grid-cols-2">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <div
+                      key={`loading-directory-card-${index}`}
+                      className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4"
+                    >
+                      <div className="flex flex-wrap gap-2">
+                        <div className="h-8 w-28 rounded-full bg-slate-200 dark:bg-slate-700" />
+                        <div className="h-8 w-24 rounded-full bg-slate-200 dark:bg-slate-700" />
+                        <div className="h-8 w-32 rounded-full bg-slate-200 dark:bg-slate-700" />
+                      </div>
+                      <div className="mt-4 h-7 w-48 max-w-full rounded bg-slate-200 dark:bg-slate-700" />
+                      <div className="mt-3 h-5 w-full rounded bg-slate-200 dark:bg-slate-700" />
+                      <div className="mt-2 h-5 w-40 max-w-full rounded bg-slate-200 dark:bg-slate-700" />
+                      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <div className="h-11 rounded-xl bg-slate-200 dark:bg-slate-700" />
+                        <div className="h-11 rounded-xl bg-slate-200 dark:bg-slate-700" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {!loadingDirectory && showcaseEntries.length === 0 && (
               <p className="mt-3 text-slate-700 dark:text-slate-300">Aucun site référencé pour le moment.</p>

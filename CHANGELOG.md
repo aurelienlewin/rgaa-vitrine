@@ -7,6 +7,9 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+### Changed
+- Homepage directory loading now uses a more visible non-interactive status panel with reserved card placeholders, making slow-connection waits clearer without adding extra polite live announcements or extra API calls.
+
 ## [2026-03-10 / v0.5.2]
 
 ### Changed
