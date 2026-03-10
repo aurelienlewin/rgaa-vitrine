@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
+import { normalizeDomainGroup, type DomainGroup } from './domainGroups'
 import { applySeo, createAbsoluteUrl } from './seo'
 import { resolveShowcaseProfilePath } from './siteProfiles'
 import SecondaryPageHeader from './SecondaryPageHeader'
@@ -166,8 +167,11 @@ async function readApiPayload(response: Response) {
 
 function SiteMapPage() {
   const [profileEntries, setProfileEntries] = useState<ShowcaseEntry[]>([])
+  const [domainGroups, setDomainGroups] = useState<DomainGroup[]>([])
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(true)
   const [profileErrorMessage, setProfileErrorMessage] = useState<string | null>(null)
+  const [isLoadingDomainGroups, setIsLoadingDomainGroups] = useState(true)
+  const [domainGroupErrorMessage, setDomainGroupErrorMessage] = useState<string | null>(null)
   const [politeAnnouncement, setPoliteAnnouncement] = useState({ id: 0, message: '' })
   const mainContentRef = useRef<HTMLElement | null>(null)
   const navigationRef = useRef<HTMLElement | null>(null)
@@ -208,18 +212,34 @@ function SiteMapPage() {
     async function loadProfileEntries() {
       setIsLoadingProfiles(true)
       setProfileErrorMessage(null)
+      setIsLoadingDomainGroups(true)
+      setDomainGroupErrorMessage(null)
 
       try {
-        const response = await fetch('/api/showcase?limit=120')
-        const payload = await readApiPayload(response)
-        if (!response.ok) {
-          throw new Error(typeof payload.error === 'string' ? payload.error : 'Chargement des fiches impossible.')
+        const [profilesResponse, domainGroupsResponse] = await Promise.all([
+          fetch('/api/showcase?limit=120'),
+          fetch('/api/domain-groups'),
+        ])
+        const [profilesPayload, domainGroupsPayload] = await Promise.all([
+          readApiPayload(profilesResponse),
+          readApiPayload(domainGroupsResponse),
+        ])
+        if (!profilesResponse.ok) {
+          throw new Error(typeof profilesPayload.error === 'string' ? profilesPayload.error : 'Chargement des fiches impossible.')
         }
 
-        const responseEntries = Array.isArray(payload.entries)
-          ? payload.entries
-          : Array.isArray(payload)
-            ? payload
+        if (!domainGroupsResponse.ok) {
+          throw new Error(
+            typeof domainGroupsPayload.error === 'string'
+              ? domainGroupsPayload.error
+              : 'Chargement des pages domaine impossible.',
+          )
+        }
+
+        const responseEntries = Array.isArray(profilesPayload.entries)
+          ? profilesPayload.entries
+          : Array.isArray(profilesPayload)
+            ? profilesPayload
             : null
 
         if (!responseEntries) {
@@ -241,25 +261,32 @@ function SiteMapPage() {
         }
 
         const nextEntries = Array.from(uniqueByProfilePath.values())
+        const nextDomainGroups = Array.isArray(domainGroupsPayload.groups)
+          ? domainGroupsPayload.groups
+              .map((item) => normalizeDomainGroup(item))
+              .filter((item): item is DomainGroup => item !== null)
+          : []
         if (!cancelled) {
           setProfileEntries(nextEntries)
+          setDomainGroups(nextDomainGroups)
           announcePolite(
-            nextEntries.length > 0
-              ? `Chargement terminé. ${nextEntries.length} fiche${nextEntries.length > 1 ? 's' : ''} publique${nextEntries.length > 1 ? 's' : ''} disponible${nextEntries.length > 1 ? 's' : ''}.`
-              : 'Chargement terminé. Aucune fiche publique publiée pour le moment.',
+            `Chargement terminé. ${nextEntries.length} fiche${nextEntries.length > 1 ? 's' : ''} publique${nextEntries.length > 1 ? 's' : ''} et ${nextDomainGroups.length} page${nextDomainGroups.length > 1 ? 's' : ''} domaine disponible${nextDomainGroups.length > 1 ? 's' : ''}.`,
           )
         }
       } catch (error) {
         if (!cancelled) {
           setProfileEntries([])
+          setDomainGroups([])
           const localizedMessage =
             error instanceof Error ? error.message : 'Chargement des fiches impossible.'
           setProfileErrorMessage(localizedMessage)
+          setDomainGroupErrorMessage(localizedMessage)
           announcePolite(`Chargement des fiches publiques terminé avec erreur: ${localizedMessage}`)
         }
       } finally {
         if (!cancelled) {
           setIsLoadingProfiles(false)
+          setIsLoadingDomainGroups(false)
         }
       }
     }
@@ -275,8 +302,13 @@ function SiteMapPage() {
     () => profileEntries.slice(0, 30).map((entry) => createAbsoluteUrl(entry.profilePath ?? '/')),
     [profileEntries],
   )
+  const domainGroupLinksForSeo = useMemo(
+    () => domainGroups.slice(0, 30).map((group) => createAbsoluteUrl(group.groupPath)),
+    [domainGroups],
+  )
 
   const profileLinksForUi = useMemo(() => profileEntries.slice(0, 40), [profileEntries])
+  const domainGroupLinksForUi = useMemo(() => domainGroups.slice(0, 30), [domainGroups])
 
   useEffect(() => {
     const profileItemList = profileLinksForUi.map((entry, index) => ({
@@ -284,6 +316,12 @@ function SiteMapPage() {
       position: index + 1,
       name: entry.siteTitle,
       item: createAbsoluteUrl(entry.profilePath ?? '/'),
+    }))
+    const domainGroupItemList = domainGroupLinksForUi.map((group, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: group.registrableDomain,
+      item: createAbsoluteUrl(group.groupPath),
     }))
 
     applySeo({
@@ -344,6 +382,7 @@ function SiteMapPage() {
               createAbsoluteUrl('/llms.txt'),
               createAbsoluteUrl('/llms-full.txt'),
               createAbsoluteUrl('/robots.txt'),
+              ...domainGroupLinksForSeo,
               ...profileLinksForSeo,
             ],
           },
@@ -358,10 +397,21 @@ function SiteMapPage() {
                 },
               ]
             : []),
+          ...(domainGroupItemList.length > 0
+            ? [
+                {
+                  '@type': 'ItemList',
+                  '@id': createAbsoluteUrl('/plan-du-site#domaines'),
+                  name: 'Pages domaine multi-sites',
+                  numberOfItems: domainGroupItemList.length,
+                  itemListElement: domainGroupItemList,
+                },
+              ]
+            : []),
         ],
       },
     })
-  }, [profileLinksForSeo, profileLinksForUi])
+  }, [domainGroupLinksForSeo, domainGroupLinksForUi, profileLinksForSeo, profileLinksForUi])
 
   return (
     <>
@@ -483,6 +533,7 @@ function SiteMapPage() {
             tabIndex={-1}
             aria-labelledby="fiches-publiques-titre"
             className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
+            aria-busy={isLoadingProfiles || isLoadingDomainGroups}
           >
             <h2 id="fiches-publiques-titre" className="text-xl font-semibold">
               Fiches publiques indexables
@@ -525,6 +576,48 @@ function SiteMapPage() {
                 ))}
               </ul>
             )}
+
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold">Pages domaine multi-sites</h3>
+              <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                Pages `/domaine/{'{'}slug{'}'}` disponibles pour les domaines déjà référencés avec plusieurs fiches publiques.
+              </p>
+              {isLoadingDomainGroups && (
+                <p className="mt-3 text-sm text-slate-700 dark:text-slate-300" role="status" aria-live="polite">
+                  Chargement des pages domaine...
+                </p>
+              )}
+              {!isLoadingDomainGroups && domainGroupErrorMessage && (
+                <p className="mt-3 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-3 text-sm text-rose-900 dark:text-rose-100" role="status" aria-live="polite">
+                  {domainGroupErrorMessage}
+                </p>
+              )}
+              {!isLoadingDomainGroups && !domainGroupErrorMessage && domainGroupLinksForUi.length === 0 && (
+                <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
+                  Aucune page domaine multi-sites n’est encore publiée.
+                </p>
+              )}
+              {domainGroupLinksForUi.length > 0 && (
+                <ul className="mt-4 grid gap-3 md:grid-cols-2">
+                  {domainGroupLinksForUi.map((group) => (
+                    <li
+                      key={group.groupSlug}
+                      className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
+                    >
+                      <a
+                        href={group.groupPath}
+                        className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}
+                      >
+                        {group.registrableDomain}
+                      </a>
+                      <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                        {group.siteCount} fiche(s) publique(s)
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </section>
 
           <section
