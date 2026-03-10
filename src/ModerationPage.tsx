@@ -1596,96 +1596,160 @@ function ModerationPage() {
                 </form>
               </section>
 
-              <section id="soumissions-attente" ref={pendingRef} tabIndex={-1} className="mt-8">
-            <h2 className="text-lg font-semibold">Soumissions en attente</h2>
-            <p className="mt-2 text-slate-700 dark:text-slate-300">
-              {pendingEntries.length} soumission(s) à traiter.
-            </p>
+              <section
+                id="soumissions-attente"
+                ref={pendingRef}
+                tabIndex={-1}
+                className={`mt-8 rounded-3xl border p-5 shadow-sm sm:p-6 ${
+                  pendingEntries.length > 0
+                    ? 'border-2 border-amber-500 dark:border-amber-400 bg-linear-to-br from-amber-50 via-white to-rose-50 dark:from-amber-950 dark:via-slate-950 dark:to-rose-950 shadow-amber-950/10'
+                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'
+                }`}
+                aria-labelledby="soumissions-attente-titre"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 id="soumissions-attente-titre" className="text-lg font-semibold text-slate-950 dark:text-slate-50">
+                      Soumissions en attente
+                    </h2>
+                    <p className="mt-2 text-slate-800 dark:text-slate-200">
+                      {pendingEntries.length} soumission(s) à traiter.
+                    </p>
+                  </div>
+                  <span
+                    className={`inline-flex min-h-11 items-center rounded-full border px-4 py-2 text-sm font-extrabold ${
+                      pendingEntries.length > 0
+                        ? 'border-amber-800 dark:border-amber-200 bg-amber-200 dark:bg-amber-100 text-amber-950'
+                        : 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100'
+                    }`}
+                  >
+                    {pendingEntries.length > 0 ? `Action requise: ${pendingEntries.length}` : 'File vide'}
+                  </span>
+                </div>
 
-            {pendingEntries.length === 0 ? (
-              <p className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-slate-700 dark:text-slate-300">
-                Aucune soumission en attente.
-              </p>
-            ) : (
-              <ul className="mt-4 grid gap-4">
-                {pendingEntries.map((entry) => {
-                  const rejectReasonValue = rejectReasons[entry.submissionId] ?? ''
-                  const isActionRunning = runningSubmissionId === entry.submissionId
-                  const score = toNullableNumber(entry.complianceScore)
-                  return (
-                    <li
-                      key={entry.submissionId}
-                      className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm"
-                    >
-                      <article>
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <h3 className="text-lg font-semibold">{entry.siteTitle}</h3>
-                          <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                            {entry.category}
-                          </span>
-                        </div>
-                        <p className="mt-2 wrap-anywhere text-sm text-slate-700 dark:text-slate-300">{entry.normalizedUrl}</p>
-                        <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">Créée le: {formatDate(entry.createdAt)}</p>
-                        <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">Dernière analyse: {formatDate(entry.updatedAt)}</p>
-                        <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                          Niveau: {entry.complianceStatusLabel ?? 'Inconnu'} | Score: {formatScore(score)}
-                        </p>
-                        <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                          Référentiel: {formatRgaaBaseline(entry.rgaaBaseline)}
-                        </p>
-                        {entry.reviewReason && (
-                          <p className="mt-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-3 text-sm text-amber-900 dark:text-amber-100">
-                            Motif de validation manuelle: {entry.reviewReason}
-                          </p>
-                        )}
+                {pendingEntries.length === 0 ? (
+                  <p className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-slate-700 dark:text-slate-300">
+                    Aucune soumission en attente.
+                  </p>
+                ) : (
+                  <>
+                    <p className="mt-4 rounded-2xl border-2 border-amber-700 dark:border-amber-300 bg-amber-100 dark:bg-amber-950 p-4 text-sm font-semibold text-amber-950 dark:text-amber-50 shadow-sm">
+                      Priorité de modération: ces soumissions attendent une validation manuelle. Traitez-les pour éviter
+                      qu’elles restent oubliées dans la file.
+                    </p>
 
-                        <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto_auto]">
-                          <div>
-                            <label htmlFor={`reject-reason-${entry.submissionId}`} className="block text-sm font-medium">
-                              Motif de rejet (optionnel)
-                            </label>
-                            <input
-                              id={`reject-reason-${entry.submissionId}`}
-                              value={rejectReasonValue}
-                              onChange={(event) =>
-                                setRejectReasons((current) => ({
-                                  ...current,
-                                  [entry.submissionId]: event.target.value,
-                                }))
-                              }
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-                            />
-                          </div>
-                          <button
-                            ref={(element) => {
-                              pendingApproveButtonRefs.current[entry.submissionId] = element
-                            }}
-                            type="button"
-                            onClick={() => {
-                              void handleApprove(entry.submissionId)
-                            }}
-                            disabled={isActionRunning}
-                            className={`min-h-11 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass} md:self-end`}
+                    <ul className="mt-5 grid gap-4">
+                      {pendingEntries.map((entry) => {
+                        const rejectReasonValue = rejectReasons[entry.submissionId] ?? ''
+                        const isActionRunning = runningSubmissionId === entry.submissionId
+                        const score = toNullableNumber(entry.complianceScore)
+                        return (
+                          <li
+                            key={entry.submissionId}
+                            className="overflow-hidden rounded-3xl border-2 border-amber-400 dark:border-amber-500 bg-white dark:bg-slate-900 shadow-lg shadow-amber-950/10"
                           >
-                            {isActionRunning ? 'Traitement...' : 'Approuver'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void handleReject(entry.submissionId)
-                            }}
-                            disabled={isActionRunning}
-                            className={`min-h-11 rounded-xl bg-rose-700 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass} md:self-end`}
-                          >
-                            {isActionRunning ? 'Traitement...' : 'Rejeter'}
-                          </button>
-                        </div>
-                      </article>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
+                            <article>
+                              <div className="border-b-2 border-amber-500 dark:border-amber-400 bg-linear-to-r from-amber-200 via-amber-100 to-rose-100 dark:from-amber-900 dark:via-amber-950 dark:to-rose-950 px-4 py-3 sm:px-5">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-amber-950 dark:text-amber-100">
+                                      Validation manuelle requise
+                                    </p>
+                                    <h3 className="mt-1 text-lg font-semibold text-slate-950 dark:text-slate-50">
+                                      {entry.siteTitle}
+                                    </h3>
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="inline-flex min-h-10 items-center rounded-full border border-rose-800 dark:border-rose-200 bg-rose-100 dark:bg-rose-200 px-3 py-1 text-sm font-extrabold text-rose-950">
+                                      À traiter
+                                    </span>
+                                    <span className="inline-flex min-h-10 items-center rounded-full border border-slate-700 dark:border-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                      {entry.category}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="p-4 sm:p-5">
+                                <p className="wrap-anywhere text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                  {entry.normalizedUrl}
+                                </p>
+                                <dl className="mt-3 grid gap-2 text-sm text-slate-800 dark:text-slate-200 sm:grid-cols-2">
+                                  <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/50 px-3 py-2">
+                                    <dt className="font-semibold text-slate-900 dark:text-slate-50">Créée le</dt>
+                                    <dd className="mt-1">{formatDate(entry.createdAt)}</dd>
+                                  </div>
+                                  <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/50 px-3 py-2">
+                                    <dt className="font-semibold text-slate-900 dark:text-slate-50">Dernière analyse</dt>
+                                    <dd className="mt-1">{formatDate(entry.updatedAt)}</dd>
+                                  </div>
+                                  <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/50 px-3 py-2">
+                                    <dt className="font-semibold text-slate-900 dark:text-slate-50">Niveau</dt>
+                                    <dd className="mt-1">
+                                      {entry.complianceStatusLabel ?? 'Inconnu'} | Score: {formatScore(score)}
+                                    </dd>
+                                  </div>
+                                  <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/50 px-3 py-2">
+                                    <dt className="font-semibold text-slate-900 dark:text-slate-50">Référentiel</dt>
+                                    <dd className="mt-1">{formatRgaaBaseline(entry.rgaaBaseline)}</dd>
+                                  </div>
+                                </dl>
+
+                                {entry.reviewReason && (
+                                  <p className="mt-3 rounded-xl border-2 border-amber-700 dark:border-amber-300 bg-amber-100 dark:bg-amber-950 p-3 text-sm font-semibold text-amber-950 dark:text-amber-50">
+                                    Motif de validation manuelle: {entry.reviewReason}
+                                  </p>
+                                )}
+
+                                <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
+                                  <div>
+                                    <label htmlFor={`reject-reason-${entry.submissionId}`} className="block text-sm font-medium text-slate-950 dark:text-slate-50">
+                                      Motif de rejet (optionnel)
+                                    </label>
+                                    <input
+                                      id={`reject-reason-${entry.submissionId}`}
+                                      value={rejectReasonValue}
+                                      onChange={(event) =>
+                                        setRejectReasons((current) => ({
+                                          ...current,
+                                          [entry.submissionId]: event.target.value,
+                                        }))
+                                      }
+                                      className={`mt-1 min-h-11 w-full rounded-xl border-2 border-amber-400 dark:border-amber-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white/90 dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                                    />
+                                  </div>
+                                  <button
+                                    ref={(element) => {
+                                      pendingApproveButtonRefs.current[entry.submissionId] = element
+                                    }}
+                                    type="button"
+                                    onClick={() => {
+                                      void handleApprove(entry.submissionId)
+                                    }}
+                                    disabled={isActionRunning}
+                                    className={`min-h-11 rounded-xl border-2 border-emerald-900 dark:border-emerald-100 bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white shadow-sm hover:bg-emerald-500 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass} md:self-end`}
+                                  >
+                                    {isActionRunning ? 'Traitement...' : 'Approuver'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      void handleReject(entry.submissionId)
+                                    }}
+                                    disabled={isActionRunning}
+                                    className={`min-h-11 rounded-xl border-2 border-rose-900 dark:border-rose-100 bg-rose-700 px-4 py-2 text-sm font-extrabold text-white shadow-sm hover:bg-rose-600 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass} md:self-end`}
+                                  >
+                                    {isActionRunning ? 'Traitement...' : 'Rejeter'}
+                                  </button>
+                                </div>
+                              </div>
+                            </article>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </>
+                )}
               </section>
 
               <section
