@@ -1,0 +1,135 @@
+<svg
+  width="1200"
+  height="630"
+  viewBox="0 0 1200 630"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-labelledby="socialTitle socialDesc"
+>
+  <title id="socialTitle">Visuel de partage Annuaire RGAA</title>
+  <desc id="socialDesc">
+    Carte de partage Annuaire RGAA avec le logo de la plateforme, le titre du site et un sous-titre orienté accessibilité.
+  </desc>
+
+  <defs>
+    <linearGradient id="cardBackground" x1="66" y1="54" x2="1137" y2="582" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F8FBFF" />
+      <stop offset="1" stop-color="#E7F0FF" />
+    </linearGradient>
+    <linearGradient id="accentBackground" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#000091" stop-opacity="0.12" />
+      <stop offset="1" stop-color="#E1000F" stop-opacity="0.08" />
+    </linearGradient>
+    <linearGradient id="surface" x1="20" y1="20" x2="236" y2="236" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#E9F1FF" />
+    </linearGradient>
+    <linearGradient id="frame" x1="28" y1="28" x2="228" y2="228" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#EEF4FF" />
+      <stop offset="1" stop-color="#D8E5FF" />
+    </linearGradient>
+    <filter id="panelShadow" x="38" y="36" width="1124" height="558" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix" />
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+      <feOffset dy="14" />
+      <feGaussianBlur stdDeviation="14" />
+      <feComposite in2="hardAlpha" operator="out" />
+      <feColorMatrix type="matrix" values="0 0 0 0 0.0588235 0 0 0 0 0.0941176 0 0 0 0 0.211765 0 0 0 0.12 0" />
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1" />
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape" />
+    </filter>
+    <filter id="logoShadow" x="6" y="8" width="244" height="244" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix" />
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+      <feOffset dy="4" />
+      <feGaussianBlur stdDeviation="5" />
+      <feComposite in2="hardAlpha" operator="out" />
+      <feColorMatrix type="matrix" values="0 0 0 0 0.04 0 0 0 0 0.08 0 0 0 0 0.17 0 0 0 0.18 0" />
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1" />
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape" />
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" fill="#EDF4FF" />
+  <rect width="1200" height="630" fill="url(#accentBackground)" />
+
+  <g filter="url(#panelShadow)">
+    <rect x="66" y="54" width="1068" height="502" rx="36" fill="url(#cardBackground)" />
+    <rect x="66.5" y="54.5" width="1067" height="501" rx="35.5" stroke="#D4E0F5" />
+  </g>
+
+  <rect x="112" y="100" width="354" height="410" rx="32" fill="#FFFFFF" />
+  <rect x="112.5" y="100.5" width="353" height="409" rx="31.5" stroke="#D9E5F6" />
+
+  <g transform="translate(156 154) scale(1.03515625)">
+    <g filter="url(#logoShadow)">
+      <rect x="16" y="16" width="224" height="224" rx="36" fill="url(#surface)" stroke="#C8D6EE" />
+      <rect x="28" y="28" width="200" height="200" rx="30" fill="url(#frame)" stroke="#B7C8E6" />
+
+      <rect x="56" y="52" width="144" height="26" rx="9" fill="#000091" />
+      <circle cx="74" cy="65" r="5" fill="#FFFFFF" />
+      <circle cx="91" cy="65" r="5" fill="#FFFFFF" />
+      <circle cx="108" cy="65" r="5" fill="#FFFFFF" />
+
+      <rect x="56" y="88" width="144" height="78" rx="14" fill="#FFFFFF" stroke="#C5D3EB" />
+      <rect x="68" y="100" width="31" height="54" rx="7" fill="#000091" />
+      <rect x="99" y="100" width="54" height="54" rx="7" fill="#FFFFFF" stroke="#CAD6EC" />
+      <rect x="153" y="100" width="35" height="54" rx="7" fill="#E1000F" />
+
+      <circle cx="176" cy="176" r="28" fill="#FFFFFF" stroke="#BFD1EA" />
+      <path d="M162 176L172 186L191 167" stroke="#18753C" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+  </g>
+
+  <rect x="156" y="437" width="266" height="12" rx="6" fill="#D4E1F4" />
+  <rect x="156" y="461" width="194" height="12" rx="6" fill="#E2EBF8" />
+
+  <text
+    x="528"
+    y="218"
+    fill="#000091"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="68"
+    font-weight="700"
+    letter-spacing="-1.6"
+  >
+    Annuaire RGAA
+  </text>
+  <text
+    x="528"
+    y="298"
+    fill="#1F2937"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="34"
+    font-weight="400"
+  >
+    Vitrine française de conformité
+  </text>
+  <text
+    x="528"
+    y="344"
+    fill="#1F2937"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="34"
+    font-weight="400"
+  >
+    et d’accessibilité numérique
+  </text>
+
+  <rect x="528" y="390" width="264" height="54" rx="27" fill="#000091" />
+  <text
+    x="560"
+    y="425"
+    fill="#FFFFFF"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="28"
+    font-weight="700"
+  >
+    annuaire-rgaa.fr
+  </text>
+
+  <circle cx="1030" cy="164" r="48" fill="#FFFFFF" />
+  <circle cx="1030.5" cy="164.5" r="47.5" stroke="#D9E5F6" />
+  <path d="M1004 164L1021 181L1059 143" stroke="#18753C" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

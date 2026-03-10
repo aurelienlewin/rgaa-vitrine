@@ -16,7 +16,10 @@ type SeoConfig = {
 
 const DEFAULT_SITE_URL = 'https://annuaire-rgaa.fr'
 const DEFAULT_SITE_NAME = 'Annuaire RGAA'
-const DEFAULT_OG_IMAGE_PATH = '/logo-rgaa-vitrine.svg'
+const DEFAULT_OG_IMAGE_PATH = '/og-annuaire-rgaa.png'
+const DEFAULT_OG_IMAGE_MIME_TYPE = 'image/png'
+const DEFAULT_OG_IMAGE_WIDTH = '1200'
+const DEFAULT_OG_IMAGE_HEIGHT = '630'
 const STRUCTURED_DATA_SCRIPT_ID = 'app-jsonld'
 const DEFAULT_ROBOTS = 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
 
@@ -114,11 +117,11 @@ export function applySeo(config: SeoConfig) {
   const locale = config.locale ?? 'fr-FR'
   const ogLocale = locale.replace('-', '_')
   const imageUrl = config.imageUrl ?? createAbsoluteUrl(DEFAULT_OG_IMAGE_PATH)
-  const imageMimeType = config.imageMimeType ?? 'image/svg+xml'
+  const imageMimeType = config.imageMimeType ?? DEFAULT_OG_IMAGE_MIME_TYPE
   const robots = config.robots ?? DEFAULT_ROBOTS
   const ogType = config.ogType ?? 'website'
   const twitterCard = config.twitterCard ?? 'summary_large_image'
-  const imageAlt = config.imageAlt ?? 'Logo Annuaire RGAA'
+  const imageAlt = config.imageAlt ?? 'Visuel de partage Annuaire RGAA avec le logo officiel'
 
   document.documentElement.lang = 'fr'
   document.title = config.title
@@ -139,6 +142,8 @@ export function applySeo(config: SeoConfig) {
   upsertMetaByProperty('og:image').setAttribute('content', imageUrl)
   upsertMetaByProperty('og:image:secure_url').setAttribute('content', imageUrl)
   upsertMetaByProperty('og:image:type').setAttribute('content', imageMimeType)
+  upsertMetaByProperty('og:image:width').setAttribute('content', DEFAULT_OG_IMAGE_WIDTH)
+  upsertMetaByProperty('og:image:height').setAttribute('content', DEFAULT_OG_IMAGE_HEIGHT)
   upsertMetaByProperty('og:image:alt').setAttribute('content', imageAlt)
 
   upsertMetaByName('twitter:card').setAttribute('content', twitterCard)
