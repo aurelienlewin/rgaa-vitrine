@@ -8,6 +8,7 @@ const SHOWCASE_CLIENT_VOTES_PREFIX = 'rgaa:vitrine:showcase:votes:client:'
 const SHOWCASE_SLUG_REDIRECTS_KEY = 'rgaa:vitrine:showcase:slug-redirects'
 const SITE_BLOCKLIST_KEY = 'rgaa:vitrine:moderation:blocklist:sites'
 const VOTE_BLOCKLIST_KEY = 'rgaa:vitrine:moderation:blocklist:votes'
+const MAINTENANCE_STATE_KEY = 'rgaa:vitrine:moderation:maintenance'
 const PENDING_INDEX_KEY = 'rgaa:vitrine:moderation:pending:index'
 const PENDING_ENTRY_PREFIX = 'rgaa:vitrine:moderation:pending:'
 const PENDING_BY_URL_HASH_KEY = 'rgaa:vitrine:moderation:pending:by-url'
@@ -34,6 +35,7 @@ const COMPLIANCE_LABEL_BY_STATUS = {
   partial: 'Partiellement conforme',
   none: 'Non conforme',
 }
+const MAX_MAINTENANCE_MESSAGE_LENGTH = 280
 
 function resolveRedisCacheTtlMs() {
   const rawValue = Number.parseInt(process.env.REDIS_CACHE_TTL_MS ?? '', 10)
@@ -86,6 +88,15 @@ function pendingKeyFromId(entryId) {
 
 function toNullableString(value) {
   return value === null || value === undefined ? null : String(value)
+}
+
+function sanitizeMaintenanceMessage(value) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const normalized = value.replace(/\s+/g, ' ').trim().slice(0, MAX_MAINTENANCE_MESSAGE_LENGTH)
+  return normalized || null
 }
 
 function toNullableField(payload, compactKey, legacyKey) {
@@ -569,6 +580,25 @@ function normalizeArchiveUrlList(values) {
   return sortNormalizedUrlList(urls)
 }
 
+function buildMaintenanceState(value = {}) {
+  const enabled = toBoolean(value?.enabled)
+  const updatedAt = parseStoredTimestamp(value?.updatedAt)
+
+  return {
+    enabled,
+    message: sanitizeMaintenanceMessage(value?.message),
+    updatedAt: updatedAt ?? null,
+  }
+}
+
+function normalizeArchiveMaintenanceState(value) {
+  if (!value || typeof value !== 'object') {
+    return buildMaintenanceState()
+  }
+
+  return buildMaintenanceState(value)
+}
+
 function normalizeArchiveImportPayload(payload) {
   if (!payload || typeof payload !== 'object') {
     return null
@@ -590,6 +620,12 @@ function normalizeArchiveImportPayload(payload) {
   const voteTokensByUrl = normalizeVotesByUrl(source.voteTokensByUrl ?? source.votesByUrl)
   const clientVotesByIndex = normalizeClientVotesByIndex(source.clientVotesByIndex ?? source.clientVotes)
   const slugRedirects = normalizeSlugRedirects(source.slugRedirects)
+  const hasMaintenanceState =
+    Object.hasOwn(source, 'maintenanceState') ||
+    Object.hasOwn(source, 'maintenance')
+  const maintenanceState = hasMaintenanceState
+    ? normalizeArchiveMaintenanceState(source.maintenanceState ?? source.maintenance)
+    : null
 
   return {
     entries,
@@ -599,6 +635,8 @@ function normalizeArchiveImportPayload(payload) {
     voteTokensByUrl,
     clientVotesByIndex,
     slugRedirects,
+    maintenanceState,
+    hasMaintenanceState,
   }
 }
 
@@ -787,6 +825,7 @@ class InMemoryShowcaseStorage {
     this.votesByClient = new Map()
     this.siteBlocklist = new Set()
     this.voteBlocklist = new Set()
+    this.maintenanceState = buildMaintenanceState()
     this.slugRedirectsBySlug = new Map()
     this.githubNotificationCountByWindow = new Map()
   }
@@ -873,6 +912,19 @@ class InMemoryShowcaseStorage {
 
     this.voteBlocklist.delete(normalizedUrl)
     return false
+  }
+
+  async getMaintenanceState() {
+    return { ...this.maintenanceState }
+  }
+
+  async setMaintenanceState(nextState) {
+    this.maintenanceState = buildMaintenanceState({
+      ...nextState,
+      updatedAt: nextState?.updatedAt ?? new Date().toISOString(),
+    })
+
+    return { ...this.maintenanceState }
   }
 
   async listClientVotedUrls(clientVoteIndexId) {
@@ -1021,6 +1073,7 @@ class InMemoryShowcaseStorage {
     const pendingEntries = this.#sortedPendingEntries()
     const siteBlocklist = sortNormalizedUrlList(this.siteBlocklist)
     const voteBlocklist = sortNormalizedUrlList(this.voteBlocklist)
+    const maintenanceState = await this.getMaintenanceState()
     const voteTokensByUrl = sortNormalizedUrlList(this.votesByUrl.keys()).map((normalizedUrl) => ({
       normalizedUrl,
       tokens: Array.from(this.votesByUrl.get(normalizedUrl) ?? []),
@@ -1043,6 +1096,7 @@ class InMemoryShowcaseStorage {
       pendingEntries,
       siteBlocklist,
       voteBlocklist,
+      maintenanceState,
       voteTokensByUrl,
       clientVotesByIndex,
       slugRedirects,
@@ -1066,6 +1120,7 @@ class InMemoryShowcaseStorage {
       this.votesByClient.clear()
       this.siteBlocklist.clear()
       this.voteBlocklist.clear()
+      this.maintenanceState = buildMaintenanceState()
       this.slugRedirectsBySlug.clear()
     }
 
@@ -1100,6 +1155,9 @@ class InMemoryShowcaseStorage {
     for (const slugRedirectEntry of normalized.slugRedirects) {
       this.slugRedirectsBySlug.set(slugRedirectEntry.slug, slugRedirectEntry.normalizedUrl)
     }
+    if (normalized.hasMaintenanceState && normalized.maintenanceState) {
+      this.maintenanceState = buildMaintenanceState(normalized.maintenanceState)
+    }
 
     return {
       mode,
@@ -1108,6 +1166,7 @@ class InMemoryShowcaseStorage {
         pendingEntries: normalized.pendingEntries.length,
         siteBlocklist: normalized.siteBlocklist.length,
         voteBlocklist: normalized.voteBlocklist.length,
+        maintenanceState: normalized.hasMaintenanceState ? 1 : 0,
         voteTokenGroups: normalized.voteTokensByUrl.length,
         clientVoteGroups: normalized.clientVotesByIndex.length,
         slugRedirects: normalized.slugRedirects.length,
@@ -1117,6 +1176,7 @@ class InMemoryShowcaseStorage {
         pendingEntries: this.pendingEntries.size,
         siteBlocklist: this.siteBlocklist.size,
         voteBlocklist: this.voteBlocklist.size,
+        maintenanceEnabled: this.maintenanceState.enabled ? 1 : 0,
         slugRedirects: this.slugRedirectsBySlug.size,
       },
     }
@@ -1155,6 +1215,8 @@ class UpstashShowcaseStorage {
     this.siteBlocklistCacheExpiresAt = 0
     this.voteBlocklistCache = null
     this.voteBlocklistCacheExpiresAt = 0
+    this.maintenanceStateCache = null
+    this.maintenanceStateCacheExpiresAt = 0
   }
 
   _isShowcaseCacheFresh() {
@@ -1238,11 +1300,26 @@ class UpstashShowcaseStorage {
     this.voteBlocklistCacheExpiresAt = 0
   }
 
+  _isMaintenanceStateCacheFresh() {
+    return this.maintenanceStateCache !== null && Date.now() < this.maintenanceStateCacheExpiresAt
+  }
+
+  _setMaintenanceStateCache(value) {
+    this.maintenanceStateCache = buildMaintenanceState(value)
+    this.maintenanceStateCacheExpiresAt = Date.now() + this.cacheTtlMs
+  }
+
+  _invalidateMaintenanceStateCache() {
+    this.maintenanceStateCache = null
+    this.maintenanceStateCacheExpiresAt = 0
+  }
+
   _invalidateAllCaches() {
     this._invalidateShowcaseCache()
     this._invalidatePendingCache()
     this._invalidateSiteBlocklistCache()
     this._invalidateVoteBlocklistCache()
+    this._invalidateMaintenanceStateCache()
     this.clientVotesCacheById.clear()
   }
 
@@ -1306,6 +1383,7 @@ class UpstashShowcaseStorage {
       .del(PENDING_BY_URL_HASH_KEY)
       .del(SITE_BLOCKLIST_KEY)
       .del(VOTE_BLOCKLIST_KEY)
+      .del(MAINTENANCE_STATE_KEY)
       .del(SHOWCASE_SLUG_REDIRECTS_KEY)
 
     for (const entryId of Array.isArray(entryIds) ? entryIds : []) {
@@ -1559,6 +1637,50 @@ class UpstashShowcaseStorage {
     } catch (error) {
       console.error('Redis setVotesBlocked failed', error)
       throw new ShowcaseStorageError('Écriture Redis du blocage des votes indisponible.', 503)
+    }
+  }
+
+  async getMaintenanceState() {
+    if (this._isMaintenanceStateCacheFresh()) {
+      return { ...this.maintenanceStateCache }
+    }
+
+    try {
+      const rawValue = await this.redis.get(MAINTENANCE_STATE_KEY)
+      let parsedValue = null
+
+      if (typeof rawValue === 'string') {
+        try {
+          parsedValue = JSON.parse(rawValue)
+        } catch {
+          parsedValue = null
+        }
+      } else if (rawValue && typeof rawValue === 'object') {
+        parsedValue = rawValue
+      }
+
+      const normalized = buildMaintenanceState(parsedValue)
+      this._setMaintenanceStateCache(normalized)
+      return { ...normalized }
+    } catch (error) {
+      console.error('Redis getMaintenanceState failed', error)
+      throw new ShowcaseStorageError('Lecture Redis du mode maintenance indisponible.', 503)
+    }
+  }
+
+  async setMaintenanceState(nextState) {
+    const normalized = buildMaintenanceState({
+      ...nextState,
+      updatedAt: nextState?.updatedAt ?? new Date().toISOString(),
+    })
+
+    try {
+      await this.redis.set(MAINTENANCE_STATE_KEY, JSON.stringify(normalized))
+      this._setMaintenanceStateCache(normalized)
+      return { ...normalized }
+    } catch (error) {
+      console.error('Redis setMaintenanceState failed', error)
+      throw new ShowcaseStorageError('Écriture Redis du mode maintenance indisponible.', 503)
     }
   }
 
@@ -1829,11 +1951,12 @@ class UpstashShowcaseStorage {
 
   async exportArchive() {
     try {
-      const [entries, pendingEntries, siteBlocklist, voteBlocklist] = await Promise.all([
+      const [entries, pendingEntries, siteBlocklist, voteBlocklist, maintenanceState] = await Promise.all([
         this.list({ limit: MAX_STORED_ENTRIES }),
         this.listPending({ limit: MAX_PENDING_STORED_ENTRIES }),
         this.listSiteBlocklist(),
         this.listVoteBlocklist(),
+        this.getMaintenanceState(),
       ])
 
       const voteTokensByUrl = []
@@ -1891,6 +2014,7 @@ class UpstashShowcaseStorage {
         pendingEntries,
         siteBlocklist,
         voteBlocklist,
+        maintenanceState,
         voteTokensByUrl,
         clientVotesByIndex,
         slugRedirects,
@@ -1928,6 +2052,9 @@ class UpstashShowcaseStorage {
       }
       if (normalized.voteBlocklist.length > 0) {
         await this.redis.sadd(VOTE_BLOCKLIST_KEY, ...normalized.voteBlocklist)
+      }
+      if (normalized.hasMaintenanceState && normalized.maintenanceState) {
+        await this.redis.set(MAINTENANCE_STATE_KEY, JSON.stringify(buildMaintenanceState(normalized.maintenanceState)))
       }
 
       const voteWrite = this.redis.multi()
@@ -1976,6 +2103,7 @@ class UpstashShowcaseStorage {
           pendingEntries: normalized.pendingEntries.length,
           siteBlocklist: normalized.siteBlocklist.length,
           voteBlocklist: normalized.voteBlocklist.length,
+          maintenanceState: normalized.hasMaintenanceState ? 1 : 0,
           voteTokenGroups: normalized.voteTokensByUrl.length,
           clientVoteGroups: normalized.clientVotesByIndex.length,
           slugRedirects: normalized.slugRedirects.length,
@@ -1985,6 +2113,12 @@ class UpstashShowcaseStorage {
           pendingEntries: toNonNegativeInteger(pendingCount),
           siteBlocklist: toNonNegativeInteger(siteBlocklistCount),
           voteBlocklist: toNonNegativeInteger(voteBlocklistCount),
+          maintenanceEnabled:
+            normalized.hasMaintenanceState && normalized.maintenanceState?.enabled
+              ? 1
+              : (await this.getMaintenanceState()).enabled
+                ? 1
+                : 0,
           slugRedirects: toNonNegativeInteger(slugRedirectsCount),
         },
       }

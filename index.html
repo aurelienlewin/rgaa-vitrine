@@ -196,6 +196,58 @@
         margin: 0.5rem 0 0;
       }
 
+      .maintenance-shell {
+        display: grid;
+        min-height: 100vh;
+        padding: 1.5rem;
+      }
+
+      .maintenance-card {
+        width: min(100%, 42rem);
+        margin: auto;
+        border: 1px solid #bec9dc;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 1.5rem 4rem rgba(18, 26, 43, 0.12);
+      }
+
+      .maintenance-card:focus-visible {
+        outline: 3px solid #0f62fe;
+        outline-offset: 0.35rem;
+      }
+
+      .maintenance-kicker {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #7c2d12;
+      }
+
+      .maintenance-card h1 {
+        margin: 0.75rem 0 0;
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        line-height: 1.1;
+      }
+
+      .maintenance-card p {
+        margin: 1rem 0 0;
+      }
+
+      .maintenance-status {
+        border: 1px solid #cbd5e1;
+        border-radius: 1rem;
+        padding: 1rem;
+        background: #f8fafc;
+      }
+
+      .maintenance-meta {
+        color: #334155;
+        font-size: 0.95rem;
+      }
+
       @media (min-width: 640px) {
         .app-secondary-header__inner {
           padding-inline: 1.5rem;
@@ -269,6 +321,25 @@
         html:not([data-theme='light']) .app-global-search-form__button--reset {
           border-color: #c6d4ec;
         }
+
+        html:not([data-theme='light']) .maintenance-card {
+          border-color: #5b728f;
+          background: rgba(8, 16, 31, 0.94);
+          box-shadow: 0 1.5rem 4rem rgba(2, 6, 23, 0.45);
+        }
+
+        html:not([data-theme='light']) .maintenance-kicker {
+          color: #fdba74;
+        }
+
+        html:not([data-theme='light']) .maintenance-status {
+          border-color: #5b728f;
+          background: rgba(15, 23, 42, 0.92);
+        }
+
+        html:not([data-theme='light']) .maintenance-meta {
+          color: #cbd5e1;
+        }
       }
 
       html[data-theme='dark'],
@@ -319,6 +390,25 @@
 
       html[data-theme='dark'] .app-global-search-form__button--reset {
         border-color: #c6d4ec;
+      }
+
+      html[data-theme='dark'] .maintenance-card {
+        border-color: #5b728f;
+        background: rgba(8, 16, 31, 0.94);
+        box-shadow: 0 1.5rem 4rem rgba(2, 6, 23, 0.45);
+      }
+
+      html[data-theme='dark'] .maintenance-kicker {
+        color: #fdba74;
+      }
+
+      html[data-theme='dark'] .maintenance-status {
+        border-color: #5b728f;
+        background: rgba(15, 23, 42, 0.92);
+      }
+
+      html[data-theme='dark'] .maintenance-meta {
+        color: #cbd5e1;
       }
     </style>
     <link rel="alternate" type="text/plain" href="/llms.txt" />
@@ -532,6 +622,117 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      window.__ANNUAIRE_RGAA_MAINTENANCE__ = { enabled: false };
+      window.__ANNUAIRE_RGAA_MAINTENANCE_PROMISE__ = (function () {
+        var pathname = window.location.pathname || '/';
+        if (pathname.indexOf('/moderation') === 0) {
+          return Promise.resolve();
+        }
+
+        var root = document.getElementById('root');
+        if (!root || typeof window.fetch !== 'function') {
+          return Promise.resolve();
+        }
+
+        var controller = typeof AbortController === 'function' ? new AbortController() : null;
+        var timeoutId = window.setTimeout(function () {
+          if (controller) {
+            controller.abort();
+          }
+        }, 1500);
+
+        function renderMaintenanceScreen(payload) {
+          var robots = document.querySelector('meta[name="robots"]');
+          var description = document.querySelector('meta[name="description"]');
+          var message =
+            typeof payload.message === 'string' && payload.message.trim()
+              ? payload.message.trim()
+              : 'Nous revenons très vite. Merci de réessayer dans quelques instants.';
+
+          if (robots) {
+            robots.setAttribute('content', 'noindex,nofollow,noarchive');
+          }
+          if (description) {
+            description.setAttribute('content', message);
+          }
+          document.title = 'Maintenance | Annuaire RGAA';
+
+          var shell = document.createElement('div');
+          shell.className = 'maintenance-shell';
+
+          var main = document.createElement('main');
+          main.className = 'maintenance-card';
+          main.id = 'contenu-maintenance';
+          main.tabIndex = -1;
+
+          var kicker = document.createElement('p');
+          kicker.className = 'maintenance-kicker';
+          kicker.textContent = 'Interruption temporaire';
+
+          var heading = document.createElement('h1');
+          heading.textContent = 'Annuaire RGAA momentanément indisponible';
+
+          var status = document.createElement('p');
+          status.className = 'maintenance-status';
+          status.textContent = message;
+
+          var details = document.createElement('p');
+          details.textContent =
+            'Le service public reviendra dès que possible. L’espace de réouverture reste réservé à l’équipe de modération.';
+
+          main.append(kicker, heading, status, details);
+
+          if (typeof payload.updatedAt === 'string' && payload.updatedAt.trim()) {
+            try {
+              var updatedAt = new Intl.DateTimeFormat('fr-FR', {
+                dateStyle: 'long',
+                timeStyle: 'short',
+              }).format(new Date(payload.updatedAt));
+              var meta = document.createElement('p');
+              meta.className = 'maintenance-meta';
+              meta.textContent = 'Dernière mise à jour: ' + updatedAt + '.';
+              main.append(meta);
+            } catch (_) {
+              // Keep the page usable even if formatting fails.
+            }
+          }
+
+          shell.append(main);
+          root.replaceChildren(shell);
+          window.__ANNUAIRE_RGAA_MAINTENANCE__ = { enabled: true };
+          window.requestAnimationFrame(function () {
+            main.focus();
+          });
+        }
+
+        return fetch('/api/maintenance', {
+          headers: {
+            accept: 'application/json',
+          },
+          cache: 'no-store',
+          signal: controller ? controller.signal : undefined,
+        })
+          .then(function (response) {
+            if (!response.ok) {
+              return null;
+            }
+            return response.json();
+          })
+          .then(function (payload) {
+            if (!payload || payload.enabled !== true) {
+              return;
+            }
+            renderMaintenanceScreen(payload);
+          })
+          .catch(function () {
+            // Keep the normal app when the maintenance probe is unavailable.
+          })
+          .finally(function () {
+            window.clearTimeout(timeoutId);
+          });
+      })();
+    </script>
     <noscript>
       <section lang="fr">
         <h1>Annuaire RGAA</h1>

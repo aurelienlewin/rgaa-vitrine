@@ -10,6 +10,15 @@ import { readSiteSlugFromPath } from './siteProfiles'
 
 const canUseDom = typeof window !== 'undefined' && typeof document !== 'undefined'
 
+declare global {
+  interface Window {
+    __ANNUAIRE_RGAA_MAINTENANCE__?: {
+      enabled?: boolean
+    }
+    __ANNUAIRE_RGAA_MAINTENANCE_PROMISE__?: Promise<void>
+  }
+}
+
 function scheduleAnalyticsLoad() {
   if (!import.meta.env.PROD) {
     return
@@ -94,13 +103,16 @@ async function resolveRootModule() {
 }
 
 if (canUseDom) {
-  preloadInitialRouteData(currentPathname)
-  const RootComponent = (await resolveRootModule()).default
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <RootComponent />
-    </StrictMode>,
-  )
+  await window.__ANNUAIRE_RGAA_MAINTENANCE_PROMISE__
+  if (!(window.__ANNUAIRE_RGAA_MAINTENANCE__?.enabled === true && !isModerationRoute)) {
+    preloadInitialRouteData(currentPathname)
+    const RootComponent = (await resolveRootModule()).default
+    createRoot(document.getElementById('root')!).render(
+      <StrictMode>
+        <RootComponent />
+      </StrictMode>,
+    )
 
-  scheduleAnalyticsLoad()
+    scheduleAnalyticsLoad()
+  }
 }

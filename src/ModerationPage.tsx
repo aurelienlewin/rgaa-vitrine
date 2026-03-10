@@ -68,6 +68,12 @@ type PublishedEntryFeedback = {
 }
 
 type ArchiveImportMode = 'merge' | 'replace'
+type MaintenanceState = {
+  enabled: boolean
+  message: string | null
+  effectiveMessage: string
+  updatedAt: string | null
+}
 
 const moderationCategories = [
   'Administration',
@@ -97,6 +103,7 @@ const skipLinksContainerClass =
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
 const MODERATION_SESSION_STORAGE_KEY = 'annuaire-rgaa-moderation-session'
 const MODERATION_SESSION_TTL_MS = 12 * 60 * 60 * 1000
+const DEFAULT_MAINTENANCE_MESSAGE = 'Nous revenons très vite. Merci de réessayer dans quelques instants.'
 
 type StoredModerationSession = {
   token: string
@@ -111,12 +118,37 @@ function formatDate(value: string) {
   }).format(new Date(value))
 }
 
+function createDefaultMaintenanceState(): MaintenanceState {
+  return {
+    enabled: false,
+    message: null,
+    effectiveMessage: DEFAULT_MAINTENANCE_MESSAGE,
+    updatedAt: null,
+  }
+}
+
 function toNullableString(value: unknown) {
   return typeof value === 'string' ? value : null
 }
 
 function toNullableNumber(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function normalizeMaintenanceStatePayload(payload: Record<string, unknown>): MaintenanceState {
+  const message = toNullableString(payload.message)
+  const effectiveMessage =
+    toNullableString(payload.effectiveMessage) ??
+    message ??
+    DEFAULT_MAINTENANCE_MESSAGE
+  const updatedAt = toNullableString(payload.updatedAt)
+
+  return {
+    enabled: payload.enabled === true,
+    message,
+    effectiveMessage,
+    updatedAt,
+  }
 }
 
 function toDomId(value: string) {
@@ -373,14 +405,19 @@ function ModerationPage() {
   const [showToken, setShowToken] = useState(false)
   const [isExportingArchive, setIsExportingArchive] = useState(false)
   const [isImportingArchive, setIsImportingArchive] = useState(false)
+  const [isLoadingMaintenance, setIsLoadingMaintenance] = useState(false)
+  const [isSavingMaintenance, setIsSavingMaintenance] = useState(false)
   const [archiveImportMode, setArchiveImportMode] = useState<ArchiveImportMode>('merge')
   const [allowArchiveRollbackImport, setAllowArchiveRollbackImport] = useState(false)
   const [archiveImportFile, setArchiveImportFile] = useState<File | null>(null)
   const [archiveImportFileName, setArchiveImportFileName] = useState('')
+  const [maintenanceState, setMaintenanceState] = useState<MaintenanceState>(() => createDefaultMaintenanceState())
+  const [maintenanceMessageInput, setMaintenanceMessageInput] = useState('')
   const mainRef = useRef<HTMLElement | null>(null)
   const pendingRef = useRef<HTMLElement | null>(null)
   const publishedRef = useRef<HTMLElement | null>(null)
   const archiveRef = useRef<HTMLElement | null>(null)
+  const maintenanceSectionRef = useRef<HTMLElement | null>(null)
   const tokenInputRef = useRef<HTMLInputElement | null>(null)
   const messageRef = useRef<HTMLParagraphElement | null>(null)
   const archiveImportInputRef = useRef<HTMLInputElement | null>(null)
@@ -425,6 +462,10 @@ function ModerationPage() {
 
   const focusPublished = useCallback(() => {
     focusElement(publishedRef.current)
+  }, [focusElement])
+
+  const focusMaintenance = useCallback(() => {
+    focusElement(maintenanceSectionRef.current)
   }, [focusElement])
 
   const focusArchive = useCallback(() => {
@@ -480,6 +521,8 @@ function ModerationPage() {
     setPublishedFeedbackByUrl({})
     setRejectReasons({})
     setDeleteConfirmationUrl(null)
+    setMaintenanceState(createDefaultMaintenanceState())
+    setMaintenanceMessageInput('')
   }, [])
 
   const clearModerationSession = useCallback(
@@ -617,6 +660,39 @@ function ModerationPage() {
     }
   }, [buildAuthHeaders, focusMessage, hasToken])
 
+  const loadMaintenanceState = useCallback(async () => {
+    if (!hasToken) {
+      return false
+    }
+
+    setIsLoadingMaintenance(true)
+
+    try {
+      const response = await fetch('/api/moderation/maintenance', {
+        headers: buildAuthHeaders(false),
+      })
+      const payload = await readApiPayload(response)
+
+      if (!response.ok) {
+        throw new Error(typeof payload.error === 'string' ? payload.error : 'Chargement du mode maintenance impossible.')
+      }
+
+      const nextState = normalizeMaintenanceStatePayload(payload)
+      setMaintenanceState(nextState)
+      setMaintenanceMessageInput(nextState.message ?? '')
+      return true
+    } catch (error) {
+      const localizedMessage =
+        error instanceof Error ? error.message : 'Erreur lors du chargement du mode maintenance.'
+      setAssertiveMessage(localizedMessage)
+      setPoliteMessage('')
+      focusMessage()
+      return false
+    } finally {
+      setIsLoadingMaintenance(false)
+    }
+  }, [buildAuthHeaders, focusMessage, hasToken])
+
   const resolveNextPendingSubmissionId = useCallback(
     (submissionId: string) => {
       const currentIndex = pendingEntries.findIndex((entry) => entry.submissionId === submissionId)
@@ -726,7 +802,8 @@ function ModerationPage() {
       const pendingLoaded = await loadPendingEntries()
       const publishedLoaded = await loadPublishedEntries()
       const blocklistsLoaded = await loadBlocklists()
-      const unlocked = pendingLoaded || publishedLoaded || blocklistsLoaded
+      const maintenanceLoaded = await loadMaintenanceState()
+      const unlocked = pendingLoaded || publishedLoaded || blocklistsLoaded || maintenanceLoaded
 
       if (unlocked) {
         persistStoredModerationSession(moderationToken, rememberModerationSession)
@@ -745,12 +822,66 @@ function ModerationPage() {
     [
       focusPending,
       loadBlocklists,
+      loadMaintenanceState,
       loadPendingEntries,
       loadPublishedEntries,
       lockModerationView,
       moderationToken,
       rememberModerationSession,
     ],
+  )
+
+  const handleSetMaintenanceMode = useCallback(
+    async (enabled: boolean) => {
+      if (!hasToken) {
+        setAssertiveMessage('Veuillez saisir un jeton de modération.')
+        setPoliteMessage('')
+        focusTokenInput()
+        return
+      }
+
+      setIsSavingMaintenance(true)
+      setAssertiveMessage('')
+      setPoliteMessage(enabled ? 'Activation du mode maintenance...' : 'Désactivation du mode maintenance...')
+
+      try {
+        const response = await fetch('/api/moderation/maintenance', {
+          method: 'POST',
+          headers: buildAuthHeaders(true),
+          body: JSON.stringify({
+            enabled,
+            message: maintenanceMessageInput,
+          }),
+        })
+        const payload = await readApiPayload(response)
+
+        if (!response.ok) {
+          throw new Error(
+            typeof payload.error === 'string'
+              ? payload.error
+              : 'Mise à jour du mode maintenance impossible.',
+          )
+        }
+
+        const nextState = normalizeMaintenanceStatePayload(payload)
+        setMaintenanceState(nextState)
+        setMaintenanceMessageInput(nextState.message ?? '')
+        setPoliteMessage(
+          toNullableString(payload.messageText) ??
+            (nextState.enabled ? 'Mode maintenance activé.' : 'Mode maintenance désactivé.'),
+        )
+        setAssertiveMessage('')
+      } catch (error) {
+        const localizedMessage =
+          error instanceof Error ? error.message : 'Erreur lors de la mise à jour du mode maintenance.'
+        setAssertiveMessage(localizedMessage)
+        setPoliteMessage('')
+        focusMessage()
+      } finally {
+        setIsSavingMaintenance(false)
+      }
+    },
+    [buildAuthHeaders, focusMessage, focusTokenInput, hasToken, maintenanceMessageInput],
   )
 
   const handleExportArchive = useCallback(async () => {
@@ -1396,6 +1527,9 @@ function ModerationPage() {
         </a>
         {isModerationUnlocked && (
           <>
+            <a href="#mode-maintenance" className={skipLinkClass} onClick={focusMaintenance}>
+              Aller au mode maintenance
+            </a>
             <a href="#annuaire-publie" className={skipLinkClass} onClick={focusPublished}>
               Aller à l’annuaire publié
             </a>
@@ -1488,10 +1622,10 @@ function ModerationPage() {
               </button>
               <button
                 type="submit"
-                disabled={isLoadingList || isLoadingPublished}
+                disabled={isLoadingList || isLoadingPublished || isLoadingMaintenance}
                 className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-white dark:text-slate-950 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass} md:self-end`}
               >
-                {isLoadingList || isLoadingPublished ? 'Chargement...' : 'Charger la modération'}
+                {isLoadingList || isLoadingPublished || isLoadingMaintenance ? 'Chargement...' : 'Charger la modération'}
               </button>
             </form>
 
@@ -1535,6 +1669,96 @@ function ModerationPage() {
 
           {isModerationUnlocked && (
             <>
+              <section
+                id="mode-maintenance"
+                ref={maintenanceSectionRef}
+                tabIndex={-1}
+                className={`mt-8 rounded-2xl border border-violet-200 dark:border-violet-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                aria-labelledby="mode-maintenance-titre"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 id="mode-maintenance-titre" className="text-lg font-semibold">
+                      Mode maintenance
+                    </h2>
+                    <p className="mt-2 text-slate-700 dark:text-slate-300">
+                      Activez à tout moment une page publique de retour prochainement. Les endpoints publics JSON/XML passent alors en `503`, tandis que la modération reste disponible.
+                    </p>
+                  </div>
+                  <span
+                    className={`inline-flex min-h-11 items-center rounded-full border px-4 py-2 text-sm font-semibold ${
+                      maintenanceState.enabled
+                        ? 'border-amber-700 dark:border-amber-300 bg-amber-100 dark:bg-amber-950 text-amber-950 dark:text-amber-100'
+                        : 'border-emerald-700 dark:border-emerald-300 bg-emerald-100 dark:bg-emerald-950 text-emerald-950 dark:text-emerald-100'
+                    }`}
+                  >
+                    {maintenanceState.enabled ? 'Maintenance active' : 'Site public ouvert'}
+                  </span>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-violet-200 dark:border-violet-700 bg-violet-50 dark:bg-violet-950 p-4">
+                  <p className="text-sm font-semibold text-violet-950 dark:text-violet-100">
+                    Message public actuellement diffusé
+                  </p>
+                  <p className="mt-2 text-sm text-violet-950 dark:text-violet-100">
+                    {maintenanceState.effectiveMessage}
+                  </p>
+                  <p className="mt-2 text-sm text-violet-900 dark:text-violet-200">
+                    {maintenanceState.updatedAt
+                      ? `Dernière mise à jour: ${formatDate(maintenanceState.updatedAt)}.`
+                      : 'Aucune activation enregistrée pour le moment.'}
+                  </p>
+                </div>
+
+                <div className="mt-4">
+                  <label htmlFor="maintenance-message" className="block text-sm font-medium">
+                    Message public personnalisé
+                  </label>
+                  <textarea
+                    id="maintenance-message"
+                    rows={4}
+                    maxLength={280}
+                    value={maintenanceMessageInput}
+                    onChange={(event) => setMaintenanceMessageInput(event.target.value)}
+                    aria-describedby="maintenance-message-help maintenance-message-count"
+                    className={`mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  />
+                  <p id="maintenance-message-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                    Laissez vide pour utiliser le message standard: “{DEFAULT_MAINTENANCE_MESSAGE}”.
+                  </p>
+                  <p id="maintenance-message-count" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                    {maintenanceMessageInput.trim().length}/280 caractère(s).
+                  </p>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleSetMaintenanceMode(true)
+                    }}
+                    disabled={!hasToken || isSavingMaintenance || isLoadingMaintenance}
+                    className={`min-h-11 rounded-xl bg-violet-700 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                  >
+                    {isSavingMaintenance
+                      ? 'Traitement...'
+                      : maintenanceState.enabled
+                        ? 'Mettre à jour la maintenance'
+                        : 'Activer la maintenance'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleSetMaintenanceMode(false)
+                    }}
+                    disabled={!hasToken || !maintenanceState.enabled || isSavingMaintenance || isLoadingMaintenance}
+                    className={`min-h-11 rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                  >
+                    {isSavingMaintenance && maintenanceState.enabled ? 'Traitement...' : 'Désactiver la maintenance'}
+                  </button>
+                </div>
+              </section>
+
               <section
                 id="archive-donnees"
                 ref={archiveRef}

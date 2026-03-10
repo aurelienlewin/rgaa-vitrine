@@ -63,6 +63,9 @@ const MAX_GITHUB_NOTIFY_WINDOW_SECONDS = 24 * 60 * 60
 const DEFAULT_GITHUB_NOTIFY_MAX_PER_WINDOW = 12
 const MIN_GITHUB_NOTIFY_MAX_PER_WINDOW = 1
 const MAX_GITHUB_NOTIFY_MAX_PER_WINDOW = 200
+const MAX_MAINTENANCE_MESSAGE_LENGTH = 280
+const DEFAULT_MAINTENANCE_MESSAGE = 'Nous revenons très vite. Merci de réessayer dans quelques instants.'
+const MAINTENANCE_RETRY_AFTER_SECONDS = 15 * 60
 const PUBLIC_SUBMISSION_CATEGORY_FALLBACK = 'Autre'
 const PUBLIC_SUBMISSION_CATEGORIES = [
   'Administration',
@@ -409,14 +412,19 @@ function readNewestIsoTimestamp(candidates) {
 }
 
 async function readLatestStoredDataTimestampIso() {
-  const [entries, pendingEntries] = await Promise.all([
+  const [entries, pendingEntries, maintenanceState] = await Promise.all([
     showcaseStorage.list({ limit: MAX_SHOWCASE_ENTRY_LIMIT }),
     showcaseStorage.listPending({ limit: MAX_PENDING_ARCHIVE_SCAN_LIMIT }),
+    showcaseStorage.getMaintenanceState(),
   ])
 
   const latestEntryUpdatedAt = Array.isArray(entries) && entries[0] ? entries[0].updatedAt : null
   const latestPendingCreatedAt = Array.isArray(pendingEntries) && pendingEntries[0] ? pendingEntries[0].createdAt : null
-  return readNewestIsoTimestamp([latestEntryUpdatedAt, latestPendingCreatedAt])
+  const latestMaintenanceUpdatedAt =
+    maintenanceState && typeof maintenanceState.updatedAt === 'string'
+      ? maintenanceState.updatedAt
+      : null
+  return readNewestIsoTimestamp([latestEntryUpdatedAt, latestPendingCreatedAt, latestMaintenanceUpdatedAt])
 }
 
 function extractSubmissionId(value) {
@@ -500,6 +508,233 @@ function parseBooleanFlag(value) {
   }
 
   return null
+}
+
+function sanitizeMaintenanceMessage(value) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const normalized = value.replace(/\s+/g, ' ').trim().slice(0, MAX_MAINTENANCE_MESSAGE_LENGTH)
+  return normalized || null
+}
+
+function toPublicMaintenanceState(state) {
+  const customMessage = sanitizeMaintenanceMessage(state?.message)
+  const updatedAt =
+    typeof state?.updatedAt === 'string' && !Number.isNaN(Date.parse(state.updatedAt))
+      ? new Date(Date.parse(state.updatedAt)).toISOString()
+      : null
+
+  return {
+    enabled: state?.enabled === true,
+    message: customMessage ?? DEFAULT_MAINTENANCE_MESSAGE,
+    customMessage,
+    updatedAt,
+    retryAfterSeconds: MAINTENANCE_RETRY_AFTER_SECONDS,
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function isMaintenanceBypassPath(pathname) {
+  return (
+    pathname === '/api/health' ||
+    pathname === '/api/maintenance' ||
+    pathname === '/api/moderation' ||
+    pathname.startsWith('/api/moderation/')
+  )
+}
+
+function buildMaintenanceHtmlDocument(maintenanceState) {
+  const message = escapeHtml(maintenanceState.message)
+  const updatedAt = maintenanceState.updatedAt
+    ? escapeHtml(
+        new Intl.DateTimeFormat('fr-FR', {
+          dateStyle: 'long',
+          timeStyle: 'short',
+          timeZone: 'Europe/Paris',
+        }).format(new Date(maintenanceState.updatedAt)),
+      )
+    : null
+
+  return `<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Maintenance | Annuaire RGAA</title>
+    <style>
+      html {
+        color-scheme: light dark;
+        background: #f3f6fd;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        min-height: 100vh;
+        font-family:
+          "Atkinson Hyperlegible",
+          "OpenDyslexic",
+          "Lexend",
+          "Noto Sans",
+          "Segoe UI",
+          Arial,
+          sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(225, 232, 250, 0.92), rgba(243, 246, 253, 0.98) 58%),
+          linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+        color: #121a2b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      .maintenance-shell {
+        display: grid;
+        min-height: 100vh;
+        padding: 1.5rem;
+      }
+
+      .maintenance-card {
+        width: min(100%, 42rem);
+        margin: auto;
+        border: 1px solid #bec9dc;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 1.5rem 4rem rgba(18, 26, 43, 0.12);
+      }
+
+      .maintenance-card:focus-visible {
+        outline: 3px solid #0f62fe;
+        outline-offset: 0.35rem;
+      }
+
+      .maintenance-kicker {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #7c2d12;
+      }
+
+      h1 {
+        margin: 0.75rem 0 0;
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        line-height: 1.1;
+      }
+
+      p {
+        margin: 1rem 0 0;
+        font-size: 1rem;
+      }
+
+      .maintenance-status {
+        border: 1px solid #cbd5e1;
+        border-radius: 1rem;
+        padding: 1rem;
+        background: #f8fafc;
+      }
+
+      .maintenance-meta {
+        color: #334155;
+        font-size: 0.95rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        html {
+          background: #050913;
+        }
+
+        body {
+          background:
+            radial-gradient(circle at top, rgba(30, 58, 138, 0.34), rgba(5, 9, 19, 0.98) 58%),
+            linear-gradient(180deg, #08101f 0%, #050913 100%);
+          color: #f8fbff;
+        }
+
+        .maintenance-card {
+          border-color: #5b728f;
+          background: rgba(8, 16, 31, 0.94);
+          box-shadow: 0 1.5rem 4rem rgba(2, 6, 23, 0.45);
+        }
+
+        .maintenance-kicker {
+          color: #fdba74;
+        }
+
+        .maintenance-status {
+          border-color: #5b728f;
+          background: rgba(15, 23, 42, 0.92);
+        }
+
+        .maintenance-meta {
+          color: #cbd5e1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="maintenance-shell">
+      <main id="contenu-maintenance" class="maintenance-card" tabindex="-1">
+        <p class="maintenance-kicker">Interruption temporaire</p>
+        <h1>Annuaire RGAA momentanément indisponible</h1>
+        <p class="maintenance-status">${message}</p>
+        <p>Le service public reviendra dès que possible. L’espace de réouverture reste réservé à l’équipe de modération.</p>
+        ${updatedAt ? `<p class="maintenance-meta">Dernière mise à jour: ${updatedAt}.</p>` : ''}
+      </main>
+    </div>
+    <script>
+      (function () {
+        var main = document.getElementById('contenu-maintenance');
+        if (main) {
+          window.requestAnimationFrame(function () {
+            main.focus();
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>`
+}
+
+function sendMaintenanceUnavailable(request, response, maintenanceState) {
+  const publicState = toPublicMaintenanceState(maintenanceState)
+  response.setHeader('retry-after', String(publicState.retryAfterSeconds))
+  response.setHeader('cache-control', 'no-store, max-age=0')
+
+  if (
+    request.path === '/sitemap.xml' ||
+    request.path === '/api/sitemap' ||
+    request.path === '/ai-context.json' ||
+    request.path === '/api/ai-context'
+  ) {
+    response.status(503).type('text/plain; charset=utf-8').send('Maintenance temporaire. Merci de réessayer plus tard.')
+    return
+  }
+
+  if (request.path.startsWith('/api/')) {
+    response.status(503).json({
+      error: 'Service temporairement indisponible pour maintenance.',
+      maintenance: publicState,
+    })
+    return
+  }
+
+  response.status(503).type('text/html; charset=utf-8').send(buildMaintenanceHtmlDocument(publicState))
 }
 
 function parseArchiveImportMode(value) {
@@ -1073,6 +1308,31 @@ const moderationAuthLimiter = rateLimit({
 
 app.use('/api/moderation', moderationAuthLimiter)
 
+app.use(async (request, response, next) => {
+  if (isMaintenanceBypassPath(request.path)) {
+    next()
+    return
+  }
+
+  try {
+    const maintenanceState = await showcaseStorage.getMaintenanceState()
+    if (!maintenanceState?.enabled) {
+      next()
+      return
+    }
+
+    sendMaintenanceUnavailable(request, response, maintenanceState)
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected maintenance gate error', error)
+    sendJsonError(response, 500, 'Erreur interne lors de la vérification du mode maintenance.')
+  }
+})
+
 app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
   const baseUrl = resolvePublicAppUrl()
   let lastModified = new Date().toISOString()
@@ -1206,17 +1466,45 @@ app.get(['/ai-context.json', '/api/ai-context'], async (_request, response) => {
   response.status(200).json(payload)
 })
 
-app.get('/api/health', (_request, response) => {
-  response.json({
-    ok: true,
-    storage: showcaseStorage.mode,
-    moderation: {
-      enabled: Boolean(readModerationToken()),
-    },
-    notifications: {
-      githubIssues: isGithubNotifierEnabled(),
-    },
-  })
+app.get('/api/maintenance', async (_request, response) => {
+  try {
+    const maintenanceState = await showcaseStorage.getMaintenanceState()
+    response.setHeader('cache-control', 'no-store, max-age=0')
+    response.json(toPublicMaintenanceState(maintenanceState))
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/maintenance', error)
+    sendJsonError(response, 500, 'Erreur lors de la lecture du mode maintenance.')
+  }
+})
+
+app.get('/api/health', async (_request, response) => {
+  try {
+    const maintenanceState = await showcaseStorage.getMaintenanceState()
+    response.json({
+      ok: true,
+      storage: showcaseStorage.mode,
+      moderation: {
+        enabled: Boolean(readModerationToken()),
+      },
+      maintenance: toPublicMaintenanceState(maintenanceState),
+      notifications: {
+        githubIssues: isGithubNotifierEnabled(),
+      },
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/health', error)
+    sendJsonError(response, 500, 'Erreur lors de la lecture de l’état du service.')
+  }
 })
 
 app.get('/api/showcase', async (request, response) => {
@@ -1671,6 +1959,59 @@ app.get('/api/moderation/blocklist', requireModerationAuth, async (_request, res
 
     console.error('Unexpected error in /api/moderation/blocklist', error)
     sendJsonError(response, 500, 'Erreur interne lors de la lecture des listes de blocage.')
+  }
+})
+
+app.get('/api/moderation/maintenance', requireModerationAuth, async (_request, response) => {
+  try {
+    const maintenanceState = await showcaseStorage.getMaintenanceState()
+    response.json({
+      ...maintenanceState,
+      effectiveMessage: toPublicMaintenanceState(maintenanceState).message,
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/maintenance', error)
+    sendJsonError(response, 500, 'Erreur interne lors de la lecture du mode maintenance.')
+  }
+})
+
+app.post('/api/moderation/maintenance', requireModerationAuth, async (request, response) => {
+  const enabled = parseBooleanFlag(request.body?.enabled)
+  if (enabled === null) {
+    sendJsonError(response, 400, 'enabled doit être un booléen.')
+    return
+  }
+
+  const nextState = {
+    enabled,
+    message: sanitizeMaintenanceMessage(request.body?.message),
+  }
+
+  try {
+    const maintenanceState = await showcaseStorage.setMaintenanceState(nextState)
+    const effectiveMessage = toPublicMaintenanceState(maintenanceState).message
+    response.setHeader('cache-control', 'no-store, max-age=0')
+    response.json({
+      ...maintenanceState,
+      effectiveMessage,
+      messageText:
+        maintenanceState.enabled
+          ? 'Mode maintenance activé.'
+          : 'Mode maintenance désactivé.',
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/maintenance', error)
+    sendJsonError(response, 500, 'Erreur interne lors de la mise à jour du mode maintenance.')
   }
 })
 
