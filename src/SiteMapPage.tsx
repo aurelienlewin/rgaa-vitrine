@@ -83,27 +83,37 @@ const technicalLinks: SiteLink[] = [
   {
     href: '/sitemap.xml',
     label: 'Sitemap XML',
-    description: 'Fichier généré automatiquement pour l’indexation des pages publiques.',
+    description: 'Endpoint XML généré automatiquement pour l’indexation des pages publiques.',
   },
   {
     href: '/ai-context.json',
     label: 'Contexte IA JSON',
-    description: 'Résumé machine-readable du site, des pages publiques et des endpoints de données.',
+    description: 'Endpoint JSON généré automatiquement avec les pages publiques et les endpoints de données.',
   },
   {
     href: '/llms.txt',
     label: 'LLMs.txt',
-    description: 'Instructions de découverte rapides pour crawlers et agents IA.',
+    description: 'Fichier texte versionné avec les consignes de découverte rapides pour crawlers et agents IA.',
   },
   {
     href: '/llms-full.txt',
-    label: 'LLMs full',
-    description: 'Contexte détaillé: schéma de données, limites et conseils d’usage.',
+    label: 'LLMs full.txt',
+    description: 'Fichier texte versionné avec le contexte détaillé, le schéma de données et les conseils d’usage.',
   },
   {
     href: '/robots.txt',
     label: 'Fichier robots.txt',
-    description: 'Consignes d’exploration des robots pour le site.',
+    description: 'Fichier statique versionné avec les consignes d’exploration des robots pour le site.',
+  },
+  {
+    href: '/api/showcase',
+    label: 'API annuaire JSON',
+    description: 'Endpoint public en lecture seule listant les fiches publiées.',
+  },
+  {
+    href: '/api/domain-groups',
+    label: 'API domaines JSON',
+    description: 'Endpoint public en lecture seule listant les domaines multi-sites.',
   },
 ]
 
@@ -176,7 +186,9 @@ function SiteMapPage() {
   const mainContentRef = useRef<HTMLElement | null>(null)
   const navigationRef = useRef<HTMLElement | null>(null)
   const siteMapSectionsRef = useRef<HTMLElement | null>(null)
+  const homeSectionsRef = useRef<HTMLElement | null>(null)
   const profileSectionRef = useRef<HTMLElement | null>(null)
+  const technicalResourcesRef = useRef<HTMLElement | null>(null)
   const footerRef = useRef<HTMLElement | null>(null)
 
   const focusElement = useCallback((element: HTMLElement | null) => {
@@ -327,7 +339,7 @@ function SiteMapPage() {
     applySeo({
       title: 'Plan du site | Annuaire RGAA',
       description:
-        'Plan du site de l’annuaire RGAA: pages publiques, fiches site indexables et ressources techniques SEO.',
+        'Plan du site de l’annuaire RGAA: pages publiques, fiches site indexables et ressources techniques et données publiques.',
       path: '/plan-du-site',
       structuredData: {
         '@context': 'https://schema.org',
@@ -349,7 +361,7 @@ function SiteMapPage() {
               '@id': createAbsoluteUrl('/#website'),
             },
             description:
-              'Plan du site public de l’annuaire RGAA avec liens vers l’accueil, les sections et les fichiers techniques.',
+              'Plan du site public de l’annuaire RGAA avec liens vers l’accueil, les sections, les ressources techniques et les données publiques.',
           },
           {
             '@type': 'BreadcrumbList',
@@ -420,7 +432,7 @@ function SiteMapPage() {
         <span aria-hidden="true">{politeAnnouncement.id}</span>
       </div>
 
-      <div
+      <nav
         className={skipLinksContainerClass}
         aria-label="Liens d’évitement"
       >
@@ -438,6 +450,13 @@ function SiteMapPage() {
           Aller à la navigation principale
         </a>
         <a
+          href="#sections-annuaire"
+          className={skipLinkClass}
+          onClick={(event) => handleSkipLinkClick(event, homeSectionsRef)}
+        >
+          Aller aux sections de l’accueil
+        </a>
+        <a
           href="#pages-principales-plan"
           className={skipLinkClass}
           onClick={(event) => handleSkipLinkClick(event, siteMapSectionsRef)}
@@ -452,13 +471,20 @@ function SiteMapPage() {
           Aller aux fiches publiées
         </a>
         <a
+          href="#ressources-techniques"
+          className={skipLinkClass}
+          onClick={(event) => handleSkipLinkClick(event, technicalResourcesRef)}
+        >
+          Aller aux ressources techniques
+        </a>
+        <a
           href="#pied-page"
           className={skipLinkClass}
           onClick={(event) => handleSkipLinkClick(event, footerRef)}
         >
           Aller au pied de page
         </a>
-      </div>
+      </nav>
 
       <div className="min-h-screen bg-brand-surface text-brand-ink">
         <SecondaryPageHeader
@@ -487,7 +513,7 @@ function SiteMapPage() {
             <ul className="mt-4 grid gap-3">
               {primaryPages.map((link) => (
                 <li
-                  key={link.href}
+                  key={`${link.href}-${link.label}`}
                   className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
                 >
                   <a
@@ -502,7 +528,10 @@ function SiteMapPage() {
             </ul>
           </nav>
 
-          <section
+          <nav
+            id="sections-annuaire"
+            ref={homeSectionsRef}
+            tabIndex={-1}
             aria-labelledby="sections-annuaire-titre"
             className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
           >
@@ -512,7 +541,7 @@ function SiteMapPage() {
             <ul className="mt-4 grid gap-3">
               {directorySections.map((link) => (
                 <li
-                  key={link.href}
+                  key={`${link.href}-${link.label}`}
                   className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
                 >
                   <a
@@ -525,7 +554,7 @@ function SiteMapPage() {
                 </li>
               ))}
             </ul>
-          </section>
+          </nav>
 
           <section
             id="fiches-publiques"
@@ -620,21 +649,25 @@ function SiteMapPage() {
             </div>
           </section>
 
-          <section
+          <nav
+            id="ressources-techniques"
+            ref={technicalResourcesRef}
+            tabIndex={-1}
             aria-labelledby="liens-techniques-titre"
             className="mt-8 rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-6"
           >
             <h2 id="liens-techniques-titre" className="text-xl font-semibold text-sky-900 dark:text-sky-100">
-              Liens techniques SEO
+              Ressources techniques et données publiques
             </h2>
             <p className="mt-2 text-sky-900 dark:text-sky-100">
-              Ces fichiers servent à l’exploration des pages publiques. L’espace modération n’est pas listé dans le
-              sitemap et reste déclaré en `noindex`.
+              Ces fichiers et endpoints publics en lecture seule servent à l’exploration des pages publiques et à la
+              découverte des données. L’espace modération n’est pas listé dans le sitemap et reste déclaré en
+              `noindex`.
             </p>
             <ul className="mt-4 grid gap-3">
               {technicalLinks.map((link) => (
                 <li
-                  key={link.href}
+                  key={`${link.href}-${link.label}`}
                   className="rounded-xl border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 p-4"
                 >
                   <a
@@ -647,7 +680,7 @@ function SiteMapPage() {
                 </li>
               ))}
             </ul>
-          </section>
+          </nav>
         </main>
 
         <SiteFooter id="pied-page" footerRef={footerRef} />
