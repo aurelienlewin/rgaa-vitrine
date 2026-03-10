@@ -71,6 +71,11 @@ const directorySections: SiteLink[] = [
     label: 'Fiches par site',
     description: 'Chaque carte mène à une fiche dédiée (`/site/{slug}`) indexable et partageable.',
   },
+  {
+    href: '/#liste-vitrines',
+    label: 'Pages domaine multi-sites',
+    description: 'Les domaines déjà présents avec plusieurs sous-sites disposent d’une page dédiée (`/domaine/{slug}`).',
+  },
 ]
 
 const technicalLinks: SiteLink[] = [

@@ -93,7 +93,7 @@ function summarizeTopEntries(entries, baseUrl, maxItems = 20) {
   }))
 }
 
-export function buildAiContextPayload({ baseUrl, entries }) {
+export function buildAiContextPayload({ baseUrl, entries, domainGroups = [] }) {
   const repositoryUrl = process.env.PUBLIC_REPOSITORY_URL || DEFAULT_REPOSITORY_URL
   const lastUpdated = readLastUpdated(entries)
   const accessibilityStatement = buildAccessibilityStatementSnapshot(baseUrl)
@@ -151,6 +151,11 @@ export function buildAiContextPayload({ baseUrl, entries }) {
         title: 'Fiche site référencé',
         description: 'Page publique dédiée à un site référencé, avec liens sortants et métadonnées.',
       },
+      {
+        url: `${baseUrl}/domaine/{groupSlug}`,
+        title: 'Page domaine multi-sites',
+        description: 'Page publique listant les sous-sites déjà référencés pour un même domaine.',
+      },
       ...samplePublicPages,
     ],
     siteProfiles: {
@@ -158,6 +163,15 @@ export function buildAiContextPayload({ baseUrl, entries }) {
       apiPattern: `${baseUrl}/api/showcase?slug={slug}`,
       totalIndexedProfiles: entries.length,
       sampleUrls: sampleProfileUrls,
+    },
+    domainGroups: {
+      pagePattern: `${baseUrl}/domaine/{groupSlug}`,
+      apiPattern: `${baseUrl}/api/domain-groups?slug={groupSlug}`,
+      totalIndexedGroups: domainGroups.length,
+      sampleUrls: domainGroups
+        .map((group) => (typeof group.groupPath === 'string' ? createAbsoluteUrl(baseUrl, group.groupPath) : null))
+        .filter((value) => typeof value === 'string')
+        .slice(0, 20),
     },
     api: {
       policy:
@@ -189,6 +203,24 @@ export function buildAiContextPayload({ baseUrl, entries }) {
           ],
         },
         {
+          url: `${baseUrl}/api/domain-groups`,
+          method: 'GET',
+          format: 'application/json',
+          authRequired: false,
+          description: 'Liste des domaines disposant de plusieurs fiches publiques.',
+          parameters: ['slug'],
+          sampleFields: [
+            'groupSlug',
+            'groupPath',
+            'registrableDomain',
+            'siteCount',
+            'updatedAt',
+            'primaryEntry',
+            'children',
+            'statusSummary',
+          ],
+        },
+        {
           url: `${baseUrl}/api/health`,
           method: 'GET',
           format: 'application/json',
@@ -213,6 +245,10 @@ export function buildAiContextPayload({ baseUrl, entries }) {
         `${baseUrl}/`,
         `${baseUrl}/plan-du-site`,
         `${baseUrl}/sitemap.xml`,
+        ...domainGroups
+          .map((group) => (typeof group.groupPath === 'string' ? createAbsoluteUrl(baseUrl, group.groupPath) : null))
+          .filter((value) => typeof value === 'string')
+          .slice(0, 10),
         ...sampleProfileUrls,
       ],
     },

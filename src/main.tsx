@@ -47,6 +47,7 @@ export const ModerationPage = lazy(() => import('./ModerationPage.tsx'))
 export const SiteMapPage = lazy(() => import('./SiteMapPage.tsx'))
 export const AccessibilityPage = lazy(() => import('./AccessibilityPage.tsx'))
 export const SiteProfilePage = lazy(() => import('./SiteProfilePage.tsx'))
+export const DomainGroupPage = lazy(() => import('./DomainGroupPage.tsx'))
 
 function normalizePathname(pathname: string) {
   if (pathname === '/') {
@@ -61,6 +62,7 @@ const isModerationRoute = currentPathname.startsWith('/moderation')
 const isSiteMapRoute = currentPathname === '/plan-du-site'
 const isAccessibilityRoute = currentPathname === '/accessibilite'
 const isSiteProfileRoute = currentPathname.startsWith('/site/')
+const isDomainGroupRoute = currentPathname.startsWith('/domaine/')
 
 export const RootComponent = isModerationRoute
   ? ModerationPage
@@ -68,9 +70,11 @@ export const RootComponent = isModerationRoute
     ? SiteMapPage
     : isAccessibilityRoute
       ? AccessibilityPage
-      : isSiteProfileRoute
-        ? SiteProfilePage
-      : App
+      : isDomainGroupRoute
+        ? DomainGroupPage
+        : isSiteProfileRoute
+          ? SiteProfilePage
+          : App
 
 if (canUseDom) {
   createRoot(document.getElementById('root')!).render(

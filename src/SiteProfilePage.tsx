@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
+import { normalizeDomainContext } from './domainGroups'
 import { applySeo, createAbsoluteUrl } from './seo'
 import { readSiteSlugFromPath, resolveShowcaseProfilePath } from './siteProfiles'
 import SecondaryPageHeader from './SecondaryPageHeader'
@@ -12,8 +13,12 @@ type ShowcaseEntry = {
   normalizedUrl: string
   siteHost?: string | null
   siteOrigin?: string | null
+  registrableDomain?: string | null
   slug?: string
   profilePath?: string
+  domainGroupSlug?: string | null
+  domainGroupPath?: string | null
+  domainContext?: ReturnType<typeof normalizeDomainContext>
   siteTitle: string
   thumbnailUrl: string | null
   accessibilityPageUrl: string | null
@@ -88,6 +93,19 @@ function normalizeShowcaseEntry(entry: ShowcaseEntry): ShowcaseEntry {
     slug: safeSlug ?? undefined,
     profilePath: resolveShowcaseProfilePath(entry.normalizedUrl, safeSlug),
     rgaaBaseline: normalizeRgaaBaseline(entry.rgaaBaseline),
+    registrableDomain:
+      typeof entry.registrableDomain === 'string' && entry.registrableDomain.trim()
+        ? entry.registrableDomain.trim().toLowerCase()
+        : null,
+    domainGroupSlug:
+      typeof entry.domainGroupSlug === 'string' && /^[a-z0-9-]{4,120}$/.test(entry.domainGroupSlug)
+        ? entry.domainGroupSlug
+        : null,
+    domainGroupPath:
+      typeof entry.domainGroupPath === 'string' && entry.domainGroupPath.startsWith('/')
+        ? entry.domainGroupPath
+        : null,
+    domainContext: normalizeDomainContext(entry.domainContext),
   }
 }
 
@@ -180,6 +198,7 @@ function SiteProfilePage() {
   const backlinkSectionRef = useRef<HTMLElement | null>(null)
   const relatedSectionRef = useRef<HTMLElement | null>(null)
   const footerRef = useRef<HTMLElement | null>(null)
+  const sameDomainSectionRef = useRef<HTMLElement | null>(null)
   const copyMessageRef = useRef<HTMLParagraphElement | null>(null)
   const slug =
     typeof window !== 'undefined'
@@ -623,6 +642,15 @@ function SiteProfilePage() {
         <a href="#backlink-fiche" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, backlinkSectionRef)}>
           Aller au lien retour
         </a>
+        {entry?.domainContext && entry.domainContext.siteCount > 1 ? (
+          <a
+            href="#meme-domaine"
+            className={skipLinkClass}
+            onClick={(event) => handleSkipLinkClick(event, sameDomainSectionRef)}
+          >
+            Aller aux sous-sites du même domaine
+          </a>
+        ) : null}
         <a href="#fiches-associees" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, relatedSectionRef)}>
           Aller aux fiches associées
         </a>
@@ -697,6 +725,61 @@ function SiteProfilePage() {
                   </span>
                 )}
               </div>
+
+              {entry.domainContext && entry.domainContext.siteCount > 1 ? (
+                <section
+                  id="meme-domaine"
+                  ref={sameDomainSectionRef}
+                  tabIndex={-1}
+                  className="mt-6 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4"
+                  aria-labelledby="meme-domaine-titre"
+                >
+                  <h3 id="meme-domaine-titre" className="text-lg font-semibold text-sky-900 dark:text-sky-100">
+                    Autres sous-sites du même domaine
+                  </h3>
+                  <p className="mt-2 text-sm text-sky-900 dark:text-sky-100">
+                    Le domaine <strong>{entry.domainContext.registrableDomain}</strong> compte{' '}
+                    <strong>{entry.domainContext.siteCount}</strong> fiche(s) publique(s).
+                  </p>
+                  {entry.domainContext.groupPath ? (
+                    <p className="mt-2 text-sm text-sky-900 dark:text-sky-100">
+                      <a
+                        href={entry.domainContext.groupPath}
+                        className={`font-semibold underline ${focusRingClass}`}
+                      >
+                        Ouvrir la page domaine
+                      </a>
+                    </p>
+                  ) : null}
+                  {entry.domainContext.siblings.length > 0 ? (
+                    <ul className="mt-3 grid gap-3">
+                      {entry.domainContext.siblings.map((candidate) => (
+                        <li
+                          key={candidate.normalizedUrl}
+                          className="rounded-xl border border-sky-200 dark:border-sky-700 bg-white dark:bg-slate-900 p-3"
+                        >
+                          <a
+                            href={
+                              candidate.profilePath ??
+                              resolveShowcaseProfilePath(candidate.normalizedUrl, candidate.slug)
+                            }
+                            className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}
+                          >
+                            {candidate.siteTitle}
+                          </a>
+                          <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                            {candidate.normalizedUrl}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-3 text-sm text-sky-900 dark:text-sky-100">
+                      Aucune autre fiche publique n’est listée pour ce domaine pour le moment.
+                    </p>
+                  )}
+                </section>
+              ) : null}
 
               <section id="backlink-fiche" ref={backlinkSectionRef} tabIndex={-1} className="mt-6 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4" aria-labelledby="backlink-fiche-titre">
                 <h3 id="backlink-fiche-titre" className="text-lg font-semibold text-sky-900 dark:text-sky-100">

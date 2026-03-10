@@ -30,7 +30,9 @@ Public website: **https://annuaire-rgaa.fr**
 - Automatic lazy loading of additional tiles near viewport end (with keyboard-accessible manual fallback).
 - Reddit-like upvote on each directory tile with accessible button state (`aria-pressed`) and live vocal feedback.
 - Each directory tile includes an explicit RGAA baseline badge (`RGAA 4.1` or `RGAA 5.0 prêt`) with readable explanation text.
+- Domains with multiple public entries are now grouped into a dedicated multi-site card on homepage, with a dedicated public page (`/domaine/{groupSlug}`) that lists the referenced sub-sites without flattening their individual metadata.
 - Submission flow includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
+- Submission flow now detects when the URL belongs to a domain already represented in the annuaire, announces that context in French live feedback, and clarifies that the URL will be treated as a distinct sub-site rather than an exact duplicate.
 - Confirmation CTA lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.
 - Final confirmation reuses a short-lived server-side preview token when available, so users do not pay the full remote analysis cost twice in a row.
 - Pre-analysis thumbnail detection now falls back from social preview images to site logos and icons when no richer image is exposed.
@@ -71,6 +73,7 @@ Public website: **https://annuaire-rgaa.fr**
 - Moderation dashboards and controls stay hidden until a valid moderation token is submitted.
 - Moderation token session can be restored automatically (tab session by default, optional 12h persistence on the current device) with an explicit sign-out/forget action.
 - Pending moderation submissions now use a more urgent high-contrast review treatment (section alert summary, stronger card framing, explicit `À traiter` badges, and emphasized approve/reject actions) so manual validations are harder to overlook.
+- Moderation now exposes domain-level context on both pending and published entries (existing sibling sites, pending submissions on the same domain, and direct access to the public domain page) to help reviewers process multi-site submissions consistently.
 - Dedicated moderation UI supports published entry editing and deletion (title, category, score, status, RGAA baseline badge, vignette, accessibility URL).
 - Moderation includes editable site blocklist and vote-blocklist controls, plus a single action to delete and block a published site.
 - Moderation forms strengthen input assistance (`required`, typed URL fields, explicit score guidance) and row-level action labels for assistive technologies.
@@ -163,6 +166,7 @@ You can check the active storage mode via:
 - Moderation archive hardening: optional HMAC-signed exports/imports (`MODERATION_ARCHIVE_SIGNING_SECRET`) and rollback guard for destructive `replace` imports.
 - GitHub notifier hardening: explicit notifier token env vars only, strict public-HTTPS validation for custom GitHub API base URL, and short outbound timeout.
 - Domain-level deduplication via canonical URL normalization (e.g. `www` variants collapse)
+- Exact duplicate detection remains URL-based, while same-domain submissions are now preserved as distinct sub-sites and grouped under a dedicated public domain view.
 - Honeypot field validation to reduce automated spam submissions
 - Automatic spam/marketing signal rejection (quality filter)
 - Manual-review queue for non-auto-publishable submissions (pending until moderator action)
@@ -181,7 +185,7 @@ The UI adapts automatically to operating-system and browser accessibility prefer
 
 - Public accessibility declaration: `/accessibilite`
 - Machine-readable accessibility snapshot: `/ai-context.json`
-- Public pages explicitly covered by the declaration include `/`, `/plan-du-site`, `/accessibilite`, and `/site/{slug}`.
+- Public pages explicitly covered by the declaration include `/`, `/plan-du-site`, `/accessibilite`, `/site/{slug}`, and `/domaine/{groupSlug}`.
 - Dynamic status and error feedback uses localized French live regions (`aria-live="polite"` and `aria-live="assertive"`).
 - Submission error feedback keeps technical diagnostics out of the primary message and exposes them only through an explicit expandable disclosure.
 - Accessibility implementation references are listed in the `Accessibility Sources Embedded` section below.
@@ -194,6 +198,7 @@ The UI adapts automatically to operating-system and browser accessibility prefer
 - Structured data (JSON-LD) on homepage combines `WebSite`, `WebPage`, `WebApplication`, `Organization`, `Person`, `CollectionPage`, `DataCatalog`, and `Dataset`.
 - Structured data exposes `SearchAction` on homepage, `BreadcrumbList` on key secondary pages, and richer `Dataset` semantics (`variableMeasured`, `measurementTechnique`, distributions).
 - Profile pages publish a referenced-site `WebSite`, a per-profile `Dataset`, and a dedicated accessibility-statement `WebPage` node when a declaration URL is known.
+- Domain-group pages (`/domaine/{groupSlug}`) are now crawlable public collection pages linked from homepage multi-site tiles and included in sitemap generation.
 - Static `index.html` keeps a stronger metadata fallback graph so non-hydrated crawlers still discover the main site entities and dataset endpoint.
 - Accessible public site map page: `/plan-du-site`
 - Site map page lists an extract of published `/site/{slug}` links to strengthen crawlable internal discovery.
@@ -236,7 +241,8 @@ Local services:
 - `POST /api/site-insight` registers/enriches one site entry in the directory
 - `POST /api/site-insight?preview=1` runs pre-analysis without persistence (used by confirmation step)
 - `GET /api/showcase` returns persisted showcase entries (supports `search`, `status`, `category`, `limit`, `clientVoterId`)
-- `GET /api/showcase` also supports `slug` for single-profile retrieval and returns `slug`, `profilePath`, `siteHost`, `siteOrigin`, and `hasAccessibilityPage` for each public entry.
+- `GET /api/showcase` also supports `slug` for single-profile retrieval and returns `slug`, `profilePath`, `siteHost`, `siteOrigin`, `registrableDomain`, `domainGroupSlug`, `domainGroupPath`, `domainContext`, and `hasAccessibilityPage` for each public entry.
+- `GET /api/domain-groups` returns public multi-site domain groups and supports `slug` for direct access to one domain page.
 - `POST /api/showcase/upvote` records one upvote for one listed site
 - `GET /api/health` returns service status and active storage mode
 - `GET /api/moderation/pending` returns pending moderation entries (protected)
@@ -258,6 +264,7 @@ Local services:
 - `200` + `submissionStatus: "duplicate"` when site already exists
 - `202` + `submissionStatus: "pending"` when the site requires manual review
 - `202` + `submissionStatus: "pending"` + `alreadySubmitted: true` when the same URL is already pending moderation
+- Domain-context metadata is included when the submitted URL belongs to a domain that already has published or pending sibling sites, so UI can announce “same domain, distinct sub-site” instead of mislabeling it as a duplicate.
 - `4xx` when rejected by validation/anti-abuse rules (spam, invalid input, etc.)
 - Public submissions accept only moderator-approved category values from the dropdown; unknown values are normalized to `Autre`.
 - For `duplicate`, the frontend displays an explicit guidance block that links to the existing profile and moderation contact (`/accessibilite#contact-accessibilite`) before any re-listing request.

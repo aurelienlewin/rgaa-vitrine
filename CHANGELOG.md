@@ -7,12 +7,20 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+## [2026-03-10]
+
 ### Added
 - Project toolchain is now pinned in `package.json` with `packageManager: npm@11.6.2` and Volta metadata (`node 25.2.1`, `npm 11.6.2`) to keep local installs and audits on an explicit runtime baseline.
 - GitHub-native moderation notifications now support optional per-window anti-abuse limits via `GITHUB_NOTIFY_MAX_PER_WINDOW` and `GITHUB_NOTIFY_WINDOW_SECONDS`.
+- New public multi-site domain pages (`/domaine/{groupSlug}`) and `GET /api/domain-groups` endpoint now expose grouped domain views when several public entries belong to the same registrable domain.
 
 ### Changed
+- Homepage directory cards now collapse same-domain entries into one accessible multi-site tile, while keeping each child site as its own public profile with its own metadata and outbound links.
+- Submission preview/final confirmation now detect same-domain sibling sites, announce that context through French live feedback, and clarify that the new URL is treated as a distinct sub-site instead of an exact duplicate.
+- Moderation pending/published views now surface same-domain context (published siblings, pending siblings, and direct link to the public domain page) so reviewers can process clustered submissions consistently.
+- Public showcase payloads now expose `registrableDomain`, `domainGroupSlug`, `domainGroupPath`, and `domainContext`; sitemap/AI context discovery also include the new domain-group pages.
 - Dependency refresh: `@upstash/redis` `1.36.4`, `@eslint/js` `9.39.4`, `eslint` `9.39.4`, `@types/node` `25.3.5`, `eslint-plugin-react-refresh` `0.5.2`, and `globals` `17.4.0`.
+- Added `tldts` for registrable-domain detection so multi-site grouping does not incorrectly collapse public-suffix based hosts.
 - Kept ESLint on the `9.x` line so clean installs remain compatible with `eslint-plugin-react-hooks` `7.0.1`, including Vercel `npm install` runs.
 - GitHub moderation issue payloads now neutralize GitHub mentions from submitted site metadata, and notifier issue creation is throttled per time window so public pending submissions cannot fan out into unbounded issue spam while still staying in the moderation queue.
 - Accessibility statement technical references now reflect the explicit project toolchain and the currently resolved frontend/runtime stack used for the audited service.

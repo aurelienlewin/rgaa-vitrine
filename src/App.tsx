@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, MouseEvent as ReactMouseEvent, RefObject } from 'react'
 import ThemeToggle from './ThemeToggle'
+import type { DomainContext, DomainStatusSummary } from './domainGroups'
+import { resolveDomainGroupPath, normalizeDomainContext } from './domainGroups'
 import { applySeo, createAbsoluteUrl } from './seo'
 import { resolveShowcaseProfilePath } from './siteProfiles'
 import SiteFooter from './SiteFooter'
@@ -21,8 +23,12 @@ type ShowcaseEntry = {
   normalizedUrl: string
   siteHost?: string | null
   siteOrigin?: string | null
+  registrableDomain?: string | null
   slug?: string
   profilePath?: string
+  domainGroupSlug?: string | null
+  domainGroupPath?: string | null
+  domainContext?: DomainContext | null
   siteTitle: string
   thumbnailUrl: string | null
   accessibilityPageUrl: string | null
@@ -37,6 +43,28 @@ type ShowcaseEntry = {
   updatedAt: string
   category: string
 }
+
+type DirectoryGroupItem = {
+  kind: 'group'
+  groupSlug: string
+  groupPath: string
+  registrableDomain: string
+  matchingSiteCount: number
+  totalSiteCount: number
+  updatedAt: string
+  primaryEntry: ShowcaseEntry | null
+  primaryProfilePath: string | null
+  primaryTitle: string | null
+  statusSummary: DomainStatusSummary
+  children: ShowcaseEntry[]
+}
+
+type DirectoryItem =
+  | {
+      kind: 'site'
+      entry: ShowcaseEntry
+    }
+  | DirectoryGroupItem
 
 type SubmissionStatus = 'approved' | 'duplicate' | 'pending'
 type SubmissionFeedbackKind = 'duplicate' | 'already-pending'
@@ -242,7 +270,162 @@ function normalizeShowcaseEntry(entry: ShowcaseEntry): ShowcaseEntry {
         : 0,
     hasUpvoted: entry.hasUpvoted === true,
     votesBlocked: entry.votesBlocked === true,
+    registrableDomain:
+      typeof entry.registrableDomain === 'string' && entry.registrableDomain.trim()
+        ? entry.registrableDomain.trim().toLowerCase()
+        : null,
+    domainGroupSlug:
+      typeof entry.domainGroupSlug === 'string' && /^[a-z0-9-]{4,120}$/.test(entry.domainGroupSlug)
+        ? entry.domainGroupSlug
+        : null,
+    domainGroupPath:
+      typeof entry.domainGroupPath === 'string' && entry.domainGroupPath.startsWith('/')
+        ? entry.domainGroupPath
+        : null,
+    domainContext: normalizeDomainContext(entry.domainContext),
   }
+}
+
+function compareDomainChildEntries(left: ShowcaseEntry, right: ShowcaseEntry) {
+  const leftRole = left.domainContext?.role ?? 'standalone'
+  const rightRole = right.domainContext?.role ?? 'standalone'
+  const leftWeight = leftRole === 'primary' ? 0 : leftRole === 'child' ? 1 : 2
+  const rightWeight = rightRole === 'primary' ? 0 : rightRole === 'child' ? 1 : 2
+
+  if (leftWeight !== rightWeight) {
+    return leftWeight - rightWeight
+  }
+
+  const leftUpdatedAt = Date.parse(left.updatedAt)
+  const rightUpdatedAt = Date.parse(right.updatedAt)
+  if (!Number.isNaN(leftUpdatedAt) && !Number.isNaN(rightUpdatedAt) && leftUpdatedAt !== rightUpdatedAt) {
+    return rightUpdatedAt - leftUpdatedAt
+  }
+
+  return left.siteTitle.localeCompare(right.siteTitle, 'fr')
+}
+
+function buildStatusSummaryFromEntries(entries: ShowcaseEntry[]): DomainStatusSummary {
+  return entries.reduce<DomainStatusSummary>(
+    (summary, entry) => {
+      if (entry.complianceStatus === 'full') {
+        summary.full += 1
+        return summary
+      }
+      if (entry.complianceStatus === 'partial') {
+        summary.partial += 1
+        return summary
+      }
+      if (entry.complianceStatus === 'none') {
+        summary.none += 1
+        return summary
+      }
+
+      summary.unknown += 1
+      return summary
+    },
+    {
+      full: 0,
+      partial: 0,
+      none: 0,
+      unknown: 0,
+    },
+  )
+}
+
+function buildDirectoryItems(entries: ShowcaseEntry[]): DirectoryItem[] {
+  const groupsBySlug = new Map<string, ShowcaseEntry[]>()
+  const standaloneEntries: ShowcaseEntry[] = []
+
+  for (const entry of entries) {
+    const domainContext = entry.domainContext
+    if (domainContext && domainContext.siteCount > 1 && domainContext.groupSlug) {
+      const currentGroup = groupsBySlug.get(domainContext.groupSlug) ?? []
+      currentGroup.push(entry)
+      groupsBySlug.set(domainContext.groupSlug, currentGroup)
+      continue
+    }
+
+    standaloneEntries.push(entry)
+  }
+
+  const items: DirectoryItem[] = standaloneEntries.map((entry) => ({
+    kind: 'site',
+    entry,
+  }))
+
+  for (const [groupSlug, children] of groupsBySlug.entries()) {
+    const sortedChildren = [...children].sort(compareDomainChildEntries)
+    const firstEntry = sortedChildren[0]
+    const domainContext = firstEntry?.domainContext
+    if (!firstEntry || !domainContext) {
+      continue
+    }
+
+    const matchingSiteCount = sortedChildren.length
+    const totalSiteCount = Math.max(domainContext.siteCount, matchingSiteCount)
+    const primaryEntry =
+      sortedChildren.find((entry) => entry.domainContext?.role === 'primary') ?? sortedChildren[0]
+
+    items.push({
+      kind: 'group',
+      groupSlug,
+      groupPath: domainContext.groupPath ?? resolveDomainGroupPath(groupSlug),
+      registrableDomain: domainContext.registrableDomain,
+      matchingSiteCount,
+      totalSiteCount,
+      updatedAt: sortedChildren.reduce((latest, entry) => {
+        const latestTimestamp = Date.parse(latest)
+        const entryTimestamp = Date.parse(entry.updatedAt)
+        if (Number.isNaN(entryTimestamp)) {
+          return latest
+        }
+        if (Number.isNaN(latestTimestamp) || entryTimestamp > latestTimestamp) {
+          return entry.updatedAt
+        }
+        return latest
+      }, sortedChildren[0]?.updatedAt ?? new Date().toISOString()),
+      primaryEntry,
+      primaryProfilePath: domainContext.primarySitePath ?? primaryEntry.profilePath ?? null,
+      primaryTitle: domainContext.primarySiteTitle ?? primaryEntry.siteTitle,
+      statusSummary: buildStatusSummaryFromEntries(sortedChildren),
+      children: sortedChildren,
+    })
+  }
+
+  return items.sort((left, right) => {
+    const leftUpdatedAt = Date.parse(left.kind === 'site' ? left.entry.updatedAt : left.updatedAt)
+    const rightUpdatedAt = Date.parse(right.kind === 'site' ? right.entry.updatedAt : right.updatedAt)
+    if (!Number.isNaN(leftUpdatedAt) && !Number.isNaN(rightUpdatedAt) && leftUpdatedAt !== rightUpdatedAt) {
+      return rightUpdatedAt - leftUpdatedAt
+    }
+
+    const leftLabel = left.kind === 'site' ? left.entry.siteTitle : left.registrableDomain
+    const rightLabel = right.kind === 'site' ? right.entry.siteTitle : right.registrableDomain
+    return leftLabel.localeCompare(rightLabel, 'fr')
+  })
+}
+
+function describeDomainContext(domainContext: DomainContext | null | undefined) {
+  if (!domainContext) {
+    return null
+  }
+
+  const publishedCount = domainContext.publishedSiteCount ?? domainContext.siteCount
+  const pendingCount = domainContext.pendingSiteCount ?? 0
+  if (publishedCount <= 0 && pendingCount <= 0) {
+    return null
+  }
+
+  const parts = []
+  if (publishedCount > 0) {
+    parts.push(`${publishedCount} fiche(s) publiée(s)`)
+  }
+  if (pendingCount > 0) {
+    parts.push(`${pendingCount} soumission(s) en attente`)
+  }
+
+  return `Le domaine ${domainContext.registrableDomain} compte déjà ${parts.join(' et ')}.`
 }
 
 function createClientVoterId() {
@@ -578,6 +761,11 @@ function App() {
     })
   }, [categoryFilter, searchQuery, showcaseEntries, statusFilter])
 
+  const filteredDirectoryItems = useMemo(
+    () => buildDirectoryItems(filteredShowcaseEntries),
+    [filteredShowcaseEntries],
+  )
+
   const availableCategoryOptions = useMemo(() => {
     const options = new Set(showcaseCategories)
     for (const entry of showcaseEntries) {
@@ -599,12 +787,12 @@ function App() {
     [availableCategoryOptions],
   )
 
-  const visibleShowcaseEntries = useMemo(
-    () => filteredShowcaseEntries.slice(0, visibleTilesCount),
-    [filteredShowcaseEntries, visibleTilesCount],
+  const visibleDirectoryItems = useMemo(
+    () => filteredDirectoryItems.slice(0, visibleTilesCount),
+    [filteredDirectoryItems, visibleTilesCount],
   )
 
-  const hasMoreTiles = visibleTilesCount < filteredShowcaseEntries.length
+  const hasMoreTiles = visibleTilesCount < filteredDirectoryItems.length
 
   const handleSearchSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -612,16 +800,16 @@ function App() {
       syncFiltersInUrl({ query: searchQuery, status: statusFilter, category: categoryFilter })
       announcePolite(
         `Recherche appliquée. ${Math.min(
-          filteredShowcaseEntries.length,
+          filteredDirectoryItems.length,
           TILE_BATCH_SIZE,
-        )} carte(s) affichée(s) sur ${filteredShowcaseEntries.length} résultat(s).`,
+        )} carte(s) affichée(s) sur ${filteredDirectoryItems.length} résultat(s).`,
       )
       focusElement(resultsSummaryRef.current)
     },
     [
       announcePolite,
       categoryFilter,
-      filteredShowcaseEntries.length,
+      filteredDirectoryItems.length,
       focusElement,
       searchQuery,
       statusFilter,
@@ -641,6 +829,8 @@ function App() {
       none,
     }
   }, [showcaseEntries])
+  const submissionDomainDescription = describeDomainContext(submissionPreviewEntry?.domainContext)
+  const lastAddedDomainDescription = describeDomainContext(lastAddedEntry?.domainContext)
 
   const homeStructuredData = useMemo(() => {
     const latestUpdatedTimestamp = showcaseEntries.reduce((currentLatest, entry) => {
@@ -885,8 +1075,8 @@ function App() {
   }, [announcePolite, directoryErrorMessage, focusElement, loadingDirectory])
 
   useEffect(() => {
-    setVisibleTilesCount(Math.min(TILE_BATCH_SIZE, filteredShowcaseEntries.length))
-  }, [filteredShowcaseEntries.length, searchQuery, statusFilter, categoryFilter])
+    setVisibleTilesCount(Math.min(TILE_BATCH_SIZE, filteredDirectoryItems.length))
+  }, [filteredDirectoryItems.length, searchQuery, statusFilter, categoryFilter])
 
   const handleLoadMoreTiles = useCallback(
     (source: 'button' | 'auto') => {
@@ -895,10 +1085,10 @@ function App() {
       }
 
       setVisibleTilesCount((current) => {
-        const next = Math.min(current + TILE_BATCH_SIZE, filteredShowcaseEntries.length)
+        const next = Math.min(current + TILE_BATCH_SIZE, filteredDirectoryItems.length)
         if (next > current && source === 'button') {
-          announcePolite(`${next} carte(s) affichée(s) sur ${filteredShowcaseEntries.length} résultat(s).`)
-          if (next >= filteredShowcaseEntries.length) {
+          announcePolite(`${next} carte(s) affichée(s) sur ${filteredDirectoryItems.length} résultat(s).`)
+          if (next >= filteredDirectoryItems.length) {
             window.setTimeout(() => {
               focusElement(resultsSummaryRef.current)
             }, 0)
@@ -907,7 +1097,7 @@ function App() {
         return next
       })
     },
-    [announcePolite, filteredShowcaseEntries.length, focusElement, hasMoreTiles],
+    [announcePolite, filteredDirectoryItems.length, focusElement, hasMoreTiles],
   )
 
   useEffect(() => {
@@ -943,9 +1133,9 @@ function App() {
   useEffect(() => {
     setPoliteAnnouncement((current) => ({
       id: current.id + 1,
-      message: `${visibleShowcaseEntries.length} carte(s) affichée(s) sur ${filteredShowcaseEntries.length} résultat(s).`,
+      message: `${visibleDirectoryItems.length} carte(s) affichée(s) sur ${filteredDirectoryItems.length} résultat(s).`,
     }))
-  }, [visibleShowcaseEntries.length, filteredShowcaseEntries.length])
+  }, [visibleDirectoryItems.length, filteredDirectoryItems.length])
 
   const loadShowcaseEntries = useCallback(async () => {
     setDirectoryErrorMessage(null)
@@ -1617,8 +1807,9 @@ function App() {
               tabIndex={-1}
               className="mt-3 min-h-[3rem] text-sm text-slate-700 dark:text-slate-300 [font-variant-numeric:tabular-nums] sm:min-h-6"
             >
-              {visibleShowcaseEntries.length} carte(s) affichée(s) sur {filteredShowcaseEntries.length} résultat(s) ({showcaseEntries.length}{' '}
-              site(s) total dans l’annuaire).
+              {visibleDirectoryItems.length} carte(s) affichée(s) sur {filteredDirectoryItems.length} résultat(s) (
+              {filteredShowcaseEntries.length} site(s) filtré(s), {showcaseEntries.length} site(s) total dans
+              l’annuaire).
             </p>
 
             {loadingDirectory && <p className="mt-3 text-slate-700 dark:text-slate-300">Chargement de l’annuaire...</p>}
@@ -1627,7 +1818,7 @@ function App() {
               <p className="mt-3 text-slate-700 dark:text-slate-300">Aucun site référencé pour le moment.</p>
             )}
 
-            {!loadingDirectory && showcaseEntries.length > 0 && filteredShowcaseEntries.length === 0 && (
+            {!loadingDirectory && showcaseEntries.length > 0 && filteredDirectoryItems.length === 0 && (
               <p className="mt-3 text-slate-700 dark:text-slate-300">Aucun site ne correspond aux filtres actuels.</p>
             )}
 
@@ -1642,9 +1833,123 @@ function App() {
               </p>
             )}
 
-            {filteredShowcaseEntries.length > 0 && (
+            {filteredDirectoryItems.length > 0 && (
               <ul id="liste-vitrines" className="mt-4 grid gap-5 md:grid-cols-2">
-                {visibleShowcaseEntries.map((entry) => {
+                {visibleDirectoryItems.map((item) => {
+                  if (item.kind === 'group') {
+                    const summaryId = `resume-domaine-${item.groupSlug}`
+                    const childrenId = `sous-sites-domaine-${item.groupSlug}`
+                    const statusParts = [
+                      item.statusSummary.full > 0 ? `${item.statusSummary.full} totalement conforme(s)` : null,
+                      item.statusSummary.partial > 0
+                        ? `${item.statusSummary.partial} partiellement conforme(s)`
+                        : null,
+                      item.statusSummary.none > 0 ? `${item.statusSummary.none} non conforme(s)` : null,
+                      item.statusSummary.unknown > 0 ? `${item.statusSummary.unknown} niveau(x) inconnu(s)` : null,
+                    ].filter((value): value is string => Boolean(value))
+
+                    return (
+                      <li
+                        key={`group-${item.groupSlug}`}
+                        className="@container overflow-hidden rounded-3xl border-2 border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 shadow-sm shadow-slate-950/5"
+                      >
+                        <article className="flex h-full flex-col">
+                          <div className="border-b border-sky-200 dark:border-sky-700 bg-linear-to-br from-sky-50 via-white to-emerald-50 dark:from-sky-950 dark:via-slate-900 dark:to-emerald-950 p-4">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="inline-flex min-h-8 items-center rounded-full border border-sky-700 dark:border-sky-300 bg-sky-100 dark:bg-sky-950 px-3 py-1 text-sm font-semibold text-sky-900 dark:text-sky-100">
+                                Domaine multi-sites
+                              </span>
+                              <span className="inline-flex min-h-8 items-center rounded-full border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                                {item.totalSiteCount} fiche(s) publiées
+                              </span>
+                              {item.matchingSiteCount < item.totalSiteCount ? (
+                                <span className="inline-flex min-h-8 items-center rounded-full border border-amber-700 dark:border-amber-300 bg-amber-100 dark:bg-amber-950 px-3 py-1 text-sm font-semibold text-amber-900 dark:text-amber-100">
+                                  {item.matchingSiteCount} visible(s) avec les filtres
+                                </span>
+                              ) : null}
+                            </div>
+                            <header className="mt-3 space-y-2">
+                              <h3 className="text-lg font-bold leading-tight text-slate-900 dark:text-slate-50">
+                                {item.registrableDomain}
+                              </h3>
+                              <p id={summaryId} className="text-sm text-slate-700 dark:text-slate-300">
+                                {item.primaryTitle
+                                  ? `Site principal repéré: ${item.primaryTitle}. `
+                                  : ''}
+                                Dernière mise à jour sur ce domaine: {formatDate(item.updatedAt)}.
+                              </p>
+                            </header>
+                          </div>
+
+                          <div className="flex flex-1 flex-col gap-4 p-4">
+                            <section aria-labelledby={childrenId}>
+                              <h4 id={childrenId} className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                                Sous-sites déjà référencés
+                              </h4>
+                              <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                                {statusParts.length > 0
+                                  ? statusParts.join(', ')
+                                  : 'Aucun niveau de conformité exploitable pour ce domaine.'}
+                              </p>
+                              <ul className="mt-3 grid gap-2">
+                                {item.children.slice(0, 4).map((child) => (
+                                  <li
+                                    key={child.normalizedUrl}
+                                    className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-3"
+                                  >
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <a
+                                          href={child.profilePath ?? resolveShowcaseProfilePath(child.normalizedUrl, child.slug)}
+                                          className={`inline-flex min-h-11 items-center text-sm font-semibold text-slate-900 underline dark:text-slate-50 ${focusRingClass}`}
+                                        >
+                                          {child.siteTitle}
+                                        </a>
+                                        <p className="wrap-anywhere text-sm text-slate-700 dark:text-slate-300">
+                                          {child.normalizedUrl}
+                                        </p>
+                                      </div>
+                                      {child.domainContext?.role === 'primary' ? (
+                                        <span className="inline-flex min-h-8 items-center rounded-full border border-sky-700 dark:border-sky-300 bg-sky-100 dark:bg-sky-950 px-3 py-1 text-sm font-semibold text-sky-900 dark:text-sky-100">
+                                          Site principal
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                  </li>
+                                ))}
+                              </ul>
+                              {item.children.length > 4 ? (
+                                <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                                  {item.children.length - 4} autre(s) sous-site(s) visible(s) dans cette vue.
+                                </p>
+                              ) : null}
+                            </section>
+
+                            <div className="mt-auto grid grid-cols-1 gap-2 @sm:grid-cols-2">
+                              <a
+                                href={item.groupPath}
+                                aria-label={`Voir toutes les fiches du domaine ${item.registrableDomain}`}
+                                className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
+                              >
+                                Voir les fiches du domaine
+                              </a>
+                              {item.primaryEntry ? (
+                                <a
+                                  href={item.primaryProfilePath ?? item.primaryEntry.profilePath ?? resolveShowcaseProfilePath(item.primaryEntry.normalizedUrl, item.primaryEntry.slug)}
+                                  aria-label={`Ouvrir la fiche principale du domaine ${item.registrableDomain}`}
+                                  className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                                >
+                                  Voir le site principal
+                                </a>
+                              ) : null}
+                            </div>
+                          </div>
+                        </article>
+                      </li>
+                    )
+                  }
+
+                  const entry = item.entry
                   const rgaaBadge = getRgaaBadgePresentation(entry.rgaaBaseline)
                   const domId = toDomSafeIdSegment(entry.normalizedUrl)
                   const badgeDescriptionId = `rgaa-badge-description-${domId}`
@@ -1814,7 +2119,7 @@ function App() {
               </ul>
             )}
 
-            {filteredShowcaseEntries.length > 0 && hasMoreTiles && (
+            {filteredDirectoryItems.length > 0 && hasMoreTiles && (
               <div className="mt-4 flex flex-col items-start gap-3">
                 <button
                   ref={loadMoreButtonRef}
@@ -1822,7 +2127,7 @@ function App() {
                   onClick={() => handleLoadMoreTiles('button')}
                   className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
                 >
-                  Charger {Math.min(TILE_BATCH_SIZE, filteredShowcaseEntries.length - visibleShowcaseEntries.length)} carte(s) de plus
+                  Charger {Math.min(TILE_BATCH_SIZE, filteredDirectoryItems.length - visibleDirectoryItems.length)} carte(s) de plus
                 </button>
                 <p className="text-sm text-slate-600 dark:text-slate-300">
                   Chargement progressif actif pour alléger le rendu initial.
@@ -1830,7 +2135,7 @@ function App() {
               </div>
             )}
 
-            {filteredShowcaseEntries.length > 0 && (
+            {filteredDirectoryItems.length > 0 && (
               <div ref={tilesSentinelRef} className="h-1 w-full" aria-hidden="true" />
             )}
           </section>
@@ -1996,6 +2301,11 @@ function App() {
                 <p id="verification-envoi-help" className="mt-2 text-sm text-sky-900 dark:text-sky-100">
                   Les informations restent modifiables tant que vous n’avez pas confirmé l’envoi.
                 </p>
+                {submissionDomainDescription ? (
+                  <p className="mt-3 rounded-xl border border-sky-300 dark:border-sky-700 bg-white/80 dark:bg-slate-900/80 p-3 text-sm text-sky-900 dark:text-sky-100">
+                    {submissionDomainDescription} Cette URL sera traitée comme un sous-site distinct si vous continuez.
+                  </p>
+                ) : null}
                 <dl className="mt-3 grid gap-2 text-sm text-sky-900 dark:text-sky-100">
                   <div>
                     <dt className="font-semibold">URL</dt>
@@ -2029,6 +2339,26 @@ function App() {
                     <dt className="font-semibold">Déclaration d’accessibilité</dt>
                     <dd className="wrap-anywhere">{submissionPreviewEntry?.accessibilityPageUrl ?? 'Non détectée'}</dd>
                   </div>
+                  {submissionPreviewEntry?.domainContext ? (
+                    <div>
+                      <dt className="font-semibold">Domaine rapproché</dt>
+                      <dd>
+                        {submissionPreviewEntry.domainContext.registrableDomain}
+                        {submissionPreviewEntry.domainContext.groupPath ? (
+                          <>
+                            {' '}
+                            ·{' '}
+                            <a
+                              href={submissionPreviewEntry.domainContext.groupPath}
+                              className={`font-semibold underline ${focusRingClass}`}
+                            >
+                              Voir la page domaine
+                            </a>
+                          </>
+                        ) : null}
+                      </dd>
+                    </div>
+                  ) : null}
                 </dl>
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <button
@@ -2093,6 +2423,9 @@ function App() {
                       <li>Améliorations fonctionnelles ou correctifs significatifs.</li>
                     </>
                   )}
+                  {describeDomainContext(submissionFeedback.entry.domainContext) ? (
+                    <li>{describeDomainContext(submissionFeedback.entry.domainContext)}</li>
+                  ) : null}
                 </ul>
                 <div className="mt-4 flex flex-wrap gap-3">
                   {submissionFeedback.kind === 'duplicate' && (
@@ -2109,6 +2442,14 @@ function App() {
                       Voir la fiche existante
                     </a>
                   )}
+                  {submissionFeedback.entry.domainContext?.groupPath ? (
+                    <a
+                      href={submissionFeedback.entry.domainContext.groupPath}
+                      className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                    >
+                      Voir le domaine multi-sites
+                    </a>
+                  ) : null}
                   <a
                     href={moderationContactPath}
                     className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
@@ -2203,6 +2544,22 @@ function App() {
                 <p id="site-ajoute-detail" className="mt-1" role="status" aria-live="polite">
                   La fiche <strong>{lastAddedEntry.siteTitle}</strong> a été publiée.
                 </p>
+                {lastAddedDomainDescription ? (
+                  <p className="mt-2 text-sm">
+                    {lastAddedDomainDescription}
+                    {lastAddedEntry.domainContext?.groupPath ? (
+                      <>
+                        {' '}
+                        <a
+                          href={lastAddedEntry.domainContext.groupPath}
+                          className={`font-semibold underline ${focusRingClass}`}
+                        >
+                          Ouvrir la page domaine
+                        </a>
+                      </>
+                    ) : null}
+                  </p>
+                ) : null}
                 <div className="mt-3">
                   <button
                     type="button"

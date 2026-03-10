@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
+import { normalizeDomainContext } from './domainGroups'
 import { applySeo } from './seo'
 import SecondaryPageHeader from './SecondaryPageHeader'
 import SiteFooter from './SiteFooter'
@@ -11,6 +12,8 @@ type RgaaBaseline = '4.1' | '5.0-ready'
 type PendingSubmission = {
   submissionId: string
   normalizedUrl: string
+  slug?: string
+  profilePath?: string | null
   siteTitle: string
   thumbnailUrl: string | null
   accessibilityPageUrl: string | null
@@ -22,10 +25,13 @@ type PendingSubmission = {
   createdAt: string
   reviewReason: string | null
   category: string
+  domainContext?: ReturnType<typeof normalizeDomainContext>
 }
 
 type ShowcaseEntry = {
   normalizedUrl: string
+  slug?: string
+  profilePath?: string | null
   siteTitle: string
   thumbnailUrl: string | null
   accessibilityPageUrl: string | null
@@ -37,6 +43,7 @@ type ShowcaseEntry = {
   votesBlocked?: boolean
   updatedAt: string
   category: string
+  domainContext?: ReturnType<typeof normalizeDomainContext>
 }
 
 type PublishedEntryDraft = {
@@ -170,6 +177,36 @@ function toPublishedEntryDraft(entry: ShowcaseEntry): PublishedEntryDraft {
     rgaaBaseline: entry.rgaaBaseline === '5.0-ready' ? '5.0-ready' : '4.1',
     thumbnailUrl: entry.thumbnailUrl ?? '',
     accessibilityPageUrl: entry.accessibilityPageUrl ?? '',
+  }
+}
+
+function normalizePendingSubmission(entry: PendingSubmission): PendingSubmission {
+  return {
+    ...entry,
+    slug:
+      typeof entry.slug === 'string' && /^[a-z0-9-]{4,120}$/.test(entry.slug)
+        ? entry.slug
+        : undefined,
+    profilePath:
+      typeof entry.profilePath === 'string' && entry.profilePath.startsWith('/')
+        ? entry.profilePath
+        : null,
+    domainContext: normalizeDomainContext(entry.domainContext),
+  }
+}
+
+function normalizePublishedEntry(entry: ShowcaseEntry): ShowcaseEntry {
+  return {
+    ...entry,
+    slug:
+      typeof entry.slug === 'string' && /^[a-z0-9-]{4,120}$/.test(entry.slug)
+        ? entry.slug
+        : undefined,
+    profilePath:
+      typeof entry.profilePath === 'string' && entry.profilePath.startsWith('/')
+        ? entry.profilePath
+        : null,
+    domainContext: normalizeDomainContext(entry.domainContext),
   }
 }
 
@@ -486,7 +523,9 @@ function ModerationPage() {
         throw new Error(typeof payload.error === 'string' ? payload.error : 'Chargement impossible.')
       }
 
-      const entries = Array.isArray(payload.entries) ? payload.entries.filter(isPendingSubmission) : []
+      const entries = Array.isArray(payload.entries)
+        ? payload.entries.filter(isPendingSubmission).map((entry) => normalizePendingSubmission(entry))
+        : []
       setPendingEntries(entries)
       setPoliteMessage(`${entries.length} soumission(s) en attente chargée(s).`)
       setAssertiveMessage('')
@@ -519,7 +558,9 @@ function ModerationPage() {
         throw new Error(typeof payload.error === 'string' ? payload.error : 'Chargement de l’annuaire impossible.')
       }
 
-      const entries = Array.isArray(payload.entries) ? payload.entries.filter(isShowcaseEntry) : []
+      const entries = Array.isArray(payload.entries)
+        ? payload.entries.filter(isShowcaseEntry).map((entry) => normalizePublishedEntry(entry))
+        : []
       setPublishedEntries(entries)
       setPublishedDrafts(
         Object.fromEntries(entries.map((entry) => [entry.normalizedUrl, toPublishedEntryDraft(entry)])),
@@ -1675,6 +1716,49 @@ function ModerationPage() {
                                 <p className="wrap-anywhere text-sm font-semibold text-slate-900 dark:text-slate-100">
                                   {entry.normalizedUrl}
                                 </p>
+                                {entry.domainContext ? (
+                                  <div className="mt-3 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 px-3 py-3 text-sm text-sky-900 dark:text-sky-100">
+                                    <p className="font-semibold">
+                                      Domaine rapproché: {entry.domainContext.registrableDomain}
+                                    </p>
+                                    <p className="mt-1">
+                                      {entry.domainContext.publishedSiteCount ?? entry.domainContext.siteCount} fiche(s)
+                                      publiée(s) et {entry.domainContext.pendingSiteCount ?? 0} soumission(s) en attente
+                                      pour ce domaine.
+                                    </p>
+                                    {entry.domainContext.groupPath ? (
+                                      <p className="mt-2">
+                                        <a
+                                          href={entry.domainContext.groupPath}
+                                          className={`font-semibold underline ${focusRingClass}`}
+                                        >
+                                          Voir la page domaine
+                                        </a>
+                                      </p>
+                                    ) : null}
+                                    {entry.domainContext.siblings.length > 0 ? (
+                                      <ul className="mt-2 list-disc space-y-1 ps-5">
+                                        {entry.domainContext.siblings.slice(0, 3).map((sibling) => (
+                                          <li key={sibling.normalizedUrl}>
+                                            {sibling.siteTitle}
+                                            {sibling.profilePath ? (
+                                              <>
+                                                {' '}
+                                                ·{' '}
+                                                <a
+                                                  href={sibling.profilePath}
+                                                  className={`font-semibold underline ${focusRingClass}`}
+                                                >
+                                                  fiche publique
+                                                </a>
+                                              </>
+                                            ) : null}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : null}
+                                  </div>
+                                ) : null}
                                 <dl className="mt-3 grid gap-2 text-sm text-slate-800 dark:text-slate-200 sm:grid-cols-2">
                                   <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/50 px-3 py-2">
                                     <dt className="font-semibold text-slate-900 dark:text-slate-50">Créée le</dt>
@@ -1805,6 +1889,47 @@ function ModerationPage() {
                         <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                           Référentiel: {formatRgaaBaseline(entry.rgaaBaseline)}
                         </p>
+                        {entry.domainContext ? (
+                          <div className="mt-3 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 px-3 py-3 text-sm text-sky-900 dark:text-sky-100">
+                            <p className="font-semibold">
+                              Domaine rapproché: {entry.domainContext.registrableDomain}
+                            </p>
+                            <p className="mt-1">
+                              {entry.domainContext.siteCount} fiche(s) publique(s) pour ce domaine.
+                            </p>
+                            {entry.domainContext.groupPath ? (
+                              <p className="mt-2">
+                                <a
+                                  href={entry.domainContext.groupPath}
+                                  className={`font-semibold underline ${focusRingClass}`}
+                                >
+                                  Voir la page domaine
+                                </a>
+                              </p>
+                            ) : null}
+                            {entry.domainContext.siblings.length > 0 ? (
+                              <ul className="mt-2 list-disc space-y-1 ps-5">
+                                {entry.domainContext.siblings.slice(0, 3).map((sibling) => (
+                                  <li key={sibling.normalizedUrl}>
+                                    {sibling.siteTitle}
+                                    {sibling.profilePath ? (
+                                      <>
+                                        {' '}
+                                        ·{' '}
+                                        <a
+                                          href={sibling.profilePath}
+                                          className={`font-semibold underline ${focusRingClass}`}
+                                        >
+                                          fiche publique
+                                        </a>
+                                      </>
+                                    ) : null}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null}
+                          </div>
+                        ) : null}
                         <div className="mt-2 flex flex-wrap gap-2">
                           <span
                             className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${

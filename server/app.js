@@ -8,6 +8,15 @@ import { isGithubNotifierEnabled, notifyPendingModerationOnGithub } from './gith
 import { buildSitemapXml, resolvePublicAppUrl } from './sitemap.js'
 import { buildAiContextPayload } from './aiContext.js'
 import {
+  buildDomainGroups,
+  buildDomainGroupSlug,
+  normalizeDomainGroupSlug,
+  readRegistrableDomain,
+  readSiteHost,
+  readSiteOrigin,
+  resolveDomainGroupPath,
+} from './domainGroups.js'
+import {
   buildPendingSubmission,
   buildShowcaseEntry,
   createShowcaseStorage,
@@ -40,7 +49,7 @@ const SUSPICIOUS_MARKETING_TOKENS = [
 const VOTE_FINGERPRINT_SALT = process.env.VOTE_FINGERPRINT_SALT ?? 'annuaire-rgaa-votes'
 const MAX_ARCHIVE_IMPORT_BYTES = 2_000_000
 const MAX_SHOWCASE_ENTRY_LIMIT = 500
-const MAX_PENDING_ARCHIVE_SCAN_LIMIT = 200
+const MAX_PENDING_ARCHIVE_SCAN_LIMIT = 2000
 const MIN_MODERATION_TOKEN_LENGTH = 32
 const ARCHIVE_FORMAT = 'annuaire-rgaa-archive'
 const ARCHIVE_VERSION = 1
@@ -618,22 +627,6 @@ function buildShowcaseEntrySlug(normalizedUrl) {
   }
 }
 
-function readSiteHost(normalizedUrl) {
-  try {
-    return new URL(normalizedUrl).hostname.replace(/^www\./i, '')
-  } catch {
-    return null
-  }
-}
-
-function readSiteOrigin(normalizedUrl) {
-  try {
-    return new URL(normalizedUrl).origin
-  } catch {
-    return null
-  }
-}
-
 function extractShowcaseSlug(value) {
   if (typeof value !== 'string') {
     return null
@@ -647,6 +640,10 @@ function extractShowcaseSlug(value) {
   return trimmed
 }
 
+function extractDomainGroupSlug(value) {
+  return normalizeDomainGroupSlug(value)
+}
+
 function withShowcasePublicMetadata(entry) {
   if (!entry || typeof entry !== 'object' || typeof entry.normalizedUrl !== 'string') {
     return entry
@@ -655,14 +652,289 @@ function withShowcasePublicMetadata(entry) {
   const slug = buildShowcaseEntrySlug(entry.normalizedUrl)
   const siteHost = readSiteHost(entry.normalizedUrl)
   const siteOrigin = readSiteOrigin(entry.normalizedUrl)
+  const registrableDomain = readRegistrableDomain(entry.normalizedUrl)
+  const domainGroupSlug = registrableDomain ? buildDomainGroupSlug(registrableDomain) : null
   return {
     ...entry,
     slug,
     profilePath: `/site/${slug}`,
     siteHost,
     siteOrigin,
+    registrableDomain,
+    domainGroupSlug,
+    domainGroupPath: domainGroupSlug ? resolveDomainGroupPath(domainGroupSlug) : null,
     hasAccessibilityPage: Boolean(entry.accessibilityPageUrl),
   }
+}
+
+function toSiblingPreview(entry) {
+  if (!entry || typeof entry !== 'object' || typeof entry.normalizedUrl !== 'string') {
+    return null
+  }
+
+  return {
+    normalizedUrl: entry.normalizedUrl,
+    slug: typeof entry.slug === 'string' ? entry.slug : null,
+    profilePath: typeof entry.profilePath === 'string' ? entry.profilePath : null,
+    siteTitle: typeof entry.siteTitle === 'string' ? entry.siteTitle : entry.normalizedUrl,
+    updatedAt: typeof entry.updatedAt === 'string' ? entry.updatedAt : new Date().toISOString(),
+    category: typeof entry.category === 'string' ? entry.category : 'Autre',
+    complianceStatus:
+      entry.complianceStatus === 'full' || entry.complianceStatus === 'partial' || entry.complianceStatus === 'none'
+        ? entry.complianceStatus
+        : null,
+    complianceStatusLabel:
+      typeof entry.complianceStatusLabel === 'string' ? entry.complianceStatusLabel : null,
+    complianceScore:
+      typeof entry.complianceScore === 'number' && Number.isFinite(entry.complianceScore)
+        ? entry.complianceScore
+        : null,
+    accessibilityPageUrl:
+      typeof entry.accessibilityPageUrl === 'string' ? entry.accessibilityPageUrl : null,
+    hasAccessibilityPage: Boolean(entry.accessibilityPageUrl),
+  }
+}
+
+function buildPublishedDomainContext(entry, domainGroup) {
+  if (!entry || !domainGroup) {
+    return null
+  }
+
+  const siblings = domainGroup.children
+    .filter((candidate) => candidate.normalizedUrl !== entry.normalizedUrl)
+    .slice(0, domainGroup.siblingPreviewLimit)
+
+  return {
+    registrableDomain: domainGroup.registrableDomain,
+    groupSlug: domainGroup.groupSlug,
+    groupPath: domainGroup.siteCount > 1 ? domainGroup.groupPath : null,
+    siteCount: domainGroup.siteCount,
+    siblingCount: Math.max(0, domainGroup.siteCount - 1),
+    role:
+      domainGroup.siteCount <= 1
+        ? 'standalone'
+        : domainGroup.primaryEntry?.normalizedUrl === entry.normalizedUrl
+          ? 'primary'
+          : 'child',
+    primarySiteTitle: domainGroup.primaryEntry?.siteTitle ?? null,
+    primarySitePath: domainGroup.primaryEntry?.profilePath ?? null,
+    primaryNormalizedUrl: domainGroup.primaryEntry?.normalizedUrl ?? null,
+    statusSummary: domainGroup.statusSummary,
+    siblings,
+  }
+}
+
+function toPublicDomainGroup(domainGroup) {
+  if (!domainGroup) {
+    return null
+  }
+
+  return {
+    groupSlug: domainGroup.groupSlug,
+    groupPath: domainGroup.groupPath,
+    registrableDomain: domainGroup.registrableDomain,
+    siteCount: domainGroup.siteCount,
+    updatedAt: domainGroup.updatedAt,
+    statusSummary: domainGroup.statusSummary,
+    primaryEntry: domainGroup.primaryEntry,
+    children: domainGroup.children,
+  }
+}
+
+function buildPendingDomainContext(entry, { publishedGroup, pendingEntriesByGroupSlug }) {
+  if (!entry || typeof entry.normalizedUrl !== 'string') {
+    return null
+  }
+
+  const registrableDomain =
+    typeof entry.registrableDomain === 'string'
+      ? entry.registrableDomain
+      : readRegistrableDomain(entry.normalizedUrl)
+  const groupSlug =
+    typeof entry.domainGroupSlug === 'string'
+      ? entry.domainGroupSlug
+      : registrableDomain
+        ? buildDomainGroupSlug(registrableDomain)
+        : null
+
+  if (!registrableDomain || !groupSlug) {
+    return null
+  }
+
+  const pendingSiblings = (pendingEntriesByGroupSlug.get(groupSlug) ?? [])
+    .filter((candidate) => candidate.normalizedUrl !== entry.normalizedUrl)
+    .slice(0, 6)
+    .map((candidate) => toSiblingPreview(candidate))
+    .filter(Boolean)
+  const publishedSiblings = publishedGroup
+    ? publishedGroup.children.slice(0, publishedGroup.siblingPreviewLimit)
+    : []
+
+  return {
+    registrableDomain,
+    groupSlug,
+    groupPath:
+      (publishedGroup && publishedGroup.siteCount > 1 ? publishedGroup.groupPath : null) ??
+      resolveDomainGroupPath(groupSlug),
+    siteCount: publishedGroup?.siteCount ?? 0,
+    publishedSiteCount: publishedGroup?.siteCount ?? 0,
+    pendingSiteCount: (pendingEntriesByGroupSlug.get(groupSlug) ?? []).length,
+    siblingCount: publishedGroup?.siteCount ?? 0,
+    role:
+      publishedGroup?.primaryEntry?.normalizedUrl === entry.normalizedUrl
+        ? 'primary'
+        : publishedGroup?.siteCount
+          ? 'child'
+          : 'standalone',
+    primarySiteTitle: publishedGroup?.primaryEntry?.siteTitle ?? null,
+    primarySitePath: publishedGroup?.primaryEntry?.profilePath ?? null,
+    primaryNormalizedUrl: publishedGroup?.primaryEntry?.normalizedUrl ?? null,
+    statusSummary:
+      publishedGroup?.statusSummary ?? {
+        full: 0,
+        partial: 0,
+        none: 0,
+        unknown: 0,
+      },
+    siblings: publishedSiblings,
+    pendingSiblings,
+  }
+}
+
+function attachDomainContextToPublishedEntries(entries) {
+  const groups = buildDomainGroups(entries)
+
+  return {
+    groups,
+    entries: entries.map((entry) => ({
+      ...entry,
+      domainContext: buildPublishedDomainContext(entry, groups.groupsByUrl.get(entry.normalizedUrl)),
+    })),
+  }
+}
+
+function attachDomainContextToPendingEntries(pendingEntries, publishedGroups) {
+  const pendingWithMetadata = pendingEntries.map((entry) => withShowcasePublicMetadata(entry))
+  const pendingEntriesByGroupSlug = new Map()
+
+  for (const entry of pendingWithMetadata) {
+    if (!entry.domainGroupSlug) {
+      continue
+    }
+
+    const current = pendingEntriesByGroupSlug.get(entry.domainGroupSlug) ?? []
+    current.push(entry)
+    pendingEntriesByGroupSlug.set(entry.domainGroupSlug, current)
+  }
+
+  return pendingWithMetadata.map((entry) => ({
+    ...entry,
+    domainContext: buildPendingDomainContext(entry, {
+      publishedGroup: entry.domainGroupSlug
+        ? publishedGroups.groupsBySlug.get(entry.domainGroupSlug) ?? null
+        : null,
+      pendingEntriesByGroupSlug,
+    }),
+  }))
+}
+
+async function buildSubmissionDomainSnapshot() {
+  const [publishedEntries, pendingEntries, blockedUrls] = await Promise.all([
+    showcaseStorage.list({ limit: MAX_SHOWCASE_ENTRY_LIMIT }),
+    showcaseStorage.listPending({ limit: MAX_PENDING_ARCHIVE_SCAN_LIMIT }),
+    showcaseStorage.listSiteBlocklist(),
+  ])
+  const blockedSet = new Set(blockedUrls)
+  const visiblePublishedEntries = publishedEntries
+    .filter((entry) => !blockedSet.has(entry.normalizedUrl))
+    .map((entry) => withShowcasePublicMetadata(entry))
+  const publishedGroups = buildDomainGroups(visiblePublishedEntries)
+  const pendingEntriesWithDomain = attachDomainContextToPendingEntries(pendingEntries, publishedGroups)
+  const publishedEntriesWithDomain = visiblePublishedEntries.map((entry) => ({
+    ...entry,
+    domainContext: buildPublishedDomainContext(entry, publishedGroups.groupsByUrl.get(entry.normalizedUrl)),
+  }))
+
+  return {
+    publishedEntries: publishedEntriesWithDomain,
+    pendingEntries: pendingEntriesWithDomain,
+    publishedGroups,
+  }
+}
+
+function buildCandidateDomainContext(entryLike, domainSnapshot) {
+  if (!entryLike || typeof entryLike.normalizedUrl !== 'string') {
+    return null
+  }
+
+  const publicEntry = withShowcasePublicMetadata(entryLike)
+  const groupSlug = publicEntry.domainGroupSlug
+  const publishedGroup = groupSlug
+    ? domainSnapshot.publishedGroups.groupsBySlug.get(groupSlug) ?? null
+    : null
+  const pendingSameDomain = groupSlug
+    ? domainSnapshot.pendingEntries.filter((candidate) => candidate.domainContext?.groupSlug === groupSlug)
+    : []
+
+  return {
+    registrableDomain: publicEntry.registrableDomain ?? null,
+    groupSlug,
+    groupPath:
+      (publishedGroup && publishedGroup.siteCount > 1 ? publishedGroup.groupPath : null) ??
+      (groupSlug ? resolveDomainGroupPath(groupSlug) : null),
+    siteCount: publishedGroup?.siteCount ?? 0,
+    publishedSiteCount: publishedGroup?.siteCount ?? 0,
+    pendingSiteCount: pendingSameDomain.length,
+    siblingCount: publishedGroup?.siteCount ?? 0,
+    role: publishedGroup?.siteCount ? 'child' : 'standalone',
+    primarySiteTitle: publishedGroup?.primaryEntry?.siteTitle ?? null,
+    primarySitePath: publishedGroup?.primaryEntry?.profilePath ?? null,
+    primaryNormalizedUrl: publishedGroup?.primaryEntry?.normalizedUrl ?? null,
+    statusSummary:
+      publishedGroup?.statusSummary ?? {
+        full: 0,
+        partial: 0,
+        none: 0,
+        unknown: 0,
+      },
+    siblings: publishedGroup ? publishedGroup.children.slice(0, publishedGroup.siblingPreviewLimit) : [],
+    pendingSiblings: pendingSameDomain
+      .filter((candidate) => candidate.normalizedUrl !== entryLike.normalizedUrl)
+      .slice(0, 6)
+      .map((candidate) => toSiblingPreview(candidate))
+      .filter(Boolean),
+  }
+}
+
+function withCandidateDomainContext(entryLike, domainSnapshot) {
+  const publicEntry = withShowcasePublicMetadata(entryLike)
+  return {
+    ...publicEntry,
+    domainContext: buildCandidateDomainContext(publicEntry, domainSnapshot),
+  }
+}
+
+function buildSubsiteContextMessage(prefix, domainContext, suffix) {
+  if (
+    !domainContext ||
+    typeof domainContext.registrableDomain !== 'string' ||
+    ((domainContext.publishedSiteCount ?? domainContext.siteCount ?? 0) <= 0 &&
+      (domainContext.pendingSiteCount ?? 0) <= 0)
+  ) {
+    return prefix
+  }
+
+  const publishedCount = domainContext.publishedSiteCount ?? domainContext.siteCount ?? 0
+  const pendingCount = domainContext.pendingSiteCount ?? 0
+  const details = []
+  if (publishedCount > 0) {
+    details.push(`${publishedCount} fiche(s) publiée(s)`)
+  }
+  if (pendingCount > 0) {
+    details.push(`${pendingCount} soumission(s) en attente`)
+  }
+
+  return `${prefix} Le domaine ${domainContext.registrableDomain} compte déjà ${details.join(' et ')}. ${suffix}`
 }
 
 function sanitizePublicSubmissionCategory(value) {
@@ -798,6 +1070,7 @@ app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
   const baseUrl = resolvePublicAppUrl()
   let lastModified = new Date().toISOString()
   let siteProfileEntries = []
+  let domainGroupEntries = []
 
   try {
     const [entries, blockedUrls] = await Promise.all([
@@ -823,6 +1096,16 @@ app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
       changeFrequency: 'weekly',
       priority: 0.7,
     }))
+    domainGroupEntries = buildDomainGroups(
+      visibleEntries.map((entry) => withShowcasePublicMetadata(entry)),
+    ).groups
+      .filter((group) => group.siteCount > 1 && group.groupPath)
+      .map((group) => ({
+        path: group.groupPath,
+        lastModified: group.updatedAt,
+        changeFrequency: 'weekly',
+        priority: 0.65,
+      }))
   } catch (error) {
     if (error instanceof ShowcaseStorageError) {
       console.error('Sitemap uses fallback date because storage is unavailable', error.message)
@@ -874,6 +1157,7 @@ app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
       changeFrequency: 'monthly',
       priority: 0.5,
     },
+    ...domainGroupEntries,
     ...siteProfileEntries,
   ])
 
@@ -885,10 +1169,16 @@ app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
 app.get(['/ai-context.json', '/api/ai-context'], async (_request, response) => {
   const baseUrl = resolvePublicAppUrl()
   let entries = []
+  let domainGroups = []
 
   try {
     entries = (await showcaseStorage.list({ limit: MAX_SHOWCASE_ENTRY_LIMIT }))
       .map((entry) => withShowcasePublicMetadata(entry))
+    domainGroups = buildDomainGroups(entries)
+      .groups
+      .filter((group) => group.siteCount > 1)
+      .map((group) => toPublicDomainGroup(group))
+      .filter(Boolean)
   } catch (error) {
     if (error instanceof ShowcaseStorageError) {
       console.error('AI context uses empty dataset because storage is unavailable', error.message)
@@ -897,7 +1187,7 @@ app.get(['/ai-context.json', '/api/ai-context'], async (_request, response) => {
     }
   }
 
-  const payload = buildAiContextPayload({ baseUrl, entries })
+  const payload = buildAiContextPayload({ baseUrl, entries, domainGroups })
   response.setHeader('content-type', 'application/json; charset=utf-8')
   response.setHeader('cache-control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600')
   response.status(200).json(payload)
@@ -937,15 +1227,19 @@ app.get('/api/showcase', async (request, response) => {
       hasUpvoted: clientVoteIndexId ? votedUrls.has(entry.normalizedUrl) : false,
       votesBlocked: voteBlocklist.has(entry.normalizedUrl),
     })).map((entry) => withShowcasePublicMetadata(entry))
+    const { groups, entries: entriesWithDomainContext } = attachDomainContextToPublishedEntries(
+      entriesWithVoteState,
+    )
     let filteredEntries = slugFilter
-      ? entriesWithVoteState.filter((entry) => entry.slug === slugFilter)
-      : entriesWithVoteState
+      ? entriesWithDomainContext.filter((entry) => entry.slug === slugFilter)
+      : entriesWithDomainContext
     let redirectPath = null
 
     if (slugFilter && filteredEntries.length === 0) {
       const normalizedRedirectUrl = await showcaseStorage.resolveSlugRedirect(slugFilter)
       if (normalizedRedirectUrl && !siteBlocklist.has(normalizedRedirectUrl)) {
-        const redirectedEntry = entriesWithVoteState.find((entry) => entry.normalizedUrl === normalizedRedirectUrl) ?? null
+        const redirectedEntry =
+          entriesWithDomainContext.find((entry) => entry.normalizedUrl === normalizedRedirectUrl) ?? null
         if (redirectedEntry?.profilePath && redirectedEntry.profilePath !== `/site/${slugFilter}`) {
           filteredEntries = [redirectedEntry]
           redirectPath = redirectedEntry.profilePath
@@ -953,7 +1247,7 @@ app.get('/api/showcase', async (request, response) => {
       }
     }
 
-    const lastModifiedSource = filteredEntries.length > 0 ? filteredEntries : entriesWithVoteState
+    const lastModifiedSource = filteredEntries.length > 0 ? filteredEntries : entriesWithDomainContext
 
     response.setHeader('cache-control', 'public, max-age=120, s-maxage=120, stale-while-revalidate=600')
     response.setHeader('last-modified', readMostRecentUpdatedAt(lastModifiedSource))
@@ -963,6 +1257,10 @@ app.get('/api/showcase', async (request, response) => {
     response.json({
       entries: filteredEntries,
       total: filteredEntries.length,
+      domainGroups: groups
+        .filter((group) => group.siteCount > 1)
+        .map((group) => toPublicDomainGroup(group))
+        .filter(Boolean),
       storage: showcaseStorage.mode,
       redirectPath,
     })
@@ -974,6 +1272,44 @@ app.get('/api/showcase', async (request, response) => {
 
     console.error('Unexpected error in /api/showcase', error)
     sendJsonError(response, 500, 'Erreur lors de la lecture de la vitrine.')
+  }
+})
+
+app.get('/api/domain-groups', async (request, response) => {
+  try {
+    const requestedSlug = extractDomainGroupSlug(firstQueryValue(request.query.slug))
+    const entries = await showcaseStorage.list({
+      limit: MAX_SHOWCASE_ENTRY_LIMIT,
+    })
+    const siteBlocklist = new Set(await showcaseStorage.listSiteBlocklist())
+    const visibleEntries = entries
+      .filter((entry) => !siteBlocklist.has(entry.normalizedUrl))
+      .map((entry) => withShowcasePublicMetadata(entry))
+    const groups = buildDomainGroups(visibleEntries).groups.filter((group) => group.siteCount > 1)
+    const filteredGroups = requestedSlug
+      ? groups.filter((group) => group.groupSlug === requestedSlug)
+      : groups
+
+    if (requestedSlug && filteredGroups.length === 0) {
+      sendJsonError(response, 404, 'Aucun domaine multi-sites ne correspond à cette adresse.')
+      return
+    }
+
+    response.setHeader('cache-control', 'public, max-age=120, s-maxage=120, stale-while-revalidate=600')
+    response.setHeader('last-modified', readMostRecentUpdatedAt(filteredGroups))
+    response.json({
+      groups: filteredGroups.map((group) => toPublicDomainGroup(group)).filter(Boolean),
+      total: filteredGroups.length,
+      storage: showcaseStorage.mode,
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/domain-groups', error)
+    sendJsonError(response, 500, 'Erreur lors de la lecture des domaines multi-sites.')
   }
 })
 
@@ -1088,11 +1424,18 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
     }
 
     const sanitizedCategory = sanitizePublicSubmissionCategory(category)
-    const existingEntry = await showcaseStorage.getByNormalizedUrl(normalizedInsight.normalizedUrl)
+    const [existingEntry, existingPending, domainSnapshot] = await Promise.all([
+      showcaseStorage.getByNormalizedUrl(normalizedInsight.normalizedUrl),
+      showcaseStorage.getPendingByNormalizedUrl(normalizedInsight.normalizedUrl),
+      buildSubmissionDomainSnapshot(),
+    ])
 
     if (existingEntry) {
+      const existingPublishedEntry =
+        domainSnapshot.publishedEntries.find((entry) => entry.normalizedUrl === normalizedInsight.normalizedUrl) ??
+        withCandidateDomainContext(existingEntry, domainSnapshot)
       response.json({
-        ...withShowcasePublicMetadata(existingEntry),
+        ...existingPublishedEntry,
         submissionStatus: 'duplicate',
         preview: previewMode,
         message: 'Ce site est déjà référencé dans la vitrine.',
@@ -1100,10 +1443,12 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       return
     }
 
-    const existingPending = await showcaseStorage.getPendingByNormalizedUrl(normalizedInsight.normalizedUrl)
     if (existingPending) {
+      const existingPendingEntry =
+        domainSnapshot.pendingEntries.find((entry) => entry.normalizedUrl === normalizedInsight.normalizedUrl) ??
+        withCandidateDomainContext(existingPending, domainSnapshot)
       response.status(202).json({
-        ...withShowcasePublicMetadata(existingPending),
+        ...existingPendingEntry,
         submissionStatus: 'pending',
         alreadySubmitted: true,
         preview: previewMode,
@@ -1126,14 +1471,28 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
     const manualReviewReason = getManualReviewReason(normalizedInsight)
     if (previewMode) {
       const previewStatus = manualReviewReason ? 'pending' : 'approved'
+      const previewEntry = withCandidateDomainContext(
+        {
+          ...normalizedInsight,
+          category: sanitizedCategory,
+        },
+        domainSnapshot,
+      )
       const previewMessage = manualReviewReason
-        ? `Pré-analyse terminée: ${manualReviewReason}`
-        : 'Pré-analyse terminée. Le site est prêt pour confirmation.'
+        ? buildSubsiteContextMessage(
+            `Pré-analyse terminée: ${manualReviewReason}`,
+            previewEntry.domainContext,
+            'Cette URL sera traitée comme un sous-site distinct si vous confirmez l’envoi.',
+          )
+        : buildSubsiteContextMessage(
+            'Pré-analyse terminée. Le site est prêt pour confirmation.',
+            previewEntry.domainContext,
+            'Cette URL sera publiée comme sous-site distinct si vous confirmez l’envoi.',
+          )
       const nextPreviewToken = storeSiteInsightPreview(url, normalizedInsight)
 
       response.status(previewStatus === 'pending' ? 202 : 200).json({
-        ...withShowcasePublicMetadata(normalizedInsight),
-        category: sanitizedCategory,
+        ...previewEntry,
         submissionStatus: previewStatus,
         preview: true,
         previewToken: nextPreviewToken,
@@ -1145,6 +1504,10 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
     if (manualReviewReason) {
       const pendingSubmission = buildPendingSubmission(normalizedInsight, sanitizedCategory, manualReviewReason)
       const savedPendingSubmission = await showcaseStorage.upsertPending(pendingSubmission)
+      const updatedDomainSnapshot = await buildSubmissionDomainSnapshot()
+      const pendingEntryWithContext =
+        updatedDomainSnapshot.pendingEntries.find((entry) => entry.normalizedUrl === savedPendingSubmission.normalizedUrl) ??
+        withCandidateDomainContext(savedPendingSubmission, updatedDomainSnapshot)
 
       if (isGithubNotifierEnabled()) {
         try {
@@ -1166,20 +1529,31 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       }
 
       response.status(202).json({
-        ...withShowcasePublicMetadata(savedPendingSubmission),
+        ...pendingEntryWithContext,
         submissionStatus: 'pending',
-        message:
+        message: buildSubsiteContextMessage(
           'Soumission reçue. Elle est enregistrée en file de validation manuelle avant publication.',
+          pendingEntryWithContext.domainContext,
+          'La modération verra ce site comme un sous-site distinct du même domaine.',
+        ),
       })
       return
     }
 
     const showcaseEntry = buildShowcaseEntry(normalizedInsight, sanitizedCategory)
     const persistedEntry = await showcaseStorage.upsert(showcaseEntry)
+    const updatedDomainSnapshot = await buildSubmissionDomainSnapshot()
+    const persistedEntryWithContext =
+      updatedDomainSnapshot.publishedEntries.find((entry) => entry.normalizedUrl === persistedEntry.normalizedUrl) ??
+      withCandidateDomainContext(persistedEntry, updatedDomainSnapshot)
     response.json({
-      ...withShowcasePublicMetadata(persistedEntry),
+      ...persistedEntryWithContext,
       submissionStatus: 'approved',
-      message: 'Site publié dans la vitrine.',
+      message: buildSubsiteContextMessage(
+        'Site publié dans la vitrine.',
+        persistedEntryWithContext.domainContext,
+        'Cette fiche est désormais rattachée au même domaine que les autres sous-sites déjà référencés.',
+      ),
     })
   } catch (error) {
     if (error instanceof SiteInsightError) {
@@ -1199,13 +1573,25 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
 
 app.get('/api/moderation/pending', requireModerationAuth, async (request, response) => {
   try {
-    const pendingEntries = await showcaseStorage.listPending({
-      limit: firstQueryValue(request.query.limit),
-    })
+    const [pendingEntries, publishedEntries] = await Promise.all([
+      showcaseStorage.listPending({
+        limit: firstQueryValue(request.query.limit),
+      }),
+      showcaseStorage.list({
+        limit: MAX_SHOWCASE_ENTRY_LIMIT,
+      }),
+    ])
+    const publishedGroups = buildDomainGroups(
+      publishedEntries.map((entry) => withShowcasePublicMetadata(entry)),
+    )
+    const pendingEntriesWithDomain = attachDomainContextToPendingEntries(
+      pendingEntries,
+      publishedGroups,
+    )
 
     response.json({
-      entries: pendingEntries,
-      total: pendingEntries.length,
+      entries: pendingEntriesWithDomain,
+      total: pendingEntriesWithDomain.length,
       storage: showcaseStorage.mode,
     })
   } catch (error) {
@@ -1234,10 +1620,13 @@ app.get('/api/moderation/showcase', requireModerationAuth, async (request, respo
       siteBlocked: siteBlocklist.has(entry.normalizedUrl),
       votesBlocked: voteBlocklist.has(entry.normalizedUrl),
     }))
+    const { entries: entriesWithDomainContext } = attachDomainContextToPublishedEntries(
+      entriesWithModerationState,
+    )
 
     response.json({
-      entries: entriesWithModerationState,
-      total: entriesWithModerationState.length,
+      entries: entriesWithDomainContext,
+      total: entriesWithDomainContext.length,
       storage: showcaseStorage.mode,
     })
   } catch (error) {
@@ -1538,11 +1927,19 @@ app.post('/api/moderation/approve', requireModerationAuth, async (request, respo
 
     const savedEntry = await showcaseStorage.upsert(approvedEntry)
     await showcaseStorage.deletePendingById(submissionId)
+    const updatedDomainSnapshot = await buildSubmissionDomainSnapshot()
+    const approvedEntryWithContext =
+      updatedDomainSnapshot.publishedEntries.find((entry) => entry.normalizedUrl === savedEntry.normalizedUrl) ??
+      withCandidateDomainContext(savedEntry, updatedDomainSnapshot)
 
     response.json({
-      ...withShowcasePublicMetadata(savedEntry),
+      ...approvedEntryWithContext,
       submissionStatus: 'approved',
-      message: 'Soumission approuvée et publiée dans l’annuaire.',
+      message: buildSubsiteContextMessage(
+        'Soumission approuvée et publiée dans l’annuaire.',
+        approvedEntryWithContext.domainContext,
+        'La fiche rejoint désormais le groupe multi-sites de ce domaine.',
+      ),
       moderation: {
         submissionId,
       },
