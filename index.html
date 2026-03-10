@@ -22,6 +22,290 @@
       content="Annuaire français pour valoriser la conformité RGAA : page de déclaration, score et bonnes pratiques officielles."
     />
     <link rel="preload" href="/logo-rgaa-vitrine.svg" as="image" type="image/svg+xml" fetchpriority="high" />
+    <style id="critical-secondary-header-css">
+      html {
+        box-sizing: border-box;
+        background: #f3f6fd;
+        color: #121a2b;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: inherit;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        line-height: 1.5;
+        font-family:
+          "Atkinson Hyperlegible",
+          "OpenDyslexic",
+          "Lexend",
+          "Noto Sans",
+          "Segoe UI",
+          Arial,
+          sans-serif;
+        background: #f3f6fd;
+        color: #121a2b;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      #root {
+        min-height: 100vh;
+      }
+
+      .app-secondary-header {
+        border-bottom: 1px solid #bec9dc;
+        background: #ffffff;
+      }
+
+      .app-secondary-header__inner {
+        max-width: 64rem;
+        margin: 0 auto;
+        padding: 1.5rem 1rem;
+      }
+
+      .app-secondary-header__top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+
+      .app-secondary-header__title {
+        margin: 0;
+        font-size: 1.5rem;
+        line-height: 2rem;
+        font-weight: 700;
+      }
+
+      .app-secondary-theme-toggle,
+      .app-secondary-nav__link,
+      .app-global-search-form__button,
+      .app-global-search-form__control {
+        min-height: 2.75rem;
+      }
+
+      .app-secondary-theme-toggle,
+      .app-secondary-nav__link {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid #33415f;
+        border-radius: 0.75rem;
+        padding: 0.5rem 1rem;
+        background: transparent;
+        color: #121a2b;
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+
+      .app-secondary-nav {
+        margin-top: 1rem;
+      }
+
+      .app-secondary-nav__list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .app-global-search-form {
+        margin-top: 1rem;
+        border: 1px solid #33415f;
+        border-radius: 1rem;
+        padding: 1rem;
+        background: #f5f8ff;
+        box-shadow: 0 1px 2px rgba(18, 26, 43, 0.08);
+      }
+
+      .app-global-search-form__grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1rem;
+      }
+
+      .app-global-search-form__label {
+        display: block;
+        color: #121a2b;
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+
+      .app-global-search-form__control {
+        display: block;
+        width: 100%;
+        margin-top: 0.25rem;
+        border: 1px solid #26324a;
+        border-radius: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        background: transparent;
+        color: #121a2b;
+        font-size: 1rem;
+        box-shadow: 0 1px 2px rgba(18, 26, 43, 0.08);
+      }
+
+      .app-global-search-form__button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.75rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+
+      .app-global-search-form__button--submit {
+        border: 1px solid #090f1d;
+        background: #090f1d;
+        color: #f5f8ff;
+      }
+
+      .app-global-search-form__button--reset {
+        border: 1px solid #33415f;
+        background: transparent;
+        color: #121a2b;
+      }
+
+      .app-global-search-form__helper,
+      .app-secondary-header__description,
+      .app-secondary-header__glossary {
+        color: #33415f;
+        font-size: 0.875rem;
+      }
+
+      .app-global-search-form__helper,
+      .app-secondary-header__description,
+      .app-secondary-header__glossary {
+        margin: 0.5rem 0 0;
+      }
+
+      @media (min-width: 640px) {
+        .app-secondary-header__inner {
+          padding-inline: 1.5rem;
+        }
+      }
+
+      @media (min-width: 768px) {
+        .app-global-search-form__grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (min-width: 1024px) {
+        .app-secondary-header__inner {
+          padding-inline: 2rem;
+        }
+
+        .app-global-search-form__grid {
+          grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto auto;
+          align-items: end;
+        }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        html:not([data-theme='light']),
+        html:not([data-theme='light']) body {
+          background: #050913;
+          color: #f6f8ff;
+        }
+
+        html:not([data-theme='light']) .app-secondary-header {
+          border-bottom-color: #6f8db9;
+          background: #0f1a30;
+        }
+
+        html:not([data-theme='light']) .app-secondary-theme-toggle,
+        html:not([data-theme='light']) .app-secondary-nav__link {
+          border-color: #8ea7cd;
+          color: #f6f8ff;
+        }
+
+        html:not([data-theme='light']) .app-global-search-form {
+          border-color: #8ea7cd;
+          background: #182845;
+          box-shadow: 0 1px 2px rgba(7, 13, 26, 0.24);
+        }
+
+        html:not([data-theme='light']) .app-global-search-form__label,
+        html:not([data-theme='light']) .app-global-search-form__control,
+        html:not([data-theme='light']) .app-global-search-form__button--reset,
+        html:not([data-theme='light']) .app-secondary-header__description,
+        html:not([data-theme='light']) .app-secondary-header__glossary {
+          color: #f6f8ff;
+        }
+
+        html:not([data-theme='light']) .app-global-search-form__control {
+          border-color: #c6d4ec;
+        }
+
+        html:not([data-theme='light']) .app-global-search-form__button--submit {
+          border-color: #f7f9ff;
+          background: #f7f9ff;
+          color: #070d1a;
+        }
+
+        html:not([data-theme='light']) .app-global-search-form__button--reset {
+          border-color: #c6d4ec;
+        }
+      }
+
+      html[data-theme='dark'],
+      html[data-theme='dark'] body {
+        background: #050913;
+        color: #f6f8ff;
+      }
+
+      html[data-theme='dark'] .app-secondary-header {
+        border-bottom-color: #6f8db9;
+        background: #0f1a30;
+      }
+
+      html[data-theme='dark'] .app-secondary-theme-toggle,
+      html[data-theme='dark'] .app-secondary-nav__link {
+        border-color: #8ea7cd;
+        color: #f6f8ff;
+      }
+
+      html[data-theme='dark'] .app-global-search-form {
+        border-color: #8ea7cd;
+        background: #182845;
+        box-shadow: 0 1px 2px rgba(7, 13, 26, 0.24);
+      }
+
+      html[data-theme='dark'] .app-global-search-form__label,
+      html[data-theme='dark'] .app-global-search-form__control,
+      html[data-theme='dark'] .app-global-search-form__button--reset,
+      html[data-theme='dark'] .app-secondary-header__description,
+      html[data-theme='dark'] .app-secondary-header__glossary {
+        color: #f6f8ff;
+      }
+
+      html[data-theme='dark'] .app-global-search-form__control {
+        border-color: #c6d4ec;
+      }
+
+      html[data-theme='dark'] .app-global-search-form__button--submit {
+        border-color: #f7f9ff;
+        background: #f7f9ff;
+        color: #070d1a;
+      }
+
+      html[data-theme='dark'] .app-global-search-form__button--reset {
+        border-color: #c6d4ec;
+      }
+    </style>
     <link rel="alternate" type="text/plain" href="/llms.txt" />
     <link rel="alternate" type="application/json" href="/ai-context.json" />
     <link

@@ -40,20 +40,20 @@ function SecondaryPageHeader({
   }, [])
 
   return (
-    <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">{title}</h1>
+    <header className="app-secondary-header border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+      <div className="app-secondary-header__inner mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="app-secondary-header__top flex flex-wrap items-center justify-between gap-3">
+          <h1 className="app-secondary-header__title text-2xl font-bold">{title}</h1>
           <ThemeToggle
-            className={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+            className={`app-secondary-theme-toggle inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
           />
         </div>
         <PrimaryNavigation
           currentPath={currentPath === null ? null : currentPath}
           navRef={navigationRef}
-          className="mt-4"
-          listClassName="flex flex-wrap items-center gap-2"
-          linkClassName={`inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+          className="app-secondary-nav mt-4"
+          listClassName="app-secondary-nav__list flex flex-wrap items-center gap-2"
+          linkClassName={`app-secondary-nav__link inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
         />
         <GlobalSearchForm
           inputId="header-recherche-annuaire"
@@ -65,8 +65,12 @@ function SecondaryPageHeader({
           helperTextId="header-recherche-aide"
           helperText="Astuce clavier: appuyez sur Échap dans le champ recherche pour effacer la saisie."
         />
-        {description ? <p className="mt-2 max-w-3xl text-slate-700 dark:text-slate-300">{description}</p> : null}
-        <p className="mt-2 text-xs text-slate-700 dark:text-slate-300">
+        {description ? (
+          <p className="app-secondary-header__description mt-2 max-w-3xl text-slate-700 dark:text-slate-300">
+            {description}
+          </p>
+        ) : null}
+        <p className="app-secondary-header__glossary mt-2 text-sm text-slate-700 dark:text-slate-300">
           Glossaire: RGAA = Référentiel général d’amélioration de l’accessibilité, WCAG = Web Content Accessibility
           Guidelines, UX = expérience utilisateur.
         </p>
