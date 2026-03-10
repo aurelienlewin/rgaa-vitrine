@@ -4,6 +4,7 @@ import { applySeo, createAbsoluteUrl } from './seo'
 import { resolveShowcaseProfilePath } from './siteProfiles'
 import SecondaryPageHeader from './SecondaryPageHeader'
 import SiteFooter from './SiteFooter'
+import { visuallyHiddenStyle } from './visuallyHidden'
 
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
@@ -359,7 +360,7 @@ function SiteMapPage() {
 
   return (
     <>
-      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true" lang="fr">
+      <div className="sr-only" style={visuallyHiddenStyle} role="status" aria-live="polite" aria-atomic="true" lang="fr">
         {politeAnnouncement.message}
         <span aria-hidden="true">{politeAnnouncement.id}</span>
       </div>

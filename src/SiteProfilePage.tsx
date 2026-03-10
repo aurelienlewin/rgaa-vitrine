@@ -4,6 +4,7 @@ import { applySeo, createAbsoluteUrl } from './seo'
 import { readSiteSlugFromPath, resolveShowcaseProfilePath } from './siteProfiles'
 import SecondaryPageHeader from './SecondaryPageHeader'
 import SiteFooter from './SiteFooter'
+import { visuallyHiddenStyle } from './visuallyHidden'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
 
@@ -601,7 +602,7 @@ function SiteProfilePage() {
 
   return (
     <>
-      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true" lang="fr">
+      <div className="sr-only" style={visuallyHiddenStyle} role="status" aria-live="polite" aria-atomic="true" lang="fr">
         {politeAnnouncement.message}
         <span aria-hidden="true">{politeAnnouncement.id}</span>
       </div>

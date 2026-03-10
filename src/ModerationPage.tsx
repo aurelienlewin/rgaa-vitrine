@@ -3,6 +3,7 @@ import type { ChangeEvent, FormEvent } from 'react'
 import { applySeo } from './seo'
 import SecondaryPageHeader from './SecondaryPageHeader'
 import SiteFooter from './SiteFooter'
+import { visuallyHiddenStyle } from './visuallyHidden'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
 type RgaaBaseline = '4.1' | '5.0-ready'
@@ -1370,10 +1371,10 @@ function ModerationPage() {
         </a>
       </div>
 
-      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true" lang="fr">
+      <div className="sr-only" style={visuallyHiddenStyle} role="status" aria-live="polite" aria-atomic="true" lang="fr">
         {politeMessage}
       </div>
-      <div className="sr-only" role="alert" aria-live="assertive" aria-atomic="true" lang="fr">
+      <div className="sr-only" style={visuallyHiddenStyle} role="alert" aria-live="assertive" aria-atomic="true" lang="fr">
         {assertiveMessage}
       </div>
 

@@ -55,6 +55,7 @@ Public website: **https://annuaire-rgaa.fr**
 - Header logo and footer avatar declare explicit intrinsic image dimensions to reserve layout space early and reduce CLS without altering French accessible names.
 - Homepage no longer performs runtime DOM/style color-pair patching after first paint; the contrast-safe text/background guard now stays CSS-only to reduce startup recalculation pressure.
 - Homepage now preloads the logo, marks it with high fetch priority, fetches the public directory immediately on mount, and hydrates client vote state separately so the first annuaire fetch can start earlier and stay cache-friendly.
+- Live-region announcers now use immediate inline visually-hidden styles instead of relying only on the delayed `sr-only` stylesheet, and homepage stats/results summaries reserve stable text space to reduce CLS during app bootstrap and directory hydration.
 - All pages share a consistent top `navigation principale` landmark (French UI label) and the same global footer.
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
 - Route lazy-loading fallback is announced as status (`aria-live="polite"`) to avoid silent loading states.

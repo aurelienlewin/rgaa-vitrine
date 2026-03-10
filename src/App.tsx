@@ -6,6 +6,7 @@ import { resolveShowcaseProfilePath } from './siteProfiles'
 import SiteFooter from './SiteFooter'
 import GlobalSearchForm from './GlobalSearchForm'
 import PrimaryNavigation from './PrimaryNavigation'
+import { visuallyHiddenStyle } from './visuallyHidden'
 import {
   formatCategory,
   readStatusFilterFromQuery,
@@ -136,6 +137,8 @@ const skipLinksContainerClass =
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
 const TILE_BATCH_SIZE = 24
 const CLIENT_VOTER_ID_STORAGE_KEY = 'annuaire-rgaa-voter-id'
+const statsValueClass =
+  'mt-1 inline-flex min-h-8 min-w-[3ch] items-end text-2xl font-bold [font-variant-numeric:tabular-nums]'
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('fr-FR', {
@@ -1485,11 +1488,11 @@ function App() {
         </a>
       </div>
 
-      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true" lang="fr">
+      <div className="sr-only" style={visuallyHiddenStyle} role="status" aria-live="polite" aria-atomic="true" lang="fr">
         {politeAnnouncement.message}
         <span aria-hidden="true">{politeAnnouncement.id}</span>
       </div>
-      <div className="sr-only" role="alert" aria-live="assertive" aria-atomic="true" lang="fr">
+      <div className="sr-only" style={visuallyHiddenStyle} role="alert" aria-live="assertive" aria-atomic="true" lang="fr">
         {assertiveAnnouncement.message}
         <span aria-hidden="true">{assertiveAnnouncement.id}</span>
       </div>
@@ -1571,19 +1574,19 @@ function App() {
             <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
                 <dt className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Sites référencés</dt>
-                <dd className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">{directoryStats.total}</dd>
+                <dd className={`${statsValueClass} text-slate-900 dark:text-slate-50`}>{directoryStats.total}</dd>
               </div>
               <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950 px-4 py-3">
                 <dt className="text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-100">Totalement conformes</dt>
-                <dd className="mt-1 text-2xl font-bold text-emerald-900 dark:text-emerald-100">{directoryStats.full}</dd>
+                <dd className={`${statsValueClass} text-emerald-900 dark:text-emerald-100`}>{directoryStats.full}</dd>
               </div>
               <div className="rounded-xl bg-amber-50 dark:bg-amber-950 px-4 py-3">
                 <dt className="text-sm font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-100">Partiellement conformes</dt>
-                <dd className="mt-1 text-2xl font-bold text-amber-900 dark:text-amber-100">{directoryStats.partial}</dd>
+                <dd className={`${statsValueClass} text-amber-900 dark:text-amber-100`}>{directoryStats.partial}</dd>
               </div>
               <div className="rounded-xl bg-rose-50 dark:bg-rose-950 px-4 py-3">
                 <dt className="text-sm font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-100">Non conformes</dt>
-                <dd className="mt-1 text-2xl font-bold text-rose-900 dark:text-rose-100">{directoryStats.none}</dd>
+                <dd className={`${statsValueClass} text-rose-900 dark:text-rose-100`}>{directoryStats.none}</dd>
               </div>
             </dl>
             <p className="mt-4 rounded-xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-3 text-sm font-medium text-sky-900 dark:text-sky-100">
@@ -1609,7 +1612,11 @@ function App() {
               </p>
             </div>
 
-            <p ref={resultsSummaryRef} tabIndex={-1} className="mt-3 text-sm text-slate-700 dark:text-slate-300">
+            <p
+              ref={resultsSummaryRef}
+              tabIndex={-1}
+              className="mt-3 min-h-[3rem] text-sm text-slate-700 dark:text-slate-300 [font-variant-numeric:tabular-nums] sm:min-h-6"
+            >
               {visibleShowcaseEntries.length} carte(s) affichée(s) sur {filteredShowcaseEntries.length} résultat(s) ({showcaseEntries.length}{' '}
               site(s) total dans l’annuaire).
             </p>
