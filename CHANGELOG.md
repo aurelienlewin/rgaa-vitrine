@@ -15,6 +15,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Kept ESLint on the `9.x` line so clean installs remain compatible with `eslint-plugin-react-hooks` `7.0.1`, including Vercel `npm install` runs.
 - Accessibility statement technical references now reflect the explicit project toolchain and the currently resolved frontend/runtime stack used for the audited service.
 - Showcase thumbnails now render in a framed `contain` layout with an inner adaptive canvas, improving contrast for transparent logos with dark or light strokes in both themes and preventing `cover` cropping on directory cards.
+- Submission error feedback on the homepage now prioritizes short French user guidance, moves focus to a dismissable alert panel, and keeps raw technical diagnostics behind an explicit expandable disclosure.
 
 ## [2026-03-09]
 

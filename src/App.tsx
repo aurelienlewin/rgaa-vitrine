@@ -45,6 +45,13 @@ type SubmissionFeedback = {
   message: string
   kind: SubmissionFeedbackKind
 }
+type SubmitErrorPhase = 'preview' | 'submit'
+type SubmitErrorState = {
+  id: number
+  summary: string
+  guidance: string
+  detail: string | null
+}
 
 const statusClassByValue: Record<Exclude<ComplianceStatus, null>, string> = {
   full: 'border border-emerald-700 bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100',
@@ -275,6 +282,102 @@ function readAlreadySubmittedFlag(payload: Record<string, unknown>) {
   return payload.alreadySubmitted === true
 }
 
+function buildSubmitErrorState(rawMessage: string, phase: SubmitErrorPhase): Omit<SubmitErrorState, 'id'> {
+  const fallbackMessage = phase === 'preview' ? 'Pré-analyse impossible.' : 'Ajout impossible.'
+  const message = typeof rawMessage === 'string' && rawMessage.trim() ? rawMessage.trim() : fallbackMessage
+  const normalized = normalizeText(message)
+
+  if (
+    normalized.includes('function_invocation_timeout') ||
+    normalized.includes('a expire') ||
+    normalized.includes('timeout') ||
+    normalized.includes('timed out')
+  ) {
+    return {
+      summary:
+        phase === 'preview'
+          ? 'La pré-analyse du site prend plus de temps que prévu.'
+          : "L'ajout du site prend plus de temps que prévu.",
+      guidance:
+        "Réessayez dans quelques instants. Si le problème persiste, contactez la modération avec l'URL concernée.",
+      detail: message,
+    }
+  }
+
+  if (
+    normalized.includes('reponse html recue') ||
+    normalized.includes('reponse json invalide du serveur') ||
+    normalized.includes('reponse serveur non json')
+  ) {
+    return {
+      summary: "Le service d'ajout a renvoyé une réponse inattendue.",
+      guidance:
+        "Réessayez plus tard. Si le problème continue, transmettez les détails techniques à la modération.",
+      detail: message,
+    }
+  }
+
+  if (
+    normalized.includes('erreur reseau') ||
+    normalized.includes('networkerror') ||
+    normalized.includes('failed to fetch')
+  ) {
+    return {
+      summary: "La connexion avec le service d'ajout a échoué.",
+      guidance: "Vérifiez votre connexion puis réessayez. Si besoin, revenez dans quelques minutes.",
+      detail: message,
+    }
+  }
+
+  if (
+    normalized.includes('veuillez saisir une url complete') ||
+    normalized.includes('format url non reconnu') ||
+    normalized.includes('url invalide') ||
+    normalized.includes('champ url est obligatoire')
+  ) {
+    return {
+      summary: 'Veuillez saisir une URL complète, par exemple https://www.exemple.fr.',
+      guidance: "Corrigez le champ URL puis relancez l'analyse.",
+      detail: null,
+    }
+  }
+
+  if (
+    normalized.includes('le site a repondu avec le statut') ||
+    normalized.includes("impossible de recuperer les metadonnees de ce site") ||
+    normalized.includes("la recuperation du site a expire") ||
+    normalized.includes('contenu cible n')
+  ) {
+    return {
+      summary: "Le site n'a pas pu être analysé pour le moment.",
+      guidance: "Vérifiez que l'URL est publique et accessible, puis réessayez.",
+      detail: message,
+    }
+  }
+
+  if (
+    normalized.includes('pre-analyse impossible') ||
+    normalized.includes('ajout impossible') ||
+    normalized.includes("erreur interne lors de l'analyse")
+  ) {
+    return {
+      summary:
+        phase === 'preview'
+          ? "La pré-analyse du site n'a pas abouti."
+          : "Le site n'a pas pu être ajouté pour le moment.",
+      guidance:
+        "Réessayez dans quelques instants. Si le problème persiste, contactez la modération avec l'URL concernée.",
+      detail: message,
+    }
+  }
+
+  return {
+    summary: message,
+    guidance: "Vous pouvez corriger les informations puis relancer l'analyse.",
+    detail: null,
+  }
+}
+
 async function readApiPayload(response: Response) {
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
   const rawBody = await response.text()
@@ -309,7 +412,7 @@ function App() {
   const [isConfirmingSubmission, setIsConfirmingSubmission] = useState(false)
   const [loadingDirectory, setLoadingDirectory] = useState(true)
   const [directoryErrorMessage, setDirectoryErrorMessage] = useState<string | null>(null)
-  const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<SubmitErrorState | null>(null)
   const [submitInfoMessage, setSubmitInfoMessage] = useState<string | null>(null)
   const [submissionFeedback, setSubmissionFeedback] = useState<SubmissionFeedback | null>(null)
   const [isSubmitConfirmationStep, setIsSubmitConfirmationStep] = useState(false)
@@ -911,16 +1014,16 @@ function App() {
   }, [directoryErrorMessage, focusElement])
 
   useEffect(() => {
-    if (submitErrorMessage) {
+    if (submitError) {
       focusElement(submitErrorRef.current)
     }
-  }, [submitErrorMessage, focusElement])
+  }, [submitError, focusElement])
 
   useEffect(() => {
-    if (submissionFeedback && !submitErrorMessage) {
+    if (submissionFeedback && !submitError) {
       focusElement(duplicateFeedbackRef.current)
     }
-  }, [submissionFeedback, focusElement, submitErrorMessage])
+  }, [submissionFeedback, focusElement, submitError])
 
   const isSubmissionBusy = isPreAnalyzing || isConfirmingSubmission
 
@@ -938,6 +1041,14 @@ function App() {
     }
   }, [focusElement, lastAddedEntry])
 
+  const showSubmitError = useCallback((rawMessage: string, phase: SubmitErrorPhase) => {
+    const nextError = buildSubmitErrorState(rawMessage, phase)
+    setSubmitError((current) => ({
+      id: (current?.id ?? 0) + 1,
+      ...nextError,
+    }))
+  }, [])
+
   const handleDismissSubmissionFeedback = useCallback(() => {
     const closedMessage =
       submissionFeedback?.kind === 'already-pending'
@@ -949,6 +1060,14 @@ function App() {
       urlInputRef.current?.focus()
     }, 0)
   }, [announcePolite, submissionFeedback?.kind])
+
+  const handleDismissSubmitError = useCallback(() => {
+    setSubmitError(null)
+    announcePolite("Message d'erreur fermé. Retour au champ URL.")
+    window.setTimeout(() => {
+      urlInputRef.current?.focus()
+    }, 0)
+  }, [announcePolite])
 
   const handleSubmissionFeedback = useCallback(
     (kind: SubmissionFeedbackKind, entry: ShowcaseEntry, message: string) => {
@@ -1059,7 +1178,7 @@ function App() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    setSubmitErrorMessage(null)
+    setSubmitError(null)
     setSubmitInfoMessage(null)
     setLastAddedEntry(null)
     setSubmissionFeedback(null)
@@ -1068,8 +1187,7 @@ function App() {
     if (!inputUrl.trim()) {
       const message =
         'Veuillez saisir une URL complète, par exemple https://www.exemple.fr, avant de continuer.'
-      setSubmitErrorMessage(message)
-      announceAssertive(message)
+      showSubmitError(message, 'preview')
       return
     }
 
@@ -1142,8 +1260,7 @@ function App() {
       setSubmissionPreviewEntry(null)
       setSubmissionPreviewStatus(null)
       const localizedMessage = error instanceof Error ? error.message : 'Erreur réseau.'
-      setSubmitErrorMessage(localizedMessage)
-      announceAssertive(localizedMessage)
+      showSubmitError(localizedMessage, 'preview')
     } finally {
       setIsPreAnalyzing(false)
     }
@@ -1152,14 +1269,13 @@ function App() {
   const handleConfirmSubmission = useCallback(async () => {
     if (!isSubmitConfirmationStep || !submissionPreviewEntry) {
       const message = 'Veuillez lancer la pré-analyse avant de confirmer.'
-      setSubmitErrorMessage(message)
+      showSubmitError(message, 'submit')
       setSubmitInfoMessage(null)
-      announceAssertive(message)
       focusElement(urlInputRef.current)
       return
     }
 
-    setSubmitErrorMessage(null)
+    setSubmitError(null)
     setSubmitInfoMessage(null)
     setLastAddedEntry(null)
     setSubmissionFeedback(null)
@@ -1247,13 +1363,11 @@ function App() {
     } catch (error) {
       setLastAddedEntry(null)
       const localizedMessage = error instanceof Error ? error.message : 'Erreur réseau.'
-      setSubmitErrorMessage(localizedMessage)
-      announceAssertive(localizedMessage)
+      showSubmitError(localizedMessage, 'submit')
     } finally {
       setIsConfirmingSubmission(false)
     }
   }, [
-    announceAssertive,
     announcePolite,
     focusElement,
     handleSubmissionFeedback,
@@ -1261,6 +1375,7 @@ function App() {
     inputUrl,
     isSubmitConfirmationStep,
     loadShowcaseEntries,
+    showSubmitError,
     submissionPreviewEntry,
     websiteField,
   ])
@@ -1713,11 +1828,12 @@ function App() {
                   type="url"
                   autoComplete="url"
                   required
-                  aria-invalid={Boolean(submitErrorMessage)}
-                  aria-describedby={submitErrorMessage ? 'url-help url-format-help url-error' : 'url-help url-format-help'}
+                  aria-invalid={Boolean(submitError)}
+                  aria-describedby={submitError ? 'url-help url-format-help url-error-message' : 'url-help url-format-help'}
                   value={inputUrl}
                   onChange={(event) => {
                     setInputUrl(event.target.value)
+                    setSubmitError(null)
                     setSubmissionFeedback(null)
                     setIsSubmitConfirmationStep(false)
                     setSubmissionPreviewEntry(null)
@@ -1745,6 +1861,7 @@ function App() {
                   value={inputCategory}
                   onChange={(event) => {
                     setInputCategory(event.target.value)
+                    setSubmitError(null)
                     setSubmissionFeedback(null)
                     setIsSubmitConfirmationStep(false)
                     setSubmissionPreviewEntry(null)
@@ -1849,7 +1966,7 @@ function App() {
               </section>
             )}
 
-            {submissionFeedback && !submitErrorMessage && (
+            {submissionFeedback && !submitError && (
               <section
                 key={submissionFeedback.id}
                 ref={duplicateFeedbackRef}
@@ -1927,19 +2044,52 @@ function App() {
               </section>
             )}
 
-            {submitErrorMessage && (
-              <p
-                id="url-error"
+            {submitError && (
+              <section
+                key={submitError.id}
                 ref={submitErrorRef}
                 tabIndex={-1}
-                className="mt-4 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-3 text-sm text-rose-800 dark:text-rose-100"
+                className="mt-4 rounded-xl border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-4 text-rose-900 dark:text-rose-100 focus:outline-3 focus:outline-offset-3 focus:outline-brand-focus"
                 role="alert"
+                aria-atomic="true"
+                aria-labelledby="url-error-title"
+                aria-describedby="url-error-message url-error-guidance"
               >
-                {submitErrorMessage}
-              </p>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 id="url-error-title" className="text-base font-semibold">
+                      Analyse interrompue
+                    </h3>
+                    <p id="url-error-message" className="mt-2 text-sm font-medium">
+                      {submitError.summary}
+                    </p>
+                    <p id="url-error-guidance" className="mt-2 text-sm">
+                      {submitError.guidance}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDismissSubmitError}
+                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                  >
+                    Fermer ce message
+                  </button>
+                </div>
+                {submitError.detail && (
+                  <details className="mt-4 rounded-lg border border-rose-200 dark:border-rose-800 bg-white/60 dark:bg-slate-950/40 p-3 text-xs text-rose-950 dark:text-rose-50">
+                    <summary className={`block min-h-11 cursor-pointer rounded-lg py-2 text-sm font-semibold ${focusRingClass}`}>
+                      Afficher les détails techniques
+                    </summary>
+                    <p className="mt-2 text-xs">
+                      Ces détails sont utiles uniquement si vous contactez la modération ou le support.
+                    </p>
+                    <p className="mt-2 wrap-anywhere font-mono">{submitError.detail}</p>
+                  </details>
+                )}
+              </section>
             )}
 
-            {submitInfoMessage && !submitErrorMessage && (
+            {submitInfoMessage && !submitError && (
               <p
                 ref={submitInfoRef}
                 tabIndex={-1}
@@ -1951,7 +2101,7 @@ function App() {
               </p>
             )}
 
-            {lastAddedEntry && !submitErrorMessage && (
+            {lastAddedEntry && !submitError && (
               <section
                 ref={lastAddedRef}
                 tabIndex={-1}

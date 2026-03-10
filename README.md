@@ -34,6 +34,7 @@ Public website: **https://annuaire-rgaa.fr**
 - Confirmation CTA lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.
 - Duplicate submissions trigger a dedicated accessible feedback panel (`Site déjà référencé`) with polite live announcement, programmatic focus, dismiss action, and direct moderation contact links.
 - URLs already submitted and still under manual review trigger a dedicated accessible feedback panel (`Site déjà soumis et en cours de revue`) so users do not repeat the same submission.
+- Submission errors now use a dedicated accessible panel with simplified French wording, automatic focus, dismiss action, and optional collapsed technical details for support/debug handoff.
 - Each listed site has a dedicated public profile page (`/site/{slug}`) with shareable metadata and backlink snippet.
 - Profile pages expose stronger SEO/IA signals: dedicated `WebPage` + referenced `WebSite` + `Dataset` structured data, direct API link (`/api/showcase?slug={slug}`), explicit accessibility-statement linking when detected, and related-profile internal linking.
 - Profile pages provide a reusable visual backlink badge (`/badge-backlink-annuaire-rgaa.svg`) plus copy-ready HTML snippets with explicit `alt` and `aria-label`.
@@ -175,6 +176,7 @@ The UI adapts automatically to operating-system and browser accessibility prefer
 - Machine-readable accessibility snapshot: `/ai-context.json`
 - Public pages explicitly covered by the declaration include `/`, `/plan-du-site`, `/accessibilite`, and `/site/{slug}`.
 - Dynamic status and error feedback uses localized French live regions (`aria-live="polite"` and `aria-live="assertive"`).
+- Submission error feedback keeps technical diagnostics out of the primary message and exposes them only through an explicit expandable disclosure.
 - Accessibility implementation references are listed in the `Accessibility Sources Embedded` section below.
 
 ## SEO
@@ -252,6 +254,7 @@ Local services:
 - `4xx` when rejected by validation/anti-abuse rules (spam, invalid input, etc.)
 - Public submissions accept only moderator-approved category values from the dropdown; unknown values are normalized to `Autre`.
 - For `duplicate`, the frontend displays an explicit guidance block that links to the existing profile and moderation contact (`/accessibilite#contact-accessibilite`) before any re-listing request.
+- For submission/runtime failures, the frontend displays a focused French error summary first, then an optional `Afficher les détails techniques` disclosure that can be ignored by most users.
 - For `pending` + `alreadySubmitted: true`, the frontend skips confirmation and displays an explicit guidance block to avoid duplicate pending submissions.
 
 `POST /api/site-insight?preview=1` behavior:
