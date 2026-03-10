@@ -31,6 +31,7 @@ Public website: **https://annuaire-rgaa.fr**
 - Reddit-like upvote on each directory tile with accessible button state (`aria-pressed`) and live vocal feedback.
 - Each directory tile includes an explicit RGAA baseline badge (`RGAA 4.1` or `RGAA 5.0 prêt`) with readable explanation text.
 - Domains with multiple public entries are now grouped into a simplified multi-site card on homepage with a single explicit CTA, while the detailed sibling listing and secondary actions live on the dedicated public page (`/domaine/{groupSlug}`) so homepage tiles stay visually homogeneous and keyboard flow stays shorter.
+- A general, non-live disclaimer now clarifies that listed scores are declarative values provided by submitters, do not engage Annuaire RGAA editorial responsibility, and can be re-evaluated by contacting moderation.
 - Submission flow includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
 - Submission flow now detects when the URL belongs to a domain already represented in the annuaire, announces that context in French live feedback, and clarifies that the URL will be treated as a distinct sub-site rather than an exact duplicate.
 - Confirmation CTA lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.

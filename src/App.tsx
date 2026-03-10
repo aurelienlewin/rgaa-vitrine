@@ -1812,6 +1812,18 @@ function App() {
               l’annuaire).
             </p>
 
+            {showcaseEntries.length > 0 && (
+              <p className="mt-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                Les scores affichés sont déclarés par les organismes qui soumettent leur site et sont publiés à titre
+                informatif. Ils n’engagent pas la responsabilité éditoriale d’Annuaire RGAA. En cas de réévaluation
+                documentée, vous pouvez{' '}
+                <a href={moderationContactPath} className={`font-semibold underline ${focusRingClass}`}>
+                  contacter la modération
+                </a>{' '}
+                pour demander une mise à jour.
+              </p>
+            )}
+
             {loadingDirectory && <p className="mt-3 text-slate-700 dark:text-slate-300">Chargement de l’annuaire...</p>}
 
             {!loadingDirectory && showcaseEntries.length === 0 && (

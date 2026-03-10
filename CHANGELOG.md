@@ -9,6 +9,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ### Changed
 - Homepage multi-site cards now keep a simplified, card-consistent layout: sibling site previews were moved back to the dedicated domain detail page and the card now exposes a single explicit CTA to reduce tab stops and link-list ambiguity.
+- Added a general score disclaimer on homepage and accessibility contact page so the declarative nature of submitted scores is stated once, without live-region noise, and moderation remains the path for documented re-evaluations.
 
 ## [2026-03-10]
 

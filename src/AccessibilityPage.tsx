@@ -304,6 +304,10 @@ function AccessibilityPage() {
               Si vous ne parvenez pas à accéder à un contenu ou à une fonctionnalité, contactez le responsable du site
               pour obtenir une alternative accessible.
             </p>
+            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+              Les scores publiés dans l’annuaire sont déclarés par les organismes qui soumettent leur site. Ils sont
+              affichés à titre informatif et peuvent être réévalués sur demande motivée auprès de la modération.
+            </p>
             <ul className="mt-4 grid gap-3">
               <li className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Contact principal</p>
