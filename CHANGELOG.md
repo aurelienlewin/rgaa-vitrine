@@ -17,6 +17,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Showcase thumbnails now render in a framed `contain` layout with an inner adaptive canvas, improving contrast for transparent logos with dark or light strokes in both themes and preventing `cover` cropping on directory cards.
 - Submission error feedback on the homepage now prioritizes short French user guidance, moves focus to a dismissable alert panel, and keeps raw technical diagnostics behind an explicit expandable disclosure.
 - Site analysis now caches host-validation lookups during a single run, only follows `ai-context` when the target site explicitly advertises it, and reuses short-lived preview results during final confirmation to avoid duplicate remote fetches.
+- Pre-analysis thumbnail extraction now falls back to site logos and icons when `og:image` / `twitter:image` are missing, improving preview coverage for brand-first sites.
 
 ## [2026-03-09]
 
