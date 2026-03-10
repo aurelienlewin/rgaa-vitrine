@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
 import { normalizeDomainContext } from './domainGroups'
+import { preloadRouteApi } from './routeData'
 import { applySeo, createAbsoluteUrl } from './seo'
 import { readSiteSlugFromPath, resolveShowcaseProfilePath } from './siteProfiles'
 import SecondaryPageHeader from './SecondaryPageHeader'
@@ -121,32 +122,6 @@ function isShowcaseEntry(payload: unknown): payload is ShowcaseEntry {
     typeof candidate.category === 'string' &&
     typeof candidate.updatedAt === 'string'
   )
-}
-
-async function readApiPayload(response: Response) {
-  const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
-  const rawBody = await response.text()
-
-  if (!rawBody.trim()) {
-    return {}
-  }
-
-  if (contentType.includes('application/json')) {
-    try {
-      return JSON.parse(rawBody) as Record<string, unknown>
-    } catch {
-      return { error: 'Réponse JSON invalide du serveur.' }
-    }
-  }
-
-  const compactBody = rawBody.trim().replace(/\s+/g, ' ')
-  if (/<!doctype html|<html[\s>]/i.test(compactBody)) {
-    return {
-      error:
-        'Réponse HTML reçue à la place de JSON API. Vérifiez le routage des endpoints /api/*.',
-    }
-  }
-  return { error: compactBody.slice(0, 220) || 'Réponse serveur non JSON.' }
 }
 
 function readCanonicalRedirectPath(payload: Record<string, unknown>) {
@@ -476,11 +451,12 @@ function SiteProfilePage() {
       setErrorMessage(null)
 
       try {
-        const response = await fetch(`/api/showcase?slug=${encodeURIComponent(siteSlug)}&limit=500`)
-        const payload = await readApiPayload(response)
+        const { ok, payload } = await preloadRouteApi(
+          `/api/showcase?slug=${encodeURIComponent(siteSlug)}&limit=500`,
+        )
         const redirectPath = readCanonicalRedirectPath(payload)
 
-        if (!response.ok) {
+        if (!ok) {
           throw new Error(typeof payload.error === 'string' ? payload.error : 'Chargement de la fiche impossible.')
         }
 
@@ -493,7 +469,7 @@ function SiteProfilePage() {
         }
 
         const responseEntries = Array.isArray(payload.entries)
-          ? payload.entries
+          ? (payload.entries as unknown[])
           : Array.isArray(payload)
             ? payload
             : null
@@ -552,7 +528,27 @@ function SiteProfilePage() {
         const response = await fetch(
           `/api/showcase?category=${encodeURIComponent(activeEntry.category)}&limit=${MAX_RELATED_FETCH_LIMIT}`,
         )
-        const payload = await readApiPayload(response)
+        const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
+        const rawBody = await response.text()
+        let payload: Record<string, unknown>
+
+        if (!rawBody.trim()) {
+          payload = {}
+        } else if (contentType.includes('application/json')) {
+          try {
+            payload = JSON.parse(rawBody) as Record<string, unknown>
+          } catch {
+            payload = { error: 'Réponse JSON invalide du serveur.' }
+          }
+        } else {
+          const compactBody = rawBody.trim().replace(/\s+/g, ' ')
+          payload = /<!doctype html|<html[\s>]/i.test(compactBody)
+            ? {
+                error:
+                  'Réponse HTML reçue à la place de JSON API. Vérifiez le routage des endpoints /api/*.',
+              }
+            : { error: compactBody.slice(0, 220) || 'Réponse serveur non JSON.' }
+        }
 
         if (!response.ok) {
           throw new Error(typeof payload.error === 'string' ? payload.error : 'Chargement des fiches associées impossible.')

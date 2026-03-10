@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
 import { normalizeDomainGroup, readDomainGroupSlugFromPath, type DomainGroup } from './domainGroups'
+import { preloadRouteApi } from './routeData'
 import { applySeo, createAbsoluteUrl } from './seo'
 import { resolveShowcaseProfilePath } from './siteProfiles'
 import SecondaryPageHeader from './SecondaryPageHeader'
@@ -31,33 +32,6 @@ function formatScore(value: number | null) {
   }).format(value)
 
   return `${localized}%`
-}
-
-async function readApiPayload(response: Response) {
-  const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
-  const rawBody = await response.text()
-
-  if (!rawBody.trim()) {
-    return {}
-  }
-
-  if (contentType.includes('application/json')) {
-    try {
-      return JSON.parse(rawBody) as Record<string, unknown>
-    } catch {
-      return { error: 'Réponse JSON invalide du serveur.' }
-    }
-  }
-
-  const compactBody = rawBody.trim().replace(/\s+/g, ' ')
-  if (/<!doctype html|<html[\s>]/i.test(compactBody)) {
-    return {
-      error:
-        'Réponse HTML reçue à la place de JSON API. Vérifiez le routage des endpoints /api/*.',
-    }
-  }
-
-  return { error: compactBody.slice(0, 220) || 'Réponse serveur non JSON.' }
 }
 
 function DomainGroupPage() {
@@ -117,14 +91,15 @@ function DomainGroupPage() {
       setErrorMessage(null)
 
       try {
-        const response = await fetch(`/api/domain-groups?slug=${encodeURIComponent(groupSlug)}`)
-        const payload = await readApiPayload(response)
+        const { ok, payload } = await preloadRouteApi(
+          `/api/domain-groups?slug=${encodeURIComponent(groupSlug)}`,
+        )
 
-        if (!response.ok) {
+        if (!ok) {
           throw new Error(typeof payload.error === 'string' ? payload.error : 'Chargement du domaine impossible.')
         }
 
-        const groups = Array.isArray(payload.groups) ? payload.groups : null
+        const groups = Array.isArray(payload.groups) ? (payload.groups as unknown[]) : null
         if (!groups) {
           throw new Error('Réponse domaine invalide.')
         }

@@ -1,10 +1,12 @@
-import { StrictMode, Suspense, lazy } from 'react'
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import '@fontsource/atkinson-hyperlegible/latin-400.css'
 import '@fontsource/atkinson-hyperlegible/latin-700.css'
 import './index.css'
-import App from './App.tsx'
 import { initializeTheme } from './theme'
+import { readDomainGroupSlugFromPath } from './domainGroups'
+import { preloadRouteApi } from './routeData'
+import { readSiteSlugFromPath } from './siteProfiles'
 
 const canUseDom = typeof window !== 'undefined' && typeof document !== 'undefined'
 
@@ -43,12 +45,6 @@ if (canUseDom) {
   initializeTheme()
 }
 
-export const ModerationPage = lazy(() => import('./ModerationPage.tsx'))
-export const SiteMapPage = lazy(() => import('./SiteMapPage.tsx'))
-export const AccessibilityPage = lazy(() => import('./AccessibilityPage.tsx'))
-export const SiteProfilePage = lazy(() => import('./SiteProfilePage.tsx'))
-export const DomainGroupPage = lazy(() => import('./DomainGroupPage.tsx'))
-
 function normalizePathname(pathname: string) {
   if (pathname === '/') {
     return pathname
@@ -64,30 +60,45 @@ const isAccessibilityRoute = currentPathname === '/accessibilite'
 const isSiteProfileRoute = currentPathname.startsWith('/site/')
 const isDomainGroupRoute = currentPathname.startsWith('/domaine/')
 
-export const RootComponent = isModerationRoute
-  ? ModerationPage
-  : isSiteMapRoute
-    ? SiteMapPage
-    : isAccessibilityRoute
-      ? AccessibilityPage
-      : isDomainGroupRoute
-        ? DomainGroupPage
-        : isSiteProfileRoute
-          ? SiteProfilePage
-          : App
+function preloadInitialRouteData(pathname: string) {
+  const domainGroupSlug = readDomainGroupSlugFromPath(pathname)
+  if (domainGroupSlug) {
+    void preloadRouteApi(`/api/domain-groups?slug=${encodeURIComponent(domainGroupSlug)}`)
+    return
+  }
+
+  const siteSlug = readSiteSlugFromPath(pathname)
+  if (siteSlug) {
+    void preloadRouteApi(`/api/showcase?slug=${encodeURIComponent(siteSlug)}&limit=500`)
+  }
+}
+
+async function resolveRootModule() {
+  if (isModerationRoute) {
+    return import('./ModerationPage.tsx')
+  }
+  if (isSiteMapRoute) {
+    return import('./SiteMapPage.tsx')
+  }
+  if (isAccessibilityRoute) {
+    return import('./AccessibilityPage.tsx')
+  }
+  if (isDomainGroupRoute) {
+    return import('./DomainGroupPage.tsx')
+  }
+  if (isSiteProfileRoute) {
+    return import('./SiteProfilePage.tsx')
+  }
+
+  return import('./App.tsx')
+}
 
 if (canUseDom) {
+  preloadInitialRouteData(currentPathname)
+  const RootComponent = (await resolveRootModule()).default
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <Suspense
-        fallback={
-          <div className="min-h-screen bg-brand-surface px-4 py-6 text-brand-ink" role="status" aria-live="polite">
-            Chargement…
-          </div>
-        }
-      >
-        <RootComponent />
-      </Suspense>
+      <RootComponent />
     </StrictMode>,
   )
 
