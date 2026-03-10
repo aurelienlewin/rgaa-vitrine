@@ -14,11 +14,14 @@ Annuaire RGAA est une application web orientée accessibilité numérique, en fr
 - Plan du site: https://annuaire-rgaa.fr/plan-du-site
 - Déclaration d’accessibilité: https://annuaire-rgaa.fr/accessibilite
 - Pattern de fiche publique: https://annuaire-rgaa.fr/site/{slug}
+- Pattern de page domaine: https://annuaire-rgaa.fr/domaine/{groupSlug}
 - Sitemap XML: https://annuaire-rgaa.fr/sitemap.xml
 - Fichier robots: https://annuaire-rgaa.fr/robots.txt
 - Contexte IA JSON: https://annuaire-rgaa.fr/ai-context.json
 - API annuaire: https://annuaire-rgaa.fr/api/showcase
 - API fiche ciblée: https://annuaire-rgaa.fr/api/showcase?slug={slug}
+- API domaines multi-sites: https://annuaire-rgaa.fr/api/domain-groups
+- API domaine ciblé: https://annuaire-rgaa.fr/api/domain-groups?slug={groupSlug}
 - Santé service: https://annuaire-rgaa.fr/api/health
 
 ## Modèle de données principal (showcase entry)
@@ -35,9 +38,25 @@ Annuaire RGAA est une application web orientée accessibilité numérique, en fr
 - updatedAt: ISO date string
 - category: string
 
+## Modèle de données domaine (domain group)
+- groupSlug: string
+- groupPath: string (chemin interne `/domaine/{groupSlug}`)
+- registrableDomain: string
+- siteCount: number
+- updatedAt: ISO date string
+- primaryEntry: object|null
+- children: array
+- statusSummary: object
+
+## Origine des ressources de découverte
+- `sitemap.xml`: endpoint serveur généré automatiquement.
+- `ai-context.json`: endpoint serveur généré automatiquement.
+- `robots.txt`, `llms.txt`, `llms-full.txt`: fichiers statiques versionnés dans `public/`.
+
 ## Conseils d'utilisation IA
 - Consommer prioritairement `/api/showcase` pour les données à jour.
 - Pour une fiche précise, privilégier `/api/showcase?slug={slug}`.
+- Pour les regroupements multi-sites, privilégier `/api/domain-groups` et `/api/domain-groups?slug={groupSlug}`.
 - Utiliser `sitemap.xml` pour découvrir les ressources publiques.
 - Utiliser `/plan-du-site` pour récupérer un extrait de liens vers les fiches publiées.
 - Respecter les limites de fréquence de requêtes et la mise en cache.

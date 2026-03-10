@@ -1153,6 +1153,12 @@ app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
       priority: 0.6,
     },
     {
+      path: '/api/domain-groups',
+      lastModified,
+      changeFrequency: 'daily',
+      priority: 0.5,
+    },
+    {
       path: '/llms.txt',
       lastModified,
       changeFrequency: 'monthly',

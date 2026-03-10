@@ -7,17 +7,21 @@ Annuaire francophone de sites web qui publient des informations de conformité R
 - Plan du site: https://annuaire-rgaa.fr/plan-du-site
 - Déclaration d’accessibilité: https://annuaire-rgaa.fr/accessibilite
 - Fiches site: https://annuaire-rgaa.fr/site/{slug}
+- Pages domaine: https://annuaire-rgaa.fr/domaine/{groupSlug}
 - Sitemap XML: https://annuaire-rgaa.fr/sitemap.xml
+- Fichier robots: https://annuaire-rgaa.fr/robots.txt
 - Contexte IA JSON: https://annuaire-rgaa.fr/ai-context.json
 
 ## Endpoints publics utiles
 - https://annuaire-rgaa.fr/api/showcase (GET JSON, annuaire des sites)
 - https://annuaire-rgaa.fr/api/showcase?slug={slug} (GET JSON, une fiche ciblée)
+- https://annuaire-rgaa.fr/api/domain-groups (GET JSON, groupes de domaines multi-sites)
+- https://annuaire-rgaa.fr/api/domain-groups?slug={groupSlug} (GET JSON, un domaine ciblé)
 - https://annuaire-rgaa.fr/api/health (GET JSON, état du service)
 
 ## Langue et périmètre
 - Langue principale: fr-FR
-- Contenu public indexable: accueil, plan du site, ressources associées
+- Contenu public indexable: accueil, plan du site, déclaration d’accessibilité, fiches `/site/{slug}`, pages domaine `/domaine/{groupSlug}`, ressources associées
 - Contenu non indexable: /moderation
 
 ## Politique d'exploration

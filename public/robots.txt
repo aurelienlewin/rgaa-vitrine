@@ -6,4 +6,5 @@ Sitemap: https://annuaire-rgaa.fr/sitemap.xml
 
 # AI crawler hints
 # llms.txt: https://annuaire-rgaa.fr/llms.txt
+# llms-full.txt: https://annuaire-rgaa.fr/llms-full.txt
 # ai-context: https://annuaire-rgaa.fr/ai-context.json
