@@ -192,6 +192,7 @@ The UI adapts automatically to operating-system and browser accessibility prefer
 - Public accessibility declaration: `/accessibilite`
 - Machine-readable accessibility snapshot: `/ai-context.json`
 - Public pages explicitly covered by the declaration include `/`, `/plan-du-site`, `/accessibilite`, `/site/{slug}`, and `/domaine/{groupSlug}`.
+- The deferred-stylesheet strategy keeps the shared secondary header search usable before the full CSS bundle arrives: labels stay explicit, target heights remain at least `44px`, and tab order/focus affordances do not depend on late-loaded styles.
 - Dynamic status and error feedback uses localized French live regions (`aria-live="polite"` and `aria-live="assertive"`).
 - Submission error feedback keeps technical diagnostics out of the primary message and exposes them only through an explicit expandable disclosure.
 - Accessibility implementation references are listed in the `Accessibility Sources Embedded` section below.
