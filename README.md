@@ -30,16 +30,16 @@ Public website: **https://annuaire-rgaa.fr**
 - Automatic lazy loading of additional tiles near viewport end (with keyboard-accessible manual fallback).
 - Reddit-like upvote on each directory tile with accessible button state (`aria-pressed`) and live vocal feedback.
 - Each directory tile includes an explicit RGAA baseline badge (`RGAA 4.1` or `RGAA 5.0 prêt`) with readable explanation text.
-- Domains with multiple public entries are now grouped into a simplified multi-site card on homepage with a single explicit CTA, while the detailed sibling listing and secondary actions live on the dedicated public page (`/domaine/{groupSlug}`) so homepage tiles stay visually homogeneous and keyboard flow stays shorter.
-- A general, non-live disclaimer now clarifies that listed scores are declarative values provided by submitters, do not engage Annuaire RGAA editorial responsibility, and can be re-evaluated by contacting moderation.
+- Domains with multiple public entries are grouped into a simplified multi-site homepage card with a single explicit CTA, while the detailed sibling listing and secondary actions live on the dedicated public page (`/domaine/{groupSlug}`).
+- A general, non-live disclaimer clarifies that listed scores are declarative values provided by submitters, do not engage Annuaire RGAA editorial responsibility, and can be re-evaluated by contacting moderation.
 - Submission flow includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
-- Submission flow now detects when the URL belongs to a domain already represented in the annuaire, announces that context in French live feedback, and clarifies that the URL will be treated as a distinct sub-site rather than an exact duplicate.
+- Submission flow detects when the URL belongs to a domain already represented in the annuaire, announces that context in French live feedback, and clarifies that the URL is treated as a distinct sub-site rather than an exact duplicate.
 - Confirmation CTA lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.
 - Final confirmation reuses a short-lived server-side preview token when available, so users do not pay the full remote analysis cost twice in a row.
-- Pre-analysis thumbnail detection now falls back from social preview images to site logos and icons when no richer image is exposed.
+- Pre-analysis thumbnail detection falls back from social preview images to site logos and icons when no richer image is exposed.
 - Duplicate submissions trigger a dedicated accessible feedback panel (`Site déjà référencé`) with polite live announcement, programmatic focus, dismiss action, and direct moderation contact links.
 - URLs already submitted and still under manual review trigger a dedicated accessible feedback panel (`Site déjà soumis et en cours de revue`) so users do not repeat the same submission.
-- Submission errors now use a dedicated accessible panel with simplified French wording, automatic focus, dismiss action, and optional collapsed technical details for support/debug handoff.
+- Submission errors use a dedicated accessible panel with simplified French wording, automatic focus, dismiss action, and optional collapsed technical details for support/debug handoff.
 - Each listed site has a dedicated public profile page (`/site/{slug}`) with shareable metadata and backlink snippet.
 - Profile pages expose stronger SEO/IA signals: dedicated `WebPage` + referenced `WebSite` + `Dataset` structured data, direct API link (`/api/showcase?slug={slug}`), explicit accessibility-statement linking when detected, and related-profile internal linking.
 - Profile pages provide a reusable visual backlink badge (`/badge-backlink-annuaire-rgaa.svg`) plus copy-ready HTML snippets with explicit `alt` and `aria-label`.
@@ -56,9 +56,9 @@ Public website: **https://annuaire-rgaa.fr**
 - Footer version resolves from release tags first (with package version fallback) to stay aligned with published GitHub releases.
 - Footer uses a clearer three-column information architecture (French UI labels: `Projet`, `Navigation rapide`, `Soutien`) on large screens.
 - Header logo and footer avatar declare explicit intrinsic image dimensions to reserve layout space early and reduce CLS without altering French accessible names.
-- Homepage no longer performs runtime DOM/style color-pair patching after first paint; the contrast-safe text/background guard now stays CSS-only to reduce startup recalculation pressure.
-- Homepage now preloads the logo, marks it with high fetch priority, fetches the public directory immediately on mount, and hydrates client vote state separately so the first annuaire fetch can start earlier and stay cache-friendly.
-- Live-region announcers now use immediate inline visually-hidden styles instead of relying only on the delayed `sr-only` stylesheet, and homepage stats/results summaries reserve stable text space to reduce CLS during app bootstrap and directory hydration.
+- Homepage relies on CSS-only contrast-safe text/background guards rather than runtime DOM/style patching after first paint.
+- Homepage preloads the logo, marks it with high fetch priority, fetches the public directory immediately on mount, and hydrates client vote state separately so the first annuaire fetch can start earlier and stay cache-friendly.
+- Live-region announcers use immediate inline visually-hidden styles instead of relying only on the delayed `sr-only` stylesheet, and homepage stats/results summaries reserve stable text space to reduce CLS during app bootstrap and directory hydration.
 - All pages share a consistent top `navigation principale` landmark (French UI label) and the same global footer.
 - Global `:focus-visible` fallback styles reinforce WCAG 2.2 focus visibility on all controls.
 - Route lazy-loading fallback is announced as status (`aria-live="polite"`) to avoid silent loading states.
@@ -73,8 +73,8 @@ Public website: **https://annuaire-rgaa.fr**
 - Dedicated moderation UI at `/moderation` for approving/rejecting pending submissions.
 - Moderation dashboards and controls stay hidden until a valid moderation token is submitted.
 - Moderation token session can be restored automatically (tab session by default, optional 12h persistence on the current device) with an explicit sign-out/forget action.
-- Pending moderation submissions now use a more urgent high-contrast review treatment (section alert summary, stronger card framing, explicit `À traiter` badges, and emphasized approve/reject actions) so manual validations are harder to overlook.
-- Moderation now exposes domain-level context on both pending and published entries (existing sibling sites, pending submissions on the same domain, and direct access to the public domain page) to help reviewers process multi-site submissions consistently.
+- Pending moderation submissions use a more urgent high-contrast review treatment (section alert summary, stronger card framing, explicit `À traiter` badges, and emphasized approve/reject actions).
+- Moderation exposes domain-level context on both pending and published entries (existing sibling sites, pending submissions on the same domain, and direct access to the public domain page) to help reviewers process multi-site submissions consistently.
 - Dedicated moderation UI supports published entry editing and deletion (title, category, score, status, RGAA baseline badge, vignette, accessibility URL).
 - Moderation includes editable site blocklist and vote-blocklist controls, plus a single action to delete and block a published site.
 - Moderation forms strengthen input assistance (`required`, typed URL fields, explicit score guidance) and row-level action labels for assistive technologies.
@@ -87,11 +87,11 @@ Public website: **https://annuaire-rgaa.fr**
 - Tailwind CSS v4 native features used directly (`@theme` tokens + utility-first focus/skip-link patterns).
 - Embedded skills: `rgaa-official-recommendations`, `wcag-22-official-guidelines`.
 - Frontend route bundles are split (`/moderation`, `/plan-du-site`, `/accessibilite`) to reduce initial JavaScript on homepage load.
-- Public detail routes (`/site/{slug}` and `/domaine/{groupSlug}`) now preload their API payload as soon as the route is detected and bootstrap only the active page module, which shortens the critical request chain on direct-entry detail pages.
-- Public detail routes now inline a compact critical CSS shell for the shared secondary header/search area, preload the primary Atkinson Hyperlegible woff2 assets, and defer the full app stylesheet non-blockingly so first paint stays stable without keeping the full CSS file on the critical rendering path.
-- Route-aware head fallbacks now set canonical/title/description/robots earlier on `/site/*`, `/domaine/*`, `/plan-du-site`, `/accessibilite`, and `/moderation`, improving first-paint SEO consistency before React hydration.
-- Public detail pages now keep loading states polite, mark busy regions explicitly, preserve focus on copy CTAs, and label new-tab links directly in visible text for RGAA/WCAG consistency.
-- The public site map now lists dedicated domain-group pages as first-class crawlable links, matching the XML sitemap and reinforcing internal discovery.
+- Public detail routes (`/site/{slug}` and `/domaine/{groupSlug}`) preload their API payload as soon as the route is detected and bootstrap only the active page module, which shortens the critical request chain on direct-entry detail pages.
+- Public detail routes inline a compact critical CSS shell for the shared secondary header/search area, preload the primary Atkinson Hyperlegible woff2 assets, and defer the full app stylesheet non-blockingly so first paint stays stable without keeping the full CSS file on the critical rendering path.
+- Route-aware head fallbacks set canonical/title/description/robots earlier on `/site/*`, `/domaine/*`, `/plan-du-site`, `/accessibilite`, and `/moderation`, improving first-paint SEO consistency before React hydration.
+- Public detail pages keep loading states polite, mark busy regions explicitly, preserve focus on copy CTAs, and label new-tab links directly in visible text for RGAA/WCAG consistency.
+- The public site map lists dedicated domain-group pages as first-class crawlable links, matching the XML sitemap and reinforcing internal discovery.
 - Secondary local fonts (`OpenDyslexic`, `Lexend`) are deferred after first paint (idle callback).
 
 ## Tech Stack
@@ -172,7 +172,7 @@ You can check the active storage mode via:
 - Moderation archive hardening: optional HMAC-signed exports/imports (`MODERATION_ARCHIVE_SIGNING_SECRET`) and rollback guard for destructive `replace` imports.
 - GitHub notifier hardening: explicit notifier token env vars only, strict public-HTTPS validation for custom GitHub API base URL, and short outbound timeout.
 - Domain-level deduplication via canonical URL normalization (e.g. `www` variants collapse)
-- Exact duplicate detection remains URL-based, while same-domain submissions are now preserved as distinct sub-sites and grouped under a dedicated public domain view.
+- Exact duplicate detection remains URL-based, while same-domain submissions are preserved as distinct sub-sites and grouped under a dedicated public domain view.
 - Honeypot field validation to reduce automated spam submissions
 - Automatic spam/marketing signal rejection (quality filter)
 - Manual-review queue for non-auto-publishable submissions (pending until moderator action)
@@ -205,7 +205,7 @@ The UI adapts automatically to operating-system and browser accessibility prefer
 - Structured data (JSON-LD) on homepage combines `WebSite`, `WebPage`, `WebApplication`, `Organization`, `Person`, `CollectionPage`, `DataCatalog`, and `Dataset`.
 - Structured data exposes `SearchAction` on homepage, `BreadcrumbList` on key secondary pages, and richer `Dataset` semantics (`variableMeasured`, `measurementTechnique`, distributions).
 - Profile pages publish a referenced-site `WebSite`, a per-profile `Dataset`, and a dedicated accessibility-statement `WebPage` node when a declaration URL is known.
-- Domain-group pages (`/domaine/{groupSlug}`) are now crawlable public collection pages linked from simplified homepage multi-site tiles and included in sitemap generation.
+- Domain-group pages (`/domaine/{groupSlug}`) are crawlable public collection pages linked from simplified homepage multi-site tiles and included in sitemap generation.
 - Static `index.html` keeps a stronger metadata fallback graph so non-hydrated crawlers still discover the main site entities and dataset endpoint.
 - Accessible public site map page: `/plan-du-site`
 - Site map page lists an extract of published `/site/{slug}` links to strengthen crawlable internal discovery.
