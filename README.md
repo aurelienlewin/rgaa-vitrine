@@ -32,6 +32,7 @@ Public website: **https://annuaire-rgaa.fr**
 - Each directory tile includes an explicit RGAA baseline badge (`RGAA 4.1` or `RGAA 5.0 prêt`) with readable explanation text.
 - Submission flow includes a pre-analysis step before confirmation, exposing detected title/status/score/accessibility URL before final send.
 - Confirmation CTA lives inside the post pre-analysis verification panel; the initial pre-analysis button is disabled after analysis to prevent action ambiguity.
+- Final confirmation reuses a short-lived server-side preview token when available, so users do not pay the full remote analysis cost twice in a row.
 - Duplicate submissions trigger a dedicated accessible feedback panel (`Site déjà référencé`) with polite live announcement, programmatic focus, dismiss action, and direct moderation contact links.
 - URLs already submitted and still under manual review trigger a dedicated accessible feedback panel (`Site déjà soumis et en cours de revue`) so users do not repeat the same submission.
 - Submission errors now use a dedicated accessible panel with simplified French wording, automatic focus, dismiss action, and optional collapsed technical details for support/debug handoff.
@@ -262,6 +263,7 @@ Local services:
 - never persists data
 - returns extracted metadata (`siteTitle`, `accessibilityPageUrl`, `complianceStatus`, `complianceScore`)
 - returns projected `submissionStatus` (`approved`, `pending`, `duplicate`) with explanatory `message`
+- returns a short-lived `previewToken` for the confirmation step when the site remains eligible for submission
 - when projected status is `duplicate`, the submission confirmation flow is skipped and the duplicate guidance panel is shown immediately.
 - when projected status is `pending` with `alreadySubmitted: true`, the submission confirmation flow is also skipped and a dedicated “already under review” guidance panel is shown immediately.
 

@@ -16,6 +16,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Accessibility statement technical references now reflect the explicit project toolchain and the currently resolved frontend/runtime stack used for the audited service.
 - Showcase thumbnails now render in a framed `contain` layout with an inner adaptive canvas, improving contrast for transparent logos with dark or light strokes in both themes and preventing `cover` cropping on directory cards.
 - Submission error feedback on the homepage now prioritizes short French user guidance, moves focus to a dismissable alert panel, and keeps raw technical diagnostics behind an explicit expandable disclosure.
+- Site analysis now caches host-validation lookups during a single run, only follows `ai-context` when the target site explicitly advertises it, and reuses short-lived preview results during final confirmation to avoid duplicate remote fetches.
 
 ## [2026-03-09]
 

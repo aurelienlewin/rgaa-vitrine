@@ -1,7 +1,7 @@
 import express from 'express'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { isIP } from 'node:net'
 import { buildSiteInsight, SiteInsightError, validatePublicHttpUrl } from './siteInsight.js'
 import { isGithubNotifierEnabled, notifyPendingModerationOnGithub } from './githubNotifier.js'
@@ -46,6 +46,8 @@ const ARCHIVE_FORMAT = 'annuaire-rgaa-archive'
 const ARCHIVE_VERSION = 1
 const ARCHIVE_INTEGRITY_ALGORITHM = 'hmac-sha256'
 const MIN_ARCHIVE_SIGNING_SECRET_LENGTH = 32
+const SITE_INSIGHT_PREVIEW_CACHE_TTL_MS = 10 * 60 * 1000
+const SITE_INSIGHT_PREVIEW_CACHE_MAX_ENTRIES = 200
 const PUBLIC_SUBMISSION_CATEGORY_FALLBACK = 'Autre'
 const PUBLIC_SUBMISSION_CATEGORIES = [
   'Administration',
@@ -64,6 +66,7 @@ PUBLIC_SUBMISSION_CATEGORY_BY_NORMALIZED.set(
   normalizeForMatch('Cooperative et services'),
   'Coopérative et services',
 )
+const siteInsightPreviewCache = new Map()
 
 app.disable('x-powered-by')
 app.set('trust proxy', false)
@@ -117,6 +120,77 @@ function isPreviewRequested(request) {
   }
 
   return request.body?.preview === true
+}
+
+function normalizePreviewToken(value) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (!/^[a-zA-Z0-9_-]{16,120}$/.test(trimmed)) {
+    return null
+  }
+
+  return trimmed
+}
+
+function cleanupSiteInsightPreviewCache(now = Date.now()) {
+  for (const [token, entry] of siteInsightPreviewCache.entries()) {
+    if (!entry || typeof entry !== 'object' || entry.expiresAt <= now) {
+      siteInsightPreviewCache.delete(token)
+    }
+  }
+
+  if (siteInsightPreviewCache.size <= SITE_INSIGHT_PREVIEW_CACHE_MAX_ENTRIES) {
+    return
+  }
+
+  const overflowCount = siteInsightPreviewCache.size - SITE_INSIGHT_PREVIEW_CACHE_MAX_ENTRIES
+  const oldestTokens = Array.from(siteInsightPreviewCache.entries())
+    .sort(([, leftEntry], [, rightEntry]) => leftEntry.createdAt - rightEntry.createdAt)
+    .slice(0, overflowCount)
+    .map(([token]) => token)
+
+  for (const token of oldestTokens) {
+    siteInsightPreviewCache.delete(token)
+  }
+}
+
+function storeSiteInsightPreview(inputUrl, insight) {
+  const now = Date.now()
+  cleanupSiteInsightPreviewCache(now)
+
+  const token = randomUUID().replace(/-/g, '')
+  siteInsightPreviewCache.set(token, {
+    createdAt: now,
+    expiresAt: now + SITE_INSIGHT_PREVIEW_CACHE_TTL_MS,
+    inputUrl: typeof inputUrl === 'string' ? inputUrl.trim() : '',
+    insight,
+  })
+
+  cleanupSiteInsightPreviewCache(now)
+  return token
+}
+
+function readSiteInsightPreview(inputUrl, previewToken) {
+  const normalizedToken = normalizePreviewToken(previewToken)
+  if (!normalizedToken) {
+    return null
+  }
+
+  cleanupSiteInsightPreviewCache()
+  const entry = siteInsightPreviewCache.get(normalizedToken)
+  if (!entry) {
+    return null
+  }
+
+  const normalizedInputUrl = typeof inputUrl === 'string' ? inputUrl.trim() : ''
+  if (entry.inputUrl !== normalizedInputUrl) {
+    return null
+  }
+
+  return entry.insight ?? null
 }
 
 function parseAuthorizationToken(request) {
@@ -921,6 +995,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
   const category = request.body?.category
   const honeypot = request.body?.website
   const previewMode = isPreviewRequested(request)
+  const previewToken = normalizePreviewToken(request.body?.previewToken)
 
   if (typeof url !== 'string') {
     sendJsonError(response, 400, 'Le champ URL est obligatoire.')
@@ -933,7 +1008,8 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
   }
 
   try {
-    const insight = await buildSiteInsight(url)
+    const cachedInsight = !previewMode ? readSiteInsightPreview(url, previewToken) : null
+    const insight = cachedInsight ?? (await buildSiteInsight(url))
     const normalizedInsight = {
       ...insight,
       rgaaBaseline: '4.1',
@@ -991,12 +1067,14 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       const previewMessage = manualReviewReason
         ? `Pré-analyse terminée: ${manualReviewReason}`
         : 'Pré-analyse terminée. Le site est prêt pour confirmation.'
+      const nextPreviewToken = storeSiteInsightPreview(url, normalizedInsight)
 
       response.status(previewStatus === 'pending' ? 202 : 200).json({
         ...withShowcasePublicMetadata(normalizedInsight),
         category: sanitizedCategory,
         submissionStatus: previewStatus,
         preview: true,
+        previewToken: nextPreviewToken,
         message: previewMessage,
       })
       return

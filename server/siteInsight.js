@@ -4,7 +4,8 @@ import { load } from 'cheerio'
 
 const MAX_HTML_BYTES = 800_000
 const MAX_JSON_BYTES = 400_000
-const FETCH_TIMEOUT_MS = 7000
+const REQUIRED_FETCH_TIMEOUT_MS = 7000
+const OPTIONAL_FETCH_TIMEOUT_MS = 1800
 const MAX_REDIRECTS = 5
 
 const COMPLIANCE_LABELS = {
@@ -29,11 +30,6 @@ const commonAccessibilityPaths = [
   '/declaration-accessibilite',
   '/accessibilite-et-conformite',
 ]
-const commonAiContextPaths = [
-  '/ai-context.json',
-  '/api/ai-context',
-]
-
 export class SiteInsightError extends Error {
   constructor(message, statusCode = 400) {
     super(message)
@@ -108,6 +104,12 @@ export async function validatePublicHttpUrl(rawValue) {
   return parsed.toString()
 }
 
+function createSiteInsightContext() {
+  return {
+    validatedHosts: new Map(),
+  }
+}
+
 function isPrivateIpv4(ip) {
   const parts = ip.split('.').map(Number)
   if (parts.length !== 4 || parts.some((part) => Number.isNaN(part) || part < 0 || part > 255)) {
@@ -179,7 +181,7 @@ function isBlockedAddress(hostOrIp) {
   return isPrivateIpv6(hostOrIp)
 }
 
-async function validatePublicHost(hostname) {
+async function validatePublicHost(hostname, context) {
   const normalizedHost = hostname.toLowerCase()
 
   if (normalizedHost.endsWith('.local') || normalizedHost.endsWith('.internal')) {
@@ -194,21 +196,38 @@ async function validatePublicHost(hostname) {
     return
   }
 
-  let resolved
-  try {
-    resolved = await lookup(normalizedHost, { all: true, verbatim: true })
-  } catch {
-    throw new SiteInsightError('Impossible de résoudre le nom de domaine.', 400)
+  const cachedValidation = context?.validatedHosts?.get(normalizedHost)
+  if (cachedValidation) {
+    await cachedValidation
+    return
   }
 
-  if (!Array.isArray(resolved) || resolved.length === 0) {
-    throw new SiteInsightError('Nom de domaine introuvable.', 400)
-  }
-
-  for (const record of resolved) {
-    if (isBlockedAddress(record.address)) {
-      throw new SiteInsightError('Domaine résolu vers une adresse non autorisée.', 400)
+  const validationPromise = (async () => {
+    let resolved
+    try {
+      resolved = await lookup(normalizedHost, { all: true, verbatim: true })
+    } catch {
+      throw new SiteInsightError('Impossible de résoudre le nom de domaine.', 400)
     }
+
+    if (!Array.isArray(resolved) || resolved.length === 0) {
+      throw new SiteInsightError('Nom de domaine introuvable.', 400)
+    }
+
+    for (const record of resolved) {
+      if (isBlockedAddress(record.address)) {
+        throw new SiteInsightError('Domaine résolu vers une adresse non autorisée.', 400)
+      }
+    }
+  })()
+
+  context?.validatedHosts?.set(normalizedHost, validationPromise)
+
+  try {
+    await validationPromise
+  } catch (error) {
+    context?.validatedHosts?.delete(normalizedHost)
+    throw error
   }
 }
 
@@ -256,11 +275,13 @@ async function fetchTextDocument(
     invalidContentMessage,
     isExpectedContentType,
     maxBytes,
+    timeoutMs = REQUIRED_FETCH_TIMEOUT_MS,
+    context,
   },
   redirectCount = 0,
 ) {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     const response = await fetch(url, {
@@ -285,7 +306,7 @@ async function fetchTextDocument(
       }
 
       const nextParsedUrl = new URL(nextUrl)
-      await validatePublicHost(nextParsedUrl.hostname)
+      await validatePublicHost(nextParsedUrl.hostname, context)
       return fetchTextDocument(
         nextUrl,
         {
@@ -293,6 +314,8 @@ async function fetchTextDocument(
           invalidContentMessage,
           isExpectedContentType,
           maxBytes,
+          timeoutMs,
+          context,
         },
         redirectCount + 1,
       )
@@ -324,7 +347,8 @@ async function fetchTextDocument(
   }
 }
 
-async function fetchHtml(url, redirectCount = 0) {
+async function fetchHtml(url, options = {}) {
+  const { redirectCount = 0, timeoutMs = REQUIRED_FETCH_TIMEOUT_MS, context } = options
   const { finalUrl, text } = await fetchTextDocument(
     url,
     {
@@ -333,6 +357,8 @@ async function fetchHtml(url, redirectCount = 0) {
       isExpectedContentType: (contentType) =>
         contentType.includes('text/html') || contentType.includes('application/xhtml+xml'),
       maxBytes: MAX_HTML_BYTES,
+      timeoutMs,
+      context,
     },
     redirectCount,
   )
@@ -343,7 +369,8 @@ async function fetchHtml(url, redirectCount = 0) {
   }
 }
 
-async function fetchJson(url, redirectCount = 0) {
+async function fetchJson(url, options = {}) {
+  const { redirectCount = 0, timeoutMs = REQUIRED_FETCH_TIMEOUT_MS, context } = options
   const { finalUrl, text } = await fetchTextDocument(
     url,
     {
@@ -352,6 +379,8 @@ async function fetchJson(url, redirectCount = 0) {
       isExpectedContentType: (contentType) =>
         contentType.includes('application/json') || contentType.includes('+json'),
       maxBytes: MAX_JSON_BYTES,
+      timeoutMs,
+      context,
     },
     redirectCount,
   )
@@ -654,7 +683,7 @@ function looksLikeAccessibilityPage(html) {
   return hasAccessibilitySignal && hasComplianceSignal
 }
 
-async function resolveAccessibilityPageUrl(baseUrl, detectedAccessibilityPageUrl) {
+async function resolveAccessibilityPageUrl(baseUrl, detectedAccessibilityPageUrl, context) {
   if (detectedAccessibilityPageUrl) {
     return detectedAccessibilityPageUrl
   }
@@ -667,8 +696,11 @@ async function resolveAccessibilityPageUrl(baseUrl, detectedAccessibilityPageUrl
 
     try {
       const parsedCandidate = new URL(candidateUrl)
-      await validatePublicHost(parsedCandidate.hostname)
-      const { html } = await fetchHtml(candidateUrl)
+      await validatePublicHost(parsedCandidate.hostname, context)
+      const { html } = await fetchHtml(candidateUrl, {
+        timeoutMs: OPTIONAL_FETCH_TIMEOUT_MS,
+        context,
+      })
 
       if (looksLikeAccessibilityPage(html)) {
         return candidateUrl
@@ -685,32 +717,24 @@ function looksLikeAiContextPayload(payload) {
   return Boolean(payload && typeof payload === 'object' && !Array.isArray(payload))
 }
 
-async function resolveAiContextUrl(baseUrl, detectedAiContextUrl) {
-  const candidates = []
-
-  if (detectedAiContextUrl) {
-    candidates.push(detectedAiContextUrl)
+async function resolveAiContextUrl(_baseUrl, detectedAiContextUrl, context) {
+  if (!detectedAiContextUrl) {
+    return null
   }
 
-  for (const path of commonAiContextPaths) {
-    const candidateUrl = toAbsoluteUrl(path, baseUrl)
-    if (candidateUrl && !candidates.includes(candidateUrl)) {
-      candidates.push(candidateUrl)
-    }
-  }
+  try {
+    const parsedCandidate = new URL(detectedAiContextUrl)
+    await validatePublicHost(parsedCandidate.hostname, context)
+    const { finalUrl, json } = await fetchJson(detectedAiContextUrl, {
+      timeoutMs: OPTIONAL_FETCH_TIMEOUT_MS,
+      context,
+    })
 
-  for (const candidateUrl of candidates) {
-    try {
-      const parsedCandidate = new URL(candidateUrl)
-      await validatePublicHost(parsedCandidate.hostname)
-      const { finalUrl, json } = await fetchJson(candidateUrl)
-
-      if (looksLikeAiContextPayload(json)) {
-        return finalUrl
-      }
-    } catch {
-      // Tentative suivante.
+    if (looksLikeAiContextPayload(json)) {
+      return finalUrl
     }
+  } catch {
+    // AI context is optional and should not slow down the main analysis path.
   }
 
   return null
@@ -825,7 +849,7 @@ function extractDocumentSignalText($) {
   return parts.join('\n')
 }
 
-async function extractComplianceFromAccessibilityPage(accessibilityPageUrl) {
+async function extractComplianceFromAccessibilityPage(accessibilityPageUrl, context) {
   if (!accessibilityPageUrl) {
     return {
       complianceStatus: null,
@@ -834,9 +858,9 @@ async function extractComplianceFromAccessibilityPage(accessibilityPageUrl) {
   }
 
   const parsed = new URL(accessibilityPageUrl)
-  await validatePublicHost(parsed.hostname)
+  await validatePublicHost(parsed.hostname, context)
 
-  const { html } = await fetchHtml(accessibilityPageUrl)
+  const { html } = await fetchHtml(accessibilityPageUrl, { context })
   const $ = load(html)
   const signalText = extractDocumentSignalText($)
   const normalizedSignalText = normalizeForMatch(signalText)
@@ -898,7 +922,7 @@ function extractComplianceFromAiContextPayload(payload) {
   }
 }
 
-async function extractComplianceFromAiContext(aiContextUrl) {
+async function extractComplianceFromAiContext(aiContextUrl, context) {
   if (!aiContextUrl) {
     return {
       complianceStatus: null,
@@ -908,20 +932,28 @@ async function extractComplianceFromAiContext(aiContextUrl) {
   }
 
   const parsed = new URL(aiContextUrl)
-  await validatePublicHost(parsed.hostname)
+  await validatePublicHost(parsed.hostname, context)
 
-  const { json } = await fetchJson(aiContextUrl)
+  const { json } = await fetchJson(aiContextUrl, {
+    timeoutMs: OPTIONAL_FETCH_TIMEOUT_MS,
+    context,
+  })
   return extractComplianceFromAiContextPayload(json)
 }
 
 export async function buildSiteInsight(inputUrl) {
+  const context = createSiteInsightContext()
   const parsed = normalizeSubmittedUrl(inputUrl)
-  await validatePublicHost(parsed.hostname)
+  await validatePublicHost(parsed.hostname, context)
 
-  const homepage = await fetchHtml(parsed.toString())
+  const homepage = await fetchHtml(parsed.toString(), { context })
   const metadata = extractMetaInformation(homepage.html, homepage.finalUrl)
-  const accessibilityPageUrl = await resolveAccessibilityPageUrl(homepage.finalUrl, metadata.accessibilityPageUrl)
-  const aiContextUrl = await resolveAiContextUrl(homepage.finalUrl, metadata.aiContextUrl)
+  const accessibilityPageUrl = await resolveAccessibilityPageUrl(
+    homepage.finalUrl,
+    metadata.accessibilityPageUrl,
+    context,
+  )
+  const aiContextUrl = await resolveAiContextUrl(homepage.finalUrl, metadata.aiContextUrl, context)
 
   let complianceStatus = null
   let complianceScore = null
@@ -929,7 +961,7 @@ export async function buildSiteInsight(inputUrl) {
   let accessibilityPageScoreSource = null
 
   try {
-    const compliance = await extractComplianceFromAccessibilityPage(accessibilityPageUrl)
+    const compliance = await extractComplianceFromAccessibilityPage(accessibilityPageUrl, context)
     complianceStatus = compliance.complianceStatus
     complianceScore = compliance.complianceScore
     rgaaBaseline = compliance.rgaaBaseline
@@ -939,7 +971,7 @@ export async function buildSiteInsight(inputUrl) {
   }
 
   try {
-    const aiContextCompliance = await extractComplianceFromAiContext(aiContextUrl)
+    const aiContextCompliance = await extractComplianceFromAiContext(aiContextUrl, context)
 
     if (aiContextCompliance.complianceScore !== null && accessibilityPageScoreSource !== 'text') {
       complianceScore = aiContextCompliance.complianceScore

@@ -282,6 +282,12 @@ function readAlreadySubmittedFlag(payload: Record<string, unknown>) {
   return payload.alreadySubmitted === true
 }
 
+function readPreviewToken(payload: Record<string, unknown>) {
+  return typeof payload.previewToken === 'string' && /^[a-zA-Z0-9_-]{16,120}$/.test(payload.previewToken)
+    ? payload.previewToken
+    : null
+}
+
 function buildSubmitErrorState(rawMessage: string, phase: SubmitErrorPhase): Omit<SubmitErrorState, 'id'> {
   const fallbackMessage = phase === 'preview' ? 'Pré-analyse impossible.' : 'Ajout impossible.'
   const message = typeof rawMessage === 'string' && rawMessage.trim() ? rawMessage.trim() : fallbackMessage
@@ -418,6 +424,7 @@ function App() {
   const [isSubmitConfirmationStep, setIsSubmitConfirmationStep] = useState(false)
   const [submissionPreviewEntry, setSubmissionPreviewEntry] = useState<ShowcaseEntry | null>(null)
   const [submissionPreviewStatus, setSubmissionPreviewStatus] = useState<SubmissionStatus | null>(null)
+  const [submissionPreviewToken, setSubmissionPreviewToken] = useState<string | null>(null)
   const [lastAddedEntry, setLastAddedEntry] = useState<ShowcaseEntry | null>(null)
   const [showcaseEntries, setShowcaseEntries] = useState<ShowcaseEntry[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -1074,6 +1081,7 @@ function App() {
       setIsSubmitConfirmationStep(false)
       setSubmissionPreviewEntry(null)
       setSubmissionPreviewStatus(null)
+      setSubmissionPreviewToken(null)
       setLastAddedEntry(null)
       setSubmitInfoMessage(null)
       setSubmissionFeedback((current) => ({
@@ -1091,6 +1099,7 @@ function App() {
     setIsSubmitConfirmationStep(false)
     setSubmissionPreviewEntry(null)
     setSubmissionPreviewStatus(null)
+    setSubmissionPreviewToken(null)
     setSubmitInfoMessage('Vous pouvez modifier les informations avant de confirmer l’envoi.')
     announcePolite('Étape de confirmation annulée. Modifiez les champs puis continuez.')
     window.setTimeout(() => {
@@ -1224,6 +1233,7 @@ function App() {
         const duplicateMessage =
           submissionMessage ??
           'Ce site est déjà référencé. Contactez la modération pour demander le retrait avant une nouvelle soumission.'
+        setSubmissionPreviewToken(null)
         handleSubmissionFeedback('duplicate', normalizeShowcaseEntry(payload), duplicateMessage)
         return
       }
@@ -1236,6 +1246,7 @@ function App() {
         const alreadyPendingMessage =
           submissionMessage ??
           'Ce site a déjà été soumis et reste en cours de validation manuelle. Inutile de le renvoyer.'
+        setSubmissionPreviewToken(null)
         handleSubmissionFeedback('already-pending', normalizeShowcaseEntry(payload), alreadyPendingMessage)
         return
       }
@@ -1246,6 +1257,7 @@ function App() {
 
       setSubmissionPreviewEntry(normalizeShowcaseEntry(payload))
       setSubmissionPreviewStatus(submissionStatus)
+      setSubmissionPreviewToken(readPreviewToken(payload))
       setIsSubmitConfirmationStep(true)
 
       const reviewMessage =
@@ -1259,6 +1271,7 @@ function App() {
     } catch (error) {
       setSubmissionPreviewEntry(null)
       setSubmissionPreviewStatus(null)
+      setSubmissionPreviewToken(null)
       const localizedMessage = error instanceof Error ? error.message : 'Erreur réseau.'
       showSubmitError(localizedMessage, 'preview')
     } finally {
@@ -1291,7 +1304,12 @@ function App() {
         headers: {
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ url: inputUrl, category: categoryForSubmission, website: websiteField }),
+        body: JSON.stringify({
+          url: inputUrl,
+          category: categoryForSubmission,
+          website: websiteField,
+          previewToken: submissionPreviewToken ?? undefined,
+        }),
       })
 
       const payload = await readApiPayload(response)
@@ -1314,6 +1332,7 @@ function App() {
         const alreadyPendingMessage =
           submissionMessage ??
           'Ce site a déjà été soumis et reste en cours de validation manuelle. Inutile de le renvoyer.'
+        setSubmissionPreviewToken(null)
         handleSubmissionFeedback('already-pending', normalizeShowcaseEntry(payload), alreadyPendingMessage)
         return
       }
@@ -1325,6 +1344,7 @@ function App() {
         setIsSubmitConfirmationStep(false)
         setSubmissionPreviewEntry(null)
         setSubmissionPreviewStatus(null)
+        setSubmissionPreviewToken(null)
         setInputUrl('')
         setWebsiteField('')
         setSubmitInfoMessage(pendingMessage)
@@ -1340,6 +1360,7 @@ function App() {
         const duplicateMessage =
           submissionMessage ??
           'Ce site est déjà référencé. Contactez la modération pour demander le retrait avant une nouvelle soumission.'
+        setSubmissionPreviewToken(null)
         handleSubmissionFeedback('duplicate', normalizeShowcaseEntry(payload), duplicateMessage)
         return
       }
@@ -1351,6 +1372,7 @@ function App() {
       setIsSubmitConfirmationStep(false)
       setSubmissionPreviewEntry(null)
       setSubmissionPreviewStatus(null)
+      setSubmissionPreviewToken(null)
       setLastAddedEntry(normalizeShowcaseEntry(payload))
       setInputUrl('')
       setWebsiteField('')
@@ -1377,6 +1399,7 @@ function App() {
     loadShowcaseEntries,
     showSubmitError,
     submissionPreviewEntry,
+    submissionPreviewToken,
     websiteField,
   ])
 
@@ -1838,6 +1861,7 @@ function App() {
                     setIsSubmitConfirmationStep(false)
                     setSubmissionPreviewEntry(null)
                     setSubmissionPreviewStatus(null)
+                    setSubmissionPreviewToken(null)
                   }}
                   onInvalid={(event) => {
                     event.currentTarget.setCustomValidity(
@@ -1866,6 +1890,7 @@ function App() {
                     setIsSubmitConfirmationStep(false)
                     setSubmissionPreviewEntry(null)
                     setSubmissionPreviewStatus(null)
+                    setSubmissionPreviewToken(null)
                   }}
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 >
