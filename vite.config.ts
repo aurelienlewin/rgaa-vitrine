@@ -1,4 +1,5 @@
 import { defineConfig, type Plugin } from 'vite'
+import type { OutputChunk } from 'rollup'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { execSync } from 'node:child_process'
@@ -52,6 +53,29 @@ const buildVersion = resolveBuildVersion()
 
 function optimizeCriticalStylesheetDelivery(): Plugin {
   let criticalFontPreloads = ''
+  let routeModulePreloadScript = ''
+
+  function collectChunkDependencies(
+    bundle: Record<string, OutputChunk>,
+    fileName: string,
+    seen = new Set<string>(),
+  ): string[] {
+    if (seen.has(fileName)) {
+      return []
+    }
+
+    seen.add(fileName)
+    const chunk = bundle[fileName]
+    if (!chunk || chunk.type !== 'chunk') {
+      return []
+    }
+
+    const importedFiles: string[] = Array.isArray(chunk.imports)
+      ? chunk.imports.flatMap((importedFileName) => collectChunkDependencies(bundle, importedFileName, seen))
+      : []
+
+    return [chunk.fileName, ...importedFiles]
+  }
 
   return {
     name: 'optimize-critical-stylesheet-delivery',
@@ -65,6 +89,60 @@ function optimizeCriticalStylesheetDelivery(): Plugin {
         .map((fileName) => `    <link rel="preload" href="/${fileName}" as="font" type="font/woff2" crossorigin>`)
 
       criticalFontPreloads = fontHrefs.join('\n')
+
+      const bundleChunks = Object.values(bundle).filter(
+        (chunk): chunk is OutputChunk => chunk.type === 'chunk',
+      )
+      const bundleByFileName = Object.fromEntries(
+        bundleChunks.map((chunk) => [chunk.fileName, chunk]),
+      )
+
+      const domainGroupChunk = bundleChunks.find((chunk) =>
+        chunk.facadeModuleId?.endsWith('/src/DomainGroupPage.tsx'),
+      )
+      const siteProfileChunk = bundleChunks.find((chunk) =>
+        chunk.facadeModuleId?.endsWith('/src/SiteProfilePage.tsx'),
+      )
+
+      const domainGroupRouteFiles = domainGroupChunk
+        ? Array.from(new Set(collectChunkDependencies(bundleByFileName, domainGroupChunk.fileName))).map(
+            (fileName) => `/${fileName}`,
+          )
+        : []
+      const siteProfileRouteFiles = siteProfileChunk
+        ? Array.from(new Set(collectChunkDependencies(bundleByFileName, siteProfileChunk.fileName))).map(
+            (fileName) => `/${fileName}`,
+          )
+        : []
+
+      routeModulePreloadScript =
+        domainGroupRouteFiles.length > 0 || siteProfileRouteFiles.length > 0
+          ? [
+              '    <script>',
+              '      (function () {',
+              '        var pathname = window.location.pathname;',
+              `        var domainRouteFiles = ${JSON.stringify(domainGroupRouteFiles)};`,
+              `        var siteRouteFiles = ${JSON.stringify(siteProfileRouteFiles)};`,
+              '        var routeFiles = /^\\/domaine\\/[a-z0-9-]{4,120}\\/?$/.test(pathname)',
+              '          ? domainRouteFiles',
+              '          : /^\\/site\\/[a-z0-9-]{4,120}\\/?$/.test(pathname)',
+              '            ? siteRouteFiles',
+              '            : [];',
+              '        for (var index = 0; index < routeFiles.length; index += 1) {',
+              '          var href = routeFiles[index];',
+              '          if (document.querySelector(\'link[rel="modulepreload"][href="\' + href + \'"]\')) {',
+              '            continue;',
+              '          }',
+              '          var link = document.createElement("link");',
+              '          link.rel = "modulepreload";',
+              '          link.crossOrigin = "";',
+              '          link.href = href;',
+              '          document.head.appendChild(link);',
+              '        }',
+              '      })();',
+              '    </script>',
+            ].join('\n')
+          : ''
     },
     writeBundle(outputOptions) {
       const outDir = typeof outputOptions.dir === 'string' ? outputOptions.dir : 'dist'
@@ -84,6 +162,13 @@ function optimizeCriticalStylesheetDelivery(): Plugin {
         html = html.replace(
           '<link rel="preload" href="/logo-rgaa-vitrine.svg" as="image" type="image/svg+xml" fetchpriority="high" />',
           `<link rel="preload" href="/logo-rgaa-vitrine.svg" as="image" type="image/svg+xml" fetchpriority="high" />\n${criticalFontPreloads}`,
+        )
+      }
+
+      if (routeModulePreloadScript) {
+        html = html.replace(
+          /(\s*<script type="module" crossorigin src="[^"]+"><\/script>)/,
+          `\n${routeModulePreloadScript}$1`,
         )
       }
 

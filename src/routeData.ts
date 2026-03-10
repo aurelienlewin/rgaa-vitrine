@@ -3,7 +3,13 @@ export type RouteApiResult = {
   payload: Record<string, unknown>
 }
 
-const routeApiCache = new Map<string, Promise<RouteApiResult>>()
+type RouteApiCacheEntry = {
+  promise: Promise<RouteApiResult>
+  status: 'pending' | 'fulfilled' | 'rejected'
+  result: RouteApiResult | null
+}
+
+const routeApiCache = new Map<string, RouteApiCacheEntry>()
 
 async function readApiPayload(response: Response) {
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
@@ -35,7 +41,13 @@ async function readApiPayload(response: Response) {
 export function preloadRouteApi(url: string) {
   const cached = routeApiCache.get(url)
   if (cached) {
-    return cached
+    return cached.promise
+  }
+
+  const cacheEntry: RouteApiCacheEntry = {
+    promise: Promise.resolve({ ok: false, payload: { error: 'Chargement non initialisé.' } }),
+    status: 'pending',
+    result: null,
   }
 
   const request: Promise<RouteApiResult> = fetch(url, {
@@ -43,17 +55,37 @@ export function preloadRouteApi(url: string) {
       accept: 'application/json',
     },
   })
-    .then(async (response) => ({
-      ok: response.ok,
-      payload: await readApiPayload(response),
-    }))
-    .catch((error: unknown) => ({
-      ok: false,
-      payload: {
-        error: error instanceof Error ? error.message : 'Erreur réseau lors du chargement.',
-      },
-    }))
+    .then(async (response) => {
+      const result = {
+        ok: response.ok,
+        payload: await readApiPayload(response),
+      }
+      cacheEntry.status = 'fulfilled'
+      cacheEntry.result = result
+      return result
+    })
+    .catch((error: unknown) => {
+      const result = {
+        ok: false,
+        payload: {
+          error: error instanceof Error ? error.message : 'Erreur réseau lors du chargement.',
+        },
+      }
+      cacheEntry.status = 'rejected'
+      cacheEntry.result = result
+      return result
+    })
 
-  routeApiCache.set(url, request)
+  cacheEntry.promise = request
+  routeApiCache.set(url, cacheEntry)
   return request
+}
+
+export function readPreloadedRouteApi(url: string) {
+  const cached = routeApiCache.get(url)
+  if (!cached || cached.status === 'pending' || !cached.result) {
+    return null
+  }
+
+  return cached.result
 }

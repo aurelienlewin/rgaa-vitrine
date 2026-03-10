@@ -88,6 +88,7 @@ Public website: **https://annuaire-rgaa.fr**
 - Embedded skills: `rgaa-official-recommendations`, `wcag-22-official-guidelines`.
 - Frontend route bundles are split (`/moderation`, `/plan-du-site`, `/accessibilite`) to reduce initial JavaScript on homepage load.
 - Public detail routes (`/site/{slug}` and `/domaine/{groupSlug}`) preload their API payload as soon as the route is detected and bootstrap only the active page module, which shortens the critical request chain on direct-entry detail pages.
+- Public detail routes reuse any already-settled preloaded API response at first render and prime route-specific module preloads from the initial HTML shell, limiting blank-loading states on direct entry.
 - Public detail routes inline a compact critical CSS shell for the shared secondary header/search area, preload the primary Atkinson Hyperlegible woff2 assets, and defer the full app stylesheet non-blockingly so first paint stays stable without keeping the full CSS file on the critical rendering path.
 - Route-aware head fallbacks set canonical/title/description/robots earlier on `/site/*`, `/domaine/*`, `/plan-du-site`, `/accessibilite`, and `/moderation`, improving first-paint SEO consistency before React hydration.
 - Public detail pages keep loading states polite, mark busy regions explicitly, preserve focus on copy CTAs, and label new-tab links directly in visible text for RGAA/WCAG consistency.

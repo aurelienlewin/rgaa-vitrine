@@ -11,6 +11,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Homepage multi-site cards now keep a simplified, card-consistent layout: sibling site previews were moved back to the dedicated domain detail page and the card now exposes a single explicit CTA to reduce tab stops and link-list ambiguity.
 - Added a general score disclaimer on homepage and accessibility contact page so the declarative nature of submitted scores is stated once, without live-region noise, and moderation remains the path for documented re-evaluations.
 - Public detail routes now preload their API payload before React mounts and bootstrap only the active page module, reducing direct-entry request chains and JavaScript waste on `/site/*` and `/domaine/*`.
+- Public detail routes now reuse any already-settled preloaded API response on first render and add route-aware module preloads from the HTML shell, reducing direct-entry blank states and a remaining extra JS hop on `/site/*` and `/domaine/*`.
 - Public detail routes now keep the shared secondary header/search shell stable with inline critical CSS and Atkinson font preloads, while the full stylesheet is deferred out of the blocking render path.
 - Route-aware head fallbacks now update title, description, canonical URL, and robots earlier on key public/detail paths so first-paint metadata stays coherent before React hydration.
 - Site and domain detail pages now expose clearer new-tab labels, explicit busy states, and non-disruptive copy feedback while keeping loading announcements polite.

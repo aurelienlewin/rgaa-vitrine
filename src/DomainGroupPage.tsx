@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
 import { normalizeDomainGroup, readDomainGroupSlugFromPath, type DomainGroup } from './domainGroups'
-import { preloadRouteApi } from './routeData'
+import { preloadRouteApi, readPreloadedRouteApi } from './routeData'
 import { applySeo, createAbsoluteUrl } from './seo'
 import { resolveShowcaseProfilePath } from './siteProfiles'
 import SecondaryPageHeader from './SecondaryPageHeader'
@@ -34,10 +34,27 @@ function formatScore(value: number | null) {
   return `${localized}%`
 }
 
+function readDomainGroupFromApiResult(result: { ok: boolean; payload: Record<string, unknown> }) {
+  if (!result.ok) {
+    throw new Error(
+      typeof result.payload.error === 'string' ? result.payload.error : 'Chargement du domaine impossible.',
+    )
+  }
+
+  const groups = Array.isArray(result.payload.groups) ? (result.payload.groups as unknown[]) : null
+  if (!groups) {
+    throw new Error('Réponse domaine invalide.')
+  }
+
+  const firstGroup = groups.map((item) => normalizeDomainGroup(item)).find((item) => item !== null) ?? null
+  if (!firstGroup) {
+    throw new Error('Aucun domaine multi-sites ne correspond à cette adresse.')
+  }
+
+  return firstGroup
+}
+
 function DomainGroupPage() {
-  const [group, setGroup] = useState<DomainGroup | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const [politeAnnouncement, setPoliteAnnouncement] = useState({ id: 0, message: '' })
   const mainRef = useRef<HTMLElement | null>(null)
   const navigationRef = useRef<HTMLElement | null>(null)
@@ -54,6 +71,42 @@ function DomainGroupPage() {
       : slug
         ? `/domaine/${slug}`
         : '/domaine'
+  const routeApiUrl = slug ? `/api/domain-groups?slug=${encodeURIComponent(slug)}` : null
+  const preloadedRouteResult = routeApiUrl ? readPreloadedRouteApi(routeApiUrl) : null
+  const initialResolvedState = useMemo(() => {
+    if (!routeApiUrl) {
+      return {
+        group: null,
+        errorMessage: 'Lien de domaine invalide.',
+        isLoading: false,
+      }
+    }
+
+    if (!preloadedRouteResult) {
+      return {
+        group: null,
+        errorMessage: null,
+        isLoading: true,
+      }
+    }
+
+    try {
+      return {
+        group: readDomainGroupFromApiResult(preloadedRouteResult),
+        errorMessage: null,
+        isLoading: false,
+      }
+    } catch (error) {
+      return {
+        group: null,
+        errorMessage: error instanceof Error ? error.message : 'Erreur de chargement.',
+        isLoading: false,
+      }
+    }
+  }, [preloadedRouteResult, routeApiUrl])
+  const [group, setGroup] = useState<DomainGroup | null>(initialResolvedState.group)
+  const [errorMessage, setErrorMessage] = useState<string | null>(initialResolvedState.errorMessage)
+  const [isLoading, setIsLoading] = useState(initialResolvedState.isLoading)
 
   const focusElement = useCallback((element: HTMLElement | null) => {
     if (!element) {
@@ -83,37 +136,26 @@ function DomainGroupPage() {
   }, [])
 
   useEffect(() => {
-    if (!slug) {
+    if (!routeApiUrl || !slug) {
+      setGroup(null)
       setIsLoading(false)
       setErrorMessage('Lien de domaine invalide.')
       return
     }
-    const groupSlug = slug
+    const safeRouteApiUrl = routeApiUrl
 
     let cancelled = false
 
     async function loadGroup() {
-      setIsLoading(true)
+      if (!initialResolvedState.group && !initialResolvedState.errorMessage) {
+        setIsLoading(true)
+      }
       setErrorMessage(null)
 
       try {
-        const { ok, payload } = await preloadRouteApi(
-          `/api/domain-groups?slug=${encodeURIComponent(groupSlug)}`,
-        )
-
-        if (!ok) {
-          throw new Error(typeof payload.error === 'string' ? payload.error : 'Chargement du domaine impossible.')
-        }
-
-        const groups = Array.isArray(payload.groups) ? (payload.groups as unknown[]) : null
-        if (!groups) {
-          throw new Error('Réponse domaine invalide.')
-        }
-
-        const firstGroup = groups.map((item) => normalizeDomainGroup(item)).find((item) => item !== null) ?? null
-        if (!firstGroup) {
-          throw new Error('Aucun domaine multi-sites ne correspond à cette adresse.')
-        }
+        const routeApiResult =
+          readPreloadedRouteApi(safeRouteApiUrl) ?? (await preloadRouteApi(safeRouteApiUrl))
+        const firstGroup = readDomainGroupFromApiResult(routeApiResult)
 
         if (!cancelled) {
           setGroup(firstGroup)
@@ -134,12 +176,16 @@ function DomainGroupPage() {
       }
     }
 
+    if (initialResolvedState.group || initialResolvedState.errorMessage) {
+      return
+    }
+
     void loadGroup()
 
     return () => {
       cancelled = true
     }
-  }, [announcePolite, slug])
+  }, [announcePolite, initialResolvedState.errorMessage, initialResolvedState.group, routeApiUrl, slug])
 
   const statusSummaryText = useMemo(() => {
     if (!group) {
@@ -259,7 +305,50 @@ function DomainGroupPage() {
           className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8"
           aria-busy={isLoading}
         >
-          {isLoading ? <p role="status" aria-live="polite">Chargement du domaine en cours...</p> : null}
+          {isLoading ? (
+            <>
+              <p role="status" aria-live="polite" className="text-sm text-slate-700 dark:text-slate-300">
+                Chargement du domaine en cours...
+              </p>
+              <section
+                aria-hidden="true"
+                className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
+              >
+                <div className="rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4">
+                  <div className="h-5 w-32 rounded bg-sky-200 dark:bg-sky-800" />
+                  <div className="mt-3 h-9 w-56 max-w-full rounded bg-sky-200 dark:bg-sky-800" />
+                  <div className="mt-3 h-5 w-80 max-w-full rounded bg-slate-200 dark:bg-slate-700" />
+                  <div className="mt-2 h-5 w-full rounded bg-slate-200 dark:bg-slate-700" />
+                  <div className="mt-4 h-5 w-64 max-w-full rounded bg-slate-200 dark:bg-slate-700" />
+                </div>
+
+                <div className="mt-6">
+                  <div className="h-7 w-56 max-w-full rounded bg-slate-200 dark:bg-slate-700" />
+                  <ul className="mt-4 grid gap-4">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                      <li
+                        key={`domain-loading-card-${index}`}
+                        className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
+                      >
+                        <div className="flex flex-wrap gap-2">
+                          <div className="h-8 w-28 rounded-full bg-slate-200 dark:bg-slate-700" />
+                          <div className="h-8 w-24 rounded-full bg-slate-200 dark:bg-slate-700" />
+                        </div>
+                        <div className="mt-4 h-7 w-64 max-w-full rounded bg-slate-200 dark:bg-slate-700" />
+                        <div className="mt-3 h-5 w-full rounded bg-slate-200 dark:bg-slate-700" />
+                        <div className="mt-2 h-5 w-72 max-w-full rounded bg-slate-200 dark:bg-slate-700" />
+                        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                          <div className="h-11 rounded-xl bg-slate-200 dark:bg-slate-700" />
+                          <div className="h-11 rounded-xl bg-slate-200 dark:bg-slate-700" />
+                          <div className="h-11 rounded-xl bg-slate-200 dark:bg-slate-700" />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+            </>
+          ) : null}
 
           {!isLoading && errorMessage ? (
             <p className="rounded-xl border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-4 text-rose-900 dark:text-rose-100" role="alert">
