@@ -89,6 +89,9 @@ Public website: **https://annuaire-rgaa.fr**
 - Frontend route bundles are split (`/moderation`, `/plan-du-site`, `/accessibilite`) to reduce initial JavaScript on homepage load.
 - Public detail routes (`/site/{slug}` and `/domaine/{groupSlug}`) now preload their API payload as soon as the route is detected and bootstrap only the active page module, which shortens the critical request chain on direct-entry detail pages.
 - The app stylesheet is now loaded as a regular blocking stylesheet again so the secondary header search form and surrounding layout render in their final dimensions without CSS-onload shifts.
+- Route-aware head fallbacks now set canonical/title/description/robots earlier on `/site/*`, `/domaine/*`, `/plan-du-site`, `/accessibilite`, and `/moderation`, improving first-paint SEO consistency before React hydration.
+- Public detail pages now keep loading states polite, mark busy regions explicitly, preserve focus on copy CTAs, and label new-tab links directly in visible text for RGAA/WCAG consistency.
+- The public site map now lists dedicated domain-group pages as first-class crawlable links, matching the XML sitemap and reinforcing internal discovery.
 - Secondary local fonts (`OpenDyslexic`, `Lexend`) are deferred after first paint (idle callback).
 
 ## Tech Stack
