@@ -492,6 +492,17 @@ function ModerationPage() {
     focusElement(tokenInputRef.current)
   }, [focusElement])
 
+  const focusPrimaryModerationAction = useCallback(() => {
+    const firstPendingApproveButton = Object.values(pendingApproveButtonRefs.current).find(
+      (element): element is HTMLButtonElement => element instanceof HTMLButtonElement,
+    )
+    const firstPublishedSaveButton = Object.values(publishedSaveButtonRefs.current).find(
+      (element): element is HTMLButtonElement => element instanceof HTMLButtonElement,
+    )
+
+    focusElement(firstPendingApproveButton ?? firstPublishedSaveButton ?? pendingRef.current ?? publishedRef.current)
+  }, [focusElement])
+
   const focusMessage = useCallback(() => {
     window.setTimeout(() => {
       focusElement(messageRef.current)
@@ -812,7 +823,7 @@ function ModerationPage() {
         setAssertiveMessage('')
         setPoliteMessage('Accès modération activé.')
         window.setTimeout(() => {
-          focusPending()
+          focusPrimaryModerationAction()
         }, 0)
         return
       }
@@ -820,7 +831,7 @@ function ModerationPage() {
       lockModerationView()
     },
     [
-      focusPending,
+      focusPrimaryModerationAction,
       loadBlocklists,
       loadMaintenanceState,
       loadPendingEntries,
@@ -1574,7 +1585,8 @@ function ModerationPage() {
           tabIndex={-1}
           className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
         >
-          <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
+          {!isModerationUnlocked && (
+            <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
             <h2 className="text-lg font-semibold">Authentification modérateur</h2>
             <form className="mt-4 grid gap-3 md:grid-cols-[2fr_auto_auto]" onSubmit={handleTokenSubmit}>
               <div>
@@ -1645,22 +1657,24 @@ function ModerationPage() {
               </div>
             )}
 
-            {(politeMessage || assertiveMessage) && (
-              <p
-                ref={messageRef}
-                tabIndex={-1}
-                className={`mt-4 rounded-lg border p-3 text-sm ${
-                  assertiveMessage
-                    ? 'border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-100'
-                    : 'border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950 text-sky-900 dark:text-sky-100'
-                }`}
-                role={assertiveMessage ? 'alert' : 'status'}
-                aria-live={assertiveMessage ? 'assertive' : 'polite'}
-              >
-                {assertiveMessage || politeMessage}
-              </p>
-            )}
-          </section>
+            </section>
+          )}
+
+          {(politeMessage || assertiveMessage) && (
+            <p
+              ref={messageRef}
+              tabIndex={-1}
+              className={`mt-4 rounded-lg border p-3 text-sm ${
+                assertiveMessage
+                  ? 'border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-100'
+                  : 'border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950 text-sky-900 dark:text-sky-100'
+              }`}
+              role={assertiveMessage ? 'alert' : 'status'}
+              aria-live={assertiveMessage ? 'assertive' : 'polite'}
+            >
+              {assertiveMessage || politeMessage}
+            </p>
+          )}
 
           {!isModerationUnlocked && (
             <section className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
@@ -1693,15 +1707,24 @@ function ModerationPage() {
                       {pendingEntries.length} soumission(s) à traiter.
                     </p>
                   </div>
-                  <span
-                    className={`inline-flex min-h-11 items-center rounded-full border px-4 py-2 text-sm font-extrabold ${
-                      pendingEntries.length > 0
-                        ? 'border-amber-800 dark:border-amber-200 bg-amber-200 dark:bg-amber-100 text-amber-950'
-                        : 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100'
-                    }`}
-                  >
-                    {pendingEntries.length > 0 ? `Action requise: ${pendingEntries.length}` : 'File vide'}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-flex min-h-11 items-center rounded-full border px-4 py-2 text-sm font-extrabold ${
+                        pendingEntries.length > 0
+                          ? 'border-amber-800 dark:border-amber-200 bg-amber-200 dark:bg-amber-100 text-amber-950'
+                          : 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100'
+                      }`}
+                    >
+                      {pendingEntries.length > 0 ? `Action requise: ${pendingEntries.length}` : 'File vide'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className={`min-h-11 rounded-xl border border-slate-300 dark:border-slate-600 bg-white/80 dark:bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-950 dark:text-slate-50 ${focusRingClass}`}
+                    >
+                      Se déconnecter
+                    </button>
+                  </div>
                 </div>
 
                 {pendingEntries.length === 0 ? (

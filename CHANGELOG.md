@@ -18,6 +18,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Public rate limiting now keys on the extracted client IP headers used on proxied deployments, preventing unrelated Vercel visitors from tripping the shared global quota.
 - Homepage vote-state synchronization now resets both pressed and unpressed states from `/api/showcase/vote-state`, so a removed vote no longer stays visually stuck after subsequent directory reloads.
 - Moderation archive imports now reload the persisted maintenance state in the UI, so operators do not keep a stale public-status panel after restoring a signed archive.
+- Once moderation is unlocked, the authentication form now disappears and initial focus moves to the first useful moderation control (first pending approval button when present), avoiding a focus path back into already-completed authentication UI.
 
 ### Changed
 - Maintenance state is now included in moderation archive export/import, in rollback freshness checks, and in `GET /api/health` so operators do not lose service posture during restores.
