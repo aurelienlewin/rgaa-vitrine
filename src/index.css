@@ -81,6 +81,37 @@
     font-family: var(--font-sans);
   }
 
+  :where(
+    header,
+    main,
+    footer,
+    nav,
+    section,
+    article,
+    aside,
+    div,
+    form,
+    ul,
+    ol,
+    li,
+    dl,
+    dt,
+    dd,
+    p,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    label,
+    span,
+    strong,
+    em
+  ) {
+    background-color: inherit;
+  }
+
   a {
     @apply underline decoration-2 underline-offset-2;
     color: var(--color-brand-link);
@@ -124,9 +155,13 @@
 }
 
 @layer utilities {
-  /* Apply a transparent background fallback only when no background utility is present. */
+  /* Keep explicit text colors paired with a non-transparent computed background where possible. */
   [class*='text-']:not([class*='bg-']) {
-    background-color: transparent;
+    background-color: inherit;
+  }
+
+  [class*='bg-transparent'][class*='text-'] {
+    background-color: inherit;
   }
 
   /* Pair background declarations with an explicit text fallback when no text utility is present. */

@@ -12,6 +12,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ### Fixed
 - Homepage result sorting now uses an explicitly filled high-contrast select trigger with a decorative chevron, reducing dependence on low-contrast native control chrome for RGAA criterion `3.3`.
+- Global text/background pairing now propagates inherited surface colors through common layout wrappers and `bg-transparent` text controls, so audited pages no longer rely on computed transparent backgrounds for RGAA criterion `10.5`.
 - Persisted vote counters are now repaired upward from active client-vote ownership on startup and after archive imports, and `/api/showcase/vote-state` now verifies current ownership before returning targeted counters, so already-owned votes no longer surface impossible `0 vote(s)` states such as the Access42 mismatch seen in production data.
 - `/plan-du-site` now exposes direct skip links to every major link block on the page and labels its discovery resources as landmarks, keeping keyboard navigation aligned with the latest RGAA/WCAG 2.2 review checklist used in the project skills.
 - Fragment links now move focus to the targeted landmark/section on route load and `hashchange`, with direct first-control focus for `#moteur-recherche-global` and `#ajout-site`, plus visible focus styling across homepage, site map, accessibility, profile, domain, and moderation pages.
