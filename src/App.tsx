@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent, MouseEvent as ReactMouseEvent, RefObject } from 'react'
+import type { ChangeEvent, FormEvent, MouseEvent as ReactMouseEvent, RefObject } from 'react'
 import ThemeToggle from './ThemeToggle'
 import type { DomainContext, DomainStatusSummary } from './domainGroups'
 import { resolveDomainGroupPath, normalizeDomainContext } from './domainGroups'
@@ -71,6 +71,8 @@ type DirectoryItem =
       entry: ShowcaseEntry
     }
   | DirectoryGroupItem
+
+type DirectorySortOption = 'latest' | 'earliest' | 'score-desc' | 'score-asc'
 
 type SubmissionStatus = 'approved' | 'duplicate' | 'pending'
 type SubmissionFeedbackKind = 'duplicate' | 'already-pending'
@@ -171,6 +173,33 @@ const skipLinksContainerClass =
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
 const TILE_BATCH_SIZE = 24
 const CLIENT_VOTER_ID_STORAGE_KEY = 'annuaire-rgaa-voter-id'
+const defaultDirectorySort: DirectorySortOption = 'latest'
+const directorySortOptions: Array<{
+  value: DirectorySortOption
+  label: string
+  summaryLabel: string
+}> = [
+  {
+    value: 'latest',
+    label: 'Plus récentes d’abord',
+    summaryLabel: 'plus récentes d’abord',
+  },
+  {
+    value: 'earliest',
+    label: 'Plus anciennes d’abord',
+    summaryLabel: 'plus anciennes d’abord',
+  },
+  {
+    value: 'score-desc',
+    label: 'Score le plus élevé',
+    summaryLabel: 'score le plus élevé d’abord',
+  },
+  {
+    value: 'score-asc',
+    label: 'Score le plus faible',
+    summaryLabel: 'score le plus faible d’abord',
+  },
+]
 const statsValueClass =
   'mt-1 inline-flex min-h-8 min-w-[3ch] items-end text-2xl font-bold [font-variant-numeric:tabular-nums]'
 
@@ -255,6 +284,13 @@ function normalizeCategoryInput(value: string) {
 function normalizePublicSubmissionCategory(value: string) {
   const normalized = normalizeText(value.trim())
   return publicSubmissionCategoryByNormalized.get(normalized) ?? publicSubmissionCategoryFallback
+}
+
+function readDirectorySortFromQuery(value: string | null): DirectorySortOption {
+  if (value === 'earliest' || value === 'score-desc' || value === 'score-asc') {
+    return value
+  }
+  return defaultDirectorySort
 }
 
 function toDomSafeIdSegment(value: string) {
@@ -399,16 +435,70 @@ function buildDirectoryItems(entries: ShowcaseEntry[]): DirectoryItem[] {
     })
   }
 
-  return items.sort((left, right) => {
-    const leftUpdatedAt = Date.parse(left.kind === 'site' ? left.entry.updatedAt : left.updatedAt)
-    const rightUpdatedAt = Date.parse(right.kind === 'site' ? right.entry.updatedAt : right.updatedAt)
-    if (!Number.isNaN(leftUpdatedAt) && !Number.isNaN(rightUpdatedAt) && leftUpdatedAt !== rightUpdatedAt) {
-      return rightUpdatedAt - leftUpdatedAt
+  return items
+}
+
+function getDirectoryItemUpdatedTimestamp(item: DirectoryItem) {
+  const rawValue = item.kind === 'site' ? item.entry.updatedAt : item.updatedAt
+  const timestamp = Date.parse(rawValue)
+  return Number.isNaN(timestamp) ? null : timestamp
+}
+
+function getDirectoryItemScore(item: DirectoryItem) {
+  const score = item.kind === 'site' ? item.entry.complianceScore : item.primaryEntry?.complianceScore ?? null
+  return typeof score === 'number' && Number.isFinite(score) ? score : null
+}
+
+function getDirectoryItemLabel(item: DirectoryItem) {
+  return item.kind === 'site' ? item.entry.siteTitle : item.primaryEntry?.siteTitle ?? item.registrableDomain
+}
+
+function compareNullableNumbers(left: number | null, right: number | null, direction: 'asc' | 'desc') {
+  if (left === null && right === null) {
+    return 0
+  }
+  if (left === null) {
+    return 1
+  }
+  if (right === null) {
+    return -1
+  }
+
+  return direction === 'asc' ? left - right : right - left
+}
+
+function sortDirectoryItems(items: DirectoryItem[], sortOrder: DirectorySortOption) {
+  return [...items].sort((left, right) => {
+    if (sortOrder === 'latest' || sortOrder === 'earliest') {
+      const byTimestamp = compareNullableNumbers(
+        getDirectoryItemUpdatedTimestamp(left),
+        getDirectoryItemUpdatedTimestamp(right),
+        sortOrder === 'earliest' ? 'asc' : 'desc',
+      )
+      if (byTimestamp !== 0) {
+        return byTimestamp
+      }
+    } else {
+      const byScore = compareNullableNumbers(
+        getDirectoryItemScore(left),
+        getDirectoryItemScore(right),
+        sortOrder === 'score-asc' ? 'asc' : 'desc',
+      )
+      if (byScore !== 0) {
+        return byScore
+      }
+
+      const byTimestamp = compareNullableNumbers(
+        getDirectoryItemUpdatedTimestamp(left),
+        getDirectoryItemUpdatedTimestamp(right),
+        'desc',
+      )
+      if (byTimestamp !== 0) {
+        return byTimestamp
+      }
     }
 
-    const leftLabel = left.kind === 'site' ? left.entry.siteTitle : left.registrableDomain
-    const rightLabel = right.kind === 'site' ? right.entry.siteTitle : right.registrableDomain
-    return leftLabel.localeCompare(rightLabel, 'fr')
+    return getDirectoryItemLabel(left).localeCompare(getDirectoryItemLabel(right), 'fr')
   })
 }
 
@@ -439,11 +529,13 @@ function buildDirectorySummaryText({
   totalCardCount,
   filteredEntryCount,
   totalEntryCount,
+  sortLabel,
 }: {
   visibleCardCount: number
   totalCardCount: number
   filteredEntryCount: number
   totalEntryCount: number
+  sortLabel: string
 }) {
   const usesGrouping = filteredEntryCount !== totalCardCount || totalEntryCount !== totalCardCount
 
@@ -457,14 +549,14 @@ function buildDirectorySummaryText({
         ? `${totalCardCount} carte(s) après regroupement par domaine`
         : `${visibleCardCount} carte(s) affichée(s) sur ${totalCardCount} après regroupement par domaine`
 
-    return `${entryLabel}, ${cardLabel}.`
+    return `${entryLabel}, ${cardLabel}. Tri actuel : ${sortLabel}.`
   }
 
   if (filteredEntryCount === totalEntryCount) {
-    return `${visibleCardCount} fiche(s) affichée(s) sur ${totalEntryCount} fiche(s) référencée(s).`
+    return `${visibleCardCount} fiche(s) affichée(s) sur ${totalEntryCount} fiche(s) référencée(s). Tri actuel : ${sortLabel}.`
   }
 
-  return `${visibleCardCount} fiche(s) affichée(s) sur ${filteredEntryCount} fiche(s) filtrée(s), ${totalEntryCount} fiche(s) référencée(s) au total.`
+  return `${visibleCardCount} fiche(s) affichée(s) sur ${filteredEntryCount} fiche(s) filtrée(s), ${totalEntryCount} fiche(s) référencée(s) au total. Tri actuel : ${sortLabel}.`
 }
 
 function createClientVoterId() {
@@ -655,6 +747,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<ShowcaseStatusFilter>('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [directorySort, setDirectorySort] = useState<DirectorySortOption>(defaultDirectorySort)
   const [visibleTilesCount, setVisibleTilesCount] = useState(TILE_BATCH_SIZE)
   const [upvotePendingByUrl, setUpvotePendingByUrl] = useState<Record<string, boolean>>({})
   const [politeAnnouncement, setPoliteAnnouncement] = useState({ id: 0, message: '' })
@@ -750,7 +843,12 @@ function App() {
   )
   useHashTargetFocus(focusElement, resolveHashTarget)
 
-  const syncFiltersInUrl = useCallback((filters: { query: string; status: ShowcaseStatusFilter; category: string }) => {
+  const syncFiltersInUrl = useCallback((filters: {
+    query: string
+    status: ShowcaseStatusFilter
+    category: string
+    sort: DirectorySortOption
+  }) => {
     if (typeof window === 'undefined') {
       return
     }
@@ -772,6 +870,11 @@ function App() {
     } else {
       currentUrl.searchParams.set('categorie', filters.category)
     }
+    if (filters.sort === defaultDirectorySort) {
+      currentUrl.searchParams.delete('tri')
+    } else {
+      currentUrl.searchParams.set('tri', filters.sort)
+    }
 
     const nextRelativeUrl = `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`
     const currentRelativeUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`
@@ -784,10 +887,10 @@ function App() {
     setSearchQuery('')
     setStatusFilter('all')
     setCategoryFilter('all')
-    syncFiltersInUrl({ query: '', status: 'all', category: 'all' })
+    syncFiltersInUrl({ query: '', status: 'all', category: 'all', sort: directorySort })
     announcePolite('Filtres réinitialisés.')
     searchInputRef.current?.focus()
-  }, [announcePolite, syncFiltersInUrl])
+  }, [announcePolite, directorySort, syncFiltersInUrl])
 
   const filteredShowcaseEntries = useMemo(() => {
     const normalizedQuery = normalizeText(searchQuery.trim())
@@ -811,9 +914,12 @@ function App() {
     })
   }, [categoryFilter, searchQuery, showcaseEntries, statusFilter])
 
+  const activeDirectorySort =
+    directorySortOptions.find((option) => option.value === directorySort) ?? directorySortOptions[0]
+
   const filteredDirectoryItems = useMemo(
-    () => buildDirectoryItems(filteredShowcaseEntries),
-    [filteredShowcaseEntries],
+    () => sortDirectoryItems(buildDirectoryItems(filteredShowcaseEntries), directorySort),
+    [directorySort, filteredShowcaseEntries],
   )
 
   const availableCategoryOptions = useMemo(() => {
@@ -850,8 +956,10 @@ function App() {
         totalCardCount: filteredDirectoryItems.length,
         filteredEntryCount: filteredShowcaseEntries.length,
         totalEntryCount: showcaseEntries.length,
+        sortLabel: activeDirectorySort.summaryLabel,
       }),
     [
+      activeDirectorySort.summaryLabel,
       filteredDirectoryItems.length,
       filteredShowcaseEntries.length,
       showcaseEntries.length,
@@ -862,7 +970,7 @@ function App() {
   const handleSearchSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
-      syncFiltersInUrl({ query: searchQuery, status: statusFilter, category: categoryFilter })
+      syncFiltersInUrl({ query: searchQuery, status: statusFilter, category: categoryFilter, sort: directorySort })
       const nextVisibleCardCount = Math.min(filteredDirectoryItems.length, TILE_BATCH_SIZE)
       announcePolite(
         `Recherche appliquée. ${buildDirectorySummaryText({
@@ -870,13 +978,16 @@ function App() {
           totalCardCount: filteredDirectoryItems.length,
           filteredEntryCount: filteredShowcaseEntries.length,
           totalEntryCount: showcaseEntries.length,
+          sortLabel: activeDirectorySort.summaryLabel,
         })}`,
       )
       focusElement(resultsSummaryRef.current)
     },
     [
+      activeDirectorySort.summaryLabel,
       announcePolite,
       categoryFilter,
+      directorySort,
       filteredDirectoryItems.length,
       filteredShowcaseEntries.length,
       focusElement,
@@ -885,6 +996,20 @@ function App() {
       statusFilter,
       syncFiltersInUrl,
     ],
+  )
+
+  const handleDirectorySortChange = useCallback(
+    (event: ChangeEvent<HTMLSelectElement>) => {
+      const nextSort = readDirectorySortFromQuery(event.target.value)
+      setDirectorySort(nextSort)
+      syncFiltersInUrl({
+        query: searchQuery,
+        status: statusFilter,
+        category: categoryFilter,
+        sort: nextSort,
+      })
+    },
+    [categoryFilter, searchQuery, statusFilter, syncFiltersInUrl],
   )
 
   const directoryStats = useMemo(() => {
@@ -1119,14 +1244,16 @@ function App() {
     const initialQuery = params.get('recherche')
     const initialStatus = readStatusFilterFromQuery(params.get('statut'))
     const initialCategory = params.get('categorie') ?? 'all'
+    const initialSort = readDirectorySortFromQuery(params.get('tri'))
     shouldFocusResultsAfterQueryInitRef.current =
-      Boolean(initialQuery?.trim()) || initialStatus !== 'all' || initialCategory !== 'all'
+      Boolean(initialQuery?.trim()) || initialStatus !== 'all' || initialCategory !== 'all' || initialSort !== defaultDirectorySort
 
     if (initialQuery) {
       setSearchQuery(initialQuery.slice(0, 120))
     }
 
     setStatusFilter(initialStatus)
+    setDirectorySort(initialSort)
     if (initialCategory === 'all' || initialCategory.trim()) {
       setCategoryFilter(initialCategory === 'all' ? 'all' : initialCategory.slice(0, 60))
     }
@@ -1140,13 +1267,13 @@ function App() {
     shouldFocusResultsAfterQueryInitRef.current = false
     window.setTimeout(() => {
       focusElement(resultsSummaryRef.current)
-      announcePolite('Filtres de recherche appliqués depuis l’URL.')
+      announcePolite('Paramètres de résultats appliqués depuis l’URL.')
     }, 0)
   }, [announcePolite, directoryErrorMessage, focusElement, loadingDirectory])
 
   useEffect(() => {
     setVisibleTilesCount(Math.min(TILE_BATCH_SIZE, filteredDirectoryItems.length))
-  }, [filteredDirectoryItems.length, searchQuery, statusFilter, categoryFilter])
+  }, [categoryFilter, directorySort, filteredDirectoryItems.length, searchQuery, statusFilter])
 
   const handleLoadMoreTiles = useCallback(
     (source: 'button' | 'auto') => {
@@ -1163,6 +1290,7 @@ function App() {
               totalCardCount: filteredDirectoryItems.length,
               filteredEntryCount: filteredShowcaseEntries.length,
               totalEntryCount: showcaseEntries.length,
+              sortLabel: activeDirectorySort.summaryLabel,
             }),
           )
           if (next >= filteredDirectoryItems.length) {
@@ -1175,6 +1303,7 @@ function App() {
       })
     },
     [
+      activeDirectorySort.summaryLabel,
       announcePolite,
       filteredDirectoryItems.length,
       filteredShowcaseEntries.length,
@@ -1875,16 +2004,44 @@ function App() {
             aria-labelledby="galerie-titre"
             aria-busy={loadingDirectory}
           >
-            <div className="flex flex-col gap-2">
-              <h2 id="galerie-titre" className="text-xl font-semibold">
-                Résultats annuaire
-              </h2>
-              <p className="text-slate-700 dark:text-slate-300">
-                La recherche et les filtres sont disponibles dans l’en-tête de page, puis les résultats sont listés ici.
-              </p>
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div className="max-w-2xl">
+                <h2 id="galerie-titre" className="text-xl font-semibold">
+                  Résultats annuaire
+                </h2>
+                <p className="mt-2 text-slate-700 dark:text-slate-300">
+                  La recherche et les filtres sont disponibles dans l’en-tête de page, puis les résultats sont listés ici.
+                </p>
+              </div>
+
+              <div className="w-full rounded-2xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 p-4 md:max-w-sm">
+                <label
+                  htmlFor="annuaire-tri-resultats"
+                  className="block text-sm font-semibold text-slate-900 dark:text-slate-50"
+                >
+                  Trier les résultats
+                </label>
+                <select
+                  id="annuaire-tri-resultats"
+                  value={directorySort}
+                  onChange={handleDirectorySortChange}
+                  aria-describedby="annuaire-tri-resultats-aide"
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-700 dark:border-slate-400 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                >
+                  {directorySortOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <p id="annuaire-tri-resultats-aide" className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                  Le tri met à jour immédiatement les cartes ci-dessous sans déplacer le focus clavier.
+                </p>
+              </div>
             </div>
 
             <p
+              id="annuaire-resultats-resume"
               ref={resultsSummaryRef}
               tabIndex={-1}
               className="mt-3 min-h-[3rem] text-sm text-slate-700 dark:text-slate-300 [font-variant-numeric:tabular-nums] sm:min-h-6"

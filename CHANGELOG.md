@@ -22,6 +22,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Homepage vote-state synchronization now resets both pressed and unpressed states from `/api/showcase/vote-state`, so a removed vote no longer stays visually stuck after subsequent directory reloads.
 - Moderation archive imports now reload the persisted maintenance state in the UI, so operators do not keep a stale public-status panel after restoring a signed archive.
 - Once moderation is unlocked, the authentication form now disappears and initial focus moves to the first useful moderation control (first pending approval button when present), avoiding a focus path back into already-completed authentication UI.
+- Homepage result sorting now uses a native high-contrast select with URL persistence, keeps keyboard focus on the control, and updates the visible/live French results summary so sorting changes remain explicit for screen-reader users without breaking SSR-safe hydration behavior.
 
 ### Changed
 - Maintenance state is now included in moderation archive export/import, in rollback freshness checks, and in `GET /api/health` so operators do not lose service posture during restores.
@@ -29,6 +30,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Discovery resources are now synchronized around the current public surface: `llms.txt`, `llms-full.txt`, `robots.txt`, `/sitemap.xml`, and `/ai-context.json` all reference domain-group pages and the public `/api/domain-groups` dataset where relevant.
 - README now documents which discovery assets are server-generated (`/sitemap.xml`, `/ai-context.json`) and which remain static versioned files (`public/robots.txt`, `public/llms.txt`, `public/llms-full.txt`).
 - README now documents the current remote-analysis size budget strategy and proxied client-IP rate-limit keying.
+- README now documents that the homepage combines live filters, sorting, progressive result loading, and aligned live announcements on the public directory.
 - The public vote CTA is now a true session-scoped toggle: the same button can remove the current browser’s vote, keeps `aria-pressed` aligned with actual ownership, and `POST /api/showcase/upvote` now accepts `action: remove` alongside the existing add flow.
 - README now documents the public vote-state endpoint and the session-owned vote toggle semantics.
 - GitHub notifications now also cover auto-approved publications with a dedicated informational issue wording distinct from the manual-moderation flow.
