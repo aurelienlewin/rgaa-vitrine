@@ -3,6 +3,7 @@ import { isIP } from 'node:net'
 import { load } from 'cheerio'
 
 const MAX_HTML_BYTES = 800_000
+const MAX_HOMEPAGE_HTML_BYTES = 1_000_000
 const MAX_JSON_BYTES = 400_000
 const REQUIRED_FETCH_TIMEOUT_MS = 7000
 const OPTIONAL_FETCH_TIMEOUT_MS = 1800
@@ -348,7 +349,12 @@ async function fetchTextDocument(
 }
 
 async function fetchHtml(url, options = {}) {
-  const { redirectCount = 0, timeoutMs = REQUIRED_FETCH_TIMEOUT_MS, context } = options
+  const {
+    redirectCount = 0,
+    timeoutMs = REQUIRED_FETCH_TIMEOUT_MS,
+    context,
+    maxBytes = MAX_HTML_BYTES,
+  } = options
   const { finalUrl, text } = await fetchTextDocument(
     url,
     {
@@ -356,7 +362,7 @@ async function fetchHtml(url, options = {}) {
       invalidContentMessage: 'Le contenu cible n’est pas une page HTML.',
       isExpectedContentType: (contentType) =>
         contentType.includes('text/html') || contentType.includes('application/xhtml+xml'),
-      maxBytes: MAX_HTML_BYTES,
+      maxBytes,
       timeoutMs,
       context,
     },
@@ -1101,7 +1107,11 @@ export async function buildSiteInsight(inputUrl) {
   const parsed = normalizeSubmittedUrl(inputUrl)
   await validatePublicHost(parsed.hostname, context)
 
-  const homepage = await fetchHtml(parsed.toString(), { context })
+  // Homepages often embed large inline CSS/JS while secondary documents stay smaller.
+  const homepage = await fetchHtml(parsed.toString(), {
+    context,
+    maxBytes: MAX_HOMEPAGE_HTML_BYTES,
+  })
   const metadata = extractMetaInformation(homepage.html, homepage.finalUrl)
   const accessibilityPageUrl = await resolveAccessibilityPageUrl(
     homepage.finalUrl,

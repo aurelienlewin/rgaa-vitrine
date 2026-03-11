@@ -789,6 +789,10 @@ function readRequestIp(request) {
   )
 }
 
+function buildRateLimitKey(request) {
+  return `ip:${readRequestIp(request)}`
+}
+
 function createFingerprint(value) {
   return createHash('sha256').update(value).digest('hex').slice(0, 48)
 }
@@ -1257,6 +1261,7 @@ app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 40,
+    keyGenerator: buildRateLimitKey,
     standardHeaders: true,
     legacyHeaders: false,
     validate: rateLimitValidationOptions,
@@ -1275,6 +1280,7 @@ app.use(express.json({ limit: '3mb' }))
 const submissionLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 8,
+  keyGenerator: buildRateLimitKey,
   standardHeaders: true,
   legacyHeaders: false,
   validate: rateLimitValidationOptions,
@@ -1286,6 +1292,7 @@ const submissionLimiter = rateLimit({
 const voteLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 25,
+  keyGenerator: buildRateLimitKey,
   standardHeaders: true,
   legacyHeaders: false,
   validate: rateLimitValidationOptions,
@@ -1297,6 +1304,7 @@ const voteLimiter = rateLimit({
 const moderationAuthLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 25,
+  keyGenerator: buildRateLimitKey,
   standardHeaders: true,
   legacyHeaders: false,
   validate: rateLimitValidationOptions,

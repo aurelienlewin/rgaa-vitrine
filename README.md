@@ -314,8 +314,8 @@ Key controls:
 - SSRF protection, including localhost/private-host rejection
 - redirect-by-redirect target revalidation
 - DNS checks before remote fetch
-- response size and timeout limits
-- rate limiting on public endpoints, with stricter submission and vote controls
+- response size and timeout limits, with a slightly larger homepage HTML budget than secondary remote documents
+- rate limiting on public endpoints, keyed from extracted client IP headers on proxied deployments, with stricter submission and vote controls
 - moderation token strength checks and auth throttling
 - no remote script execution
 - moderation-managed site blocklist and vote blocklist

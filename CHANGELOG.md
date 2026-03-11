@@ -14,12 +14,15 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - `/plan-du-site` now exposes direct skip links to every major link block on the page and labels its discovery resources as landmarks, keeping keyboard navigation aligned with the latest RGAA/WCAG 2.2 review checklist used in the project skills.
 - Fragment links now move focus to the targeted landmark/section on route load and `hashchange`, with direct first-control focus for `#moteur-recherche-global` and `#ajout-site`, plus visible focus styling across homepage, site map, accessibility, profile, domain, and moderation pages.
 - Dark-mode search/help text now stays contrast-safe from the first SSR paint on public detail pages: the critical secondary-header CSS now styles the keyboard helper and search placeholders in dark mode before hydration, avoiding low-contrast flashes on slow connections.
+- Site pre-analysis now accepts slightly larger homepage HTML documents while keeping tighter limits on secondary remote documents, which lets CMS-heavy homepages such as `www.atecna.fr` resolve their accessibility links without widening every fetch.
+- Public rate limiting now keys on the extracted client IP headers used on proxied deployments, preventing unrelated Vercel visitors from tripping the shared global quota.
 
 ### Changed
 - Maintenance state is now included in moderation archive export/import, in rollback freshness checks, and in `GET /api/health` so operators do not lose service posture during restores.
 - Public JSON/XML endpoints now return `503` with `Retry-After` during maintenance, while the static Vite shell probes `/api/maintenance` before hydration and swaps public SPA routes to an accessible French maintenance screen without exposing the moderation surface.
 - Discovery resources are now synchronized around the current public surface: `llms.txt`, `llms-full.txt`, `robots.txt`, `/sitemap.xml`, and `/ai-context.json` all reference domain-group pages and the public `/api/domain-groups` dataset where relevant.
 - README now documents which discovery assets are server-generated (`/sitemap.xml`, `/ai-context.json`) and which remain static versioned files (`public/robots.txt`, `public/llms.txt`, `public/llms-full.txt`).
+- README now documents the current remote-analysis size budget strategy and proxied client-IP rate-limit keying.
 - README was rewritten to focus on current architecture, operations, accessibility, and discovery behavior, while detailed release-by-release history stays in `CHANGELOG.md`.
 - Homepage directory loading now uses a more visible non-interactive status panel with reserved card placeholders, making slow-connection waits clearer without adding extra polite live announcements or extra API calls.
 
