@@ -17,6 +17,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Site pre-analysis now accepts slightly larger homepage HTML documents while keeping tighter limits on secondary remote documents, which lets some CMS-heavy homepages resolve their accessibility links without widening every fetch.
 - Public rate limiting now keys on the extracted client IP headers used on proxied deployments, preventing unrelated Vercel visitors from tripping the shared global quota.
 - Homepage vote-state synchronization now resets both pressed and unpressed states from `/api/showcase/vote-state`, so a removed vote no longer stays visually stuck after subsequent directory reloads.
+- Moderation archive imports now reload the persisted maintenance state in the UI, so operators do not keep a stale public-status panel after restoring a signed archive.
 
 ### Changed
 - Maintenance state is now included in moderation archive export/import, in rollback freshness checks, and in `GET /api/health` so operators do not lose service posture during restores.
@@ -26,6 +27,8 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - README now documents the current remote-analysis size budget strategy and proxied client-IP rate-limit keying.
 - The public vote CTA is now a true session-scoped toggle: the same button can remove the current browser’s vote, keeps `aria-pressed` aligned with actual ownership, and `POST /api/showcase/upvote` now accepts `action: remove` alongside the existing add flow.
 - README now documents the public vote-state endpoint and the session-owned vote toggle semantics.
+- GitHub notifications now also cover auto-approved publications with a dedicated informational issue wording distinct from the manual-moderation flow.
+- The moderation workspace now puts pending approvals first in the DOM and skip-link order, keeps archive and maintenance controls together on the final row, and restyles maintenance as a high-contrast danger panel without changing keyboard reachability or live-region behavior.
 - README was rewritten to focus on current architecture, operations, accessibility, and discovery behavior, while detailed release-by-release history stays in `CHANGELOG.md`.
 - Homepage directory loading now uses a more visible non-interactive status panel with reserved card placeholders, making slow-connection waits clearer without adding extra polite live announcements or extra API calls.
 

@@ -230,7 +230,7 @@ Optional archive signing:
 MODERATION_ARCHIVE_SIGNING_SECRET=replace-with-a-long-random-secret
 ```
 
-### GitHub Notifications For Pending Moderation
+### GitHub Notifications
 
 ```bash
 GITHUB_NOTIFY_REPO=owner/repo
@@ -253,6 +253,13 @@ GITHUB_NOTIFY_WINDOW_SECONDS=3600
 PUBLIC_APP_URL=https://annuaire-rgaa.fr
 # GITHUB_API_URL=https://github.example.com/api/v3
 ```
+
+When enabled, the notifier can create:
+
+- moderation issues for submissions that require manual review
+- informational publication issues for sites that are auto-approved and published immediately
+
+Publication issues are intentionally worded as informational and do not imply operator action is required.
 
 ## API Surface
 

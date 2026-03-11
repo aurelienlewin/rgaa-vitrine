@@ -4,7 +4,11 @@ import rateLimit from 'express-rate-limit'
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { isIP } from 'node:net'
 import { buildSiteInsight, SiteInsightError, validatePublicHttpUrl } from './siteInsight.js'
-import { isGithubNotifierEnabled, notifyPendingModerationOnGithub } from './githubNotifier.js'
+import {
+  isGithubNotifierEnabled,
+  notifyApprovedPublicationOnGithub,
+  notifyPendingModerationOnGithub,
+} from './githubNotifier.js'
 import { buildSitemapXml, resolvePublicAppUrl } from './sitemap.js'
 import { buildAiContextPayload } from './aiContext.js'
 import {
@@ -147,6 +151,28 @@ function readGithubNotificationQuota() {
   return {
     windowMs: windowSeconds * 1000,
     maxPerWindow,
+  }
+}
+
+async function tryGithubNotification(kind, task) {
+  if (!isGithubNotifierEnabled()) {
+    return
+  }
+
+  try {
+    const notificationSlot = await showcaseStorage.reserveGithubNotificationSlot({
+      limit: githubNotificationQuota.maxPerWindow,
+      windowMs: githubNotificationQuota.windowMs,
+    })
+
+    if (!notificationSlot.allowed) {
+      console.warn(`GitHub ${kind} notification skipped: quota reached until ${notificationSlot.resetAt}.`)
+      return
+    }
+
+    await task()
+  } catch (notificationError) {
+    console.error(`GitHub ${kind} notification failed`, notificationError)
   }
 }
 
@@ -1846,24 +1872,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
         updatedDomainSnapshot.pendingEntries.find((entry) => entry.normalizedUrl === savedPendingSubmission.normalizedUrl) ??
         withCandidateDomainContext(savedPendingSubmission, updatedDomainSnapshot)
 
-      if (isGithubNotifierEnabled()) {
-        try {
-          const notificationSlot = await showcaseStorage.reserveGithubNotificationSlot({
-            limit: githubNotificationQuota.maxPerWindow,
-            windowMs: githubNotificationQuota.windowMs,
-          })
-
-          if (!notificationSlot.allowed) {
-            console.warn(
-              `GitHub moderation notification skipped: quota reached until ${notificationSlot.resetAt}.`,
-            )
-          } else {
-            await notifyPendingModerationOnGithub(savedPendingSubmission)
-          }
-        } catch (notificationError) {
-          console.error('GitHub moderation notification failed', notificationError)
-        }
-      }
+      await tryGithubNotification('moderation', () => notifyPendingModerationOnGithub(savedPendingSubmission))
 
       response.status(202).json({
         ...pendingEntryWithContext,
@@ -1883,6 +1892,11 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
     const persistedEntryWithContext =
       updatedDomainSnapshot.publishedEntries.find((entry) => entry.normalizedUrl === persistedEntry.normalizedUrl) ??
       withCandidateDomainContext(persistedEntry, updatedDomainSnapshot)
+
+    await tryGithubNotification('auto-publication', () =>
+      notifyApprovedPublicationOnGithub(persistedEntryWithContext),
+    )
+
     response.json({
       ...persistedEntryWithContext,
       submissionStatus: 'approved',

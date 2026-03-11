@@ -993,7 +993,7 @@ function ModerationPage() {
           throw new Error(typeof payload.error === 'string' ? payload.error : 'Import impossible.')
         }
 
-        await Promise.all([loadPendingEntries(), loadPublishedEntries(), loadBlocklists()])
+        await Promise.all([loadPendingEntries(), loadPublishedEntries(), loadBlocklists(), loadMaintenanceState()])
 
         const message =
           toNullableString(payload.message) ??
@@ -1031,6 +1031,7 @@ function ModerationPage() {
       focusTokenInput,
       hasToken,
       loadBlocklists,
+      loadMaintenanceState,
       loadPendingEntries,
       loadPublishedEntries,
     ],
@@ -1527,20 +1528,23 @@ function ModerationPage() {
         </a>
         {isModerationUnlocked && (
           <>
-            <a href="#mode-maintenance" className={skipLinkClass} onClick={focusMaintenance}>
-              Aller au mode maintenance
+            <a href="#soumissions-attente" className={skipLinkClass} onClick={focusPending}>
+              Aller aux validations
             </a>
             <a href="#annuaire-publie" className={skipLinkClass} onClick={focusPublished}>
               Aller à l’annuaire publié
-            </a>
-            <a href="#archive-donnees" className={skipLinkClass} onClick={focusArchive}>
-              Aller à l’archivage
             </a>
             <a href="#blocklist-sites" className={skipLinkClass} onClick={focusSiteBlocklist}>
               Aller à la blocklist sites
             </a>
             <a href="#blocklist-votes" className={skipLinkClass} onClick={focusVoteBlocklist}>
               Aller à la blocklist votes
+            </a>
+            <a href="#archive-donnees" className={skipLinkClass} onClick={focusArchive}>
+              Aller à l’archivage
+            </a>
+            <a href="#mode-maintenance" className={skipLinkClass} onClick={focusMaintenance}>
+              Aller au mode maintenance
             </a>
           </>
         )}
@@ -1669,202 +1673,6 @@ function ModerationPage() {
 
           {isModerationUnlocked && (
             <>
-              <section
-                id="mode-maintenance"
-                ref={maintenanceSectionRef}
-                tabIndex={-1}
-                className={`mt-8 rounded-2xl border border-violet-200 dark:border-violet-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetScrollMarginClass} ${focusTargetClass}`}
-                aria-labelledby="mode-maintenance-titre"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 id="mode-maintenance-titre" className="text-lg font-semibold">
-                      Mode maintenance
-                    </h2>
-                    <p className="mt-2 text-slate-700 dark:text-slate-300">
-                      Activez à tout moment une page publique de retour prochainement. Les endpoints publics JSON/XML passent alors en `503`, tandis que la modération reste disponible.
-                    </p>
-                  </div>
-                  <span
-                    className={`inline-flex min-h-11 items-center rounded-full border px-4 py-2 text-sm font-semibold ${
-                      maintenanceState.enabled
-                        ? 'border-amber-700 dark:border-amber-300 bg-amber-100 dark:bg-amber-950 text-amber-950 dark:text-amber-100'
-                        : 'border-emerald-700 dark:border-emerald-300 bg-emerald-100 dark:bg-emerald-950 text-emerald-950 dark:text-emerald-100'
-                    }`}
-                  >
-                    {maintenanceState.enabled ? 'Maintenance active' : 'Site public ouvert'}
-                  </span>
-                </div>
-
-                <div className="mt-4 rounded-xl border border-violet-200 dark:border-violet-700 bg-violet-50 dark:bg-violet-950 p-4">
-                  <p className="text-sm font-semibold text-violet-950 dark:text-violet-100">
-                    Message public actuellement diffusé
-                  </p>
-                  <p className="mt-2 text-sm text-violet-950 dark:text-violet-100">
-                    {maintenanceState.effectiveMessage}
-                  </p>
-                  <p className="mt-2 text-sm text-violet-900 dark:text-violet-200">
-                    {maintenanceState.updatedAt
-                      ? `Dernière mise à jour: ${formatDate(maintenanceState.updatedAt)}.`
-                      : 'Aucune activation enregistrée pour le moment.'}
-                  </p>
-                </div>
-
-                <div className="mt-4">
-                  <label htmlFor="maintenance-message" className="block text-sm font-medium">
-                    Message public personnalisé
-                  </label>
-                  <textarea
-                    id="maintenance-message"
-                    rows={4}
-                    maxLength={280}
-                    value={maintenanceMessageInput}
-                    onChange={(event) => setMaintenanceMessageInput(event.target.value)}
-                    aria-describedby="maintenance-message-help maintenance-message-count"
-                    className={`mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-                  />
-                  <p id="maintenance-message-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                    Laissez vide pour utiliser le message standard: “{DEFAULT_MAINTENANCE_MESSAGE}”.
-                  </p>
-                  <p id="maintenance-message-count" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                    {maintenanceMessageInput.trim().length}/280 caractère(s).
-                  </p>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleSetMaintenanceMode(true)
-                    }}
-                    disabled={!hasToken || isSavingMaintenance || isLoadingMaintenance}
-                    className={`min-h-11 rounded-xl bg-violet-700 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
-                  >
-                    {isSavingMaintenance
-                      ? 'Traitement...'
-                      : maintenanceState.enabled
-                        ? 'Mettre à jour la maintenance'
-                        : 'Activer la maintenance'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleSetMaintenanceMode(false)
-                    }}
-                    disabled={!hasToken || !maintenanceState.enabled || isSavingMaintenance || isLoadingMaintenance}
-                    className={`min-h-11 rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
-                  >
-                    {isSavingMaintenance && maintenanceState.enabled ? 'Traitement...' : 'Désactiver la maintenance'}
-                  </button>
-                </div>
-              </section>
-
-              <section
-                id="archive-donnees"
-                ref={archiveRef}
-                tabIndex={-1}
-                className={`mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetScrollMarginClass} ${focusTargetClass}`}
-                aria-labelledby="archive-donnees-titre"
-              >
-                <h2 id="archive-donnees-titre" className="text-lg font-semibold">
-                  Archivage et restauration
-                </h2>
-                <p className="mt-2 text-slate-700 dark:text-slate-300">
-                  Exportez une archive complète lisible de la base, puis réimportez-la en fusion ou en remplacement.
-                </p>
-
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleExportArchive()
-                    }}
-                    disabled={!hasToken || isExportingArchive || isImportingArchive}
-                    className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-white dark:text-slate-950 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
-                  >
-                    {isExportingArchive ? 'Export en cours...' : 'Télécharger l’archive JSON'}
-                  </button>
-                </div>
-
-                <form className="mt-4 grid gap-4 rounded-xl border border-slate-200 dark:border-slate-700 p-4" onSubmit={handleImportArchive}>
-                  <div>
-                    <label htmlFor="archive-import-file" className="block text-sm font-medium">
-                      Fichier d’archive JSON
-                    </label>
-                    <input
-                      ref={archiveImportInputRef}
-                      id="archive-import-file"
-                      type="file"
-                      accept=".json,application/json"
-                      required
-                      onChange={handleArchiveFileChange}
-                      aria-describedby="archive-import-help archive-import-selected"
-                      className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-                    />
-                    <p id="archive-import-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                      Format attendu: export natif Annuaire RGAA.
-                    </p>
-                    <p id="archive-import-selected" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                      {archiveImportFileName ? `Fichier sélectionné: ${archiveImportFileName}` : 'Aucun fichier sélectionné.'}
-                    </p>
-                  </div>
-
-                  <fieldset className="rounded-xl border border-slate-200 dark:border-slate-700 p-3">
-                    <legend className="px-1 text-sm font-semibold">Mode d’import</legend>
-                    <div className="mt-2 flex flex-wrap gap-3">
-                      <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm ${focusRingClass}`}>
-                        <input
-                          type="radio"
-                          name="archive-import-mode"
-                          value="merge"
-                          checked={archiveImportMode === 'merge'}
-                          onChange={() => {
-                            setArchiveImportMode('merge')
-                            setAllowArchiveRollbackImport(false)
-                          }}
-                        />
-                        Fusionner
-                      </label>
-                      <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm ${focusRingClass}`}>
-                        <input
-                          type="radio"
-                          name="archive-import-mode"
-                          value="replace"
-                          checked={archiveImportMode === 'replace'}
-                          onChange={() => setArchiveImportMode('replace')}
-                        />
-                        Remplacer toute la base
-                      </label>
-                    </div>
-
-                    {archiveImportMode === 'replace' && (
-                      <label className={`mt-3 inline-flex min-h-11 items-start gap-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 px-3 py-2 text-sm text-amber-900 dark:text-amber-100 ${focusRingClass}`}>
-                        <input
-                          type="checkbox"
-                          checked={allowArchiveRollbackImport}
-                          onChange={(event) => setAllowArchiveRollbackImport(event.target.checked)}
-                        />
-                        <span>
-                          Autoriser un rollback (import d’une archive potentiellement plus ancienne que la base actuelle).
-                        </span>
-                      </label>
-                    )}
-                  </fieldset>
-
-                  <p className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-3 text-sm text-amber-900 dark:text-amber-100">
-                    Le mode <strong>Remplacer</strong> écrase les données existantes avant import.
-                  </p>
-
-                  <button
-                    type="submit"
-                    disabled={!hasToken || !archiveImportFile || isImportingArchive || isExportingArchive}
-                    className={`min-h-11 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
-                  >
-                    {isImportingArchive ? 'Import en cours...' : 'Importer l’archive'}
-                  </button>
-                </form>
-              </section>
-
               <section
                 id="soumissions-attente"
                 ref={pendingRef}
@@ -2540,6 +2348,221 @@ function ModerationPage() {
               )}
             </ul>
               </section>
+
+              <div className="mt-8 grid gap-8 xl:grid-cols-2 xl:items-start">
+                <section
+                  id="archive-donnees"
+                  ref={archiveRef}
+                  tabIndex={-1}
+                  className={`rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                  aria-labelledby="archive-donnees-titre"
+                >
+                  <h2 id="archive-donnees-titre" className="text-lg font-semibold">
+                    Archivage et restauration
+                  </h2>
+                  <p className="mt-2 text-slate-700 dark:text-slate-300">
+                    Exportez une archive complète lisible de la base, puis réimportez-la en fusion ou en remplacement.
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleExportArchive()
+                      }}
+                      disabled={!hasToken || isExportingArchive || isImportingArchive}
+                      className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-white dark:text-slate-950 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                    >
+                      {isExportingArchive ? 'Export en cours...' : 'Télécharger l’archive JSON'}
+                    </button>
+                  </div>
+
+                  <form className="mt-4 grid gap-4 rounded-xl border border-slate-200 dark:border-slate-700 p-4" onSubmit={handleImportArchive}>
+                    <div>
+                      <label htmlFor="archive-import-file" className="block text-sm font-medium">
+                        Fichier d’archive JSON
+                      </label>
+                      <input
+                        ref={archiveImportInputRef}
+                        id="archive-import-file"
+                        type="file"
+                        accept=".json,application/json"
+                        required
+                        onChange={handleArchiveFileChange}
+                        aria-describedby="archive-import-help archive-import-selected"
+                        className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                      />
+                      <p id="archive-import-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                        Format attendu: export natif Annuaire RGAA.
+                      </p>
+                      <p id="archive-import-selected" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                        {archiveImportFileName ? `Fichier sélectionné: ${archiveImportFileName}` : 'Aucun fichier sélectionné.'}
+                      </p>
+                    </div>
+
+                    <fieldset className="rounded-xl border border-slate-200 dark:border-slate-700 p-3">
+                      <legend className="px-1 text-sm font-semibold">Mode d’import</legend>
+                      <div className="mt-2 flex flex-wrap gap-3">
+                        <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm ${focusRingClass}`}>
+                          <input
+                            type="radio"
+                            name="archive-import-mode"
+                            value="merge"
+                            checked={archiveImportMode === 'merge'}
+                            onChange={() => {
+                              setArchiveImportMode('merge')
+                              setAllowArchiveRollbackImport(false)
+                            }}
+                          />
+                          Fusionner
+                        </label>
+                        <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm ${focusRingClass}`}>
+                          <input
+                            type="radio"
+                            name="archive-import-mode"
+                            value="replace"
+                            checked={archiveImportMode === 'replace'}
+                            onChange={() => setArchiveImportMode('replace')}
+                          />
+                          Remplacer toute la base
+                        </label>
+                      </div>
+
+                      {archiveImportMode === 'replace' && (
+                        <label className={`mt-3 inline-flex min-h-11 items-start gap-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 px-3 py-2 text-sm text-amber-900 dark:text-amber-100 ${focusRingClass}`}>
+                          <input
+                            type="checkbox"
+                            checked={allowArchiveRollbackImport}
+                            onChange={(event) => setAllowArchiveRollbackImport(event.target.checked)}
+                          />
+                          <span>
+                            Autoriser un rollback (import d’une archive potentiellement plus ancienne que la base actuelle).
+                          </span>
+                        </label>
+                      )}
+                    </fieldset>
+
+                    <p className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-3 text-sm text-amber-900 dark:text-amber-100">
+                      Le mode <strong>Remplacer</strong> écrase les données existantes avant import.
+                    </p>
+
+                    <button
+                      type="submit"
+                      disabled={!hasToken || !archiveImportFile || isImportingArchive || isExportingArchive}
+                      className={`min-h-11 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                    >
+                      {isImportingArchive ? 'Import en cours...' : 'Importer l’archive'}
+                    </button>
+                  </form>
+                </section>
+
+                <section
+                  id="mode-maintenance"
+                  ref={maintenanceSectionRef}
+                  tabIndex={-1}
+                  className={`rounded-3xl border-2 border-rose-700 dark:border-rose-300 bg-linear-to-br from-rose-50 via-orange-50 to-white dark:from-rose-950 dark:via-slate-950 dark:to-slate-900 p-6 shadow-lg shadow-rose-950/10 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                  aria-labelledby="mode-maintenance-titre"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-rose-950 dark:text-rose-100">
+                        Contrôle d’interruption publique
+                      </p>
+                      <h2 id="mode-maintenance-titre" className="mt-1 text-lg font-semibold text-slate-950 dark:text-slate-50">
+                        Mode maintenance
+                      </h2>
+                      <p className="mt-2 text-slate-800 dark:text-slate-200">
+                        Utilisez ce mode en dernier recours. L’activation coupe immédiatement l’accès public et force les endpoints JSON/XML publics en `503`, tandis que la modération reste disponible.
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex min-h-11 items-center rounded-full border-2 px-4 py-2 text-sm font-extrabold ${
+                        maintenanceState.enabled
+                          ? 'border-rose-900 dark:border-rose-100 bg-rose-700 text-white'
+                          : 'border-emerald-800 dark:border-emerald-200 bg-emerald-100 dark:bg-emerald-950 text-emerald-950 dark:text-emerald-100'
+                      }`}
+                    >
+                      {maintenanceState.enabled ? 'Maintenance active' : 'Site public ouvert'}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 rounded-2xl border-2 border-rose-700 dark:border-rose-300 bg-rose-100 dark:bg-rose-950 p-4 text-rose-950 dark:text-rose-50">
+                    <p className="text-sm font-extrabold">
+                      Impact immédiat côté public
+                    </p>
+                    <ul className="mt-2 list-disc space-y-1 ps-5 text-sm">
+                      <li>La vitrine publique affiche une page d’interruption temporaire.</li>
+                      <li>Les endpoints publics d’API et de sitemap répondent en indisponibilité temporaire.</li>
+                      <li>La modération reste accessible avec votre jeton.</li>
+                    </ul>
+                  </div>
+
+                  <div className="mt-4 rounded-xl border border-rose-300 dark:border-rose-700 bg-white/80 dark:bg-slate-950/80 p-4">
+                    <p className="text-sm font-semibold text-slate-950 dark:text-slate-50">
+                      Message public actuellement diffusé
+                    </p>
+                    <p className="mt-2 text-sm text-slate-900 dark:text-slate-100">
+                      {maintenanceState.effectiveMessage}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                      {maintenanceState.updatedAt
+                        ? `Dernière mise à jour: ${formatDate(maintenanceState.updatedAt)}.`
+                        : 'Aucune activation enregistrée pour le moment.'}
+                    </p>
+                  </div>
+
+                  <div className="mt-4">
+                    <label htmlFor="maintenance-message" className="block text-sm font-medium text-slate-950 dark:text-slate-50">
+                      Message public personnalisé
+                    </label>
+                    <textarea
+                      id="maintenance-message"
+                      rows={4}
+                      maxLength={280}
+                      value={maintenanceMessageInput}
+                      onChange={(event) => setMaintenanceMessageInput(event.target.value)}
+                      aria-describedby="maintenance-message-help maintenance-message-count maintenance-danger-help"
+                      className={`mt-1 w-full rounded-xl border-2 border-rose-300 dark:border-rose-700 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                    />
+                    <p id="maintenance-message-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                      Laissez vide pour utiliser le message standard: “{DEFAULT_MAINTENANCE_MESSAGE}”.
+                    </p>
+                    <p id="maintenance-message-count" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                      {maintenanceMessageInput.trim().length}/280 caractère(s).
+                    </p>
+                    <p id="maintenance-danger-help" className="mt-1 text-sm font-semibold text-rose-900 dark:text-rose-100">
+                      Vérifiez le message avant activation: il sera diffusé immédiatement au public.
+                    </p>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleSetMaintenanceMode(true)
+                      }}
+                      disabled={!hasToken || isSavingMaintenance || isLoadingMaintenance}
+                      className={`min-h-11 rounded-xl border-2 border-rose-950 dark:border-rose-100 bg-rose-700 px-4 py-2 text-sm font-extrabold text-white hover:bg-rose-600 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                    >
+                      {isSavingMaintenance
+                        ? 'Traitement...'
+                        : maintenanceState.enabled
+                          ? 'Mettre à jour la maintenance'
+                          : 'Déclencher la maintenance publique'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleSetMaintenanceMode(false)
+                      }}
+                      disabled={!hasToken || !maintenanceState.enabled || isSavingMaintenance || isLoadingMaintenance}
+                      className={`min-h-11 rounded-xl border-2 border-slate-700 dark:border-slate-200 bg-white/80 dark:bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-950 dark:text-slate-50 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                    >
+                      {isSavingMaintenance && maintenanceState.enabled ? 'Traitement...' : 'Rétablir l’accès public'}
+                    </button>
+                  </div>
+                </section>
+              </div>
             </>
           )}
         </main>

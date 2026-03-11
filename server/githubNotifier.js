@@ -176,7 +176,7 @@ async function readJsonSafely(response) {
   }
 }
 
-function buildIssuePayload(entry) {
+function buildPendingModerationIssuePayload(entry) {
   const shortSubmissionId = truncate(markdownEscapeInline(neutralizeGithubMentions(entry.submissionId)), 18)
   const safeTitle = truncate(markdownEscapeInline(neutralizeGithubMentions(compactText(entry.siteTitle || 'Site sans titre'))), 90)
   const safeUrl = truncate(markdownEscapeInline(neutralizeGithubMentions(compactText(entry.normalizedUrl || 'N/A'))), 250)
@@ -221,16 +221,66 @@ function buildIssuePayload(entry) {
   return { title, body }
 }
 
+function buildApprovedPublicationIssuePayload(entry) {
+  const safeTitle = truncate(
+    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.siteTitle || 'Site sans titre'))),
+    90,
+  )
+  const safeUrl = truncate(
+    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.normalizedUrl || 'N/A'))),
+    250,
+  )
+  const safeCategory = truncate(
+    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.category || 'Autre'))),
+    40,
+  )
+  const safeStatus = truncate(
+    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.complianceStatusLabel || 'Niveau inconnu'))),
+    80,
+  )
+  const safeScore =
+    typeof entry.complianceScore === 'number' && Number.isFinite(entry.complianceScore)
+      ? `${entry.complianceScore}%`
+      : 'N/A'
+  const safePublishedAt = truncate(
+    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.updatedAt || new Date().toISOString()))),
+    80,
+  )
+  const safeProfilePath = truncate(
+    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.profilePath || 'N/A'))),
+    160,
+  )
+  const moderationUrl = githubNotifierConfig?.appBaseUrl
+    ? `${githubNotifierConfig.appBaseUrl}/moderation`
+    : '/moderation'
+
+  const title = `[Publication RGAA] ${safeTitle}`
+  const body = [
+    '<!-- annuaire-rgaa:auto-approved-publication -->',
+    'Publication automatique informative. Aucune action de modération n’est requise.',
+    '',
+    `- **Site**: ${safeTitle}`,
+    `- **URL**: ${safeUrl}`,
+    `- **Catégorie**: ${safeCategory}`,
+    `- **Conformité détectée**: ${safeStatus}`,
+    `- **Score**: ${safeScore}`,
+    `- **Publiée le**: ${safePublishedAt}`,
+    `- **Fiche publique**: ${safeProfilePath}`,
+    '',
+    `Accès modération: ${moderationUrl}`,
+  ].join('\n')
+
+  return { title, body }
+}
+
 export function isGithubNotifierEnabled() {
   return Boolean(githubNotifierConfig)
 }
 
-export async function notifyPendingModerationOnGithub(entry) {
+async function createGithubIssue({ title, body }) {
   if (!githubNotifierConfig) {
     return { enabled: false, notified: false }
   }
-
-  const { title, body } = buildIssuePayload(entry)
 
   const fetchOptions = {
     method: 'POST',
@@ -275,4 +325,12 @@ export async function notifyPendingModerationOnGithub(entry) {
     notified: true,
     issueUrl: typeof payload?.html_url === 'string' ? payload.html_url : null,
   }
+}
+
+export async function notifyPendingModerationOnGithub(entry) {
+  return createGithubIssue(buildPendingModerationIssuePayload(entry))
+}
+
+export async function notifyApprovedPublicationOnGithub(entry) {
+  return createGithubIssue(buildApprovedPublicationIssuePayload(entry))
 }
