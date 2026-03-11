@@ -1408,7 +1408,7 @@ function App() {
   const loadClientVoteState = useCallback(async () => {
     try {
       const voterId = getClientVoterId()
-      const response = await fetch(`/api/showcase?clientVoterId=${encodeURIComponent(voterId)}&limit=500`, {
+      const response = await fetch(`/api/showcase/vote-state?clientVoterId=${encodeURIComponent(voterId)}`, {
         credentials: 'omit',
         cache: 'no-store',
       })
@@ -1422,11 +1422,37 @@ function App() {
         throw new Error(payload.error)
       }
 
-      const parsedEntries = readShowcaseEntriesFromPayload(payload)
-      if (!parsedEntries) {
+      const votedUrls = Array.isArray((payload as { votedUrls?: unknown }).votedUrls)
+        ? (payload as { votedUrls: unknown[] }).votedUrls.filter(
+            (value): value is string => typeof value === 'string' && value.trim().length > 0,
+          )
+        : null
+      const rawCountsByUrl =
+        payload && typeof payload === 'object' && (payload as { countsByUrl?: unknown }).countsByUrl
+          ? (payload as { countsByUrl: unknown }).countsByUrl
+          : null
+
+      if (!votedUrls || (rawCountsByUrl !== null && typeof rawCountsByUrl !== 'object')) {
         throw new Error('État des votes invalide.')
       }
-      setShowcaseEntries(parsedEntries)
+
+      const votedUrlSet = new Set(votedUrls)
+      const countsByUrl = new Map<string, number>()
+      if (rawCountsByUrl && !Array.isArray(rawCountsByUrl)) {
+        for (const [normalizedUrl, count] of Object.entries(rawCountsByUrl as Record<string, unknown>)) {
+          if (typeof normalizedUrl === 'string' && typeof count === 'number' && Number.isFinite(count) && count >= 0) {
+            countsByUrl.set(normalizedUrl, Math.floor(count))
+          }
+        }
+      }
+
+      setShowcaseEntries((current) =>
+        current.map((entry) => ({
+          ...entry,
+          hasUpvoted: votedUrlSet.has(entry.normalizedUrl),
+          upvoteCount: countsByUrl.get(entry.normalizedUrl) ?? entry.upvoteCount,
+        })),
+      )
     } catch (error) {
       console.error('Unable to load client vote state', error)
     }
@@ -1440,6 +1466,7 @@ function App() {
     shouldSyncVoteStateAfterDirectoryLoadRef.current = false
     let timeoutId: number | null = null
     let idleId: number | null = null
+    let loadListenerRegistered = false
     let cancelled = false
     const syncVoteState = () => {
       if (cancelled) {
@@ -1447,15 +1474,30 @@ function App() {
       }
       void loadClientVoteState()
     }
+    const scheduleSync = () => {
+      if (cancelled) {
+        return
+      }
 
-    if (typeof window.requestIdleCallback === 'function') {
-      idleId = window.requestIdleCallback(syncVoteState, { timeout: 1800 })
+      if (typeof window.requestIdleCallback === 'function') {
+        idleId = window.requestIdleCallback(syncVoteState, { timeout: 2400 })
+      } else {
+        timeoutId = window.setTimeout(syncVoteState, 1200)
+      }
+    }
+
+    if (document.readyState === 'complete') {
+      scheduleSync()
     } else {
-      timeoutId = window.setTimeout(syncVoteState, 450)
+      loadListenerRegistered = true
+      window.addEventListener('load', scheduleSync, { once: true })
     }
 
     return () => {
       cancelled = true
+      if (loadListenerRegistered) {
+        window.removeEventListener('load', scheduleSync)
+      }
       if (idleId !== null && typeof window.cancelIdleCallback === 'function') {
         window.cancelIdleCallback(idleId)
       }

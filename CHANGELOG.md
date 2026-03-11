@@ -24,7 +24,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Once moderation is unlocked, the authentication form now disappears and initial focus moves to the first useful moderation control (first pending approval button when present), avoiding a focus path back into already-completed authentication UI.
 - Homepage result sorting now uses a native high-contrast select with URL persistence, keeps keyboard focus on the control, and updates the visible/live French results summary so sorting changes remain explicit for screen-reader users without breaking SSR-safe hydration behavior.
 - Homepage results header now uses a dedicated responsive two-column layout that keeps the title, help copy, and score disclaimer together in the primary content column while reserving a separate desktop column for sorting controls, improving visual alignment without changing keyboard or live-region behavior.
-- Homepage vote hydration now refreshes the full showcase from a private client-specific payload after the cached public directory load, preventing stale `0 vote` counters from being shown alongside an already-owned `Retirer mon vote` state.
+- Homepage vote hydration now reuses a lightweight private `vote-state` payload with targeted counters for voted URLs and defers that reconciliation until page load/idle, preventing stale `0 vote` counters from being shown alongside an already-owned `Retirer mon vote` state without adding a second full showcase fetch to the critical request chain.
 
 ### Changed
 - Maintenance state is now included in moderation archive export/import, in rollback freshness checks, and in `GET /api/health` so operators do not lose service posture during restores.

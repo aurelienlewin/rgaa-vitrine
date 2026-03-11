@@ -1664,10 +1664,19 @@ app.get('/api/showcase/vote-state', async (request, response) => {
     const clientVoterId = extractClientVoterId(firstQueryValue(request.query.clientVoterId))
     const clientVoteIndexId = buildClientVoteIndexId(clientVoterId)
     const votedUrls = clientVoteIndexId ? await showcaseStorage.listClientVotedUrls(clientVoteIndexId) : new Set()
+    const votedEntries = await Promise.all(
+      Array.from(votedUrls).map(async (normalizedUrl) => showcaseStorage.getByNormalizedUrl(normalizedUrl)),
+    )
+    const countsByUrl = Object.fromEntries(
+      votedEntries
+        .filter((entry) => entry && typeof entry.normalizedUrl === 'string')
+        .map((entry) => [entry.normalizedUrl, Number.isFinite(entry.upvoteCount) ? Math.max(0, entry.upvoteCount) : 0]),
+    )
 
-    response.setHeader('cache-control', 'private, max-age=60, stale-while-revalidate=300')
+    response.setHeader('cache-control', 'private, no-store')
     response.json({
       votedUrls: Array.from(votedUrls).sort((left, right) => left.localeCompare(right, 'fr')),
+      countsByUrl,
       total: votedUrls.size,
     })
   } catch (error) {

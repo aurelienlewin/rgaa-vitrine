@@ -169,7 +169,7 @@ Redis-related runtime notes:
 - payloads are compacted on write
 - vote-state reads are optimized to avoid excessive Redis fan-out
 - client vote ownership is tracked separately so the public CTA can remove a vote from the same browser identity
-- client-specific vote reconciliation refreshes the annuaire from a private no-store request so `hasUpvoted` and `upvoteCount` stay aligned after the public cached list loads
+- client-specific vote reconciliation reuses a dedicated private `vote-state` payload with targeted counters for voted URLs, then runs after page load/idle so `hasUpvoted` and `upvoteCount` stay aligned without extending the critical annuaire request chain
 - a short-lived in-memory cache reduces repeated read pressure
 
 ## Getting Started
@@ -270,9 +270,8 @@ Publication issues are intentionally worded as informational and do not imply op
 - `POST /api/site-insight`: submit and enrich one site
 - `POST /api/site-insight?preview=1`: preview-only pre-analysis without persistence
 - `GET /api/showcase`: list public entries
-- `GET /api/showcase?clientVoterId={id}`: list public entries with client-specific vote ownership; responses are served as private non-cacheable payloads
 - `GET /api/showcase?slug={slug}`: retrieve one public profile payload
-- `GET /api/showcase/vote-state?clientVoterId={id}`: list vote ownership for a browser identity
+- `GET /api/showcase/vote-state?clientVoterId={id}`: list vote ownership for a browser identity plus targeted vote counters for the same voted URLs; responses are served as private non-cacheable payloads
 - `GET /api/domain-groups`: list grouped public domains
 - `GET /api/domain-groups?slug={groupSlug}`: retrieve one domain-group payload
 - `POST /api/showcase/upvote`: add or remove one vote owned by the requesting browser identity (`action: upvote | remove`)
