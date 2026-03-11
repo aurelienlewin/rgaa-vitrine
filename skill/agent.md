@@ -19,7 +19,11 @@ When remediating this project after a production audit, verify at minimum:
 - `3.2` status labels must keep text/background contrast >= WCAG AA in both themes.
 - `3.3` interface contrast (borders, component boundaries, state visibility).
 - `7.2` `<noscript>` must provide functional fallback paths (not message-only).
+- `10.4` text must remain readable at `200%` zoom on long-label cards/lists without horizontal overflow.
 - `10.5` CSS text/background color pairing on link and interactive styles.
+- `10.8` hidden-content contract: avoid exposing purely hidden utility/live wrappers as permanent accessible content.
+- `10.9` avoid directional wording (`ci-dessous`, `plus bas`, `en haut`) in user guidance.
+- `10.10` orientation/help copy must reference named landmarks, sections, or controls instead of position.
 - `10.6` contextual links must remain visually distinguishable from surrounding text.
 - `10.11` reflow at `320px` width without horizontal scrolling caused by utility UI.
 - `10.13` no tooltip-only `title` reliance on interactive controls.
@@ -82,3 +86,12 @@ Use this list as a rapid regression filter before running a full RGAA review.
 - For reciprocal discovery features (backlinks), provide both a visual badge snippet and a text-only fallback snippet.
 - In backlink embed code, always ship explicit `alt` on `img` and explicit `aria-label` on the wrapping link; do not rely on surrounding context.
 - For decorative thumbnails in cards, continue using `alt=""` + `aria-hidden="true"` when equivalent text is present in adjacent content.
+
+## Operational lessons learned (2026-03-11 remediation sweep)
+
+- Keep critical shell CSS (`index.html`) and React component styles synchronized for text/background pairing; audits can fail on first paint even when runtime styles are correct.
+- For criterion `10.5`, avoid `bg-transparent` on interactive controls that already set explicit text colors; prefer explicit filled surfaces in both light and dark themes.
+- For criterion `3.2`, verify placeholder/fallback texts (example: “Aucune vignette disponible”) in dark mode, not only primary content blocks.
+- For criterion `10.8`, avoid persistent hidden live-region wrappers as a generic pattern; prefer visible feedback panels with `role="status"` / `role="alert"` and `aria-live`.
+- For criterion `10.4`, enforce `min-w-0`, wrapped text, and URL wrapping (`wrap-anywhere`) inside card/list layouts to keep zoomed content readable.
+- For criteria `10.9` and `10.10`, sanitize declaration/help copy to remove positional cues and keep references tied to named sections, landmarks, or controls.
