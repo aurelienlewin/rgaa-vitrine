@@ -98,27 +98,27 @@ const rgaaBaselineOptions: Array<{ value: RgaaBaseline; label: string }> = [
 
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
-const ctaHoverClass = 'transition-colors duration-150 hover:underline'
+const ctaHoverClass = 'transition-colors duration-150 enabled:hover:underline'
 const ctaDisabledClass =
   'disabled:border-slate-500 disabled:bg-slate-700 disabled:text-white disabled:opacity-100 disabled:shadow-none'
 const moderationCtaNeutralClass =
-  `border-2 border-slate-800 dark:border-slate-300 bg-white dark:bg-slate-100 text-slate-950 dark:text-slate-950 hover:bg-slate-100 dark:hover:bg-white ${ctaHoverClass}`
+  `border-2 border-slate-800 dark:border-slate-300 bg-white dark:bg-slate-100 text-slate-950 dark:text-slate-950 enabled:hover:bg-slate-100 dark:enabled:hover:bg-white ${ctaHoverClass}`
 const moderationCtaPrimaryClass =
-  `border-2 border-sky-900 dark:border-sky-300 bg-sky-800 dark:bg-sky-100 text-white dark:text-sky-950 hover:bg-sky-900 dark:hover:bg-white ${ctaHoverClass}`
+  `border-2 border-sky-900 dark:border-sky-300 bg-sky-800 dark:bg-sky-100 text-white dark:text-sky-950 enabled:hover:bg-sky-900 dark:enabled:hover:bg-white ${ctaHoverClass}`
 const moderationCtaSuccessClass =
-  `border-2 border-emerald-900 dark:border-emerald-300 bg-emerald-700 dark:bg-emerald-100 text-white dark:text-emerald-950 hover:bg-emerald-800 dark:hover:bg-white ${ctaHoverClass}`
+  `border-2 border-emerald-900 dark:border-emerald-300 bg-emerald-700 dark:bg-emerald-100 text-white dark:text-emerald-950 enabled:hover:bg-emerald-800 dark:enabled:hover:bg-white ${ctaHoverClass}`
 const moderationCtaSlateClass =
-  `border-2 border-slate-950 dark:border-slate-300 bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-950 hover:bg-slate-900 dark:hover:bg-white ${ctaHoverClass}`
+  `border-2 border-slate-950 dark:border-slate-300 bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-950 enabled:hover:bg-slate-900 dark:enabled:hover:bg-white ${ctaHoverClass}`
 const moderationCtaWarningClass =
-  `border-2 border-amber-900 dark:border-amber-300 bg-amber-700 dark:bg-amber-100 text-white dark:text-amber-950 hover:bg-amber-800 dark:hover:bg-white ${ctaHoverClass}`
+  `border-2 border-amber-900 dark:border-amber-300 bg-amber-700 dark:bg-amber-100 text-white dark:text-amber-950 enabled:hover:bg-amber-800 dark:enabled:hover:bg-white ${ctaHoverClass}`
 const moderationCtaDangerClass =
-  `border-2 border-rose-950 dark:border-rose-300 bg-rose-700 dark:bg-rose-100 text-white dark:text-rose-950 hover:bg-rose-800 dark:hover:bg-white ${ctaHoverClass}`
+  `border-2 border-rose-950 dark:border-rose-300 bg-rose-700 dark:bg-rose-100 text-white dark:text-rose-950 enabled:hover:bg-rose-800 dark:enabled:hover:bg-white ${ctaHoverClass}`
 const moderationCtaDangerStrongClass =
-  `border-2 border-rose-950 dark:border-rose-300 bg-rose-900 dark:bg-rose-100 text-white dark:text-rose-950 hover:bg-rose-950 dark:hover:bg-white ${ctaHoverClass}`
+  `border-2 border-rose-950 dark:border-rose-300 bg-rose-900 dark:bg-rose-100 text-white dark:text-rose-950 enabled:hover:bg-rose-950 dark:enabled:hover:bg-white ${ctaHoverClass}`
 const moderationCtaOutlineDangerClass =
-  `border-2 border-rose-800 dark:border-rose-300 bg-white dark:bg-rose-100 text-rose-900 dark:text-rose-950 hover:bg-rose-50 dark:hover:bg-white ${ctaHoverClass}`
+  `border-2 border-rose-800 dark:border-rose-300 bg-white dark:bg-rose-100 text-rose-900 dark:text-rose-950 enabled:hover:bg-rose-50 dark:enabled:hover:bg-white ${ctaHoverClass}`
 const moderationCtaOutlineWarningClass =
-  `border-2 border-amber-800 dark:border-amber-300 bg-white dark:bg-amber-100 text-amber-900 dark:text-amber-950 hover:bg-amber-50 dark:hover:bg-white ${ctaHoverClass}`
+  `border-2 border-amber-800 dark:border-amber-300 bg-white dark:bg-amber-100 text-amber-900 dark:text-amber-950 enabled:hover:bg-amber-50 dark:enabled:hover:bg-white ${ctaHoverClass}`
 const moderationSurfaceClass =
   'border border-slate-200 dark:border-slate-300 bg-white dark:bg-slate-950 text-slate-950 dark:text-slate-50 shadow-sm'
 const moderationSurfaceStrongClass =
