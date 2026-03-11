@@ -23,6 +23,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Moderation archive imports now reload the persisted maintenance state in the UI, so operators do not keep a stale public-status panel after restoring a signed archive.
 - Once moderation is unlocked, the authentication form now disappears and initial focus moves to the first useful moderation control (first pending approval button when present), avoiding a focus path back into already-completed authentication UI.
 - Homepage result sorting now uses a native high-contrast select with URL persistence, keeps keyboard focus on the control, and updates the visible/live French results summary so sorting changes remain explicit for screen-reader users without breaking SSR-safe hydration behavior.
+- Homepage results header now uses a dedicated responsive two-column layout that keeps the title, help copy, and score disclaimer together in the primary content column while reserving a separate desktop column for sorting controls, improving visual alignment without changing keyboard or live-region behavior.
 
 ### Changed
 - Maintenance state is now included in moderation archive export/import, in rollback freshness checks, and in `GET /api/health` so operators do not lose service posture during restores.
@@ -31,6 +32,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - README now documents which discovery assets are server-generated (`/sitemap.xml`, `/ai-context.json`) and which remain static versioned files (`public/robots.txt`, `public/llms.txt`, `public/llms-full.txt`).
 - README now documents the current remote-analysis size budget strategy and proxied client-IP rate-limit keying.
 - README now documents that the homepage combines live filters, sorting, progressive result loading, and aligned live announcements on the public directory.
+- README wording was normalized toward timeless product documentation, and local agent instructions now explicitly forbid changelog-style or time-relative phrasing in `README.md`.
 - The public vote CTA is now a true session-scoped toggle: the same button can remove the current browser’s vote, keeps `aria-pressed` aligned with actual ownership, and `POST /api/showcase/upvote` now accepts `action: remove` alongside the existing add flow.
 - README now documents the public vote-state endpoint and the session-owned vote toggle semantics.
 - GitHub notifications now also cover auto-approved publications with a dedicated informational issue wording distinct from the manual-moderation flow.

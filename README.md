@@ -24,7 +24,7 @@ content remain in French by design.
 Public website: **https://annuaire-rgaa.fr**
 
 Detailed release history lives in [CHANGELOG.md](./CHANGELOG.md). The README describes the
-current system, not the full timeline of incremental changes.
+product surface, architecture, operations, and public behavior, not the timeline of changes.
 
 ## Overview
 
@@ -56,7 +56,7 @@ Core characteristics:
 - `/api/showcase`: public dataset of published entries
 - `/api/domain-groups`: public dataset of grouped domains
 - `/api/health`: service health and storage mode
-- `/api/maintenance`: current public maintenance-state payload
+- `/api/maintenance`: public maintenance-state payload
 - `/sitemap.xml`: generated XML sitemap
 - `/ai-context.json`: generated AI/discovery context payload
 - `/robots.txt`, `/llms.txt`, `/llms-full.txt`: static versioned discovery files
@@ -127,7 +127,7 @@ Embedded implementation references:
 
 The app is designed so that public discovery does not depend on JavaScript interpretation alone.
 
-Current discovery strategy:
+Discovery strategy:
 
 - canonical public routes for homepage, site map, accessibility, profile, and domain-group pages
 - JSON-LD on public routes
@@ -161,7 +161,7 @@ The API supports two storage modes:
 - `memory`: fallback mode without persistence
 
 Use `GET /api/health` to inspect the active mode.
-Use `GET /api/maintenance` to inspect whether the public site is currently in maintenance mode.
+Use `GET /api/maintenance` to inspect whether the public site is in maintenance mode.
 
 Redis-related runtime notes:
 
@@ -270,12 +270,12 @@ Publication issues are intentionally worded as informational and do not imply op
 - `POST /api/site-insight?preview=1`: preview-only pre-analysis without persistence
 - `GET /api/showcase`: list public entries
 - `GET /api/showcase?slug={slug}`: retrieve one public profile payload
-- `GET /api/showcase/vote-state?clientVoterId={id}`: list vote ownership for the current browser identity
+- `GET /api/showcase/vote-state?clientVoterId={id}`: list vote ownership for a browser identity
 - `GET /api/domain-groups`: list grouped public domains
 - `GET /api/domain-groups?slug={groupSlug}`: retrieve one domain-group payload
-- `POST /api/showcase/upvote`: add or remove one vote owned by the current browser identity (`action: upvote | remove`)
+- `POST /api/showcase/upvote`: add or remove one vote owned by the requesting browser identity (`action: upvote | remove`)
 - `GET /api/health`: service status and storage mode
-- `GET /api/maintenance`: current public maintenance state
+- `GET /api/maintenance`: public maintenance state
 
 ### Protected moderation APIs
 

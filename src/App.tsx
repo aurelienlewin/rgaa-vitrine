@@ -2004,17 +2004,28 @@ function App() {
             aria-labelledby="galerie-titre"
             aria-busy={loadingDirectory}
           >
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div className="max-w-2xl">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(18rem,3fr)] lg:items-start">
+              <div className="space-y-3">
                 <h2 id="galerie-titre" className="text-xl font-semibold">
                   Résultats annuaire
                 </h2>
-                <p className="mt-2 text-slate-700 dark:text-slate-300">
+                <p className="text-slate-700 dark:text-slate-300">
                   La recherche et les filtres sont disponibles dans l’en-tête de page, puis les résultats sont listés ici.
                 </p>
+                {showcaseEntries.length > 0 && (
+                  <p className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                    Les scores affichés sont déclarés par les organismes qui soumettent leur site et sont publiés à titre
+                    informatif. Ils n’engagent pas la responsabilité éditoriale d’Annuaire RGAA. En cas de réévaluation
+                    documentée, vous pouvez{' '}
+                    <a href={moderationContactPath} className={`font-semibold underline ${focusRingClass}`}>
+                      contacter la modération
+                    </a>{' '}
+                    pour demander une mise à jour.
+                  </p>
+                )}
               </div>
 
-              <div className="w-full rounded-2xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 p-4 md:max-w-sm">
+              <div className="w-full rounded-2xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 p-4 lg:justify-self-end">
                 <label
                   htmlFor="annuaire-tri-resultats"
                   className="block text-sm font-semibold text-slate-900 dark:text-slate-50"
@@ -2048,18 +2059,6 @@ function App() {
             >
               {directorySummaryText}
             </p>
-
-            {showcaseEntries.length > 0 && (
-              <p className="mt-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                Les scores affichés sont déclarés par les organismes qui soumettent leur site et sont publiés à titre
-                informatif. Ils n’engagent pas la responsabilité éditoriale d’Annuaire RGAA. En cas de réévaluation
-                documentée, vous pouvez{' '}
-                <a href={moderationContactPath} className={`font-semibold underline ${focusRingClass}`}>
-                  contacter la modération
-                </a>{' '}
-                pour demander une mise à jour.
-              </p>
-            )}
 
             {loadingDirectory && (
               <section
