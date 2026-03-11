@@ -2047,7 +2047,8 @@ function App() {
                     Résultats annuaire
                   </h2>
                   <p className="text-pretty text-slate-700 dark:text-slate-300">
-                    La recherche et les filtres sont disponibles dans l’en-tête de page, puis les résultats sont listés ici.
+                    Le moteur de recherche global « Recherche globale dans l’annuaire » et ses filtres pilotent cette
+                    liste. Le lien d’évitement « Aller à la recherche annuaire » permet d’y revenir directement.
                   </p>
                 </div>
 
@@ -2113,7 +2114,7 @@ function App() {
                   </span>
                 </div>
                 <p id="annuaire-tri-resultats-aide" className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-                  Le tri met à jour immédiatement les cartes ci-dessous sans déplacer le focus clavier.
+                  Le tri met à jour immédiatement la liste « Résultats annuaire » sans déplacer le focus clavier.
                 </p>
               </aside>
             </div>
