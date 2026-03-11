@@ -250,6 +250,19 @@ function buildVoteTokenCandidates(voterFingerprints) {
   return Array.from(candidates)
 }
 
+function readClientVoteToken(voterFingerprints) {
+  if (!voterFingerprints || typeof voterFingerprints !== 'object') {
+    return null
+  }
+
+  const clientToken = voterFingerprints.client
+  if (typeof clientToken !== 'string') {
+    return null
+  }
+
+  return normalizeStoredVoteToken(clientToken)
+}
+
 function parseStoredTimestamp(value) {
   if (value === null || value === undefined || value === '') {
     return null
@@ -960,7 +973,8 @@ class InMemoryShowcaseStorage {
     const writeTokens = normalizeVoteTokens(voterFingerprints)
     const checkTokens = buildVoteTokenCandidates(voterFingerprints)
     const normalizedClientVoteIndexId = normalizeClientVoteIndexId(clientVoteIndexId)
-    if (writeTokens.length === 0 || checkTokens.length === 0) {
+    const clientVoteToken = readClientVoteToken(voterFingerprints)
+    if (!normalizedClientVoteIndexId || writeTokens.length === 0 || checkTokens.length === 0 || !clientVoteToken) {
       throw new ShowcaseStorageError('Identifiant de vote invalide.', 400)
     }
 
@@ -970,16 +984,25 @@ class InMemoryShowcaseStorage {
       this.votesByUrl.set(normalizedUrl, set)
     }
 
-    const alreadyVoted = checkTokens.some((token) => set.has(token))
-    if (alreadyVoted) {
-      if (normalizedClientVoteIndexId) {
-        const votedUrls = this.votesByClient.get(normalizedClientVoteIndexId) ?? new Set()
-        votedUrls.add(normalizedUrl)
-        this.votesByClient.set(normalizedClientVoteIndexId, votedUrls)
-      }
+    const votedUrls = this.votesByClient.get(normalizedClientVoteIndexId) ?? new Set()
+    const alreadyOwnedByClient = votedUrls.has(normalizedUrl) || set.has(clientVoteToken)
+    if (alreadyOwnedByClient) {
+      votedUrls.add(normalizedUrl)
+      this.votesByClient.set(normalizedClientVoteIndexId, votedUrls)
       return {
         accepted: false,
         alreadyVoted: true,
+        hasUpvoted: true,
+        entry,
+      }
+    }
+
+    const alreadyVoted = checkTokens.some((token) => set.has(token))
+    if (alreadyVoted) {
+      return {
+        accepted: false,
+        alreadyVoted: true,
+        hasUpvoted: false,
         entry,
       }
     }
@@ -988,11 +1011,8 @@ class InMemoryShowcaseStorage {
       set.add(token)
     }
 
-    if (normalizedClientVoteIndexId) {
-      const votedUrls = this.votesByClient.get(normalizedClientVoteIndexId) ?? new Set()
-      votedUrls.add(normalizedUrl)
-      this.votesByClient.set(normalizedClientVoteIndexId, votedUrls)
-    }
+    votedUrls.add(normalizedUrl)
+    this.votesByClient.set(normalizedClientVoteIndexId, votedUrls)
 
     const updatedEntry = {
       ...entry,
@@ -1004,6 +1024,68 @@ class InMemoryShowcaseStorage {
     return {
       accepted: true,
       alreadyVoted: false,
+      hasUpvoted: true,
+      entry: updatedEntry,
+    }
+  }
+
+  async unregisterUpvote(normalizedUrl, voterFingerprints, clientVoteIndexId) {
+    const entry = this.entries.get(normalizedUrl) ?? null
+    if (!entry) {
+      return null
+    }
+
+    const writeTokens = normalizeVoteTokens(voterFingerprints)
+    const normalizedClientVoteIndexId = normalizeClientVoteIndexId(clientVoteIndexId)
+    const clientVoteToken = readClientVoteToken(voterFingerprints)
+    if (!normalizedClientVoteIndexId || writeTokens.length === 0 || !clientVoteToken) {
+      throw new ShowcaseStorageError('Identifiant de vote invalide.', 400)
+    }
+
+    const set = this.votesByUrl.get(normalizedUrl)
+    const votedUrls = this.votesByClient.get(normalizedClientVoteIndexId) ?? new Set()
+    const ownsVote = Boolean(set?.has(clientVoteToken))
+
+    if (!ownsVote) {
+      if (votedUrls.delete(normalizedUrl)) {
+        if (votedUrls.size === 0) {
+          this.votesByClient.delete(normalizedClientVoteIndexId)
+        } else {
+          this.votesByClient.set(normalizedClientVoteIndexId, votedUrls)
+        }
+      }
+
+      return {
+        removed: false,
+        hasUpvoted: false,
+        entry,
+      }
+    }
+
+    for (const token of writeTokens) {
+      set.delete(token)
+    }
+    if (set.size === 0) {
+      this.votesByUrl.delete(normalizedUrl)
+    }
+
+    votedUrls.delete(normalizedUrl)
+    if (votedUrls.size === 0) {
+      this.votesByClient.delete(normalizedClientVoteIndexId)
+    } else {
+      this.votesByClient.set(normalizedClientVoteIndexId, votedUrls)
+    }
+
+    const updatedEntry = {
+      ...entry,
+      upvoteCount: Math.max(0, toNonNegativeInteger(entry.upvoteCount) - 1),
+    }
+
+    this.entries.set(normalizedUrl, updatedEntry)
+
+    return {
+      removed: true,
+      hasUpvoted: false,
       entry: updatedEntry,
     }
   }
@@ -1742,10 +1824,11 @@ class UpstashShowcaseStorage {
     const writeTokens = normalizeVoteTokens(voterFingerprints)
     const checkTokens = buildVoteTokenCandidates(voterFingerprints)
     const normalizedClientVoteIndexId = normalizeClientVoteIndexId(clientVoteIndexId)
+    const clientVoteToken = readClientVoteToken(voterFingerprints)
     const clientVoteKey = normalizedClientVoteIndexId
       ? clientVotesKeyFromId(normalizedClientVoteIndexId)
       : null
-    if (writeTokens.length === 0 || checkTokens.length === 0) {
+    if (!normalizedClientVoteIndexId || !clientVoteKey || writeTokens.length === 0 || checkTokens.length === 0 || !clientVoteToken) {
       throw new ShowcaseStorageError('Identifiant de vote invalide.', 400)
     }
 
@@ -1753,21 +1836,36 @@ class UpstashShowcaseStorage {
     const voteKey = votesKeyFromId(entryId)
 
     try {
+      const [clientUrlExists, clientTokenExists] = await Promise.all([
+        this.redis.sismember(clientVoteKey, normalizedUrl),
+        this.redis.sismember(voteKey, clientVoteToken),
+      ])
+
+      if (clientUrlExists === 1 || clientUrlExists === true || clientTokenExists === 1 || clientTokenExists === true) {
+        if (clientUrlExists !== 1 && clientUrlExists !== true) {
+          await this.redis.sadd(clientVoteKey, normalizedUrl)
+          await this.redis.expire(clientVoteKey, CLIENT_VOTES_REDIS_TTL_SECONDS)
+        }
+
+        const cachedClientVotes = this._getCachedClientVotedUrls(normalizedClientVoteIndexId) ?? new Set()
+        cachedClientVotes.add(normalizedUrl)
+        this._setClientVotesCache(normalizedClientVoteIndexId, cachedClientVotes)
+
+        return {
+          accepted: false,
+          alreadyVoted: true,
+          hasUpvoted: true,
+          entry,
+        }
+      }
+
       for (const token of checkTokens) {
         const isMember = await this.redis.sismember(voteKey, token)
         if (isMember === 1 || isMember === true) {
-          if (clientVoteKey) {
-            await this.redis.sadd(clientVoteKey, normalizedUrl)
-            await this.redis.expire(clientVoteKey, CLIENT_VOTES_REDIS_TTL_SECONDS)
-            const cachedClientVotes =
-              this._getCachedClientVotedUrls(normalizedClientVoteIndexId) ?? new Set()
-            cachedClientVotes.add(normalizedUrl)
-            this._setClientVotesCache(normalizedClientVoteIndexId, cachedClientVotes)
-          }
-
           return {
             accepted: false,
             alreadyVoted: true,
+            hasUpvoted: false,
             entry,
           }
         }
@@ -1795,6 +1893,7 @@ class UpstashShowcaseStorage {
       return {
         accepted: true,
         alreadyVoted: false,
+        hasUpvoted: true,
         entry: {
           ...entry,
           upvoteCount: nextCount,
@@ -1802,6 +1901,74 @@ class UpstashShowcaseStorage {
       }
     } catch (error) {
       console.error('Redis registerUpvote failed', error)
+      throw new ShowcaseStorageError('Persistance Redis des votes indisponible.', 503)
+    }
+  }
+
+  async unregisterUpvote(normalizedUrl, voterFingerprints, clientVoteIndexId) {
+    const entry = await this.getByNormalizedUrl(normalizedUrl)
+    if (!entry) {
+      return null
+    }
+
+    const writeTokens = normalizeVoteTokens(voterFingerprints)
+    const normalizedClientVoteIndexId = normalizeClientVoteIndexId(clientVoteIndexId)
+    const clientVoteToken = readClientVoteToken(voterFingerprints)
+    const clientVoteKey = normalizedClientVoteIndexId
+      ? clientVotesKeyFromId(normalizedClientVoteIndexId)
+      : null
+    if (!normalizedClientVoteIndexId || !clientVoteKey || writeTokens.length === 0 || !clientVoteToken) {
+      throw new ShowcaseStorageError('Identifiant de vote invalide.', 400)
+    }
+
+    const entryId = encodeEntryId(normalizedUrl)
+    const voteKey = votesKeyFromId(entryId)
+
+    try {
+      const [clientUrlExists, clientTokenExists] = await Promise.all([
+        this.redis.sismember(clientVoteKey, normalizedUrl),
+        this.redis.sismember(voteKey, clientVoteToken),
+      ])
+
+      if (clientTokenExists !== 1 && clientTokenExists !== true) {
+        if (clientUrlExists === 1 || clientUrlExists === true) {
+          await this.redis.srem(clientVoteKey, normalizedUrl)
+        }
+
+        const cachedClientVotes = this._getCachedClientVotedUrls(normalizedClientVoteIndexId) ?? new Set()
+        cachedClientVotes.delete(normalizedUrl)
+        this._setClientVotesCache(normalizedClientVoteIndexId, cachedClientVotes)
+
+        return {
+          removed: false,
+          hasUpvoted: false,
+          entry,
+        }
+      }
+
+      const nextCount = Math.max(0, toNonNegativeInteger(entry.upvoteCount) - 1)
+      await this.redis
+        .multi()
+        .srem(voteKey, ...writeTokens)
+        .srem(clientVoteKey, normalizedUrl)
+        .hset(entryKeyFromId(entryId), { upvoteCount: nextCount })
+        .exec()
+
+      const cachedClientVotes = this._getCachedClientVotedUrls(normalizedClientVoteIndexId) ?? new Set()
+      cachedClientVotes.delete(normalizedUrl)
+      this._setClientVotesCache(normalizedClientVoteIndexId, cachedClientVotes)
+      this._invalidateShowcaseCache()
+
+      return {
+        removed: true,
+        hasUpvoted: false,
+        entry: {
+          ...entry,
+          upvoteCount: nextCount,
+        },
+      }
+    } catch (error) {
+      console.error('Redis unregisterUpvote failed', error)
       throw new ShowcaseStorageError('Persistance Redis des votes indisponible.', 503)
     }
   }

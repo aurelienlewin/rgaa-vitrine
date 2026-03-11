@@ -16,6 +16,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Dark-mode search/help text now stays contrast-safe from the first SSR paint on public detail pages: the critical secondary-header CSS now styles the keyboard helper and search placeholders in dark mode before hydration, avoiding low-contrast flashes on slow connections.
 - Site pre-analysis now accepts slightly larger homepage HTML documents while keeping tighter limits on secondary remote documents, which lets CMS-heavy homepages such as `www.atecna.fr` resolve their accessibility links without widening every fetch.
 - Public rate limiting now keys on the extracted client IP headers used on proxied deployments, preventing unrelated Vercel visitors from tripping the shared global quota.
+- Homepage vote-state synchronization now resets both pressed and unpressed states from `/api/showcase/vote-state`, so a removed vote no longer stays visually stuck after subsequent directory reloads.
 
 ### Changed
 - Maintenance state is now included in moderation archive export/import, in rollback freshness checks, and in `GET /api/health` so operators do not lose service posture during restores.
@@ -23,6 +24,8 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Discovery resources are now synchronized around the current public surface: `llms.txt`, `llms-full.txt`, `robots.txt`, `/sitemap.xml`, and `/ai-context.json` all reference domain-group pages and the public `/api/domain-groups` dataset where relevant.
 - README now documents which discovery assets are server-generated (`/sitemap.xml`, `/ai-context.json`) and which remain static versioned files (`public/robots.txt`, `public/llms.txt`, `public/llms-full.txt`).
 - README now documents the current remote-analysis size budget strategy and proxied client-IP rate-limit keying.
+- The public vote CTA is now a true session-scoped toggle: the same button can remove the current browser’s vote, keeps `aria-pressed` aligned with actual ownership, and `POST /api/showcase/upvote` now accepts `action: remove` alongside the existing add flow.
+- README now documents the public vote-state endpoint and the session-owned vote toggle semantics.
 - README was rewritten to focus on current architecture, operations, accessibility, and discovery behavior, while detailed release-by-release history stays in `CHANGELOG.md`.
 - Homepage directory loading now uses a more visible non-interactive status panel with reserved card placeholders, making slow-connection waits clearer without adding extra polite live announcements or extra API calls.
 

@@ -1298,12 +1298,10 @@ function App() {
       const votedUrlSet = new Set(votedUrls)
       setShowcaseEntries((current) =>
         current.map((entry) =>
-          votedUrlSet.has(entry.normalizedUrl)
-            ? {
-                ...entry,
-                hasUpvoted: true,
-              }
-            : entry,
+          ({
+            ...entry,
+            hasUpvoted: votedUrlSet.has(entry.normalizedUrl),
+          }),
         ),
       )
     } catch (error) {
@@ -1448,11 +1446,6 @@ function App() {
         return
       }
 
-      if (entry.hasUpvoted) {
-        announcePolite(`Vote déjà pris en compte pour ${entry.siteTitle}.`)
-        return
-      }
-
       if (upvotePendingByUrl[entry.normalizedUrl]) {
         return
       }
@@ -1469,6 +1462,7 @@ function App() {
             'content-type': 'application/json',
           },
           body: JSON.stringify({
+            action: entry.hasUpvoted ? 'remove' : 'upvote',
             normalizedUrl: entry.normalizedUrl,
             clientVoterId: getClientVoterId(),
           }),
@@ -1491,13 +1485,17 @@ function App() {
               ? {
                   ...candidate,
                   ...normalizedEntry,
-                  hasUpvoted: true,
                 }
               : candidate,
           ),
         )
 
-        const responseMessage = typeof apiPayload.message === 'string' ? apiPayload.message : 'Vote enregistré.'
+        const responseMessage =
+          typeof apiPayload.message === 'string'
+            ? apiPayload.message
+            : normalizedEntry.hasUpvoted
+              ? 'Vote enregistré.'
+              : 'Vote retiré pour cette session.'
         announcePolite(`${responseMessage} ${normalizedEntry.upvoteCount} vote(s) au total.`)
       } catch (error) {
         console.error('Unable to register upvote', error)
@@ -2241,7 +2239,7 @@ function App() {
                                   entry.votesBlocked
                                     ? 'Votes indisponibles pour'
                                     : entry.hasUpvoted
-                                      ? 'Vote déjà enregistré pour'
+                                      ? 'Retirer mon vote pour'
                                       : 'Voter pour'
                                 } ${entry.siteTitle}. ${entry.upvoteCount} vote(s).`}
                                 className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold ${
@@ -2253,7 +2251,13 @@ function App() {
                                 } disabled:cursor-not-allowed disabled:opacity-100 ${focusRingClass}`}
                               >
                                 <span aria-hidden="true">{entry.votesBlocked ? '◌' : entry.hasUpvoted ? '▲' : '△'}</span>
-                                <span>{entry.votesBlocked ? 'Votes indisponibles' : entry.hasUpvoted ? 'Voté' : 'Soutenir ce site'}</span>
+                                <span>
+                                  {entry.votesBlocked
+                                    ? 'Votes indisponibles'
+                                    : entry.hasUpvoted
+                                      ? 'Retirer mon vote'
+                                      : 'Soutenir ce site'}
+                                </span>
                               </button>
                               <span
                                 id={votesDescriptionId}

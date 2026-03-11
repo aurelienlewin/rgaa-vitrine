@@ -462,6 +462,14 @@ function extractNormalizedUrl(value) {
   return trimmed
 }
 
+function extractVoteAction(value) {
+  if (value === 'remove' || value === 'upvote') {
+    return value
+  }
+
+  return 'upvote'
+}
+
 function parseScoreForModeration(value) {
   if (value === null || value === undefined || value === '') {
     return null
@@ -1651,6 +1659,7 @@ app.post('/api/showcase/upvote', voteLimiter, async (request, response) => {
     return
   }
 
+  const voteAction = extractVoteAction(request.body?.action)
   const clientVoterId = extractClientVoterId(request.body?.clientVoterId)
   if (!clientVoterId) {
     sendJsonError(response, 400, 'clientVoterId est obligatoire.')
@@ -1672,19 +1681,38 @@ app.post('/api/showcase/upvote', voteLimiter, async (request, response) => {
 
     const fingerprints = buildVoteFingerprints(request, clientVoterId, normalizedUrl)
     const clientVoteIndexId = buildClientVoteIndexId(clientVoterId)
-    const voteResult = await showcaseStorage.registerUpvote(normalizedUrl, fingerprints, clientVoteIndexId)
+    const voteResult =
+      voteAction === 'remove'
+        ? await showcaseStorage.unregisterUpvote(normalizedUrl, fingerprints, clientVoteIndexId)
+        : await showcaseStorage.registerUpvote(normalizedUrl, fingerprints, clientVoteIndexId)
     if (!voteResult) {
       sendJsonError(response, 404, 'Entrée introuvable dans l’annuaire.')
       return
     }
 
+    const voteAccepted = voteAction === 'remove' ? voteResult.removed : voteResult.accepted
+    const alreadyVoted = voteAction === 'remove' ? !voteResult.removed : voteResult.alreadyVoted
+    const responseMessage =
+      typeof voteResult.message === 'string'
+        ? voteResult.message
+        : voteAction === 'remove'
+          ? voteResult.removed
+            ? 'Vote retiré pour cette session.'
+            : 'Aucun vote actif à retirer pour cette session.'
+          : voteResult.accepted
+            ? 'Vote enregistré.'
+            : voteResult.hasUpvoted
+              ? 'Vote déjà pris en compte pour cette session.'
+              : 'Vote déjà pris en compte.'
+
     response.json({
       ...withShowcasePublicMetadata(voteResult.entry),
-      hasUpvoted: true,
+      hasUpvoted: voteResult.hasUpvoted === true,
       votesBlocked: false,
-      alreadyVoted: voteResult.alreadyVoted,
-      upvoteAccepted: voteResult.accepted,
-      message: voteResult.accepted ? 'Vote enregistré.' : 'Vote déjà pris en compte.',
+      alreadyVoted,
+      upvoteAccepted: voteAccepted,
+      voteAction,
+      message: responseMessage,
     })
   } catch (error) {
     if (error instanceof ShowcaseStorageError) {

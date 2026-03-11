@@ -167,6 +167,7 @@ Redis-related runtime notes:
 - submission IDs are deterministic from normalized URLs
 - payloads are compacted on write
 - vote-state reads are optimized to avoid excessive Redis fan-out
+- client vote ownership is tracked separately so the public CTA can remove a vote from the same browser identity
 - a short-lived in-memory cache reduces repeated read pressure
 
 ## Getting Started
@@ -261,9 +262,10 @@ PUBLIC_APP_URL=https://annuaire-rgaa.fr
 - `POST /api/site-insight?preview=1`: preview-only pre-analysis without persistence
 - `GET /api/showcase`: list public entries
 - `GET /api/showcase?slug={slug}`: retrieve one public profile payload
+- `GET /api/showcase/vote-state?clientVoterId={id}`: list vote ownership for the current browser identity
 - `GET /api/domain-groups`: list grouped public domains
 - `GET /api/domain-groups?slug={groupSlug}`: retrieve one domain-group payload
-- `POST /api/showcase/upvote`: submit one vote
+- `POST /api/showcase/upvote`: add or remove one vote owned by the current browser identity (`action: upvote | remove`)
 - `GET /api/health`: service status and storage mode
 - `GET /api/maintenance`: current public maintenance state
 
