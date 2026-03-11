@@ -166,6 +166,7 @@ const MODERATION_SESSION_STORAGE_KEY = 'annuaire-rgaa-moderation-session'
 const MODERATION_SESSION_TTL_MS = 12 * 60 * 60 * 1000
 const DEFAULT_MAINTENANCE_MESSAGE = 'Nous revenons très vite. Merci de réessayer dans quelques instants.'
 const MODERATION_BATCH_SIZE = 24
+const MODERATION_PUBLISHED_BATCH_SIZE = 4
 
 type StoredModerationSession = {
   token: string
@@ -174,6 +175,7 @@ type StoredModerationSession = {
 }
 
 type ProgressivePaginationOptions = {
+  autoLoad?: boolean
   batchSize: number
   enabled: boolean
   isBusy?: boolean
@@ -458,6 +460,7 @@ function persistStoredModerationSession(token: string, rememberAcrossBrowser: bo
 }
 
 function useProgressivePagination({
+  autoLoad = true,
   batchSize,
   enabled,
   isBusy = false,
@@ -503,7 +506,7 @@ function useProgressivePagination({
   )
 
   useEffect(() => {
-    if (!enabled || isBusy || !hasMore || !sentinelRef.current) {
+    if (!autoLoad || !enabled || isBusy || !hasMore || !sentinelRef.current) {
       return
     }
 
@@ -530,7 +533,7 @@ function useProgressivePagination({
     return () => {
       observer.disconnect()
     }
-  }, [enabled, handleLoadMore, hasMore, isBusy])
+  }, [autoLoad, enabled, handleLoadMore, hasMore, isBusy])
 
   return {
     handleLoadMore,
@@ -628,10 +631,10 @@ function ModerationPage() {
   const {
     visibleCount: visiblePublishedCount,
     hasMore: hasMorePublishedEntries,
-    sentinelRef: publishedSentinelRef,
     handleLoadMore: handleLoadMorePublishedEntries,
   } = useProgressivePagination({
-    batchSize: MODERATION_BATCH_SIZE,
+    autoLoad: false,
+    batchSize: MODERATION_PUBLISHED_BATCH_SIZE,
     enabled: isModerationUnlocked,
     isBusy: isLoadingPublished,
     onButtonReveal: (nextVisibleCount, totalCount) => {
@@ -847,7 +850,17 @@ function ModerationPage() {
       }
 
       const entries = Array.isArray(payload.entries)
-        ? payload.entries.filter(isShowcaseEntry).map((entry) => normalizePublishedEntry(entry))
+        ? payload.entries
+            .filter(isShowcaseEntry)
+            .map((entry) => normalizePublishedEntry(entry))
+            .sort((left, right) => {
+              const leftTime = Date.parse(left.updatedAt)
+              const rightTime = Date.parse(right.updatedAt)
+              if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) {
+                return rightTime - leftTime
+              }
+              return left.siteTitle.localeCompare(right.siteTitle, 'fr')
+            })
         : []
       setPublishedEntries(entries)
       setPublishedDrafts(
@@ -2501,26 +2514,20 @@ function ModerationPage() {
               </ul>
             )}
             {publishedEntries.length > 0 && hasMorePublishedEntries && (
-              <div className="mt-4 flex flex-col items-start gap-3">
+              <div className="mt-6 flex justify-center">
                 <button
                   type="button"
                   onClick={() => handleLoadMorePublishedEntries('button')}
-                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaNeutralClass} ${focusRingClass}`}
+                  className={`inline-flex min-h-12 items-center justify-center rounded-2xl px-7 py-3 text-base font-extrabold shadow-sm ${ctaDisabledClass} ${moderationCtaPrimaryClass} ${focusRingClass}`}
                 >
                   {formatLoadMoreLabel(
                     visiblePublishedEntries.length,
                     publishedEntries.length,
-                    MODERATION_BATCH_SIZE,
+                    MODERATION_PUBLISHED_BATCH_SIZE,
                     'entrée(s)',
                   )}
                 </button>
-                <p className={`text-sm ${moderationTextMutedClass}`}>
-                  Chargement progressif actif pour limiter la densité initiale de la modération.
-                </p>
               </div>
-            )}
-            {publishedEntries.length > 0 && (
-              <div ref={publishedSentinelRef} className="h-1 w-full" aria-hidden="true" />
             )}
               </section>
 

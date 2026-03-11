@@ -34,6 +34,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - GitHub notifications now also cover auto-approved publications with a dedicated informational issue wording distinct from the manual-moderation flow.
 - The moderation workspace now puts pending approvals first in the DOM and skip-link order, keeps archive and maintenance controls together on the final row, and restyles maintenance as a high-contrast danger panel without changing keyboard reachability or live-region behavior.
 - Moderation lists now reuse the homepage-style progressive pagination pattern (`24` items per batch plus viewport-end auto loading) for pending reviews, published entries, and both blocklists; the site and vote blocklists also now share a two-column row on larger viewports.
+- Published moderation entries now open on the `4` most recently updated sites, and the remaining items are revealed through a centered single-line `Charger ... de plus` CTA instead of viewport-end auto loading.
 - README was rewritten to focus on current architecture, operations, accessibility, and discovery behavior, while detailed release-by-release history stays in `CHANGELOG.md`.
 - Homepage directory loading now uses a more visible non-interactive status panel with reserved card placeholders, making slow-connection waits clearer without adding extra polite live announcements or extra API calls.
 
