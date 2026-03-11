@@ -11,6 +11,10 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Moderation now includes a persisted maintenance-mode control with editable public message, plus `GET /api/moderation/maintenance`, `POST /api/moderation/maintenance`, and public `GET /api/maintenance` endpoints.
 
 ### Fixed
+- Shared interactive controls now use explicit filled surfaces (instead of transparent backgrounds) across homepage, secondary header/navigation, global search, site map, domain/profile cards, footer actions, and critical shell CSS, closing the latest RGAA `3.2`/`3.3`/`10.5` contrast and text/background pairing findings from the 2026-03-11 audit scope.
+- Hidden `sr-only` live-region announcers were removed from public and moderation templates in favor of visible live feedback panels, addressing the RGAA `10.8` finding on hidden content exposure.
+- Profile-page sibling/related link cards now wrap long labels and URLs within constrained card width at high zoom, addressing the RGAA `10.4` overflow finding at 200% text size.
+- Accessibility declaration wording now avoids positional cue phrasing, resolving the RGAA `10.9`/`10.10` findings raised on `/accessibilite`.
 - Homepage sorting dropdown now relies on the native select chevron again, with an explicit high-contrast field border, avoiding the broken custom-chevron rendering introduced by the previous override.
 - Theme toggle CTAs now share the same `app-theme-toggle` primitive and critical-shell styling on homepage and secondary pages, so the visible “Mode clair actif” / “Mode sombre actif” button stays consistent across routes.
 - Homepage result sorting now uses an explicitly filled high-contrast select trigger with a decorative chevron, reducing dependence on low-contrast native control chrome for RGAA criterion `3.3`.
@@ -38,7 +42,9 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Homepage vote hydration now reuses a lightweight private `vote-state` payload with targeted counters for voted URLs and defers that reconciliation until page load/idle; the backend now also verifies current ownership and self-heals undercounted persisted totals upward from active client-vote indexes so already-owned votes cannot surface an impossible `0 vote(s)` state.
 
 ### Changed
-- Accessibility statement data now reflects the 2026-03-11 five-page public audit scope and tracks the 8 remediated criteria as deployed changes pending RGAA re-verification.
+- Accessibility statement snapshot data (`shared/accessibilityStatement.js`) now reports the latest 2026-03-11 five-page audit baseline (`88.7%`, `7` tracked non-conformities) and lists each criterion with impacted templates and remediation status.
+- Static shell metadata now aligns with the same accessibility snapshot baseline by updating `rgaa:compliance-score` to `88.7`.
+- README now documents that `/accessibilite` consumes the shared accessibility-statement snapshot for audit scope, score, and tracked non-conformities.
 - README now documents pointer-visible/wrapping skip-link trays and the text-styled backlink preview behavior on profile pages.
 - Maintenance state is now included in moderation archive export/import, in rollback freshness checks, and in `GET /api/health` so operators do not lose service posture during restores.
 - Public JSON/XML endpoints now return `503` with `Retry-After` during maintenance, while the static Vite shell probes `/api/maintenance` before hydration and swaps public SPA routes to an accessible French maintenance screen without exposing the moderation surface.

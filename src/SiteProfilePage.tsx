@@ -904,7 +904,7 @@ function SiteProfilePage() {
                     </span>
                   </a>
                   <p className="mt-2 text-xs text-sky-900 dark:text-sky-100">
-                    Le code HTML du badge image reste disponible ci-dessous pour les intégrations qui souhaitent
+                    Le code HTML du badge image reste disponible en option pour les intégrations qui souhaitent
                     reprendre le visuel de marque.
                   </p>
                 </div>

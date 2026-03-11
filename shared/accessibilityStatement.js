@@ -2,8 +2,8 @@ export const accessibilityAuditSummary = {
   status: 'Partiellement conforme',
   complianceStatus: 'partial',
   complianceStatusLabel: 'Partiellement conforme',
-  score: '87,5 % (estimation)',
-  complianceScore: 87.5,
+  score: '88,7 % (estimation)',
+  complianceScore: 88.7,
   auditDate: '11 mars 2026',
   auditDateIso: '2026-03-11',
   scope: '5 pages publiques vérifiées',
@@ -15,75 +15,67 @@ export const accessibilityAuditSummary = {
     'https://www.annuaire-rgaa.fr/accessibilite',
   ],
   applicableCriteria: '106 critères vérifiés',
-  nonConformitiesCount: '8 critères',
-  nonConformitiesTotal: 8,
-  remediationStatus: 'Corrections déployées, recontrôle RGAA à planifier',
+  nonConformitiesCount: '7 critères',
+  nonConformitiesTotal: 7,
+  remediationStatus: 'Corrections déployées sur les gabarits, recontrôle RGAA à planifier',
   rgaaBaseline: '4.1',
 }
 
 export const accessibilityNonConformities = [
   {
-    id: '3.3',
-    title: 'Contraste d’interface du sélecteur de tri',
+    id: '3.2',
+    title: 'Contraste texte/fond des libellés de fallback de vignette',
     detail:
-      'Le sélecteur de tri de l’accueil reposait sur un rendu natif à faible contraste. Un habillage explicite, rempli et fortement contrasté a été déployé.',
-    impactedPages: 'Accueil de l’annuaire',
+      'Un fallback de vignette affichait un contraste insuffisant en thème sombre. Les classes de rendu ont été corrigées pour maintenir un contraste conforme dans les deux thèmes.',
+    impactedPages: 'Gabarit carte annuaire (accueil et variantes)',
+    status: 'Correction déployée, en attente de contre-vérification',
+  },
+  {
+    id: '3.3',
+    title: 'Contraste des composants d’interface interactifs',
+    detail:
+      'Plusieurs liens et boutons reposaient sur des styles transparents hétérogènes. Les gabarits partagés utilisent désormais des surfaces explicites et contrastées pour les contrôles interactifs.',
+    impactedPages: 'Accueil, plan du site, fiche site, page domaine, accessibilité, pied de page, en-tête secondaire',
+    status: 'Correction déployée, en attente de contre-vérification',
+  },
+  {
+    id: '10.4',
+    title: 'Lisibilité à 200 % sans débordement horizontal',
+    detail:
+      'Des listes de liens sur la fiche site pouvaient déborder à fort zoom avec des libellés longs. Les liens concernés passent en largeur contrainte, retour à la ligne et rupture de mot.',
+    impactedPages: 'Fiche site référencé',
     status: 'Correction déployée, en attente de contre-vérification',
   },
   {
     id: '10.5',
     title: 'Couplage couleur de texte et couleur de fond',
     detail:
-      'Certaines zones avec couleur de texte explicite reposaient encore sur un fond calculé transparent. Le couplage texte/fond a été renforcé dans les styles globaux.',
-    impactedPages: 'Accueil, page domaine et déclaration d’accessibilité',
+      'Certaines zones utilisaient encore une couleur de texte explicite sur fond transparent (et inversement). Le couplage texte/fond a été normalisé dans les composants React et le CSS critique du shell HTML.',
+    impactedPages: 'Gabarits partagés et shell critique (index HTML)',
+    status: 'Correction déployée, en attente de contre-vérification',
+  },
+  {
+    id: '10.8',
+    title: 'Contenus cachés non destinés à rester exposés aux TA',
+    detail:
+      'Des régions live cachées via `sr-only` étaient remontées comme contenus cachés exposés. Les annonces runtime sont désormais rendues dans des panneaux visibles, ce qui supprime ce pattern caché.',
+    impactedPages: 'Accueil, plan du site, fiche site, page domaine, modération',
+    status: 'Correction déployée, en attente de contre-vérification',
+  },
+  {
+    id: '10.9',
+    title: 'Information orientée par la position dans la page',
+    detail:
+      'Certaines formulations d’orientation dépendaient encore de la position visuelle. Elles ont été reformulées avec des termes neutres et des repères nommés.',
+    impactedPages: 'Déclaration d’accessibilité',
     status: 'Correction déployée, en attente de contre-vérification',
   },
   {
     id: '10.10',
     title: 'Repères rédigés avec une dépendance à la position',
     detail:
-      'Certaines consignes d’orientation mentionnaient l’en-tête ou les éléments placés plus bas dans la page. Elles ont été reformulées autour de repères nommés et d’actions explicites.',
-    impactedPages: 'Accueil de l’annuaire',
-    status: 'Correction déployée, en attente de contre-vérification',
-  },
-  {
-    id: '10.13',
-    title: 'Contenu additionnel natif via attribut title',
-    detail:
-      'Un lien de découverte dans le shell HTML exposait encore un attribut `title`, ce qui produisait une infobulle native non contrôlable. Cet attribut a été retiré.',
-    impactedPages: 'Page domaine auditée (shell commun du site)',
-    status: 'Correction déployée, en attente de contre-vérification',
-  },
-  {
-    id: '10.14',
-    title: 'Liens d’évitement CSS visibles uniquement au clavier',
-    detail:
-      'Le tiroir de liens d’évitement devenait visible à la prise de focus sans équivalent au pointage. Il est désormais aussi visible au survol.',
-    impactedPages: 'Page domaine multi-sites',
-    status: 'Correction déployée, en attente de contre-vérification',
-  },
-  {
-    id: '1.8',
-    title: 'Aperçu local du badge présenté comme image de texte',
-    detail:
-      'L’aperçu local du lien retour affichait un badge image porteur d’information. Il a été remplacé par un aperçu en texte stylé, tout en conservant le code image en copie optionnelle.',
-    impactedPages: 'Fiche site référencé',
-    status: 'Correction déployée, en attente de contre-vérification',
-  },
-  {
-    id: '13.5',
-    title: 'Formulations techniques insuffisamment explicitées',
-    detail:
-      'Le plan du site et le pied de page exposaient plusieurs termes techniques sans reformulation immédiate. Les libellés publics ont été réécrits en langage plus explicite.',
-    impactedPages: 'Plan du site',
-    status: 'Correction déployée, en attente de contre-vérification',
-  },
-  {
-    id: '13.9',
-    title: 'Débordement horizontal en orientation portrait',
-    detail:
-      'Un libellé long dans les liens d’évitement de la fiche site pouvait provoquer un débordement horizontal en portrait. Les liens se replient désormais sur plusieurs lignes.',
-    impactedPages: 'Fiche site référencé',
+      'Une phrase de la déclaration utilisait encore un repère spatial implicite. Elle a été remplacée par une formulation non dépendante de la position.',
+    impactedPages: 'Déclaration d’accessibilité',
     status: 'Correction déployée, en attente de contre-vérification',
   },
 ]
