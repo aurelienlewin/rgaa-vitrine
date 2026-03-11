@@ -100,23 +100,63 @@ const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const ctaHoverClass = 'transition-colors duration-150 hover:underline'
 const ctaDisabledClass =
-  'disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100'
+  'disabled:border-slate-500 disabled:bg-slate-700 disabled:text-white disabled:opacity-100 disabled:shadow-none'
 const moderationCtaNeutralClass =
-  `border border-slate-800 dark:border-slate-100 bg-white dark:bg-slate-950 text-slate-950 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${ctaHoverClass}`
+  `border-2 border-slate-800 dark:border-slate-300 bg-white dark:bg-slate-100 text-slate-950 dark:text-slate-950 hover:bg-slate-100 dark:hover:bg-white ${ctaHoverClass}`
 const moderationCtaPrimaryClass =
-  `border border-sky-900 dark:border-sky-100 bg-sky-800 dark:bg-sky-200 text-white dark:text-sky-950 hover:bg-sky-900 dark:hover:bg-sky-100 ${ctaHoverClass}`
+  `border-2 border-sky-900 dark:border-sky-300 bg-sky-800 dark:bg-sky-100 text-white dark:text-sky-950 hover:bg-sky-900 dark:hover:bg-white ${ctaHoverClass}`
+const moderationCtaSuccessClass =
+  `border-2 border-emerald-900 dark:border-emerald-300 bg-emerald-700 dark:bg-emerald-100 text-white dark:text-emerald-950 hover:bg-emerald-800 dark:hover:bg-white ${ctaHoverClass}`
 const moderationCtaSlateClass =
-  `border border-slate-950 dark:border-slate-100 bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-950 hover:bg-slate-900 dark:hover:bg-white ${ctaHoverClass}`
+  `border-2 border-slate-950 dark:border-slate-300 bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-950 hover:bg-slate-900 dark:hover:bg-white ${ctaHoverClass}`
 const moderationCtaWarningClass =
-  `border border-amber-900 dark:border-amber-100 bg-amber-700 dark:bg-amber-200 text-white dark:text-amber-950 hover:bg-amber-800 dark:hover:bg-amber-100 ${ctaHoverClass}`
+  `border-2 border-amber-900 dark:border-amber-300 bg-amber-700 dark:bg-amber-100 text-white dark:text-amber-950 hover:bg-amber-800 dark:hover:bg-white ${ctaHoverClass}`
 const moderationCtaDangerClass =
-  `border border-rose-950 dark:border-rose-100 bg-rose-700 dark:bg-rose-200 text-white dark:text-rose-950 hover:bg-rose-800 dark:hover:bg-rose-100 ${ctaHoverClass}`
+  `border-2 border-rose-950 dark:border-rose-300 bg-rose-700 dark:bg-rose-100 text-white dark:text-rose-950 hover:bg-rose-800 dark:hover:bg-white ${ctaHoverClass}`
 const moderationCtaDangerStrongClass =
-  `border border-rose-950 dark:border-rose-100 bg-rose-900 dark:bg-rose-100 text-white dark:text-rose-950 hover:bg-rose-950 dark:hover:bg-white ${ctaHoverClass}`
+  `border-2 border-rose-950 dark:border-rose-300 bg-rose-900 dark:bg-rose-100 text-white dark:text-rose-950 hover:bg-rose-950 dark:hover:bg-white ${ctaHoverClass}`
 const moderationCtaOutlineDangerClass =
-  `border border-rose-800 dark:border-rose-100 bg-white dark:bg-slate-950 text-rose-900 dark:text-rose-100 hover:bg-rose-50 dark:hover:bg-rose-950 ${ctaHoverClass}`
+  `border-2 border-rose-800 dark:border-rose-300 bg-white dark:bg-rose-100 text-rose-900 dark:text-rose-950 hover:bg-rose-50 dark:hover:bg-white ${ctaHoverClass}`
 const moderationCtaOutlineWarningClass =
-  `border border-amber-800 dark:border-amber-100 bg-white dark:bg-slate-950 text-amber-900 dark:text-amber-100 hover:bg-amber-50 dark:hover:bg-amber-950 ${ctaHoverClass}`
+  `border-2 border-amber-800 dark:border-amber-300 bg-white dark:bg-amber-100 text-amber-900 dark:text-amber-950 hover:bg-amber-50 dark:hover:bg-white ${ctaHoverClass}`
+const moderationSurfaceClass =
+  'border border-slate-200 dark:border-slate-300 bg-white dark:bg-slate-950 text-slate-950 dark:text-slate-50 shadow-sm'
+const moderationSurfaceStrongClass =
+  'border border-slate-200 dark:border-slate-300 bg-white dark:bg-slate-900 text-slate-950 dark:text-slate-50 shadow-sm'
+const moderationTextMutedClass = 'text-slate-700 dark:text-slate-100'
+const moderationTextStrongClass = 'text-slate-800 dark:text-slate-50'
+const moderationFieldClass =
+  `min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-300 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-950 dark:text-slate-50 placeholder:text-slate-500 dark:placeholder:text-slate-300 ${focusRingClass}`
+const moderationValidatedFieldClass =
+  `min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-300 user-invalid:border-rose-700 dark:user-invalid:border-rose-300 user-valid:border-emerald-700 dark:user-valid:border-emerald-300 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-950 dark:text-slate-50 placeholder:text-slate-500 dark:placeholder:text-slate-300 ${focusRingClass}`
+const moderationValidatedFieldStrongClass =
+  `min-h-11 w-full rounded-xl border-2 border-slate-400 dark:border-slate-300 user-invalid:border-rose-700 dark:user-invalid:border-rose-300 user-valid:border-emerald-700 dark:user-valid:border-emerald-300 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-950 dark:text-slate-50 placeholder:text-slate-500 dark:placeholder:text-slate-300 shadow-sm ${focusRingClass}`
+const moderationFileFieldClass =
+  `mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-300 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-950 dark:text-slate-50 file:text-slate-950 dark:file:text-slate-50 ${focusRingClass}`
+const moderationDangerPanelClass =
+  'border border-rose-300 dark:border-rose-300 bg-rose-50 dark:bg-rose-100 text-rose-950 dark:text-rose-950'
+const moderationWarningPanelClass =
+  'border border-amber-300 dark:border-amber-300 bg-amber-50 dark:bg-amber-100 text-amber-950 dark:text-amber-950'
+const moderationInfoPanelClass =
+  'border border-sky-300 dark:border-sky-300 bg-sky-50 dark:bg-sky-100 text-sky-950 dark:text-sky-950'
+const moderationSuccessPanelClass =
+  'border border-emerald-300 dark:border-emerald-300 bg-emerald-50 dark:bg-emerald-100 text-emerald-950 dark:text-emerald-950'
+const moderationNeutralBadgeClass =
+  'border border-slate-300 dark:border-slate-300 bg-slate-100 dark:bg-slate-100 text-slate-900 dark:text-slate-950'
+const moderationDangerBadgeClass =
+  'border border-rose-400 dark:border-rose-300 bg-rose-100 dark:bg-rose-100 text-rose-950 dark:text-rose-950'
+const moderationWarningBadgeClass =
+  'border border-amber-400 dark:border-amber-300 bg-amber-100 dark:bg-amber-100 text-amber-950 dark:text-amber-950'
+const moderationSuccessBadgeClass =
+  'border border-emerald-400 dark:border-emerald-300 bg-emerald-100 dark:bg-emerald-100 text-emerald-950 dark:text-emerald-950'
+const moderationPendingSectionClass =
+  'border-2 border-amber-500 dark:border-amber-300 bg-linear-to-br from-amber-50 via-white to-rose-50 dark:bg-slate-950 shadow-sm'
+const moderationPendingCardClass =
+  'overflow-hidden rounded-3xl border-2 border-amber-400 dark:border-amber-300 bg-white dark:bg-slate-950 shadow-lg shadow-amber-950/10'
+const moderationPendingCardHeaderClass =
+  'border-b-2 border-amber-500 dark:border-amber-300 bg-linear-to-r from-amber-200 via-amber-100 to-rose-100 dark:bg-slate-900 px-4 py-3 sm:px-5'
+const moderationMaintenanceSectionClass =
+  'rounded-3xl border-2 border-rose-700 dark:border-rose-300 bg-linear-to-br from-rose-50 via-orange-50 to-white dark:bg-slate-950 p-6 shadow-lg shadow-rose-950/10'
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
@@ -1775,7 +1815,7 @@ function ModerationPage() {
           className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
         >
           {!isModerationUnlocked && (
-            <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
+            <section className={`rounded-2xl p-6 ${moderationSurfaceClass}`}>
             <h2 className="text-lg font-semibold">Authentification modérateur</h2>
             <form className="mt-4 grid gap-3 md:grid-cols-[2fr_auto_auto]" onSubmit={handleTokenSubmit}>
               <div>
@@ -1804,7 +1844,7 @@ function ModerationPage() {
                   autoComplete="off"
                   required
                   spellCheck={false}
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`mt-1 ${moderationFieldClass}`}
                 />
                 <label className={`mt-3 inline-flex min-h-11 items-center gap-2 text-sm ${focusRingClass}`}>
                   <input
@@ -1814,7 +1854,7 @@ function ModerationPage() {
                   />
                   Mémoriser sur cet appareil pendant 12 heures
                 </label>
-                <p id="token-session-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                <p id="token-session-help" className={`mt-1 text-sm ${moderationTextMutedClass}`}>
                   La session est conservée dans cet onglet. Avec l’option “Mémoriser sur cet appareil”, elle est aussi conservée pendant 12 heures.
                 </p>
               </div>
@@ -1854,9 +1894,7 @@ function ModerationPage() {
               ref={messageRef}
               tabIndex={-1}
               className={`mt-4 rounded-lg border p-3 text-sm ${
-                assertiveMessage
-                  ? 'border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-100'
-                  : 'border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950 text-sky-900 dark:text-sky-100'
+                assertiveMessage ? moderationDangerPanelClass : moderationInfoPanelClass
               }`}
               role={assertiveMessage ? 'alert' : 'status'}
               aria-live={assertiveMessage ? 'assertive' : 'polite'}
@@ -1866,9 +1904,9 @@ function ModerationPage() {
           )}
 
           {!isModerationUnlocked && (
-            <section className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
+            <section className={`mt-8 rounded-2xl p-6 ${moderationSurfaceClass}`}>
               <h2 className="text-lg font-semibold">Accès protégé</h2>
-              <p className="mt-2 text-slate-700 dark:text-slate-300">
+              <p className={`mt-2 ${moderationTextMutedClass}`}>
                 Les tableaux de bord et contrôles de modération restent masqués tant qu’un jeton valide n’a pas été confirmé.
               </p>
             </section>
@@ -1880,10 +1918,8 @@ function ModerationPage() {
                 id="soumissions-attente"
                 ref={pendingRef}
                 tabIndex={-1}
-                className={`mt-8 rounded-3xl border p-5 shadow-sm sm:p-6 ${
-                  pendingEntries.length > 0
-                    ? 'border-2 border-amber-500 dark:border-amber-400 bg-linear-to-br from-amber-50 via-white to-rose-50 dark:from-amber-950 dark:via-slate-950 dark:to-rose-950 shadow-amber-950/10'
-                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'
+                className={`mt-8 rounded-3xl p-5 sm:p-6 ${
+                  pendingEntries.length > 0 ? moderationPendingSectionClass : moderationSurfaceClass
                 }`}
                 aria-labelledby="soumissions-attente-titre"
               >
@@ -1892,11 +1928,11 @@ function ModerationPage() {
                     <h2 id="soumissions-attente-titre" className="text-lg font-semibold text-slate-950 dark:text-slate-50">
                       Soumissions en attente
                     </h2>
-                    <p className="mt-2 text-slate-800 dark:text-slate-200">
+                    <p className={`mt-2 ${moderationTextStrongClass}`}>
                       {pendingEntries.length} soumission(s) à traiter.
                     </p>
                     {pendingEntries.length > 0 && (
-                      <p className="mt-1 text-sm text-slate-800 dark:text-slate-200">
+                      <p className={`mt-1 text-sm ${moderationTextStrongClass}`}>
                         {buildProgressiveListSummary(
                           visiblePendingEntries.length,
                           pendingEntries.length,
@@ -1909,8 +1945,8 @@ function ModerationPage() {
                     <span
                       className={`inline-flex min-h-11 items-center rounded-full border px-4 py-2 text-sm font-extrabold ${
                         pendingEntries.length > 0
-                          ? 'border-amber-800 dark:border-amber-200 bg-amber-200 dark:bg-amber-100 text-amber-950'
-                          : 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100'
+                          ? moderationWarningBadgeClass
+                          : moderationNeutralBadgeClass
                       }`}
                     >
                       {pendingEntries.length > 0 ? `Action requise: ${pendingEntries.length}` : 'File vide'}
@@ -1926,12 +1962,12 @@ function ModerationPage() {
                 </div>
 
                 {pendingEntries.length === 0 ? (
-                  <p className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-slate-700 dark:text-slate-300">
+                  <p className={`mt-4 rounded-xl p-4 ${moderationSurfaceStrongClass} ${moderationTextMutedClass}`}>
                     Aucune soumission en attente.
                   </p>
                 ) : (
                   <>
-                    <p className="mt-4 rounded-2xl border-2 border-amber-700 dark:border-amber-300 bg-amber-100 dark:bg-amber-950 p-4 text-sm font-semibold text-amber-950 dark:text-amber-50 shadow-sm">
+                    <p className={`mt-4 rounded-2xl p-4 text-sm font-semibold shadow-sm ${moderationWarningPanelClass}`}>
                       Priorité de modération: ces soumissions attendent une validation manuelle. Traitez-les pour éviter
                       qu’elles restent oubliées dans la file.
                     </p>
@@ -1944,10 +1980,10 @@ function ModerationPage() {
                         return (
                           <li
                             key={entry.submissionId}
-                            className="overflow-hidden rounded-3xl border-2 border-amber-400 dark:border-amber-500 bg-white dark:bg-slate-900 shadow-lg shadow-amber-950/10"
+                            className={moderationPendingCardClass}
                           >
                             <article>
-                              <div className="border-b-2 border-amber-500 dark:border-amber-400 bg-linear-to-r from-amber-200 via-amber-100 to-rose-100 dark:from-amber-900 dark:via-amber-950 dark:to-rose-950 px-4 py-3 sm:px-5">
+                              <div className={moderationPendingCardHeaderClass}>
                                 <div className="flex flex-wrap items-start justify-between gap-3">
                                   <div>
                                     <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-amber-950 dark:text-amber-100">
@@ -1958,10 +1994,10 @@ function ModerationPage() {
                                     </h3>
                                   </div>
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <span className="inline-flex min-h-10 items-center rounded-full border border-rose-800 dark:border-rose-200 bg-rose-100 dark:bg-rose-200 px-3 py-1 text-sm font-extrabold text-rose-950">
+                                    <span className={`inline-flex min-h-10 items-center rounded-full px-3 py-1 text-sm font-extrabold ${moderationDangerBadgeClass}`}>
                                       À traiter
                                     </span>
-                                    <span className="inline-flex min-h-10 items-center rounded-full border border-slate-700 dark:border-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                    <span className={`inline-flex min-h-10 items-center rounded-full px-3 py-1 text-sm font-semibold ${moderationNeutralBadgeClass}`}>
                                       {entry.category}
                                     </span>
                                   </div>
@@ -1969,11 +2005,11 @@ function ModerationPage() {
                               </div>
 
                               <div className="p-4 sm:p-5">
-                                <p className="wrap-anywhere text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                <p className="wrap-anywhere text-sm font-semibold text-slate-900 dark:text-slate-50">
                                   {entry.normalizedUrl}
                                 </p>
                                 {entry.domainContext ? (
-                                  <div className="mt-3 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 px-3 py-3 text-sm text-sky-900 dark:text-sky-100">
+                                  <div className={`mt-3 rounded-xl px-3 py-3 text-sm ${moderationInfoPanelClass}`}>
                                     <p className="font-semibold">
                                       Domaine rapproché: {entry.domainContext.registrableDomain}
                                     </p>
@@ -2015,29 +2051,29 @@ function ModerationPage() {
                                     ) : null}
                                   </div>
                                 ) : null}
-                                <dl className="mt-3 grid gap-2 text-sm text-slate-800 dark:text-slate-200 sm:grid-cols-2">
-                                  <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/50 px-3 py-2">
+                                <dl className={`mt-3 grid gap-2 text-sm ${moderationTextStrongClass} sm:grid-cols-2`}>
+                                  <div className={`rounded-xl px-3 py-2 ${moderationWarningPanelClass}`}>
                                     <dt className="font-semibold text-slate-900 dark:text-slate-50">Créée le</dt>
                                     <dd className="mt-1">{formatDate(entry.createdAt)}</dd>
                                   </div>
-                                  <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/50 px-3 py-2">
+                                  <div className={`rounded-xl px-3 py-2 ${moderationWarningPanelClass}`}>
                                     <dt className="font-semibold text-slate-900 dark:text-slate-50">Dernière analyse</dt>
                                     <dd className="mt-1">{formatDate(entry.updatedAt)}</dd>
                                   </div>
-                                  <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/50 px-3 py-2">
+                                  <div className={`rounded-xl px-3 py-2 ${moderationWarningPanelClass}`}>
                                     <dt className="font-semibold text-slate-900 dark:text-slate-50">Niveau</dt>
                                     <dd className="mt-1">
                                       {entry.complianceStatusLabel ?? 'Inconnu'} | Score: {formatScore(score)}
                                     </dd>
                                   </div>
-                                  <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/50 px-3 py-2">
+                                  <div className={`rounded-xl px-3 py-2 ${moderationWarningPanelClass}`}>
                                     <dt className="font-semibold text-slate-900 dark:text-slate-50">Référentiel</dt>
                                     <dd className="mt-1">{formatRgaaBaseline(entry.rgaaBaseline)}</dd>
                                   </div>
                                 </dl>
 
                                 {entry.reviewReason && (
-                                  <p className="mt-3 rounded-xl border-2 border-amber-700 dark:border-amber-300 bg-amber-100 dark:bg-amber-950 p-3 text-sm font-semibold text-amber-950 dark:text-amber-50">
+                                  <p className={`mt-3 rounded-xl p-3 text-sm font-semibold ${moderationWarningPanelClass}`}>
                                     Motif de validation manuelle: {entry.reviewReason}
                                   </p>
                                 )}
@@ -2056,7 +2092,7 @@ function ModerationPage() {
                                           [entry.submissionId]: event.target.value,
                                         }))
                                       }
-                                      className={`mt-1 min-h-11 w-full rounded-xl border-2 border-amber-400 dark:border-amber-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white/90 dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                                      className={`mt-1 ${moderationValidatedFieldStrongClass}`}
                                     />
                                   </div>
                                   <button
@@ -2068,7 +2104,7 @@ function ModerationPage() {
                                       void handleApprove(entry.submissionId)
                                     }}
                                     disabled={isActionRunning}
-                                    className={`min-h-11 rounded-xl border-2 border-emerald-900 dark:border-emerald-100 bg-emerald-600 dark:bg-emerald-200 px-4 py-2 text-sm font-extrabold text-white dark:text-emerald-950 shadow-sm hover:bg-emerald-500 dark:hover:bg-emerald-100 ${ctaDisabledClass} ${focusRingClass} md:self-end`}
+                                    className={`min-h-11 rounded-xl px-4 py-2 text-sm font-extrabold shadow-sm ${ctaDisabledClass} ${moderationCtaSuccessClass} ${focusRingClass} md:self-end`}
                                   >
                                     {isActionRunning ? 'Traitement...' : 'Approuver'}
                                   </button>
@@ -2103,7 +2139,7 @@ function ModerationPage() {
                             'soumission(s)',
                           )}
                         </button>
-                        <p className="text-sm text-slate-700 dark:text-slate-300">
+                        <p className={`text-sm ${moderationTextMutedClass}`}>
                           Chargement progressif actif pour garder la file exploitable au clavier et en lecture d’écran.
                         </p>
                       </div>
@@ -2124,11 +2160,11 @@ function ModerationPage() {
                 aria-busy={isLoadingPublished}
               >
             <h2 id="annuaire-publie-titre" className="text-lg font-semibold">Annuaire publié (édition et suppression)</h2>
-            <p className="mt-2 text-slate-700 dark:text-slate-300">
+            <p className={`mt-2 ${moderationTextMutedClass}`}>
               {publishedEntries.length} entrée(s) publiées.
             </p>
             {publishedEntries.length > 0 && (
-              <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+              <p className={`mt-1 text-sm ${moderationTextMutedClass}`}>
                 {buildProgressiveListSummary(
                   visiblePublishedEntries.length,
                   publishedEntries.length,
@@ -2143,7 +2179,7 @@ function ModerationPage() {
             </datalist>
 
             {publishedEntries.length === 0 ? (
-              <p className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-slate-700 dark:text-slate-300">
+              <p className={`mt-4 rounded-xl p-4 ${moderationSurfaceStrongClass} ${moderationTextMutedClass}`}>
                 Aucune entrée publiée chargée.
               </p>
             ) : (
@@ -2166,19 +2202,19 @@ function ModerationPage() {
                   return (
                     <li
                       key={entry.normalizedUrl}
-                      className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm"
+                      className={`rounded-2xl p-4 ${moderationSurfaceClass}`}
                     >
                       <article>
                         <h3 className="text-lg font-semibold">{entry.siteTitle}</h3>
-                        <p className="mt-2 wrap-anywhere text-sm text-slate-700 dark:text-slate-300">{entry.normalizedUrl}</p>
-                        <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                        <p className={`mt-2 wrap-anywhere text-sm ${moderationTextMutedClass}`}>{entry.normalizedUrl}</p>
+                        <p className={`mt-1 text-sm ${moderationTextMutedClass}`}>
                           Dernière mise à jour: {formatDate(entry.updatedAt)}
                         </p>
-                        <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                        <p className={`mt-1 text-sm ${moderationTextMutedClass}`}>
                           Référentiel: {formatRgaaBaseline(entry.rgaaBaseline)}
                         </p>
                         {entry.domainContext ? (
-                          <div className="mt-3 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 px-3 py-3 text-sm text-sky-900 dark:text-sky-100">
+                          <div className={`mt-3 rounded-xl px-3 py-3 text-sm ${moderationInfoPanelClass}`}>
                             <p className="font-semibold">
                               Domaine rapproché: {entry.domainContext.registrableDomain}
                             </p>
@@ -2222,8 +2258,8 @@ function ModerationPage() {
                           <span
                             className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${
                               isSiteBlocked
-                                ? 'border border-rose-400 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 text-rose-900 dark:text-rose-100'
-                                : 'border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200'
+                                ? moderationDangerBadgeClass
+                                : moderationNeutralBadgeClass
                             }`}
                           >
                             {isSiteBlocked ? 'Site en blocklist' : 'Site non bloqué'}
@@ -2231,8 +2267,8 @@ function ModerationPage() {
                           <span
                             className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${
                               areVotesBlocked
-                                ? 'border border-amber-400 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 text-amber-900 dark:text-amber-100'
-                                : 'border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200'
+                                ? moderationWarningBadgeClass
+                                : moderationNeutralBadgeClass
                             }`}
                           >
                             {areVotesBlocked ? 'Votes bloqués' : 'Votes autorisés'}
@@ -2250,7 +2286,7 @@ function ModerationPage() {
                               onChange={(event) =>
                                 handlePublishedDraftChange(entry.normalizedUrl, 'siteTitle', event.target.value)
                               }
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 ${moderationValidatedFieldClass}`}
                             />
                           </div>
                           <div>
@@ -2267,9 +2303,9 @@ function ModerationPage() {
                                 handlePublishedDraftChange(entry.normalizedUrl, 'category', event.target.value)
                               }
                               aria-describedby={`category-help-${itemId}`}
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 ${moderationFieldClass}`}
                             />
-                            <p id={`category-help-${itemId}`} className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                            <p id={`category-help-${itemId}`} className={`mt-1 text-sm ${moderationTextMutedClass}`}>
                               Suggestions disponibles, ou catégorie personnalisée.
                             </p>
                           </div>
@@ -2287,7 +2323,7 @@ function ModerationPage() {
                                   event.target.value as PublishedEntryDraft['complianceStatus'],
                                 )
                               }
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 ${moderationFieldClass}`}
                             >
                               {complianceStatusOptions.map((statusOption) => (
                                 <option key={statusOption.value || 'unknown'} value={statusOption.value}>
@@ -2310,7 +2346,7 @@ function ModerationPage() {
                                   event.target.value as PublishedEntryDraft['rgaaBaseline'],
                                 )
                               }
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 ${moderationFieldClass}`}
                             >
                               {rgaaBaselineOptions.map((baselineOption) => (
                                 <option key={baselineOption.value} value={baselineOption.value}>
@@ -2335,9 +2371,9 @@ function ModerationPage() {
                                 handlePublishedDraftChange(entry.normalizedUrl, 'complianceScore', event.target.value)
                               }
                               aria-describedby={`score-help-${itemId}`}
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 ${moderationFieldClass}`}
                             />
-                            <p id={`score-help-${itemId}`} className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                            <p id={`score-help-${itemId}`} className={`mt-1 text-sm ${moderationTextMutedClass}`}>
                               Valeur attendue entre 0 et 100 (décimales autorisées).
                             </p>
                           </div>
@@ -2353,7 +2389,7 @@ function ModerationPage() {
                               onChange={(event) =>
                                 handlePublishedDraftChange(entry.normalizedUrl, 'thumbnailUrl', event.target.value)
                               }
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 ${moderationFieldClass}`}
                             />
                           </div>
                           <div className="md:col-span-2">
@@ -2372,7 +2408,7 @@ function ModerationPage() {
                                   event.target.value,
                                 )
                               }
-                              className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`mt-1 ${moderationFieldClass}`}
                             />
                           </div>
                         </div>
@@ -2445,10 +2481,10 @@ function ModerationPage() {
                             tabIndex={-1}
                             className={`mt-3 rounded-lg border px-3 py-2 text-sm ${
                               feedback.tone === 'error'
-                                ? 'border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-100'
+                                ? moderationDangerPanelClass
                                 : feedback.tone === 'success'
-                                  ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-100'
-                                  : 'border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 text-sky-800 dark:text-sky-100'
+                                  ? moderationSuccessPanelClass
+                                  : moderationInfoPanelClass
                             }`}
                             role={feedback.tone === 'error' ? 'alert' : 'status'}
                             aria-live={feedback.tone === 'error' ? 'assertive' : 'polite'}
@@ -2476,7 +2512,7 @@ function ModerationPage() {
                     'entrée(s)',
                   )}
                 </button>
-                <p className="text-sm text-slate-700 dark:text-slate-300">
+                <p className={`text-sm ${moderationTextMutedClass}`}>
                   Chargement progressif actif pour limiter la densité initiale de la modération.
                 </p>
               </div>
@@ -2491,17 +2527,17 @@ function ModerationPage() {
                 id="blocklist-sites"
                 ref={siteBlocklistSectionRef}
                 tabIndex={-1}
-                className={`rounded-2xl border border-rose-200 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                className={`rounded-2xl border-2 border-rose-300 dark:border-rose-300 bg-rose-50 dark:bg-slate-950 p-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                 aria-labelledby="blocklist-sites-titre"
               >
             <h2 id="blocklist-sites-titre" className="text-lg font-semibold text-rose-900 dark:text-rose-100">
               Blocklist des sites
             </h2>
-            <p className="mt-2 text-sm text-rose-900 dark:text-rose-100">
+            <p className={`mt-2 text-sm ${moderationTextMutedClass}`}>
               Les URL présentes ici ne peuvent plus être soumises. La liste reste modifiable à tout moment.
             </p>
             {siteBlocklist.length > 0 && (
-              <p className="mt-1 text-sm text-rose-900 dark:text-rose-100">
+              <p className={`mt-1 text-sm ${moderationTextMutedClass}`}>
                 {buildProgressiveListSummary(
                   visibleSiteBlocklist.length,
                   siteBlocklist.length,
@@ -2512,7 +2548,7 @@ function ModerationPage() {
 
             <form className="mt-4 flex flex-wrap items-end gap-3" onSubmit={handleAddSiteBlocklist}>
               <div className="min-w-0 flex-1">
-                <label htmlFor="blocklist-site-url" className="block text-sm font-medium text-rose-900 dark:text-rose-100">
+                <label htmlFor="blocklist-site-url" className="block text-sm font-medium text-slate-950 dark:text-slate-50">
                   URL à bloquer
                 </label>
                 <input
@@ -2524,7 +2560,7 @@ function ModerationPage() {
                   value={siteBlocklistInput}
                   onChange={(event) => setSiteBlocklistInput(event.target.value)}
                   placeholder="https://www.exemple.fr/"
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-rose-300 dark:border-rose-700 user-invalid:border-rose-800 dark:user-invalid:border-rose-400 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`mt-1 ${moderationValidatedFieldClass}`}
                 />
               </div>
               <button
@@ -2538,15 +2574,15 @@ function ModerationPage() {
 
             <ul className="mt-4 grid gap-2">
               {siteBlocklist.length === 0 ? (
-                <li className="rounded-xl border border-rose-200 dark:border-rose-800 bg-white dark:bg-slate-900 p-3 text-sm text-slate-700 dark:text-slate-300">
+                <li className={`rounded-xl p-3 text-sm ${moderationSurfaceStrongClass} ${moderationTextMutedClass}`}>
                   Aucun site en blocklist.
                 </li>
               ) : (
                 visibleSiteBlocklist.map((blockedUrl) => {
                   const isRunning = runningBlocklistSiteUrl === blockedUrl
                   return (
-                    <li key={blockedUrl} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-rose-200 dark:border-rose-800 bg-white dark:bg-slate-900 p-3">
-                      <span className="wrap-anywhere text-sm text-slate-800 dark:text-slate-200">{blockedUrl}</span>
+                    <li key={blockedUrl} className={`flex flex-wrap items-center justify-between gap-2 rounded-xl p-3 ${moderationSurfaceStrongClass}`}>
+                      <span className="wrap-anywhere text-sm text-slate-800 dark:text-slate-50">{blockedUrl}</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -2588,17 +2624,17 @@ function ModerationPage() {
                 id="blocklist-votes"
                 ref={voteBlocklistSectionRef}
                 tabIndex={-1}
-                className={`rounded-2xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                className={`rounded-2xl border-2 border-amber-300 dark:border-amber-300 bg-amber-50 dark:bg-slate-950 p-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                 aria-labelledby="blocklist-votes-titre"
               >
             <h2 id="blocklist-votes-titre" className="text-lg font-semibold text-amber-900 dark:text-amber-100">
               Blocage des votes
             </h2>
-            <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">
+            <p className={`mt-2 text-sm ${moderationTextMutedClass}`}>
               Les votes sont désactivés côté public pour les URL listées, jusqu’à retrait manuel.
             </p>
             {voteBlocklist.length > 0 && (
-              <p className="mt-1 text-sm text-amber-900 dark:text-amber-100">
+              <p className={`mt-1 text-sm ${moderationTextMutedClass}`}>
                 {buildProgressiveListSummary(
                   visibleVoteBlocklist.length,
                   voteBlocklist.length,
@@ -2609,7 +2645,7 @@ function ModerationPage() {
 
             <form className="mt-4 flex flex-wrap items-end gap-3" onSubmit={handleAddVoteBlocklist}>
               <div className="min-w-0 flex-1">
-                <label htmlFor="blocklist-vote-url" className="block text-sm font-medium text-amber-900 dark:text-amber-100">
+                <label htmlFor="blocklist-vote-url" className="block text-sm font-medium text-slate-950 dark:text-slate-50">
                   URL pour bloquer les votes
                 </label>
                 <input
@@ -2621,7 +2657,7 @@ function ModerationPage() {
                   value={voteBlocklistInput}
                   onChange={(event) => setVoteBlocklistInput(event.target.value)}
                   placeholder="https://www.exemple.fr/"
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-amber-300 dark:border-amber-700 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`mt-1 ${moderationValidatedFieldClass}`}
                 />
               </div>
               <button
@@ -2635,15 +2671,15 @@ function ModerationPage() {
 
             <ul className="mt-4 grid gap-2">
               {voteBlocklist.length === 0 ? (
-                <li className="rounded-xl border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-900 p-3 text-sm text-slate-700 dark:text-slate-300">
+                <li className={`rounded-xl p-3 text-sm ${moderationSurfaceStrongClass} ${moderationTextMutedClass}`}>
                   Aucun blocage de vote actif.
                 </li>
               ) : (
                 visibleVoteBlocklist.map((blockedUrl) => {
                   const isRunning = runningBlocklistVoteUrl === blockedUrl
                   return (
-                    <li key={blockedUrl} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-900 p-3">
-                      <span className="wrap-anywhere text-sm text-slate-800 dark:text-slate-200">{blockedUrl}</span>
+                    <li key={blockedUrl} className={`flex flex-wrap items-center justify-between gap-2 rounded-xl p-3 ${moderationSurfaceStrongClass}`}>
+                      <span className="wrap-anywhere text-sm text-slate-800 dark:text-slate-50">{blockedUrl}</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -2687,13 +2723,13 @@ function ModerationPage() {
                   id="archive-donnees"
                   ref={archiveRef}
                   tabIndex={-1}
-                  className={`rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                  className={`rounded-2xl p-6 ${moderationSurfaceClass} ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                   aria-labelledby="archive-donnees-titre"
                 >
                   <h2 id="archive-donnees-titre" className="text-lg font-semibold">
                     Archivage et restauration
                   </h2>
-                  <p className="mt-2 text-slate-700 dark:text-slate-300">
+                  <p className={`mt-2 ${moderationTextMutedClass}`}>
                     Exportez une archive complète lisible de la base, puis réimportez-la en fusion ou en remplacement.
                   </p>
 
@@ -2710,7 +2746,7 @@ function ModerationPage() {
                     </button>
                   </div>
 
-                  <form className="mt-4 grid gap-4 rounded-xl border border-slate-200 dark:border-slate-700 p-4" onSubmit={handleImportArchive}>
+                  <form className={`mt-4 grid gap-4 rounded-xl p-4 ${moderationSurfaceStrongClass}`} onSubmit={handleImportArchive}>
                     <div>
                       <label htmlFor="archive-import-file" className="block text-sm font-medium">
                         Fichier d’archive JSON
@@ -2723,20 +2759,20 @@ function ModerationPage() {
                         required
                         onChange={handleArchiveFileChange}
                         aria-describedby="archive-import-help archive-import-selected"
-                        className={`mt-1 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                        className={moderationFileFieldClass}
                       />
-                      <p id="archive-import-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                      <p id="archive-import-help" className={`mt-1 text-sm ${moderationTextMutedClass}`}>
                         Format attendu: export natif Annuaire RGAA.
                       </p>
-                      <p id="archive-import-selected" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                      <p id="archive-import-selected" className={`mt-1 text-sm ${moderationTextMutedClass}`}>
                         {archiveImportFileName ? `Fichier sélectionné: ${archiveImportFileName}` : 'Aucun fichier sélectionné.'}
                       </p>
                     </div>
 
-                    <fieldset className="rounded-xl border border-slate-200 dark:border-slate-700 p-3">
+                    <fieldset className={`rounded-xl p-3 ${moderationSurfaceStrongClass}`}>
                       <legend className="px-1 text-sm font-semibold">Mode d’import</legend>
                       <div className="mt-2 flex flex-wrap gap-3">
-                        <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm ${focusRingClass}`}>
+                        <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm ${moderationCtaNeutralClass} ${focusRingClass}`}>
                           <input
                             type="radio"
                             name="archive-import-mode"
@@ -2749,7 +2785,7 @@ function ModerationPage() {
                           />
                           Fusionner
                         </label>
-                        <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm ${focusRingClass}`}>
+                        <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm ${moderationCtaNeutralClass} ${focusRingClass}`}>
                           <input
                             type="radio"
                             name="archive-import-mode"
@@ -2762,7 +2798,7 @@ function ModerationPage() {
                       </div>
 
                       {archiveImportMode === 'replace' && (
-                        <label className={`mt-3 inline-flex min-h-11 items-start gap-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 px-3 py-2 text-sm text-amber-900 dark:text-amber-100 ${focusRingClass}`}>
+                        <label className={`mt-3 inline-flex min-h-11 items-start gap-2 rounded-xl px-3 py-2 text-sm ${moderationWarningPanelClass} ${focusRingClass}`}>
                           <input
                             type="checkbox"
                             checked={allowArchiveRollbackImport}
@@ -2775,7 +2811,7 @@ function ModerationPage() {
                       )}
                     </fieldset>
 
-                    <p className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-3 text-sm text-amber-900 dark:text-amber-100">
+                    <p className={`rounded-lg p-3 text-sm ${moderationWarningPanelClass}`}>
                       Le mode <strong>Remplacer</strong> écrase les données existantes avant import.
                     </p>
 
@@ -2793,7 +2829,7 @@ function ModerationPage() {
                   id="mode-maintenance"
                   ref={maintenanceSectionRef}
                   tabIndex={-1}
-                  className={`rounded-3xl border-2 border-rose-700 dark:border-rose-300 bg-linear-to-br from-rose-50 via-orange-50 to-white dark:from-rose-950 dark:via-slate-950 dark:to-slate-900 p-6 shadow-lg shadow-rose-950/10 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                  className={`${moderationMaintenanceSectionClass} ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                   aria-labelledby="mode-maintenance-titre"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2804,22 +2840,22 @@ function ModerationPage() {
                       <h2 id="mode-maintenance-titre" className="mt-1 text-lg font-semibold text-slate-950 dark:text-slate-50">
                         Mode maintenance
                       </h2>
-                      <p className="mt-2 text-slate-800 dark:text-slate-200">
+                      <p className={`mt-2 ${moderationTextStrongClass}`}>
                         Utilisez ce mode en dernier recours. L’activation coupe immédiatement l’accès public et force les endpoints JSON/XML publics en `503`, tandis que la modération reste disponible.
                       </p>
                     </div>
                     <span
                       className={`inline-flex min-h-11 items-center rounded-full border-2 px-4 py-2 text-sm font-extrabold ${
                         maintenanceState.enabled
-                          ? 'border-rose-900 dark:border-rose-100 bg-rose-700 text-white'
-                          : 'border-emerald-800 dark:border-emerald-200 bg-emerald-100 dark:bg-emerald-950 text-emerald-950 dark:text-emerald-100'
+                          ? moderationDangerBadgeClass
+                          : moderationSuccessBadgeClass
                       }`}
                     >
                       {maintenanceState.enabled ? 'Maintenance active' : 'Site public ouvert'}
                     </span>
                   </div>
 
-                  <div className="mt-4 rounded-2xl border-2 border-rose-700 dark:border-rose-300 bg-rose-100 dark:bg-rose-950 p-4 text-rose-950 dark:text-rose-50">
+                  <div className={`mt-4 rounded-2xl p-4 ${moderationDangerPanelClass}`}>
                     <p className="text-sm font-extrabold">
                       Impact immédiat côté public
                     </p>
@@ -2830,14 +2866,14 @@ function ModerationPage() {
                     </ul>
                   </div>
 
-                  <div className="mt-4 rounded-xl border border-rose-300 dark:border-rose-700 bg-white/80 dark:bg-slate-950/80 p-4">
+                  <div className={`mt-4 rounded-xl p-4 ${moderationSurfaceStrongClass}`}>
                     <p className="text-sm font-semibold text-slate-950 dark:text-slate-50">
                       Message public actuellement diffusé
                     </p>
                     <p className="mt-2 text-sm text-slate-900 dark:text-slate-100">
                       {maintenanceState.effectiveMessage}
                     </p>
-                    <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                    <p className={`mt-2 text-sm ${moderationTextMutedClass}`}>
                       {maintenanceState.updatedAt
                         ? `Dernière mise à jour: ${formatDate(maintenanceState.updatedAt)}.`
                         : 'Aucune activation enregistrée pour le moment.'}
@@ -2855,12 +2891,12 @@ function ModerationPage() {
                       value={maintenanceMessageInput}
                       onChange={(event) => setMaintenanceMessageInput(event.target.value)}
                       aria-describedby="maintenance-message-help maintenance-message-count maintenance-danger-help"
-                      className={`mt-1 w-full rounded-xl border-2 border-rose-300 dark:border-rose-700 bg-white dark:bg-slate-950 px-3 py-2 text-base text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                      className={`mt-1 min-h-11 ${moderationValidatedFieldStrongClass}`}
                     />
-                    <p id="maintenance-message-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                    <p id="maintenance-message-help" className={`mt-1 text-sm ${moderationTextMutedClass}`}>
                       Laissez vide pour utiliser le message standard: “{DEFAULT_MAINTENANCE_MESSAGE}”.
                     </p>
-                    <p id="maintenance-message-count" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                    <p id="maintenance-message-count" className={`mt-1 text-sm ${moderationTextMutedClass}`}>
                       {maintenanceMessageInput.trim().length}/280 caractère(s).
                     </p>
                     <p id="maintenance-danger-help" className="mt-1 text-sm font-semibold text-rose-900 dark:text-rose-100">
