@@ -268,7 +268,7 @@ function AccessibilityPage() {
               Technologies, environnement de test et outils
             </h2>
             <p className="mt-2 text-slate-700 dark:text-slate-300">
-              Les éléments ci-dessous décrivent la base technique réellement utilisée pour la réalisation du service
+              Les éléments suivants décrivent la base technique réellement utilisée pour la réalisation du service
               et la campagne d’audit de référence du <strong>11 mars 2026</strong>.
             </p>
 

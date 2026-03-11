@@ -12,7 +12,6 @@ import { applySeo, createAbsoluteUrl } from './seo'
 import { resolveShowcaseProfilePath } from './siteProfiles'
 import SecondaryPageHeader from './SecondaryPageHeader'
 import SiteFooter from './SiteFooter'
-import { visuallyHiddenStyle } from './visuallyHidden'
 
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
@@ -274,11 +273,6 @@ function DomainGroupPage() {
 
   return (
     <>
-      <div className="sr-only" style={visuallyHiddenStyle} role="status" aria-live="polite" aria-atomic="true" lang="fr">
-        {politeAnnouncement.message}
-        <span aria-hidden="true">{politeAnnouncement.id}</span>
-      </div>
-
       <div className={skipLinksContainerClass} aria-label="Liens d’évitement">
         <a href="#contenu-domaine" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, mainRef)}>
           Aller au contenu
@@ -295,6 +289,17 @@ function DomainGroupPage() {
       </div>
 
       <div className="min-h-screen bg-brand-surface text-brand-ink">
+        {politeAnnouncement.message ? (
+          <p
+            key={`domaine-annonce-${politeAnnouncement.id}`}
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            className="mx-auto mt-4 max-w-5xl rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 px-4 py-3 text-sm text-sky-900 dark:text-sky-100"
+          >
+            {politeAnnouncement.message}
+          </p>
+        ) : null}
         <SecondaryPageHeader
           title="Domaine multi-sites"
           navigationRef={navigationRef}

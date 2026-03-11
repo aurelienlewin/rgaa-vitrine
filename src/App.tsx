@@ -14,7 +14,6 @@ import { resolveShowcaseProfilePath } from './siteProfiles'
 import SiteFooter from './SiteFooter'
 import GlobalSearchForm from './GlobalSearchForm'
 import PrimaryNavigation from './PrimaryNavigation'
-import { visuallyHiddenStyle } from './visuallyHidden'
 import {
   formatCategory,
   readStatusFilterFromQuery,
@@ -1925,16 +1924,29 @@ function App() {
         </a>
       </div>
 
-      <div className="sr-only" style={visuallyHiddenStyle} role="status" aria-live="polite" aria-atomic="true" lang="fr">
-        {politeAnnouncement.message}
-        <span aria-hidden="true">{politeAnnouncement.id}</span>
-      </div>
-      <div className="sr-only" style={visuallyHiddenStyle} role="alert" aria-live="assertive" aria-atomic="true" lang="fr">
-        {assertiveAnnouncement.message}
-        <span aria-hidden="true">{assertiveAnnouncement.id}</span>
-      </div>
-
       <div className="min-h-screen bg-brand-surface text-brand-ink">
+        {assertiveAnnouncement.message ? (
+          <p
+            key={`assertive-announcement-${assertiveAnnouncement.id}`}
+            role="alert"
+            aria-live="assertive"
+            aria-atomic="true"
+            className="mx-auto mt-4 max-w-5xl rounded-xl border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 px-4 py-3 text-sm text-rose-900 dark:text-rose-100"
+          >
+            {assertiveAnnouncement.message}
+          </p>
+        ) : null}
+        {politeAnnouncement.message ? (
+          <p
+            key={`polite-announcement-${politeAnnouncement.id}`}
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            className="mx-auto mt-4 max-w-5xl rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 px-4 py-3 text-sm text-sky-900 dark:text-sky-100"
+          >
+            {politeAnnouncement.message}
+          </p>
+        ) : null}
         <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center justify-between gap-3">

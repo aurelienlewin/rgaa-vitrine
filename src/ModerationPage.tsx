@@ -10,7 +10,6 @@ import {
 import { applySeo } from './seo'
 import SecondaryPageHeader from './SecondaryPageHeader'
 import SiteFooter from './SiteFooter'
-import { visuallyHiddenStyle } from './visuallyHidden'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
 type RgaaBaseline = '4.1' | '5.0-ready'
@@ -1806,13 +1805,6 @@ function ModerationPage() {
         <a href="#pied-page" className={skipLinkClass} onClick={focusFooter}>
           Aller au pied de page
         </a>
-      </div>
-
-      <div className="sr-only" style={visuallyHiddenStyle} role="status" aria-live="polite" aria-atomic="true" lang="fr">
-        {politeMessage}
-      </div>
-      <div className="sr-only" style={visuallyHiddenStyle} role="alert" aria-live="assertive" aria-atomic="true" lang="fr">
-        {assertiveMessage}
       </div>
 
       <div className="min-h-screen bg-brand-surface text-brand-ink">

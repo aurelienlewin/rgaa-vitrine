@@ -12,7 +12,6 @@ import { applySeo, createAbsoluteUrl } from './seo'
 import { readSiteSlugFromPath, resolveShowcaseProfilePath } from './siteProfiles'
 import SecondaryPageHeader from './SecondaryPageHeader'
 import SiteFooter from './SiteFooter'
-import { visuallyHiddenStyle } from './visuallyHidden'
 
 type ComplianceStatus = 'full' | 'partial' | 'none' | null
 
@@ -712,11 +711,6 @@ function SiteProfilePage() {
 
   return (
     <>
-      <div className="sr-only" style={visuallyHiddenStyle} role="status" aria-live="polite" aria-atomic="true" lang="fr">
-        {politeAnnouncement.message}
-        <span aria-hidden="true">{politeAnnouncement.id}</span>
-      </div>
-
       <div
         className={skipLinksContainerClass}
         aria-label="Liens d’évitement"
@@ -751,6 +745,17 @@ function SiteProfilePage() {
       </div>
 
       <div className="min-h-screen bg-brand-surface text-brand-ink">
+        {politeAnnouncement.message ? (
+          <p
+            key={`fiche-annonce-${politeAnnouncement.id}`}
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            className="mx-auto mt-4 max-w-5xl rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 px-4 py-3 text-sm text-sky-900 dark:text-sky-100"
+          >
+            {politeAnnouncement.message}
+          </p>
+        ) : null}
         <SecondaryPageHeader
           title="Fiche annuaire"
           navigationRef={navigationRef}
@@ -848,18 +853,18 @@ function SiteProfilePage() {
                       {entry.domainContext.siblings.map((candidate) => (
                         <li
                           key={candidate.normalizedUrl}
-                          className="rounded-xl border border-sky-200 dark:border-sky-700 bg-white dark:bg-slate-900 p-3"
+                          className="min-w-0 rounded-xl border border-sky-200 dark:border-sky-700 bg-white dark:bg-slate-900 p-3"
                         >
                           <a
                             href={
                               candidate.profilePath ??
                               resolveShowcaseProfilePath(candidate.normalizedUrl, candidate.slug)
                             }
-                            className={`inline-flex min-h-11 items-center rounded-xl border border-sky-700 dark:border-sky-300 bg-sky-50 dark:bg-sky-950 px-3 py-2 font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
+                            className={`inline-flex min-h-11 w-full items-center rounded-xl border border-sky-700 dark:border-sky-300 bg-sky-50 dark:bg-sky-950 px-3 py-2 text-start font-semibold text-sky-900 dark:text-sky-100 whitespace-normal wrap-anywhere ${focusRingClass}`}
                           >
                             {candidate.siteTitle}
                           </a>
-                          <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                          <p className="mt-1 wrap-anywhere text-sm text-slate-700 dark:text-slate-300">
                             {candidate.normalizedUrl}
                           </p>
                         </li>
@@ -984,14 +989,14 @@ function SiteProfilePage() {
                         candidate.slug,
                       )
                       return (
-                        <li key={candidate.normalizedUrl} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
+                        <li key={candidate.normalizedUrl} className="min-w-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
                           <a
                             href={candidateProfilePath}
-                            className={`inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                            className={`inline-flex min-h-11 w-full items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 text-start font-semibold text-slate-900 dark:text-slate-50 whitespace-normal wrap-anywhere ${focusRingClass}`}
                           >
                             {candidate.siteTitle}
                           </a>
-                          <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                          <p className="mt-1 wrap-anywhere text-sm text-slate-700 dark:text-slate-300">
                             {candidate.normalizedUrl}
                           </p>
                         </li>
