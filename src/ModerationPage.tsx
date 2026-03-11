@@ -150,13 +150,15 @@ const moderationWarningBadgeClass =
 const moderationSuccessBadgeClass =
   'border border-emerald-400 dark:border-emerald-300 bg-emerald-100 dark:bg-emerald-100 text-emerald-950 dark:text-emerald-950'
 const moderationPendingSectionClass =
-  'border-2 border-amber-500 dark:border-amber-300 bg-linear-to-br from-amber-50 via-white to-rose-50 dark:bg-slate-950 shadow-sm'
+  'border-2 border-amber-500 dark:border-amber-300 bg-amber-50 dark:bg-slate-950 shadow-sm'
 const moderationPendingCardClass =
   'overflow-hidden rounded-3xl border-2 border-amber-400 dark:border-amber-300 bg-white dark:bg-slate-950 shadow-lg shadow-amber-950/10'
 const moderationPendingCardHeaderClass =
-  'border-b-2 border-amber-500 dark:border-amber-300 bg-linear-to-r from-amber-200 via-amber-100 to-rose-100 dark:bg-slate-900 px-4 py-3 sm:px-5'
+  'border-b-2 border-amber-500 dark:border-amber-300 bg-amber-100 dark:bg-slate-900 px-4 py-3 sm:px-5'
 const moderationMaintenanceSectionClass =
-  'rounded-3xl border-2 border-rose-700 dark:border-rose-300 bg-linear-to-br from-rose-50 via-orange-50 to-white dark:bg-slate-950 p-6 shadow-lg shadow-rose-950/10'
+  'rounded-3xl border-2 border-rose-700 dark:border-rose-300 bg-rose-50 dark:bg-slate-950 p-6 shadow-lg shadow-rose-950/10'
+const moderationPanelLinkClass =
+  `font-semibold underline text-sky-950 hover:text-slate-950 dark:text-sky-950 dark:hover:text-slate-950 ${focusRingClass}`
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
@@ -2022,7 +2024,7 @@ function ModerationPage() {
                                       <p className="mt-2">
                                         <a
                                           href={entry.domainContext.groupPath}
-                                          className={`font-semibold underline ${focusRingClass}`}
+                                          className={moderationPanelLinkClass}
                                         >
                                           Voir la page domaine
                                         </a>
@@ -2039,7 +2041,7 @@ function ModerationPage() {
                                                 ·{' '}
                                                 <a
                                                   href={sibling.profilePath}
-                                                  className={`font-semibold underline ${focusRingClass}`}
+                                                  className={moderationPanelLinkClass}
                                                 >
                                                   fiche publique
                                                 </a>
@@ -2225,7 +2227,7 @@ function ModerationPage() {
                               <p className="mt-2">
                                 <a
                                   href={entry.domainContext.groupPath}
-                                  className={`font-semibold underline ${focusRingClass}`}
+                                  className={moderationPanelLinkClass}
                                 >
                                   Voir la page domaine
                                 </a>
@@ -2242,7 +2244,7 @@ function ModerationPage() {
                                         ·{' '}
                                         <a
                                           href={sibling.profilePath}
-                                          className={`font-semibold underline ${focusRingClass}`}
+                                          className={moderationPanelLinkClass}
                                         >
                                           fiche publique
                                         </a>
