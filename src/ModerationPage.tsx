@@ -98,17 +98,45 @@ const rgaaBaselineOptions: Array<{ value: RgaaBaseline; label: string }> = [
 
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
+const ctaHoverClass = 'transition-colors duration-150 hover:underline'
+const ctaDisabledClass =
+  'disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100'
+const moderationCtaNeutralClass =
+  `border border-slate-800 dark:border-slate-100 bg-white dark:bg-slate-950 text-slate-950 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${ctaHoverClass}`
+const moderationCtaPrimaryClass =
+  `border border-sky-900 dark:border-sky-100 bg-sky-800 dark:bg-sky-200 text-white dark:text-sky-950 hover:bg-sky-900 dark:hover:bg-sky-100 ${ctaHoverClass}`
+const moderationCtaSlateClass =
+  `border border-slate-950 dark:border-slate-100 bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-950 hover:bg-slate-900 dark:hover:bg-white ${ctaHoverClass}`
+const moderationCtaWarningClass =
+  `border border-amber-900 dark:border-amber-100 bg-amber-700 dark:bg-amber-200 text-white dark:text-amber-950 hover:bg-amber-800 dark:hover:bg-amber-100 ${ctaHoverClass}`
+const moderationCtaDangerClass =
+  `border border-rose-950 dark:border-rose-100 bg-rose-700 dark:bg-rose-200 text-white dark:text-rose-950 hover:bg-rose-800 dark:hover:bg-rose-100 ${ctaHoverClass}`
+const moderationCtaDangerStrongClass =
+  `border border-rose-950 dark:border-rose-100 bg-rose-900 dark:bg-rose-100 text-white dark:text-rose-950 hover:bg-rose-950 dark:hover:bg-white ${ctaHoverClass}`
+const moderationCtaOutlineDangerClass =
+  `border border-rose-800 dark:border-rose-100 bg-white dark:bg-slate-950 text-rose-900 dark:text-rose-100 hover:bg-rose-50 dark:hover:bg-rose-950 ${ctaHoverClass}`
+const moderationCtaOutlineWarningClass =
+  `border border-amber-800 dark:border-amber-100 bg-white dark:bg-slate-950 text-amber-900 dark:text-amber-100 hover:bg-amber-50 dark:hover:bg-amber-950 ${ctaHoverClass}`
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
 const MODERATION_SESSION_STORAGE_KEY = 'annuaire-rgaa-moderation-session'
 const MODERATION_SESSION_TTL_MS = 12 * 60 * 60 * 1000
 const DEFAULT_MAINTENANCE_MESSAGE = 'Nous revenons très vite. Merci de réessayer dans quelques instants.'
+const MODERATION_BATCH_SIZE = 24
 
 type StoredModerationSession = {
   token: string
   expiresAt: number
   source: 'session' | 'local'
+}
+
+type ProgressivePaginationOptions = {
+  batchSize: number
+  enabled: boolean
+  isBusy?: boolean
+  onButtonReveal?: (nextVisibleCount: number, totalCount: number) => void
+  totalCount: number
 }
 
 function formatDate(value: string) {
@@ -170,6 +198,14 @@ function formatScore(value: number | null) {
 
 function formatRgaaBaseline(value: RgaaBaseline | null | undefined) {
   return value === '5.0-ready' ? 'RGAA 5.0 prêt' : 'RGAA 4.1'
+}
+
+function buildProgressiveListSummary(visibleCount: number, totalCount: number, itemLabel: string) {
+  return `Affichage de ${visibleCount} sur ${totalCount} ${itemLabel}.`
+}
+
+function formatLoadMoreLabel(visibleCount: number, totalCount: number, batchSize: number, itemLabel: string) {
+  return `Charger ${Math.min(batchSize, totalCount - visibleCount)} ${itemLabel} de plus`
 }
 
 function isPendingSubmission(payload: unknown): payload is PendingSubmission {
@@ -379,6 +415,89 @@ function persistStoredModerationSession(token: string, rememberAcrossBrowser: bo
   }
 }
 
+function useProgressivePagination({
+  batchSize,
+  enabled,
+  isBusy = false,
+  onButtonReveal,
+  totalCount,
+}: ProgressivePaginationOptions) {
+  const [requestedVisibleCount, setRequestedVisibleCount] = useState(0)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+  const visibleCount = useMemo(() => {
+    if (!enabled || totalCount <= 0) {
+      return 0
+    }
+
+    if (requestedVisibleCount <= 0) {
+      return Math.min(batchSize, totalCount)
+    }
+
+    return Math.min(Math.max(requestedVisibleCount, batchSize), totalCount)
+  }, [batchSize, enabled, requestedVisibleCount, totalCount])
+  const hasMore = enabled && visibleCount < totalCount
+
+  const handleLoadMore = useCallback(
+    (source: 'button' | 'auto') => {
+      if (!enabled) {
+        return
+      }
+
+      setRequestedVisibleCount((current) => {
+        const currentVisibleCount =
+          current <= 0 ? Math.min(batchSize, totalCount) : Math.min(Math.max(current, batchSize), totalCount)
+        if (currentVisibleCount >= totalCount) {
+          return current
+        }
+
+        const next = Math.min(currentVisibleCount + batchSize, totalCount)
+        if (next > currentVisibleCount && source === 'button') {
+          onButtonReveal?.(next, totalCount)
+        }
+        return next
+      })
+    },
+    [batchSize, enabled, onButtonReveal, totalCount],
+  )
+
+  useEffect(() => {
+    if (!enabled || isBusy || !hasMore || !sentinelRef.current) {
+      return
+    }
+
+    if (typeof window === 'undefined' || typeof window.IntersectionObserver !== 'function') {
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries
+        if (entry?.isIntersecting) {
+          handleLoadMore('auto')
+        }
+      },
+      {
+        root: null,
+        rootMargin: '300px 0px',
+        threshold: 0.01,
+      },
+    )
+
+    observer.observe(sentinelRef.current)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [enabled, handleLoadMore, hasMore, isBusy])
+
+  return {
+    handleLoadMore,
+    hasMore,
+    sentinelRef,
+    visibleCount,
+  }
+}
+
 function ModerationPage() {
   const [moderationToken, setModerationToken] = useState('')
   const [rememberModerationSession, setRememberModerationSession] = useState(false)
@@ -446,6 +565,76 @@ function ModerationPage() {
 
     return Array.from(options).sort((left, right) => left.localeCompare(right, 'fr'))
   }, [publishedEntries])
+  const {
+    visibleCount: visiblePendingCount,
+    hasMore: hasMorePendingEntries,
+    sentinelRef: pendingSentinelRef,
+    handleLoadMore: handleLoadMorePendingEntries,
+  } = useProgressivePagination({
+    batchSize: MODERATION_BATCH_SIZE,
+    enabled: isModerationUnlocked,
+    isBusy: isLoadingList,
+    onButtonReveal: (nextVisibleCount, totalCount) => {
+      setPoliteMessage(buildProgressiveListSummary(nextVisibleCount, totalCount, 'soumission(s) en attente'))
+    },
+    totalCount: pendingEntries.length,
+  })
+  const visiblePendingEntries = useMemo(
+    () => pendingEntries.slice(0, visiblePendingCount),
+    [pendingEntries, visiblePendingCount],
+  )
+  const {
+    visibleCount: visiblePublishedCount,
+    hasMore: hasMorePublishedEntries,
+    sentinelRef: publishedSentinelRef,
+    handleLoadMore: handleLoadMorePublishedEntries,
+  } = useProgressivePagination({
+    batchSize: MODERATION_BATCH_SIZE,
+    enabled: isModerationUnlocked,
+    isBusy: isLoadingPublished,
+    onButtonReveal: (nextVisibleCount, totalCount) => {
+      setPoliteMessage(buildProgressiveListSummary(nextVisibleCount, totalCount, 'entrée(s) publiée(s)'))
+    },
+    totalCount: publishedEntries.length,
+  })
+  const visiblePublishedEntries = useMemo(
+    () => publishedEntries.slice(0, visiblePublishedCount),
+    [publishedEntries, visiblePublishedCount],
+  )
+  const {
+    visibleCount: visibleSiteBlocklistCount,
+    hasMore: hasMoreSiteBlocklistEntries,
+    sentinelRef: siteBlocklistSentinelRef,
+    handleLoadMore: handleLoadMoreSiteBlocklistEntries,
+  } = useProgressivePagination({
+    batchSize: MODERATION_BATCH_SIZE,
+    enabled: isModerationUnlocked,
+    onButtonReveal: (nextVisibleCount, totalCount) => {
+      setPoliteMessage(buildProgressiveListSummary(nextVisibleCount, totalCount, 'site(s) en blocklist'))
+    },
+    totalCount: siteBlocklist.length,
+  })
+  const visibleSiteBlocklist = useMemo(
+    () => siteBlocklist.slice(0, visibleSiteBlocklistCount),
+    [siteBlocklist, visibleSiteBlocklistCount],
+  )
+  const {
+    visibleCount: visibleVoteBlocklistCount,
+    hasMore: hasMoreVoteBlocklistEntries,
+    sentinelRef: voteBlocklistSentinelRef,
+    handleLoadMore: handleLoadMoreVoteBlocklistEntries,
+  } = useProgressivePagination({
+    batchSize: MODERATION_BATCH_SIZE,
+    enabled: isModerationUnlocked,
+    onButtonReveal: (nextVisibleCount, totalCount) => {
+      setPoliteMessage(buildProgressiveListSummary(nextVisibleCount, totalCount, 'blocage(s) de vote'))
+    },
+    totalCount: voteBlocklist.length,
+  })
+  const visibleVoteBlocklist = useMemo(
+    () => voteBlocklist.slice(0, visibleVoteBlocklistCount),
+    [visibleVoteBlocklistCount, voteBlocklist],
+  )
 
   const focusElement = useCallback((element: HTMLElement | null) => {
     focusElementWithScroll(element)
@@ -1632,14 +1821,14 @@ function ModerationPage() {
               <button
                 type="button"
                 onClick={() => setShowToken((current) => !current)}
-                className={`min-h-11 rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass} md:self-end`}
+                className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaNeutralClass} ${focusRingClass} md:self-end`}
               >
                 {showToken ? 'Masquer' : 'Afficher'}
               </button>
               <button
                 type="submit"
                 disabled={isLoadingList || isLoadingPublished || isLoadingMaintenance}
-                className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-white dark:text-slate-950 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass} md:self-end`}
+                className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaPrimaryClass} ${focusRingClass} md:self-end`}
               >
                 {isLoadingList || isLoadingPublished || isLoadingMaintenance ? 'Chargement...' : 'Charger la modération'}
               </button>
@@ -1650,7 +1839,7 @@ function ModerationPage() {
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className={`min-h-11 rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-semibold ${focusRingClass}`}
+                  className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaNeutralClass} ${focusRingClass}`}
                 >
                   Se déconnecter et oublier la session
                 </button>
@@ -1706,6 +1895,15 @@ function ModerationPage() {
                     <p className="mt-2 text-slate-800 dark:text-slate-200">
                       {pendingEntries.length} soumission(s) à traiter.
                     </p>
+                    {pendingEntries.length > 0 && (
+                      <p className="mt-1 text-sm text-slate-800 dark:text-slate-200">
+                        {buildProgressiveListSummary(
+                          visiblePendingEntries.length,
+                          pendingEntries.length,
+                          'soumission(s) en attente',
+                        )}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span
@@ -1720,7 +1918,7 @@ function ModerationPage() {
                     <button
                       type="button"
                       onClick={handleSignOut}
-                      className={`min-h-11 rounded-xl border border-slate-300 dark:border-slate-600 bg-white/80 dark:bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-950 dark:text-slate-50 ${focusRingClass}`}
+                      className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaNeutralClass} ${focusRingClass}`}
                     >
                       Se déconnecter
                     </button>
@@ -1739,7 +1937,7 @@ function ModerationPage() {
                     </p>
 
                     <ul className="mt-5 grid gap-4">
-                      {pendingEntries.map((entry) => {
+                      {visiblePendingEntries.map((entry) => {
                         const rejectReasonValue = rejectReasons[entry.submissionId] ?? ''
                         const isActionRunning = runningSubmissionId === entry.submissionId
                         const score = toNullableNumber(entry.complianceScore)
@@ -1870,7 +2068,7 @@ function ModerationPage() {
                                       void handleApprove(entry.submissionId)
                                     }}
                                     disabled={isActionRunning}
-                                    className={`min-h-11 rounded-xl border-2 border-emerald-900 dark:border-emerald-100 bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white shadow-sm hover:bg-emerald-500 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass} md:self-end`}
+                                    className={`min-h-11 rounded-xl border-2 border-emerald-900 dark:border-emerald-100 bg-emerald-600 dark:bg-emerald-200 px-4 py-2 text-sm font-extrabold text-white dark:text-emerald-950 shadow-sm hover:bg-emerald-500 dark:hover:bg-emerald-100 ${ctaDisabledClass} ${focusRingClass} md:self-end`}
                                   >
                                     {isActionRunning ? 'Traitement...' : 'Approuver'}
                                   </button>
@@ -1880,7 +2078,7 @@ function ModerationPage() {
                                       void handleReject(entry.submissionId)
                                     }}
                                     disabled={isActionRunning}
-                                    className={`min-h-11 rounded-xl border-2 border-rose-900 dark:border-rose-100 bg-rose-700 px-4 py-2 text-sm font-extrabold text-white shadow-sm hover:bg-rose-600 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass} md:self-end`}
+                                    className={`min-h-11 rounded-xl px-4 py-2 text-sm font-extrabold shadow-sm ${ctaDisabledClass} ${moderationCtaDangerClass} ${focusRingClass} md:self-end`}
                                   >
                                     {isActionRunning ? 'Traitement...' : 'Rejeter'}
                                   </button>
@@ -1891,6 +2089,28 @@ function ModerationPage() {
                         )
                       })}
                     </ul>
+                    {hasMorePendingEntries && (
+                      <div className="mt-4 flex flex-col items-start gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handleLoadMorePendingEntries('button')}
+                          className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaNeutralClass} ${focusRingClass}`}
+                        >
+                          {formatLoadMoreLabel(
+                            visiblePendingEntries.length,
+                            pendingEntries.length,
+                            MODERATION_BATCH_SIZE,
+                            'soumission(s)',
+                          )}
+                        </button>
+                        <p className="text-sm text-slate-700 dark:text-slate-300">
+                          Chargement progressif actif pour garder la file exploitable au clavier et en lecture d’écran.
+                        </p>
+                      </div>
+                    )}
+                    {pendingEntries.length > 0 && (
+                      <div ref={pendingSentinelRef} className="h-1 w-full" aria-hidden="true" />
+                    )}
                   </>
                 )}
               </section>
@@ -1900,12 +2120,22 @@ function ModerationPage() {
                 ref={publishedRef}
                 tabIndex={-1}
                 className={`mt-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                aria-labelledby="annuaire-publie-titre"
                 aria-busy={isLoadingPublished}
               >
-            <h2 className="text-lg font-semibold">Annuaire publié (édition et suppression)</h2>
+            <h2 id="annuaire-publie-titre" className="text-lg font-semibold">Annuaire publié (édition et suppression)</h2>
             <p className="mt-2 text-slate-700 dark:text-slate-300">
               {publishedEntries.length} entrée(s) publiées.
             </p>
+            {publishedEntries.length > 0 && (
+              <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                {buildProgressiveListSummary(
+                  visiblePublishedEntries.length,
+                  publishedEntries.length,
+                  'entrée(s) publiée(s)',
+                )}
+              </p>
+            )}
             <datalist id="moderation-category-suggestions">
               {availableModerationCategoryOptions.map((category) => (
                 <option key={category} value={category} />
@@ -1918,7 +2148,7 @@ function ModerationPage() {
               </p>
             ) : (
               <ul className="mt-4 grid gap-4">
-                {publishedEntries.map((entry) => {
+                {visiblePublishedEntries.map((entry) => {
                   const draft = publishedDrafts[entry.normalizedUrl]
                   if (!draft) {
                     return null
@@ -2157,7 +2387,7 @@ function ModerationPage() {
                               void handleUpdatePublishedEntry(entry.normalizedUrl)
                             }}
                             disabled={isRunning}
-                            className={`min-h-11 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                            className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaPrimaryClass} ${focusRingClass}`}
                           >
                             {isRunning ? 'Traitement...' : 'Enregistrer'}
                           </button>
@@ -2167,8 +2397,8 @@ function ModerationPage() {
                               void handleSetVotesBlocked(entry.normalizedUrl, !areVotesBlocked)
                             }}
                             disabled={isRunning || isVoteRuleRunning}
-                            className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass} ${
-                              areVotesBlocked ? 'bg-amber-700' : 'bg-slate-700'
+                            className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${focusRingClass} ${
+                              areVotesBlocked ? moderationCtaWarningClass : moderationCtaSlateClass
                             }`}
                           >
                             {isVoteRuleRunning
@@ -2186,8 +2416,8 @@ function ModerationPage() {
                               void handleDeletePublishedEntry(entry.normalizedUrl)
                             }}
                             disabled={isRunning}
-                            className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass} ${
-                              isDeleteConfirm ? 'bg-rose-900' : 'bg-rose-700'
+                            className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${focusRingClass} ${
+                              isDeleteConfirm ? moderationCtaDangerStrongClass : moderationCtaDangerClass
                             }`}
                           >
                             {isRunning ? 'Traitement...' : isDeleteConfirm ? 'Confirmer suppression' : 'Supprimer'}
@@ -2201,7 +2431,7 @@ function ModerationPage() {
                               void handleDeleteAndBlockPublishedEntry(entry.normalizedUrl)
                             }}
                             disabled={isRunning || isSiteRuleRunning}
-                            className={`min-h-11 rounded-xl bg-rose-900 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                            className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaDangerStrongClass} ${focusRingClass}`}
                           >
                             {isSiteRuleRunning ? 'Traitement...' : 'Supprimer + blocklist'}
                           </button>
@@ -2232,13 +2462,36 @@ function ModerationPage() {
                 })}
               </ul>
             )}
+            {publishedEntries.length > 0 && hasMorePublishedEntries && (
+              <div className="mt-4 flex flex-col items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleLoadMorePublishedEntries('button')}
+                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaNeutralClass} ${focusRingClass}`}
+                >
+                  {formatLoadMoreLabel(
+                    visiblePublishedEntries.length,
+                    publishedEntries.length,
+                    MODERATION_BATCH_SIZE,
+                    'entrée(s)',
+                  )}
+                </button>
+                <p className="text-sm text-slate-700 dark:text-slate-300">
+                  Chargement progressif actif pour limiter la densité initiale de la modération.
+                </p>
+              </div>
+            )}
+            {publishedEntries.length > 0 && (
+              <div ref={publishedSentinelRef} className="h-1 w-full" aria-hidden="true" />
+            )}
               </section>
 
+              <div className="mt-8 grid gap-8 lg:grid-cols-2 lg:items-start">
               <section
                 id="blocklist-sites"
                 ref={siteBlocklistSectionRef}
                 tabIndex={-1}
-                className={`mt-8 rounded-2xl border border-rose-200 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                className={`rounded-2xl border border-rose-200 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                 aria-labelledby="blocklist-sites-titre"
               >
             <h2 id="blocklist-sites-titre" className="text-lg font-semibold text-rose-900 dark:text-rose-100">
@@ -2247,6 +2500,15 @@ function ModerationPage() {
             <p className="mt-2 text-sm text-rose-900 dark:text-rose-100">
               Les URL présentes ici ne peuvent plus être soumises. La liste reste modifiable à tout moment.
             </p>
+            {siteBlocklist.length > 0 && (
+              <p className="mt-1 text-sm text-rose-900 dark:text-rose-100">
+                {buildProgressiveListSummary(
+                  visibleSiteBlocklist.length,
+                  siteBlocklist.length,
+                  'site(s) en blocklist',
+                )}
+              </p>
+            )}
 
             <form className="mt-4 flex flex-wrap items-end gap-3" onSubmit={handleAddSiteBlocklist}>
               <div className="min-w-0 flex-1">
@@ -2268,7 +2530,7 @@ function ModerationPage() {
               <button
                 type="submit"
                 disabled={runningBlocklistSiteUrl === siteBlocklistInput.trim()}
-                className={`min-h-11 rounded-xl bg-rose-800 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaDangerClass} ${focusRingClass}`}
               >
                 Ajouter à la blocklist
               </button>
@@ -2280,7 +2542,7 @@ function ModerationPage() {
                   Aucun site en blocklist.
                 </li>
               ) : (
-                siteBlocklist.map((blockedUrl) => {
+                visibleSiteBlocklist.map((blockedUrl) => {
                   const isRunning = runningBlocklistSiteUrl === blockedUrl
                   return (
                     <li key={blockedUrl} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-rose-200 dark:border-rose-800 bg-white dark:bg-slate-900 p-3">
@@ -2292,7 +2554,7 @@ function ModerationPage() {
                         }}
                         aria-label={`Retirer ${blockedUrl} de la blocklist des sites`}
                         disabled={isRunning}
-                        className={`min-h-11 rounded-xl border border-rose-300 dark:border-rose-700 px-4 py-2 text-sm font-semibold text-rose-900 dark:text-rose-100 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                        className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaOutlineDangerClass} ${focusRingClass}`}
                       >
                         {isRunning ? 'Traitement...' : 'Retirer'}
                       </button>
@@ -2301,13 +2563,32 @@ function ModerationPage() {
                 })
               )}
             </ul>
+            {siteBlocklist.length > 0 && hasMoreSiteBlocklistEntries && (
+              <div className="mt-4 flex flex-col items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleLoadMoreSiteBlocklistEntries('button')}
+                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaOutlineDangerClass} ${focusRingClass}`}
+                >
+                  {formatLoadMoreLabel(
+                    visibleSiteBlocklist.length,
+                    siteBlocklist.length,
+                    MODERATION_BATCH_SIZE,
+                    'site(s)',
+                  )}
+                </button>
+              </div>
+            )}
+            {siteBlocklist.length > 0 && (
+              <div ref={siteBlocklistSentinelRef} className="h-1 w-full" aria-hidden="true" />
+            )}
               </section>
 
               <section
                 id="blocklist-votes"
                 ref={voteBlocklistSectionRef}
                 tabIndex={-1}
-                className={`mt-8 rounded-2xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                className={`rounded-2xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                 aria-labelledby="blocklist-votes-titre"
               >
             <h2 id="blocklist-votes-titre" className="text-lg font-semibold text-amber-900 dark:text-amber-100">
@@ -2316,6 +2597,15 @@ function ModerationPage() {
             <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">
               Les votes sont désactivés côté public pour les URL listées, jusqu’à retrait manuel.
             </p>
+            {voteBlocklist.length > 0 && (
+              <p className="mt-1 text-sm text-amber-900 dark:text-amber-100">
+                {buildProgressiveListSummary(
+                  visibleVoteBlocklist.length,
+                  voteBlocklist.length,
+                  'blocage(s) de vote',
+                )}
+              </p>
+            )}
 
             <form className="mt-4 flex flex-wrap items-end gap-3" onSubmit={handleAddVoteBlocklist}>
               <div className="min-w-0 flex-1">
@@ -2337,7 +2627,7 @@ function ModerationPage() {
               <button
                 type="submit"
                 disabled={runningBlocklistVoteUrl === voteBlocklistInput.trim()}
-                className={`min-h-11 rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaWarningClass} ${focusRingClass}`}
               >
                 Bloquer les votes
               </button>
@@ -2349,7 +2639,7 @@ function ModerationPage() {
                   Aucun blocage de vote actif.
                 </li>
               ) : (
-                voteBlocklist.map((blockedUrl) => {
+                visibleVoteBlocklist.map((blockedUrl) => {
                   const isRunning = runningBlocklistVoteUrl === blockedUrl
                   return (
                     <li key={blockedUrl} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-900 p-3">
@@ -2361,7 +2651,7 @@ function ModerationPage() {
                         }}
                         aria-label={`Réactiver les votes pour ${blockedUrl}`}
                         disabled={isRunning}
-                        className={`min-h-11 rounded-xl border border-amber-300 dark:border-amber-700 px-4 py-2 text-sm font-semibold text-amber-900 dark:text-amber-100 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                        className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaOutlineWarningClass} ${focusRingClass}`}
                       >
                         {isRunning ? 'Traitement...' : 'Réactiver les votes'}
                       </button>
@@ -2370,7 +2660,27 @@ function ModerationPage() {
                 })
               )}
             </ul>
+            {voteBlocklist.length > 0 && hasMoreVoteBlocklistEntries && (
+              <div className="mt-4 flex flex-col items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleLoadMoreVoteBlocklistEntries('button')}
+                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaOutlineWarningClass} ${focusRingClass}`}
+                >
+                  {formatLoadMoreLabel(
+                    visibleVoteBlocklist.length,
+                    voteBlocklist.length,
+                    MODERATION_BATCH_SIZE,
+                    'blocage(s)',
+                  )}
+                </button>
+              </div>
+            )}
+            {voteBlocklist.length > 0 && (
+              <div ref={voteBlocklistSentinelRef} className="h-1 w-full" aria-hidden="true" />
+            )}
               </section>
+              </div>
 
               <div className="mt-8 grid gap-8 xl:grid-cols-2 xl:items-start">
                 <section
@@ -2394,7 +2704,7 @@ function ModerationPage() {
                         void handleExportArchive()
                       }}
                       disabled={!hasToken || isExportingArchive || isImportingArchive}
-                      className={`min-h-11 rounded-xl bg-slate-900 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-white dark:text-slate-950 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                      className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaPrimaryClass} ${focusRingClass}`}
                     >
                       {isExportingArchive ? 'Export en cours...' : 'Télécharger l’archive JSON'}
                     </button>
@@ -2472,7 +2782,7 @@ function ModerationPage() {
                     <button
                       type="submit"
                       disabled={!hasToken || !archiveImportFile || isImportingArchive || isExportingArchive}
-                      className={`min-h-11 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                      className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaPrimaryClass} ${focusRingClass}`}
                     >
                       {isImportingArchive ? 'Import en cours...' : 'Importer l’archive'}
                     </button>
@@ -2565,7 +2875,7 @@ function ModerationPage() {
                         void handleSetMaintenanceMode(true)
                       }}
                       disabled={!hasToken || isSavingMaintenance || isLoadingMaintenance}
-                      className={`min-h-11 rounded-xl border-2 border-rose-950 dark:border-rose-100 bg-rose-700 px-4 py-2 text-sm font-extrabold text-white hover:bg-rose-600 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                      className={`min-h-11 rounded-xl px-4 py-2 text-sm font-extrabold ${ctaDisabledClass} ${moderationCtaDangerClass} ${focusRingClass}`}
                     >
                       {isSavingMaintenance
                         ? 'Traitement...'
@@ -2579,7 +2889,7 @@ function ModerationPage() {
                         void handleSetMaintenanceMode(false)
                       }}
                       disabled={!hasToken || !maintenanceState.enabled || isSavingMaintenance || isLoadingMaintenance}
-                      className={`min-h-11 rounded-xl border-2 border-slate-700 dark:border-slate-200 bg-white/80 dark:bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-950 dark:text-slate-50 disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${focusRingClass}`}
+                      className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaNeutralClass} ${focusRingClass}`}
                     >
                       {isSavingMaintenance && maintenanceState.enabled ? 'Traitement...' : 'Rétablir l’accès public'}
                     </button>

@@ -14,6 +14,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - `/plan-du-site` now exposes direct skip links to every major link block on the page and labels its discovery resources as landmarks, keeping keyboard navigation aligned with the latest RGAA/WCAG 2.2 review checklist used in the project skills.
 - Fragment links now move focus to the targeted landmark/section on route load and `hashchange`, with direct first-control focus for `#moteur-recherche-global` and `#ajout-site`, plus visible focus styling across homepage, site map, accessibility, profile, domain, and moderation pages.
 - Dark-mode search/help text now stays contrast-safe from the first SSR paint on public detail pages: the critical secondary-header CSS now styles the keyboard helper and search placeholders in dark mode before hydration, avoiding low-contrast flashes on slow connections.
+- Moderation CTA styles now use explicit dark-mode foreground/background/border pairings for primary, warning, and destructive actions, so reviewer controls keep RGAA/WCAG 2.2-compliant contrasts without relying on inherited dark-surface colors.
 - Site pre-analysis now accepts slightly larger homepage HTML documents while keeping tighter limits on secondary remote documents, which lets some CMS-heavy homepages resolve their accessibility links without widening every fetch.
 - Public rate limiting now keys on the extracted client IP headers used on proxied deployments, preventing unrelated Vercel visitors from tripping the shared global quota.
 - Homepage vote-state synchronization now resets both pressed and unpressed states from `/api/showcase/vote-state`, so a removed vote no longer stays visually stuck after subsequent directory reloads.
@@ -30,6 +31,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - README now documents the public vote-state endpoint and the session-owned vote toggle semantics.
 - GitHub notifications now also cover auto-approved publications with a dedicated informational issue wording distinct from the manual-moderation flow.
 - The moderation workspace now puts pending approvals first in the DOM and skip-link order, keeps archive and maintenance controls together on the final row, and restyles maintenance as a high-contrast danger panel without changing keyboard reachability or live-region behavior.
+- Moderation lists now reuse the homepage-style progressive pagination pattern (`24` items per batch plus viewport-end auto loading) for pending reviews, published entries, and both blocklists; the site and vote blocklists also now share a two-column row on larger viewports.
 - README was rewritten to focus on current architecture, operations, accessibility, and discovery behavior, while detailed release-by-release history stays in `CHANGELOG.md`.
 - Homepage directory loading now uses a more visible non-interactive status panel with reserved card placeholders, making slow-connection waits clearer without adding extra polite live announcements or extra API calls.
 
