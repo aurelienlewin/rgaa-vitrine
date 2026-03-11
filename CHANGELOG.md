@@ -11,6 +11,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Moderation now includes a persisted maintenance-mode control with editable public message, plus `GET /api/moderation/maintenance`, `POST /api/moderation/maintenance`, and public `GET /api/maintenance` endpoints.
 
 ### Fixed
+- Homepage sorting dropdown now uses the same white/dark field surface model as the rest of the form, with an explicit high-contrast border and chevron, avoiding the broken native-option rendering introduced by the previous filled-select styling.
 - Theme toggle CTAs now share the same `app-theme-toggle` primitive and critical-shell styling on homepage and secondary pages, so the visible “Mode clair actif” / “Mode sombre actif” button stays consistent across routes.
 - Homepage result sorting now uses an explicitly filled high-contrast select trigger with a decorative chevron, reducing dependence on low-contrast native control chrome for RGAA criterion `3.3`.
 - Global text/background pairing now propagates inherited surface colors through common layout wrappers and `bg-transparent` text controls, so audited pages no longer rely on computed transparent backgrounds for RGAA criterion `10.5`.
