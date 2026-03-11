@@ -170,6 +170,7 @@ Redis-related runtime notes:
 - vote-state reads are optimized to avoid excessive Redis fan-out
 - client vote ownership is tracked separately so the public CTA can remove a vote from the same browser identity
 - client-specific vote reconciliation reuses a dedicated private `vote-state` payload with targeted counters for voted URLs, then runs after page load/idle so `hasUpvoted` and `upvoteCount` stay aligned without extending the critical annuaire request chain
+- persisted vote totals are reconciled upward from active client-vote ownership on startup and after archive imports, which repairs undercounted entries without silently dropping older aggregate totals
 - a short-lived in-memory cache reduces repeated read pressure
 
 ## Getting Started

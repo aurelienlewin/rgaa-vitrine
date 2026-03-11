@@ -322,6 +322,26 @@ function normalizeClientVoteIndexId(clientVoteIndexId) {
   return trimmed.slice(0, 120)
 }
 
+function buildActiveVoteCountByUrl(clientVoteUrlCollections) {
+  const countsByUrl = new Map()
+
+  for (const collection of clientVoteUrlCollections) {
+    const normalizedUrls = new Set()
+    for (const rawUrl of collection ?? []) {
+      const normalizedUrl = normalizeUrlCandidate(rawUrl)
+      if (normalizedUrl) {
+        normalizedUrls.add(normalizedUrl)
+      }
+    }
+
+    for (const normalizedUrl of normalizedUrls) {
+      countsByUrl.set(normalizedUrl, (countsByUrl.get(normalizedUrl) ?? 0) + 1)
+    }
+  }
+
+  return countsByUrl
+}
+
 function parseStoredEntry(payload, context = {}) {
   if (!payload || typeof payload !== 'object') {
     return null
@@ -950,6 +970,36 @@ class InMemoryShowcaseStorage {
     return votedUrls ? new Set(votedUrls) : new Set()
   }
 
+  async reconcileUpvoteCounts() {
+    const activeVoteCounts = buildActiveVoteCountByUrl(this.votesByClient.values())
+    let updatedEntries = 0
+
+    for (const [normalizedUrl, activeVoteCount] of activeVoteCounts.entries()) {
+      const entry = this.entries.get(normalizedUrl)
+      if (!entry) {
+        continue
+      }
+
+      const storedCount = toNonNegativeInteger(entry.upvoteCount)
+      const nextCount = Math.max(storedCount, activeVoteCount)
+      if (nextCount === storedCount) {
+        continue
+      }
+
+      this.entries.set(normalizedUrl, {
+        ...entry,
+        upvoteCount: nextCount,
+      })
+      updatedEntries += 1
+    }
+
+    return {
+      updatedEntries,
+      activeVoteUrls: activeVoteCounts.size,
+      scannedClientVoteGroups: this.votesByClient.size,
+    }
+  }
+
   async hasVoted(normalizedUrl, voterFingerprints) {
     const tokens = buildVoteTokenCandidates(voterFingerprints)
     if (tokens.length === 0) {
@@ -1241,6 +1291,8 @@ class InMemoryShowcaseStorage {
       this.maintenanceState = buildMaintenanceState(normalized.maintenanceState)
     }
 
+    await this.reconcileUpvoteCounts()
+
     return {
       mode,
       imported: {
@@ -1451,6 +1503,64 @@ class UpstashShowcaseStorage {
 
   async _listClientVoteKeys() {
     return this._scanKeysByPattern(`${SHOWCASE_CLIENT_VOTES_PREFIX}*`)
+  }
+
+  async reconcileUpvoteCounts() {
+    try {
+      const clientVoteKeys = await this._listClientVoteKeys()
+      if (clientVoteKeys.length === 0) {
+        return {
+          updatedEntries: 0,
+          activeVoteUrls: 0,
+          scannedClientVoteGroups: 0,
+        }
+      }
+
+      const activeVoteCounts = new Map()
+      for (const key of clientVoteKeys) {
+        const rawUrls = await this.redis.smembers(key)
+        const countsForClient = buildActiveVoteCountByUrl([rawUrls])
+        for (const [normalizedUrl, count] of countsForClient.entries()) {
+          activeVoteCounts.set(normalizedUrl, (activeVoteCounts.get(normalizedUrl) ?? 0) + count)
+        }
+      }
+
+      const writeOperations = this.redis.multi()
+      let updatedEntries = 0
+
+      for (const [normalizedUrl, activeVoteCount] of activeVoteCounts.entries()) {
+        const entryId = encodeEntryId(normalizedUrl)
+        const entryKey = entryKeyFromId(entryId)
+        const rawEntry = await this.redis.hgetall(entryKey)
+        const entry = parseStoredEntry(rawEntry, { entryId, normalizedUrl })
+        if (!entry) {
+          continue
+        }
+
+        const storedCount = toNonNegativeInteger(entry.upvoteCount)
+        const nextCount = Math.max(storedCount, activeVoteCount)
+        if (nextCount === storedCount) {
+          continue
+        }
+
+        writeOperations.hset(entryKey, { uv: nextCount })
+        updatedEntries += 1
+      }
+
+      if (updatedEntries > 0) {
+        await writeOperations.exec()
+        this._invalidateShowcaseCache()
+      }
+
+      return {
+        updatedEntries,
+        activeVoteUrls: activeVoteCounts.size,
+        scannedClientVoteGroups: clientVoteKeys.length,
+      }
+    } catch (error) {
+      console.error('Redis reconcileUpvoteCounts failed', error)
+      throw new ShowcaseStorageError('Réconciliation Redis des votes indisponible.', 503)
+    }
   }
 
   async _clearAllData() {
@@ -1877,7 +1987,7 @@ class UpstashShowcaseStorage {
       }
 
       const nextCount = toNonNegativeInteger(entry.upvoteCount) + 1
-      writeOperations.hset(entryKeyFromId(entryId), { upvoteCount: nextCount })
+      writeOperations.hset(entryKeyFromId(entryId), { uv: nextCount })
       await writeOperations.exec()
 
       if (clientVoteKey) {
@@ -1951,7 +2061,7 @@ class UpstashShowcaseStorage {
         .multi()
         .srem(voteKey, ...writeTokens)
         .srem(clientVoteKey, normalizedUrl)
-        .hset(entryKeyFromId(entryId), { upvoteCount: nextCount })
+        .hset(entryKeyFromId(entryId), { uv: nextCount })
         .exec()
 
       const cachedClientVotes = this._getCachedClientVotedUrls(normalizedClientVoteIndexId) ?? new Set()
@@ -2252,6 +2362,8 @@ class UpstashShowcaseStorage {
         }
         await this.redis.hset(SHOWCASE_SLUG_REDIRECTS_KEY, slugRedirectPayload)
       }
+
+      await this.reconcileUpvoteCounts()
 
       this._invalidateAllCaches()
 

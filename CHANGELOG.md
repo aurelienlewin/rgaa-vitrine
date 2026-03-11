@@ -11,6 +11,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Moderation now includes a persisted maintenance-mode control with editable public message, plus `GET /api/moderation/maintenance`, `POST /api/moderation/maintenance`, and public `GET /api/maintenance` endpoints.
 
 ### Fixed
+- Persisted vote counters are now repaired upward from active client-vote ownership on startup and after archive imports, and `/api/showcase/vote-state` now verifies current ownership before returning targeted counters, so already-owned votes no longer surface impossible `0 vote(s)` states such as the Access42 mismatch seen in production data.
 - `/plan-du-site` now exposes direct skip links to every major link block on the page and labels its discovery resources as landmarks, keeping keyboard navigation aligned with the latest RGAA/WCAG 2.2 review checklist used in the project skills.
 - Fragment links now move focus to the targeted landmark/section on route load and `hashchange`, with direct first-control focus for `#moteur-recherche-global` and `#ajout-site`, plus visible focus styling across homepage, site map, accessibility, profile, domain, and moderation pages.
 - Dark-mode search/help text now stays contrast-safe from the first SSR paint on public detail pages: the critical secondary-header CSS now styles the keyboard helper and search placeholders in dark mode before hydration, avoiding low-contrast flashes on slow connections.
@@ -24,7 +25,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Once moderation is unlocked, the authentication form now disappears and initial focus moves to the first useful moderation control (first pending approval button when present), avoiding a focus path back into already-completed authentication UI.
 - Homepage result sorting now uses a native high-contrast select with URL persistence, keeps keyboard focus on the control, and updates the visible/live French results summary so sorting changes remain explicit for screen-reader users without breaking SSR-safe hydration behavior.
 - Homepage results header now uses a dedicated responsive two-column layout that keeps the title, help copy, and score disclaimer together in the primary content column while reserving a separate desktop column for sorting controls, improving visual alignment without changing keyboard or live-region behavior.
-- Homepage vote hydration now reuses a lightweight private `vote-state` payload with targeted counters for voted URLs and defers that reconciliation until page load/idle, preventing stale `0 vote` counters from being shown alongside an already-owned `Retirer mon vote` state without adding a second full showcase fetch to the critical request chain.
+- Homepage vote hydration now reuses a lightweight private `vote-state` payload with targeted counters for voted URLs and defers that reconciliation until page load/idle; the backend now also verifies current ownership and self-heals undercounted persisted totals upward from active client-vote indexes so already-owned votes cannot surface an impossible `0 vote(s)` state.
 
 ### Changed
 - Maintenance state is now included in moderation archive export/import, in rollback freshness checks, and in `GET /api/health` so operators do not lose service posture during restores.

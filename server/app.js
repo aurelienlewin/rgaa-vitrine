@@ -94,6 +94,18 @@ const rateLimitValidationOptions = {
   forwardedHeader: false,
 }
 
+void showcaseStorage.reconcileUpvoteCounts()
+  .then((result) => {
+    if (result.updatedEntries > 0) {
+      console.info(
+        `Vote counts reconciled: ${result.updatedEntries} entry(s) updated from ${result.scannedClientVoteGroups} active client vote group(s).`,
+      )
+    }
+  })
+  .catch((error) => {
+    console.error('Unable to reconcile persisted vote counts on startup', error)
+  })
+
 app.disable('x-powered-by')
 app.set('trust proxy', false)
 
@@ -1664,20 +1676,41 @@ app.get('/api/showcase/vote-state', async (request, response) => {
     const clientVoterId = extractClientVoterId(firstQueryValue(request.query.clientVoterId))
     const clientVoteIndexId = buildClientVoteIndexId(clientVoterId)
     const votedUrls = clientVoteIndexId ? await showcaseStorage.listClientVotedUrls(clientVoteIndexId) : new Set()
-    const votedEntries = await Promise.all(
-      Array.from(votedUrls).map(async (normalizedUrl) => showcaseStorage.getByNormalizedUrl(normalizedUrl)),
+    const verifiedVotedEntries = await Promise.all(
+      Array.from(votedUrls).map(async (normalizedUrl) => {
+        const fingerprints = buildVoteFingerprints(request, clientVoterId, normalizedUrl)
+        const hasActiveVote = await showcaseStorage.hasVoted(normalizedUrl, fingerprints)
+        if (!hasActiveVote) {
+          return null
+        }
+
+        const entry = await showcaseStorage.getByNormalizedUrl(normalizedUrl)
+        if (!entry) {
+          return null
+        }
+
+        return {
+          normalizedUrl,
+          entry,
+        }
+      }),
     )
+    const verifiedVotes = verifiedVotedEntries.filter(Boolean)
     const countsByUrl = Object.fromEntries(
-      votedEntries
-        .filter((entry) => entry && typeof entry.normalizedUrl === 'string')
-        .map((entry) => [entry.normalizedUrl, Number.isFinite(entry.upvoteCount) ? Math.max(0, entry.upvoteCount) : 0]),
+      verifiedVotes.map(({ normalizedUrl, entry }) => [
+        normalizedUrl,
+        Number.isFinite(entry.upvoteCount) ? Math.max(1, entry.upvoteCount) : 1,
+      ]),
     )
+    const verifiedVotedUrls = verifiedVotes
+      .map(({ normalizedUrl }) => normalizedUrl)
+      .sort((left, right) => left.localeCompare(right, 'fr'))
 
     response.setHeader('cache-control', 'private, no-store')
     response.json({
-      votedUrls: Array.from(votedUrls).sort((left, right) => left.localeCompare(right, 'fr')),
+      votedUrls: verifiedVotedUrls,
       countsByUrl,
-      total: votedUrls.size,
+      total: verifiedVotedUrls.length,
     })
   } catch (error) {
     if (error instanceof ShowcaseStorageError) {
