@@ -9,10 +9,13 @@ import {
 } from './theme'
 
 type ThemeToggleProps = {
-  className: string
+  className?: string
 }
 
-function ThemeToggle({ className }: ThemeToggleProps) {
+const baseClassName =
+  'app-theme-toggle inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50'
+
+function ThemeToggle({ className = '' }: ThemeToggleProps) {
   const [themePreference, setThemePreference] = useState<ThemePreference>(() => readStoredThemePreference())
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
     resolveThemePreference(readStoredThemePreference()),
@@ -48,7 +51,7 @@ function ThemeToggle({ className }: ThemeToggleProps) {
       onClick={handleToggle}
       aria-pressed={resolvedTheme === 'dark'}
       aria-label={nextModeLabel}
-      className={className}
+      className={`${baseClassName} ${className}`.trim()}
     >
       {currentModeLabel}
     </button>

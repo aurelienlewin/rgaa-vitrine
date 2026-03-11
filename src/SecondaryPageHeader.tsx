@@ -44,9 +44,7 @@ function SecondaryPageHeader({
       <div className="app-secondary-header__inner mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="app-secondary-header__top flex flex-wrap items-center justify-between gap-3">
           <h1 className="app-secondary-header__title text-2xl font-bold">{title}</h1>
-          <ThemeToggle
-            className={`app-secondary-theme-toggle inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-          />
+          <ThemeToggle className={`${focusRingClass}`} />
         </div>
         <PrimaryNavigation
           currentPath={currentPath === null ? null : currentPath}
