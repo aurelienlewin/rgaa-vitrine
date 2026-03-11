@@ -76,12 +76,12 @@ const directorySections: SiteLink[] = [
   {
     href: '/#resultats-annuaire',
     label: 'Fiches par site',
-    description: 'Chaque carte mène à une fiche dédiée (`/site/{slug}`) indexable et partageable.',
+    description: 'Chaque carte mène à une fiche publique dédiée, avec une adresse stable et partageable pour le site concerné.',
   },
   {
     href: '/#resultats-annuaire',
     label: 'Pages domaine multi-sites',
-    description: 'Les domaines déjà présents avec plusieurs sous-sites disposent d’une page dédiée (`/domaine/{slug}`).',
+    description: 'Les domaines déjà présents avec plusieurs sous-sites disposent d’une page publique dédiée pour regrouper leurs fiches.',
   },
 ]
 
@@ -571,7 +571,7 @@ function SiteMapPage() {
               Fiches publiques indexables
             </h2>
             <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-              Extrait des fiches `/site/{'{'}slug{'}'}` disponibles pour l’indexation et le maillage interne.
+              Extrait des fiches publiques individuelles disponibles pour l’indexation et le maillage interne.
             </p>
             {isLoadingProfiles && (
               <p className="mt-3 text-sm text-slate-700 dark:text-slate-300" role="status" aria-live="polite">
@@ -612,7 +612,7 @@ function SiteMapPage() {
             <div className="mt-6">
               <h3 className="text-lg font-semibold">Pages domaine multi-sites</h3>
               <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-                Pages `/domaine/{'{'}slug{'}'}` disponibles pour les domaines déjà référencés avec plusieurs fiches publiques.
+                Pages publiques dédiées aux domaines déjà référencés avec plusieurs fiches publiques.
               </p>
               {isLoadingDomainGroups && (
                 <p className="mt-3 text-sm text-slate-700 dark:text-slate-300" role="status" aria-live="polite">
@@ -664,8 +664,8 @@ function SiteMapPage() {
             </h2>
             <p className="mt-2 text-sky-900 dark:text-sky-100">
               Ces fichiers et endpoints publics en lecture seule servent à l’exploration des pages publiques et à la
-              découverte des données. L’espace modération n’est pas listé dans le sitemap et reste déclaré en
-              `noindex`.
+              découverte des données. L’espace modération n’est pas listé dans le sitemap et reste exclu de
+              l’indexation des moteurs de recherche.
             </p>
             <ul className="mt-4 grid gap-3">
               {technicalLinks.map((link) => (

@@ -21,7 +21,9 @@ const supportProfile = {
 const buildVersion = import.meta.env.VITE_BUILD_VERSION ?? '0.0.0'
 const buildTimestampRaw = import.meta.env.VITE_BUILD_TIMESTAMP ?? 'unknown'
 const buildTimestampDisplay =
-  buildTimestampRaw !== 'unknown' ? buildTimestampRaw.replace('T', ' ').replace('Z', ' UTC') : buildTimestampRaw
+  buildTimestampRaw !== 'unknown'
+    ? buildTimestampRaw.replace('T', ' à ').replace('Z', ' (heure UTC)')
+    : 'date technique indisponible'
 
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
@@ -141,9 +143,9 @@ function SiteFooter({ id = 'pied-page', footerRef, helpHref = '/#aide-accessibil
           </a>
           <p
             className="mt-3 text-sm text-slate-700 dark:text-slate-200"
-            aria-label={`Version ${buildVersion}, build ${buildTimestampDisplay}`}
+            aria-label={`Version publique ${buildVersion}, générée le ${buildTimestampDisplay}`}
           >
-            v{buildVersion} · {buildTimestampDisplay}
+            Version publique {buildVersion} · générée le {buildTimestampDisplay}
           </p>
         </section>
       </div>
