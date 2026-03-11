@@ -97,13 +97,13 @@ function GlobalSearchForm({
       role="search"
       aria-label="Recherche globale dans l’annuaire"
       onSubmit={onSubmit}
-      className={`app-global-search-form @container mt-4 ${focusTargetScrollMarginClass} rounded-2xl border border-slate-600 dark:border-slate-500 bg-slate-50 dark:bg-slate-800 p-4 shadow-sm ${focusTargetClass} ${className}`.trim()}
+      className={`app-global-search-form @container mt-4 ${focusTargetScrollMarginClass} rounded-2xl border border-slate-600 dark:border-slate-500 bg-slate-50 dark:bg-slate-800 p-4 text-slate-950 dark:text-slate-50 shadow-sm ${focusTargetClass} ${className}`.trim()}
     >
       <div className="app-global-search-form__grid grid grid-cols-1 gap-4 @md:grid-cols-2 @lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto] @lg:items-end">
         <div className="app-global-search-form__field app-global-search-form__field--search">
           <label
             htmlFor={inputId}
-            className="app-global-search-form__label block bg-transparent text-sm font-semibold text-slate-900 dark:text-slate-50"
+            className="app-global-search-form__label block bg-slate-50 dark:bg-slate-800 text-sm font-semibold text-slate-900 dark:text-slate-50"
           >
             Rechercher un site dans l’annuaire
           </label>
@@ -117,13 +117,13 @@ function GlobalSearchForm({
             onKeyDown={handleSearchKeyDown}
             {...controlsAttributes}
             {...describedByAttributes}
-            className={`app-global-search-form__control app-global-search-form__control--search mt-1 min-h-11 w-full rounded-xl border border-slate-700 dark:border-slate-400 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+            className={`app-global-search-form__control app-global-search-form__control--search mt-1 min-h-11 w-full rounded-xl border border-slate-700 dark:border-slate-400 bg-white dark:bg-slate-900 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
           />
         </div>
         <div className="app-global-search-form__field app-global-search-form__field--status">
           <label
             htmlFor={`${inputId}-statut`}
-            className="app-global-search-form__label block bg-transparent text-sm font-semibold text-slate-900 dark:text-slate-50"
+            className="app-global-search-form__label block bg-slate-50 dark:bg-slate-800 text-sm font-semibold text-slate-900 dark:text-slate-50"
           >
             Niveau de conformité
           </label>
@@ -132,7 +132,7 @@ function GlobalSearchForm({
             name="statut"
             {...statusSelectProps}
             {...controlsAttributes}
-            className={`app-global-search-form__control app-global-search-form__control--status mt-1 min-h-11 w-full rounded-xl border border-slate-700 dark:border-slate-400 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+            className={`app-global-search-form__control app-global-search-form__control--status mt-1 min-h-11 w-full rounded-xl border border-slate-700 dark:border-slate-400 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
           >
             {Object.entries(showcaseStatusFilterLabels).map(([value, label]) => (
               <option key={value} value={value}>
@@ -144,7 +144,7 @@ function GlobalSearchForm({
         <div className="app-global-search-form__field app-global-search-form__field--category">
           <label
             htmlFor={`${inputId}-categorie`}
-            className="app-global-search-form__label block bg-transparent text-sm font-semibold text-slate-900 dark:text-slate-50"
+            className="app-global-search-form__label block bg-slate-50 dark:bg-slate-800 text-sm font-semibold text-slate-900 dark:text-slate-50"
           >
             Catégorie
           </label>
@@ -153,7 +153,7 @@ function GlobalSearchForm({
             name="categorie"
             {...categorySelectProps}
             {...controlsAttributes}
-            className={`app-global-search-form__control app-global-search-form__control--category mt-1 min-h-11 w-full rounded-xl border border-slate-700 dark:border-slate-400 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+            className={`app-global-search-form__control app-global-search-form__control--category mt-1 min-h-11 w-full rounded-xl border border-slate-700 dark:border-slate-400 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
           >
             <option value="all">Toutes les catégories</option>
             {categoryOptions.map((categoryOption) => (
@@ -172,7 +172,7 @@ function GlobalSearchForm({
         <button
           type={onReset ? 'button' : 'reset'}
           onClick={onReset}
-          className={`app-global-search-form__button app-global-search-form__button--reset min-h-11 rounded-xl border border-slate-700 dark:border-slate-300 bg-transparent px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-700 ${focusRingClass}`}
+          className={`app-global-search-form__button app-global-search-form__button--reset min-h-11 rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
         >
           Réinitialiser
         </button>

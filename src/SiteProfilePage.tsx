@@ -797,7 +797,7 @@ function SiteProfilePage() {
                   target="_blank"
                   rel="noopener external"
                   referrerPolicy="strict-origin-when-cross-origin"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
                 >
                   Visiter le site d’origine (nouvel onglet)
                 </a>
@@ -807,7 +807,7 @@ function SiteProfilePage() {
                     target="_blank"
                     rel="noopener external"
                     referrerPolicy="strict-origin-when-cross-origin"
-                    className={`inline-flex min-h-11 items-center rounded-xl border border-emerald-700 dark:border-emerald-300 bg-transparent px-4 py-2 font-semibold text-emerald-900 dark:text-emerald-100 ${focusRingClass}`}
+                    className={`inline-flex min-h-11 items-center rounded-xl border border-emerald-700 dark:border-emerald-300 bg-emerald-50 dark:bg-emerald-950 px-4 py-2 font-semibold text-emerald-900 dark:text-emerald-100 hover:bg-emerald-100 dark:hover:bg-emerald-900 ${focusRingClass}`}
                   >
                     Déclaration d’accessibilité (nouvel onglet)
                   </a>
@@ -855,7 +855,7 @@ function SiteProfilePage() {
                               candidate.profilePath ??
                               resolveShowcaseProfilePath(candidate.normalizedUrl, candidate.slug)
                             }
-                            className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}
+                            className={`inline-flex min-h-11 items-center rounded-xl border border-sky-700 dark:border-sky-300 bg-sky-50 dark:bg-sky-950 px-3 py-2 font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
                           >
                             {candidate.siteTitle}
                           </a>
@@ -911,7 +911,7 @@ function SiteProfilePage() {
                   id="backlink-code-badge"
                   readOnly
                   value={backlinkBadgeSnippet}
-                  className={`mt-1 min-h-28 w-full rounded-xl border border-sky-300 dark:border-sky-700 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`mt-1 min-h-28 w-full rounded-xl border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 />
                 <button
                   type="button"
@@ -933,7 +933,7 @@ function SiteProfilePage() {
                   id="backlink-code-text"
                   readOnly
                   value={backlinkTextSnippet}
-                  className={`mt-1 min-h-24 w-full rounded-xl border border-sky-300 dark:border-sky-700 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                  className={`mt-1 min-h-24 w-full rounded-xl border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                 />
                 <button
                   type="button"
@@ -943,7 +943,7 @@ function SiteProfilePage() {
                       'Code texte copié. Vous pouvez le coller dans votre site.',
                     )
                   }}
-                  className={`mt-3 inline-flex min-h-11 items-center rounded-xl border border-sky-700 bg-transparent px-4 py-2 font-semibold text-sky-900 dark:border-sky-300 dark:text-sky-100 ${focusRingClass}`}
+                  className={`mt-3 inline-flex min-h-11 items-center rounded-xl border border-sky-700 dark:border-sky-300 bg-sky-50 dark:bg-sky-950 px-4 py-2 font-semibold text-sky-900 dark:text-sky-100 hover:bg-sky-100 dark:hover:bg-sky-900 ${focusRingClass}`}
                 >
                   Copier le code texte
                 </button>
@@ -987,7 +987,7 @@ function SiteProfilePage() {
                         <li key={candidate.normalizedUrl} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
                           <a
                             href={candidateProfilePath}
-                            className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}
+                            className={`inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
                           >
                             {candidate.siteTitle}
                           </a>

@@ -321,7 +321,7 @@ function AccessibilityPage() {
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">E-mail</p>
                 <a
                   href="mailto:aurelienlewin@proton.me"
-                  className={`mt-1 inline-flex min-h-11 items-center wrap-anywhere underline decoration-2 underline-offset-2 ${focusRingClass}`}
+                  className={`mt-1 inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 wrap-anywhere font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
                 >
                   aurelienlewin@proton.me
                 </a>
@@ -332,7 +332,7 @@ function AccessibilityPage() {
                   href="https://github.com/aurelienlewin"
                   target="_blank"
                   rel="noreferrer noopener"
-                  className={`mt-1 inline-flex min-h-11 items-center wrap-anywhere underline decoration-2 underline-offset-2 ${focusRingClass}`}
+                  className={`mt-1 inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 wrap-anywhere font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
                 >
                   github.com/aurelienlewin
                 </a>

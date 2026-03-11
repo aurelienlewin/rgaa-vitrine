@@ -13,7 +13,7 @@ type ThemeToggleProps = {
 }
 
 const baseClassName =
-  'app-theme-toggle inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50'
+  'app-theme-toggle inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-500 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800'
 
 function ThemeToggle({ className = '' }: ThemeToggleProps) {
   const [themePreference, setThemePreference] = useState<ThemePreference>(() => readStoredThemePreference())

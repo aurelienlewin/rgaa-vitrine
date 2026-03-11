@@ -161,11 +161,11 @@ const githubProfile = {
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const ctaHoverClass = 'transition-colors duration-150 hover:underline'
-const ctaNeutralClass = `border border-slate-700 dark:border-slate-300 bg-transparent text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${ctaHoverClass}`
+const ctaNeutralClass = `border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${ctaHoverClass}`
 const ctaPrimaryClass = `border border-slate-950 dark:border-slate-50 bg-slate-950 dark:bg-slate-50 text-slate-50 dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-200 ${ctaHoverClass}`
-const ctaSkyClass = `border border-sky-700 dark:border-sky-300 bg-transparent text-sky-900 dark:text-sky-100 hover:bg-sky-50 dark:hover:bg-sky-950 ${ctaHoverClass}`
+const ctaSkyClass = `border border-sky-700 dark:border-sky-300 bg-sky-50 dark:bg-sky-950 text-sky-900 dark:text-sky-100 hover:bg-sky-100 dark:hover:bg-sky-900 ${ctaHoverClass}`
 const ctaConfirmClass = `border border-sky-800 dark:border-sky-200 bg-sky-800 dark:bg-sky-200 text-sky-50 dark:text-sky-950 hover:bg-sky-900 dark:hover:bg-sky-100 ${ctaHoverClass}`
-const ctaEmeraldClass = `border border-emerald-700 dark:border-emerald-300 bg-transparent text-emerald-900 dark:text-emerald-100 hover:bg-emerald-50 dark:hover:bg-emerald-950 ${ctaHoverClass}`
+const ctaEmeraldClass = `border border-emerald-700 dark:border-emerald-300 bg-emerald-50 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100 hover:bg-emerald-100 dark:hover:bg-emerald-900 ${ctaHoverClass}`
 const moderationContactPath = '/accessibilite#contact-accessibilite'
 const moderationContactEmail = 'mailto:aurelienlewin@proton.me'
 const skipLinksContainerClass =
@@ -2330,7 +2330,7 @@ function App() {
                               />
                             </div>
                           ) : (
-                            <div className="site-thumbnail-canvas flex items-center justify-center px-3 text-center text-sm font-medium text-slate-800 dark:text-slate-800">
+                            <div className="site-thumbnail-canvas flex items-center justify-center px-3 text-center text-sm font-medium text-slate-800 dark:text-slate-100">
                               Aucune vignette disponible
                             </div>
                           )}
@@ -2448,11 +2448,11 @@ function App() {
                                       : 'Voter pour'
                                 } ${entry.siteTitle}. ${entry.upvoteCount} vote(s).`}
                                 className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold ${
-                                  entry.votesBlocked
+                                      entry.votesBlocked
                                     ? 'border-slate-400 dark:border-slate-600 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                                     : entry.hasUpvoted
                                       ? 'border-emerald-500 dark:border-emerald-600 bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100'
-                                      : 'border-slate-700 dark:border-slate-300 bg-transparent text-slate-900 dark:text-slate-50'
+                                      : 'border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50'
                                 } disabled:cursor-not-allowed disabled:opacity-100 ${focusRingClass}`}
                               >
                                 <span aria-hidden="true">{entry.votesBlocked ? '◌' : entry.hasUpvoted ? '▲' : '△'}</span>
@@ -2600,7 +2600,7 @@ function App() {
                   onInput={(event) => {
                     event.currentTarget.setCustomValidity('')
                   }}
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white dark:bg-slate-900 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 />
               </div>
 
@@ -2621,7 +2621,7 @@ function App() {
                     setSubmissionPreviewStatus(null)
                     setSubmissionPreviewToken(null)
                   }}
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-transparent px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 >
                   {showcaseCategories.map((category) => (
                     <option key={category} value={category}>
@@ -2971,7 +2971,7 @@ function App() {
                     href={resource.url}
                     target="_blank"
                     rel="noreferrer noopener"
-                    className={`inline-flex min-h-11 items-center font-semibold ${focusRingClass}`}
+                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
                   >
                     {resource.label}
                   </a>

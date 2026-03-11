@@ -434,7 +434,7 @@ function DomainGroupPage() {
                           <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
                             <a
                               href={profilePath}
-                              className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-sky-700 dark:border-sky-300 px-3 py-2 text-sm font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
+                              className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-sky-700 dark:border-sky-300 bg-sky-50 dark:bg-sky-950 px-3 py-2 text-sm font-semibold text-sky-900 dark:text-sky-100 hover:bg-sky-100 dark:hover:bg-sky-900 ${focusRingClass}`}
                             >
                               Voir la fiche annuaire
                             </a>
@@ -443,7 +443,7 @@ function DomainGroupPage() {
                               target="_blank"
                               rel="noopener external"
                               referrerPolicy="strict-origin-when-cross-origin"
-                              className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-700 dark:border-slate-300 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
+                              className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
                             >
                               Visiter le site (nouvel onglet)
                             </a>
@@ -453,12 +453,12 @@ function DomainGroupPage() {
                                 target="_blank"
                                 rel="noopener external"
                                 referrerPolicy="strict-origin-when-cross-origin"
-                                className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-700 dark:border-emerald-300 px-3 py-2 text-sm font-semibold text-emerald-900 dark:text-emerald-100 ${focusRingClass}`}
+                                className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-700 dark:border-emerald-300 bg-emerald-50 dark:bg-emerald-950 px-3 py-2 text-sm font-semibold text-emerald-900 dark:text-emerald-100 hover:bg-emerald-100 dark:hover:bg-emerald-900 ${focusRingClass}`}
                               >
                                 Déclaration d’accessibilité (nouvel onglet)
                               </a>
                             ) : (
-                              <span className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-500 dark:border-slate-400 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                              <span className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
                                 Déclaration non détectée
                               </span>
                             )}

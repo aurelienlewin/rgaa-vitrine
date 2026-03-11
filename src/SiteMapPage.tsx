@@ -521,7 +521,7 @@ function SiteMapPage() {
                 >
                   <a
                     href={link.href}
-                    className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}
+                    className={`inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
                   >
                     {link.label}
                   </a>
@@ -549,7 +549,7 @@ function SiteMapPage() {
                 >
                   <a
                     href={link.href}
-                    className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}
+                    className={`inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
                   >
                     {link.label}
                   </a>
@@ -597,7 +597,7 @@ function SiteMapPage() {
                   >
                     <a
                       href={entry.profilePath}
-                      className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}
+                      className={`inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
                     >
                       {entry.siteTitle}
                     </a>
@@ -638,7 +638,7 @@ function SiteMapPage() {
                     >
                       <a
                         href={group.groupPath}
-                        className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}
+                        className={`inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
                       >
                         {group.registrableDomain}
                       </a>
@@ -675,7 +675,7 @@ function SiteMapPage() {
                 >
                   <a
                     href={link.href}
-                    className={`inline-flex min-h-11 items-center font-semibold text-sky-900 dark:text-sky-100 underline ${focusRingClass}`}
+                    className={`inline-flex min-h-11 items-center rounded-xl border border-sky-700 dark:border-sky-300 bg-sky-50 dark:bg-sky-950 px-3 py-2 font-semibold text-sky-900 dark:text-sky-100 hover:bg-sky-100 dark:hover:bg-sky-900 ${focusRingClass}`}
                   >
                     {link.label}
                   </a>

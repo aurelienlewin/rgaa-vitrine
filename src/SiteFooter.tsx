@@ -76,44 +76,44 @@ function SiteFooter({ id = 'pied-page', footerRef, helpHref = '/#aide-accessibil
           </p>
           <ul className="mt-3 grid gap-2">
             <li>
-              <a
-                href="/#moteur-recherche-global"
-                className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-              >
-                Recherche annuaire
-              </a>
+                <a
+                  href="/#moteur-recherche-global"
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
+                >
+                  Recherche annuaire
+                </a>
             </li>
             <li>
-              <a
-                href={helpHref}
-                className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-              >
-                Aide accessibilité
-              </a>
+                <a
+                  href={helpHref}
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
+                >
+                  Aide accessibilité
+                </a>
             </li>
             <li>
-              <a
-                href="/plan-du-site"
-                className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-              >
-                Plan du site
-              </a>
+                <a
+                  href="/plan-du-site"
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
+                >
+                  Plan du site
+                </a>
             </li>
             <li>
-              <a
-                href="/accessibilite"
-                className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-              >
-                Accessibilité
-              </a>
+                <a
+                  href="/accessibilite"
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
+                >
+                  Accessibilité
+                </a>
             </li>
             <li>
-              <a
-                href="/moderation"
-                className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-              >
-                Modération
-              </a>
+                <a
+                  href="/moderation"
+                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
+                >
+                  Modération
+                </a>
             </li>
           </ul>
         </nav>
@@ -133,7 +133,7 @@ function SiteFooter({ id = 'pied-page', footerRef, helpHref = '/#aide-accessibil
             href={supportProfile.koFiUrl}
             target="_blank"
             rel="noreferrer noopener"
-            className={`mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-900 dark:border-amber-100 bg-transparent px-4 py-2 text-sm font-semibold text-amber-900 dark:text-amber-100 ${focusRingClass}`}
+            className={`mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-900 dark:border-amber-100 bg-amber-50 dark:bg-amber-950 px-4 py-2 text-sm font-semibold text-amber-900 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-amber-900 ${focusRingClass}`}
             aria-label="M’offrir un café via Ko-fi"
           >
             <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
