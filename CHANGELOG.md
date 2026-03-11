@@ -36,6 +36,8 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Homepage vote hydration now reuses a lightweight private `vote-state` payload with targeted counters for voted URLs and defers that reconciliation until page load/idle; the backend now also verifies current ownership and self-heals undercounted persisted totals upward from active client-vote indexes so already-owned votes cannot surface an impossible `0 vote(s)` state.
 
 ### Changed
+- Accessibility statement data now reflects the 2026-03-11 five-page public audit scope and tracks the 8 remediated criteria as deployed changes pending RGAA re-verification.
+- README now documents pointer-visible/wrapping skip-link trays and the text-styled backlink preview behavior on profile pages.
 - Maintenance state is now included in moderation archive export/import, in rollback freshness checks, and in `GET /api/health` so operators do not lose service posture during restores.
 - Public JSON/XML endpoints now return `503` with `Retry-After` during maintenance, while the static Vite shell probes `/api/maintenance` before hydration and swaps public SPA routes to an accessible French maintenance screen without exposing the moderation surface.
 - Discovery resources are now synchronized around the current public surface: `llms.txt`, `llms-full.txt`, `robots.txt`, `/sitemap.xml`, and `/ai-context.json` all reference domain-group pages and the public `/api/domain-groups` dataset where relevant.

@@ -220,7 +220,8 @@ function AccessibilityPage() {
               Non-conformités en cours: {auditSummary.nonConformitiesCount}.
             </p>
             <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-              Parcours de fiches vérifié sur un échantillon représentatif, incluant notamment Access42 et Temesis.
+              Échantillon couvrant l’accueil, une page domaine multi-sites, une fiche site, le plan du site et la
+              déclaration d’accessibilité.
             </p>
           </section>
 
@@ -235,7 +236,8 @@ function AccessibilityPage() {
               Non-conformités en cours de traitement
             </h2>
             <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">
-              Deux non-conformités sont actuellement suivies sur le périmètre public.
+              {auditSummary.nonConformitiesTotal} non-conformité(s) issues de l’audit de référence restent suivies
+              jusqu’au recontrôle.
             </p>
             <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">
               État d’avancement: <strong>{auditSummary.remediationStatus}</strong>.
@@ -267,7 +269,7 @@ function AccessibilityPage() {
             </h2>
             <p className="mt-2 text-slate-700 dark:text-slate-300">
               Les éléments ci-dessous décrivent la base technique réellement utilisée pour la réalisation du service
-              et la campagne d’audit de référence du <strong>8 mars 2026</strong>.
+              et la campagne d’audit de référence du <strong>11 mars 2026</strong>.
             </p>
 
             <h3 className="mt-5 text-base font-semibold">Technologies utilisées pour la réalisation du site</h3>

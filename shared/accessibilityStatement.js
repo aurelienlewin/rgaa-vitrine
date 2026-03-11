@@ -2,40 +2,89 @@ export const accessibilityAuditSummary = {
   status: 'Partiellement conforme',
   complianceStatus: 'partial',
   complianceStatusLabel: 'Partiellement conforme',
-  score: '96,8 % (estimation)',
-  complianceScore: 96.8,
-  auditDate: '8 mars 2026',
-  auditDateIso: '2026-03-08',
-  scope: '4 pages publiques vérifiées',
+  score: '87,5 % (estimation)',
+  complianceScore: 87.5,
+  auditDate: '11 mars 2026',
+  auditDateIso: '2026-03-11',
+  scope: '5 pages publiques vérifiées',
   auditedPages: [
     'https://www.annuaire-rgaa.fr/',
+    'https://www.annuaire-rgaa.fr/domaine/lenord-fr-22z5n2',
+    'https://www.annuaire-rgaa.fr/site/access42-net-h0nx3j',
     'https://www.annuaire-rgaa.fr/plan-du-site',
     'https://www.annuaire-rgaa.fr/accessibilite',
-    'https://www.annuaire-rgaa.fr/site/access42-net-h0nx3j',
   ],
-  applicableCriteria: '424 critères vérifiés',
-  nonConformitiesCount: '2 critères',
-  nonConformitiesTotal: 2,
-  remediationStatus: 'Plan d’action en cours',
+  applicableCriteria: '106 critères vérifiés',
+  nonConformitiesCount: '8 critères',
+  nonConformitiesTotal: 8,
+  remediationStatus: 'Corrections déployées, recontrôle RGAA à planifier',
   rgaaBaseline: '4.1',
 }
 
 export const accessibilityNonConformities = [
   {
-    id: '10.5',
-    title: 'Déclarations de couleurs de texte et de fond à compléter',
+    id: '3.3',
+    title: 'Contraste d’interface du sélecteur de tri',
     detail:
-      'Certaines zones de texte doivent expliciter plus systématiquement leur couleur de fond associée pour garantir une lecture stable quel que soit le contexte d’affichage.',
+      'Le sélecteur de tri de l’accueil reposait sur un rendu natif à faible contraste. Un habillage explicite, rempli et fortement contrasté a été déployé.',
     impactedPages: 'Accueil de l’annuaire',
-    status: 'Correction en cours',
+    status: 'Correction déployée, en attente de contre-vérification',
   },
   {
-    id: '10.11',
-    title: 'Adaptation aux petites hauteurs d’affichage',
+    id: '10.5',
+    title: 'Couplage couleur de texte et couleur de fond',
     detail:
-      'Le contenu doit être ajusté pour limiter le recours au défilement vertical dans des fenêtres de faible hauteur, tout en conservant toutes les informations et fonctionnalités.',
+      'Certaines zones avec couleur de texte explicite reposaient encore sur un fond calculé transparent. Le couplage texte/fond a été renforcé dans les styles globaux.',
+    impactedPages: 'Accueil, page domaine et déclaration d’accessibilité',
+    status: 'Correction déployée, en attente de contre-vérification',
+  },
+  {
+    id: '10.10',
+    title: 'Repères rédigés avec une dépendance à la position',
+    detail:
+      'Certaines consignes d’orientation mentionnaient l’en-tête ou les éléments placés plus bas dans la page. Elles ont été reformulées autour de repères nommés et d’actions explicites.',
     impactedPages: 'Accueil de l’annuaire',
-    status: 'Correction en cours',
+    status: 'Correction déployée, en attente de contre-vérification',
+  },
+  {
+    id: '10.13',
+    title: 'Contenu additionnel natif via attribut title',
+    detail:
+      'Un lien de découverte dans le shell HTML exposait encore un attribut `title`, ce qui produisait une infobulle native non contrôlable. Cet attribut a été retiré.',
+    impactedPages: 'Page domaine auditée (shell commun du site)',
+    status: 'Correction déployée, en attente de contre-vérification',
+  },
+  {
+    id: '10.14',
+    title: 'Liens d’évitement CSS visibles uniquement au clavier',
+    detail:
+      'Le tiroir de liens d’évitement devenait visible à la prise de focus sans équivalent au pointage. Il est désormais aussi visible au survol.',
+    impactedPages: 'Page domaine multi-sites',
+    status: 'Correction déployée, en attente de contre-vérification',
+  },
+  {
+    id: '1.8',
+    title: 'Aperçu local du badge présenté comme image de texte',
+    detail:
+      'L’aperçu local du lien retour affichait un badge image porteur d’information. Il a été remplacé par un aperçu en texte stylé, tout en conservant le code image en copie optionnelle.',
+    impactedPages: 'Fiche site référencé',
+    status: 'Correction déployée, en attente de contre-vérification',
+  },
+  {
+    id: '13.5',
+    title: 'Formulations techniques insuffisamment explicitées',
+    detail:
+      'Le plan du site et le pied de page exposaient plusieurs termes techniques sans reformulation immédiate. Les libellés publics ont été réécrits en langage plus explicite.',
+    impactedPages: 'Plan du site',
+    status: 'Correction déployée, en attente de contre-vérification',
+  },
+  {
+    id: '13.9',
+    title: 'Débordement horizontal en orientation portrait',
+    detail:
+      'Un libellé long dans les liens d’évitement de la fiche site pouvait provoquer un débordement horizontal en portrait. Les liens se replient désormais sur plusieurs lignes.',
+    impactedPages: 'Fiche site référencé',
+    status: 'Correction déployée, en attente de contre-vérification',
   },
 ]
 
@@ -56,7 +105,7 @@ export const accessibilityAuditEnvironment = [
   'macOS 26.3.1 (build 25D2128)',
   'Node.js 25.2.1 (baseline Volta du projet)',
   'npm 11.6.2 (baseline Volta du projet)',
-  'Audit exécuté avec Chrome DevTools (voir journal horodaté du 8 mars 2026)',
+  'Audit exécuté avec Chrome DevTools (voir journal horodaté du 11 mars 2026)',
 ]
 
 export const accessibilityEvaluationTools = [

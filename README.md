@@ -104,12 +104,14 @@ Implemented principles:
 - semantic HTML before ARIA
 - visible focus and non-obscured focus targets
 - keyboard-first skip-link navigation
+- skip-link trays remain reachable both by keyboard focus and pointer hover, and wrap on narrow portrait widths without forcing horizontal overflow
 - route-level and local live regions for async status and error feedback
 - shared search entry point across homepage and secondary routes
 - homepage results summary and polite announcements stay aligned when search, filters, sorting, and progressive loading update the visible cards
 - focus continuity after action outcomes and section jumps
 - minimum `44px`-class interaction targets on primary controls
 - consistent fragment-focus behavior across `/`, `/plan-du-site`, `/accessibilite`, `/site/{slug}`, `/domaine/{groupSlug}`, and `/moderation`
+- profile pages expose a text-styled backlink preview while still offering copy-ready badge-image and text-only embed snippets
 
 Accessibility-specific public assets:
 
