@@ -583,6 +583,22 @@ function isShowcaseEntry(payload: unknown): payload is ShowcaseEntry {
   )
 }
 
+function readShowcaseEntriesFromPayload(payload: unknown) {
+  const responseEntries = Array.isArray((payload as { entries?: unknown }).entries)
+    ? (payload as { entries: unknown[] }).entries
+    : Array.isArray(payload)
+      ? payload
+      : Array.isArray((payload as { data?: { entries?: unknown } }).data?.entries)
+        ? (payload as { data: { entries: unknown[] } }).data.entries
+        : null
+
+  if (!responseEntries) {
+    return null
+  }
+
+  return responseEntries.filter(isShowcaseEntry).map((entry) => normalizeShowcaseEntry(entry))
+}
+
 function readSubmissionStatus(payload: Record<string, unknown>) {
   const rawStatus = payload.submissionStatus
   if (rawStatus === 'approved' || rawStatus === 'duplicate' || rawStatus === 'pending') {
@@ -1367,19 +1383,10 @@ function App() {
         throw new Error(payload.error)
       }
 
-      const responseEntries = Array.isArray(payload.entries)
-        ? payload.entries
-        : Array.isArray(payload)
-          ? payload
-          : Array.isArray((payload as { data?: { entries?: unknown } }).data?.entries)
-            ? (payload as { data: { entries: unknown[] } }).data.entries
-            : null
-
-      if (!responseEntries) {
+      const parsedEntries = readShowcaseEntriesFromPayload(payload)
+      if (!parsedEntries) {
         throw new Error('Liste d’annuaire invalide.')
       }
-
-      const parsedEntries = responseEntries.filter(isShowcaseEntry).map((entry) => normalizeShowcaseEntry(entry))
       setShowcaseEntries(parsedEntries)
       shouldSyncVoteStateAfterDirectoryLoadRef.current = parsedEntries.length > 0
       announcePolite(`${parsedEntries.length} fiche(s) chargée(s) dans l’annuaire.`)
@@ -1401,8 +1408,9 @@ function App() {
   const loadClientVoteState = useCallback(async () => {
     try {
       const voterId = getClientVoterId()
-      const response = await fetch(`/api/showcase/vote-state?clientVoterId=${encodeURIComponent(voterId)}`, {
+      const response = await fetch(`/api/showcase?clientVoterId=${encodeURIComponent(voterId)}&limit=500`, {
         credentials: 'omit',
+        cache: 'no-store',
       })
       const payload = await readApiPayload(response)
 
@@ -1414,25 +1422,11 @@ function App() {
         throw new Error(payload.error)
       }
 
-      const votedUrls = Array.isArray((payload as { votedUrls?: unknown }).votedUrls)
-        ? (payload as { votedUrls: unknown[] }).votedUrls.filter(
-            (value): value is string => typeof value === 'string' && value.trim().length > 0,
-          )
-        : null
-
-      if (!votedUrls) {
+      const parsedEntries = readShowcaseEntriesFromPayload(payload)
+      if (!parsedEntries) {
         throw new Error('État des votes invalide.')
       }
-
-      const votedUrlSet = new Set(votedUrls)
-      setShowcaseEntries((current) =>
-        current.map((entry) =>
-          ({
-            ...entry,
-            hasUpvoted: votedUrlSet.has(entry.normalizedUrl),
-          }),
-        ),
-      )
+      setShowcaseEntries(parsedEntries)
     } catch (error) {
       console.error('Unable to load client vote state', error)
     }
@@ -2004,16 +1998,19 @@ function App() {
             aria-labelledby="galerie-titre"
             aria-busy={loadingDirectory}
           >
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(18rem,3fr)] lg:items-start">
-              <div className="space-y-3">
-                <h2 id="galerie-titre" className="text-xl font-semibold">
-                  Résultats annuaire
-                </h2>
-                <p className="text-slate-700 dark:text-slate-300">
-                  La recherche et les filtres sont disponibles dans l’en-tête de page, puis les résultats sont listés ici.
-                </p>
+            <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(19rem,3fr)] lg:auto-rows-fr lg:items-stretch">
+              <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-sm md:p-6">
+                <div className="space-y-3">
+                  <h2 id="galerie-titre" className="text-xl font-semibold text-slate-950 dark:text-slate-50">
+                    Résultats annuaire
+                  </h2>
+                  <p className="text-pretty text-slate-700 dark:text-slate-300">
+                    La recherche et les filtres sont disponibles dans l’en-tête de page, puis les résultats sont listés ici.
+                  </p>
+                </div>
+
                 {showcaseEntries.length > 0 && (
-                  <p className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                  <p className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                     Les scores affichés sont déclarés par les organismes qui soumettent leur site et sont publiés à titre
                     informatif. Ils n’engagent pas la responsabilité éditoriale d’Annuaire RGAA. En cas de réévaluation
                     documentée, vous pouvez{' '}
@@ -2023,12 +2020,30 @@ function App() {
                     pour demander une mise à jour.
                   </p>
                 )}
+
+                <p
+                  id="annuaire-resultats-resume"
+                  ref={resultsSummaryRef}
+                  tabIndex={-1}
+                  className="mt-4 min-h-[3rem] rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-700 dark:text-slate-300 [font-variant-numeric:tabular-nums] sm:min-h-6"
+                >
+                  {directorySummaryText}
+                </p>
               </div>
 
-              <div className="w-full rounded-2xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 p-4 lg:justify-self-end">
+              <aside
+                aria-labelledby="annuaire-tri-resultats-legende"
+                className="rounded-3xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 p-4 shadow-sm md:p-5 lg:grid lg:content-center"
+              >
+                <p
+                  id="annuaire-tri-resultats-legende"
+                  className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300"
+                >
+                  Affichage
+                </p>
                 <label
                   htmlFor="annuaire-tri-resultats"
-                  className="block text-sm font-semibold text-slate-900 dark:text-slate-50"
+                  className="mt-3 block text-sm font-semibold text-slate-900 dark:text-slate-50"
                 >
                   Trier les résultats
                 </label>
@@ -2036,7 +2051,7 @@ function App() {
                   id="annuaire-tri-resultats"
                   value={directorySort}
                   onChange={handleDirectorySortChange}
-                  aria-describedby="annuaire-tri-resultats-aide"
+                  aria-describedby="annuaire-tri-resultats-aide annuaire-resultats-resume"
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-700 dark:border-slate-400 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
                 >
                   {directorySortOptions.map((option) => (
@@ -2048,17 +2063,8 @@ function App() {
                 <p id="annuaire-tri-resultats-aide" className="mt-2 text-sm text-slate-700 dark:text-slate-300">
                   Le tri met à jour immédiatement les cartes ci-dessous sans déplacer le focus clavier.
                 </p>
-              </div>
+              </aside>
             </div>
-
-            <p
-              id="annuaire-resultats-resume"
-              ref={resultsSummaryRef}
-              tabIndex={-1}
-              className="mt-3 min-h-[3rem] text-sm text-slate-700 dark:text-slate-300 [font-variant-numeric:tabular-nums] sm:min-h-6"
-            >
-              {directorySummaryText}
-            </p>
 
             {loadingDirectory && (
               <section

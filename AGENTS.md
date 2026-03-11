@@ -22,3 +22,7 @@
 - Ne pas utiliser le `README.md` comme un changelog ou y accumuler des notes de release.
 - Rediger le `README.md` avec des formulations intemporelles. Eviter les marqueurs comme `now`, `currently`, `desormais`, `maintenant`, `recent`, `latest` ou des formulations de transition equivalentes, sauf si une date ou une version explicite est indispensable.
 - Toute chronologie de changements, historique de versions et details de release vont uniquement dans `CHANGELOG.md`.
+
+## Workflow
+- Pour toute demande de modification, mettre aussi a jour `CHANGELOG.md` et `README.md` quand ils sont impactes par le comportement, l'architecture, l'exploitation ou les regles du projet.
+- Sauf instruction contraire explicite, terminer le travail par `git add`, un commit non ambigu, puis un push sur la branche de travail.

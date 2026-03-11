@@ -1592,7 +1592,10 @@ app.get('/api/showcase', async (request, response) => {
 
     const lastModifiedSource = filteredEntries.length > 0 ? filteredEntries : entriesWithDomainContext
 
-    response.setHeader('cache-control', 'public, max-age=120, s-maxage=120, stale-while-revalidate=600')
+    response.setHeader(
+      'cache-control',
+      clientVoteIndexId ? 'private, no-store' : 'public, max-age=120, s-maxage=120, stale-while-revalidate=600',
+    )
     response.setHeader('last-modified', readMostRecentUpdatedAt(lastModifiedSource))
     if (redirectPath) {
       response.setHeader('x-rgaa-canonical-profile', redirectPath)
