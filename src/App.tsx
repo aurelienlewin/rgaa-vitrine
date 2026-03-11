@@ -2089,19 +2089,29 @@ function App() {
                 >
                   Trier les résultats
                 </label>
-                <select
-                  id="annuaire-tri-resultats"
-                  value={directorySort}
-                  onChange={handleDirectorySortChange}
-                  aria-describedby="annuaire-tri-resultats-aide annuaire-resultats-resume"
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-700 dark:border-slate-400 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
-                >
-                  {directorySortOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative mt-1">
+                  <select
+                    id="annuaire-tri-resultats"
+                    value={directorySort}
+                    onChange={handleDirectorySortChange}
+                    aria-describedby="annuaire-tri-resultats-aide annuaire-resultats-resume"
+                    className={`min-h-11 w-full appearance-none rounded-xl border-2 border-slate-950 dark:border-slate-50 bg-slate-950 dark:bg-slate-50 px-3 py-2 pe-10 text-sm font-semibold text-slate-50 dark:text-slate-950 shadow-sm ${focusRingClass}`}
+                  >
+                    {directorySortOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-y-0 end-3 flex items-center text-slate-50 dark:text-slate-950"
+                  >
+                    <svg viewBox="0 0 20 20" className="h-4 w-4 fill-current">
+                      <path d="M5.47 7.72a.75.75 0 0 1 1.06 0L10 11.19l3.47-3.47a.75.75 0 1 1 1.06 1.06l-4 4a.75.75 0 0 1-1.06 0l-4-4a.75.75 0 0 1 0-1.06Z" />
+                    </svg>
+                  </span>
+                </div>
                 <p id="annuaire-tri-resultats-aide" className="mt-2 text-sm text-slate-700 dark:text-slate-300">
                   Le tri met à jour immédiatement les cartes ci-dessous sans déplacer le focus clavier.
                 </p>
