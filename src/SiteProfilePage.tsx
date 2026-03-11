@@ -882,22 +882,26 @@ function SiteProfilePage() {
                 </p>
 
                 <div className="mt-3 rounded-xl border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 p-3">
-                  <p className="text-sm font-semibold text-sky-900 dark:text-sky-100">Aperçu du badge visuel</p>
+                  <p className="text-sm font-semibold text-sky-900 dark:text-sky-100">Aperçu en texte stylé</p>
                   <a
                     href={profileUrl}
                     aria-label={`Voir la fiche de ${backlinkSiteTitle} sur Annuaire RGAA`}
-                    className={`mt-2 inline-flex rounded-lg ${focusRingClass}`}
+                    className={`mt-2 inline-flex max-w-full flex-col rounded-2xl border border-sky-700 dark:border-sky-300 bg-sky-50 dark:bg-sky-950 px-4 py-3 text-start text-sky-950 dark:text-sky-50 ${focusRingClass}`}
                   >
-                    <img
-                      src="/badge-backlink-annuaire-rgaa.svg"
-                      alt={`Badge Annuaire RGAA : voir la fiche de ${backlinkSiteTitle}`}
-                      width={252}
-                      height={64}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-16 w-auto"
-                    />
+                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-900 dark:text-sky-100">
+                      Annuaire RGAA
+                    </span>
+                    <span className="mt-1 text-base font-bold">
+                      Référencé sur l’annuaire
+                    </span>
+                    <span className="mt-1 text-sm text-sky-900 dark:text-sky-100">
+                      Voir la fiche de {backlinkSiteTitle}
+                    </span>
                   </a>
+                  <p className="mt-2 text-xs text-sky-900 dark:text-sky-100">
+                    Le code HTML du badge image reste disponible ci-dessous pour les intégrations qui souhaitent
+                    reprendre le visuel de marque.
+                  </p>
                 </div>
 
                 <label htmlFor="backlink-code-badge" className="mt-3 block text-sm font-semibold text-sky-900 dark:text-sky-100">
