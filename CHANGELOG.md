@@ -9,6 +9,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ### Added
 - Moderation now includes a persisted maintenance-mode control with editable public message, plus `GET /api/moderation/maintenance`, `POST /api/moderation/maintenance`, and public `GET /api/maintenance` endpoints.
+- Added `GET /api/thumbnail-proxy?url=...`, a validated server-side image proxy for public showcase thumbnails with explicit timeout/size caps and long-lived cache headers.
 
 ### Fixed
 - Homepage global live announcements now use persistent visually hidden `aria-live` regions instead of inserting visible status panels above the header, removing a major startup CLS source while preserving spoken French feedback for assistive technologies.

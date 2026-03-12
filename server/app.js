@@ -67,6 +67,9 @@ const MAX_GITHUB_NOTIFY_WINDOW_SECONDS = 24 * 60 * 60
 const DEFAULT_GITHUB_NOTIFY_MAX_PER_WINDOW = 12
 const MIN_GITHUB_NOTIFY_MAX_PER_WINDOW = 1
 const MAX_GITHUB_NOTIFY_MAX_PER_WINDOW = 200
+const THUMBNAIL_PROXY_TIMEOUT_MS = 5000
+const THUMBNAIL_PROXY_MAX_BYTES = 450_000
+const THUMBNAIL_PROXY_CACHE_CONTROL = 'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=604800'
 const MAX_MAINTENANCE_MESSAGE_LENGTH = 280
 const DEFAULT_MAINTENANCE_MESSAGE = 'Nous revenons très vite. Merci de réessayer dans quelques instants.'
 const MAINTENANCE_RETRY_AFTER_SECONDS = 15 * 60
@@ -201,6 +204,46 @@ function firstQueryValue(value) {
     return value[0]
   }
   return value
+}
+
+function normalizeImageContentType(value) {
+  if (typeof value !== 'string' || !value.trim()) {
+    return null
+  }
+
+  const [rawType] = value.split(';')
+  const normalizedType = rawType?.trim().toLowerCase() ?? ''
+  if (!normalizedType.startsWith('image/')) {
+    return null
+  }
+
+  return normalizedType
+}
+
+async function readBinaryBodyWithLimit(response, maxBytes) {
+  const reader = response.body?.getReader()
+  if (!reader) {
+    return Buffer.alloc(0)
+  }
+
+  const chunks = []
+  let totalBytes = 0
+
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) {
+      break
+    }
+
+    totalBytes += value.byteLength
+    if (totalBytes > maxBytes) {
+      throw new SiteInsightError('La vignette distante dépasse la taille autorisée.', 413)
+    }
+
+    chunks.push(Buffer.from(value))
+  }
+
+  return Buffer.concat(chunks, totalBytes)
 }
 
 function isPreviewRequested(request) {
@@ -932,6 +975,35 @@ function extractDomainGroupSlug(value) {
   return normalizeDomainGroupSlug(value)
 }
 
+function toPublicThumbnailProxyPath(rawThumbnailUrl) {
+  if (typeof rawThumbnailUrl !== 'string') {
+    return null
+  }
+
+  const trimmed = rawThumbnailUrl.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  return `/api/thumbnail-proxy?url=${encodeURIComponent(trimmed)}`
+}
+
+function withPublicThumbnailProxy(entry) {
+  if (!entry || typeof entry !== 'object') {
+    return entry
+  }
+
+  const proxiedThumbnailUrl = toPublicThumbnailProxyPath(entry.thumbnailUrl)
+  if (!proxiedThumbnailUrl) {
+    return entry
+  }
+
+  return {
+    ...entry,
+    thumbnailUrl: proxiedThumbnailUrl,
+  }
+}
+
 function withShowcasePublicMetadata(entry) {
   if (!entry || typeof entry !== 'object' || typeof entry.normalizedUrl !== 'string') {
     return entry
@@ -1561,6 +1633,86 @@ app.get('/api/health', async (_request, response) => {
   }
 })
 
+app.get('/api/thumbnail-proxy', async (request, response) => {
+  const rawUrl = firstQueryValue(request.query.url)
+  if (typeof rawUrl !== 'string' || !rawUrl.trim()) {
+    sendJsonError(response, 400, "Le paramètre d'URL de vignette est obligatoire.")
+    return
+  }
+
+  let validatedUrl
+  try {
+    validatedUrl = await validatePublicHttpUrl(rawUrl)
+  } catch (error) {
+    if (error instanceof SiteInsightError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected URL validation error in /api/thumbnail-proxy', error)
+    sendJsonError(response, 500, "Erreur interne lors de la validation de l'URL de vignette.")
+    return
+  }
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), THUMBNAIL_PROXY_TIMEOUT_MS)
+
+  try {
+    const remoteResponse = await fetch(validatedUrl, {
+      method: 'GET',
+      redirect: 'manual',
+      signal: controller.signal,
+      headers: {
+        'user-agent': 'Annuaire-RGAA/1.0 (+https://annuaire-rgaa.fr)',
+        accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      },
+    })
+
+    if (remoteResponse.status >= 300 && remoteResponse.status < 400) {
+      throw new SiteInsightError('La vignette distante redirige vers une URL non prise en charge.', 502)
+    }
+
+    if (!remoteResponse.ok) {
+      throw new SiteInsightError(
+        `La vignette distante a répondu avec le statut ${remoteResponse.status}.`,
+        502,
+      )
+    }
+
+    const contentType = normalizeImageContentType(remoteResponse.headers.get('content-type') ?? '')
+    if (!contentType) {
+      throw new SiteInsightError("La ressource distante n'est pas une image.", 422)
+    }
+
+    const contentLengthHeader = Number.parseInt(remoteResponse.headers.get('content-length') ?? '', 10)
+    if (Number.isFinite(contentLengthHeader) && contentLengthHeader > THUMBNAIL_PROXY_MAX_BYTES) {
+      throw new SiteInsightError('La vignette distante dépasse la taille autorisée.', 413)
+    }
+
+    const payload = await readBinaryBodyWithLimit(remoteResponse, THUMBNAIL_PROXY_MAX_BYTES)
+
+    response.setHeader('cache-control', THUMBNAIL_PROXY_CACHE_CONTROL)
+    response.setHeader('content-type', contentType)
+    response.setHeader('x-content-type-options', 'nosniff')
+    response.status(200).send(payload)
+  } catch (error) {
+    if (error instanceof SiteInsightError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      sendJsonError(response, 504, 'Le chargement de la vignette a expiré.')
+      return
+    }
+
+    console.error('Unexpected error in /api/thumbnail-proxy', error)
+    sendJsonError(response, 502, 'Impossible de récupérer la vignette distante.')
+  } finally {
+    clearTimeout(timeout)
+  }
+})
+
 app.get('/api/showcase', async (request, response) => {
   try {
     const slugFilter = extractShowcaseSlug(firstQueryValue(request.query.slug))
@@ -1581,7 +1733,7 @@ app.get('/api/showcase', async (request, response) => {
       ...entry,
       hasUpvoted: clientVoteIndexId ? votedUrls.has(entry.normalizedUrl) : false,
       votesBlocked: voteBlocklist.has(entry.normalizedUrl),
-    })).map((entry) => withShowcasePublicMetadata(entry))
+    })).map((entry) => withPublicThumbnailProxy(withShowcasePublicMetadata(entry)))
     const { groups: domainGroups, entries: entriesWithDomainContext } = attachDomainContextToPublishedEntries(
       entriesWithVoteState,
     )
@@ -1642,7 +1794,7 @@ app.get('/api/domain-groups', async (request, response) => {
     const siteBlocklist = new Set(await showcaseStorage.listSiteBlocklist())
     const visibleEntries = entries
       .filter((entry) => !siteBlocklist.has(entry.normalizedUrl))
-      .map((entry) => withShowcasePublicMetadata(entry))
+      .map((entry) => withPublicThumbnailProxy(withShowcasePublicMetadata(entry)))
     const groups = buildDomainGroups(visibleEntries).groups.filter((group) => group.siteCount > 1)
     const filteredGroups = requestedSlug
       ? groups.filter((group) => group.groupSlug === requestedSlug)
@@ -1777,7 +1929,7 @@ app.post('/api/showcase/upvote', voteLimiter, async (request, response) => {
               : 'Vote déjà pris en compte.'
 
     response.json({
-      ...withShowcasePublicMetadata(voteResult.entry),
+      ...withPublicThumbnailProxy(withShowcasePublicMetadata(voteResult.entry)),
       hasUpvoted: voteResult.hasUpvoted === true,
       votesBlocked: false,
       alreadyVoted,

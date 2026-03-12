@@ -283,6 +283,7 @@ Publication issues are intentionally worded as informational and do not imply op
 - `GET /api/showcase/vote-state?clientVoterId={id}`: list vote ownership for a browser identity plus targeted vote counters for the same voted URLs; responses are served as private non-cacheable payloads
 - `GET /api/domain-groups`: list grouped public domains
 - `GET /api/domain-groups?slug={groupSlug}`: retrieve one domain-group payload
+- `GET /api/thumbnail-proxy?url={encodedUrl}`: fetch one remote thumbnail through a validated server-side proxy with long-lived cache headers
 - `POST /api/showcase/upvote`: add or remove one vote owned by the requesting browser identity (`action: upvote | remove`)
 - `GET /api/health`: service status and storage mode
 - `GET /api/maintenance`: public maintenance state
@@ -335,6 +336,7 @@ Key controls:
 - redirect-by-redirect target revalidation
 - DNS checks before remote fetch
 - response size and timeout limits, with a slightly larger homepage HTML budget than secondary remote documents
+- remote-thumbnail proxying keeps URL validation server-side, restricts payloads to image content types, and enforces explicit timeout/size ceilings before bytes are relayed
 - rate limiting on public endpoints, keyed from extracted client IP headers on proxied deployments, with stricter submission and vote controls
 - moderation token strength checks and auth throttling
 - no remote script execution
