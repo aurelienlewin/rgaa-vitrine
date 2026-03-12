@@ -7,6 +7,9 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+### Fixed
+- `/api/thumbnail-proxy` now follows bounded HTTP(S) redirects with per-hop public-host revalidation and tolerates mislabeled WebP payloads through signature-based content-type fallback, fixing broken logos served through redirecting or non-standard image headers.
+
 ## [2026-03-12 / v0.5.3]
 
 ### Added

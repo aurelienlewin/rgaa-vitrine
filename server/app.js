@@ -69,6 +69,7 @@ const MIN_GITHUB_NOTIFY_MAX_PER_WINDOW = 1
 const MAX_GITHUB_NOTIFY_MAX_PER_WINDOW = 200
 const THUMBNAIL_PROXY_TIMEOUT_MS = 5000
 const THUMBNAIL_PROXY_MAX_BYTES = 450_000
+const THUMBNAIL_PROXY_MAX_REDIRECTS = 5
 const THUMBNAIL_PROXY_CACHE_CONTROL = 'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=604800'
 const MAX_MAINTENANCE_MESSAGE_LENGTH = 280
 const DEFAULT_MAINTENANCE_MESSAGE = 'Nous revenons très vite. Merci de réessayer dans quelques instants.'
@@ -218,6 +219,53 @@ function normalizeImageContentType(value) {
   }
 
   return normalizedType
+}
+
+function resolveRedirectUrl(locationHeader, baseUrl) {
+  if (typeof locationHeader !== 'string' || !locationHeader.trim()) {
+    return null
+  }
+
+  try {
+    const parsed = new URL(locationHeader.trim(), baseUrl)
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return null
+    }
+    return parsed.toString()
+  } catch {
+    return null
+  }
+}
+
+function hasWebpSignature(payload) {
+  return (
+    Buffer.isBuffer(payload) &&
+    payload.length >= 12 &&
+    payload.subarray(0, 4).toString('ascii') === 'RIFF' &&
+    payload.subarray(8, 12).toString('ascii') === 'WEBP'
+  )
+}
+
+function resolveThumbnailContentType(contentTypeHeader, payload, finalUrl) {
+  const normalizedType = normalizeImageContentType(contentTypeHeader ?? '')
+  if (normalizedType) {
+    return normalizedType
+  }
+
+  if (hasWebpSignature(payload)) {
+    return 'image/webp'
+  }
+
+  try {
+    const pathname = new URL(finalUrl).pathname.toLowerCase()
+    if (pathname.endsWith('.webp')) {
+      return 'image/webp'
+    }
+  } catch {
+    // Keep null when URL parsing fails.
+  }
+
+  return null
 }
 
 async function readBinaryBodyWithLimit(response, maxBytes) {
@@ -1658,18 +1706,41 @@ app.get('/api/thumbnail-proxy', async (request, response) => {
   const timeout = setTimeout(() => controller.abort(), THUMBNAIL_PROXY_TIMEOUT_MS)
 
   try {
-    const remoteResponse = await fetch(validatedUrl, {
-      method: 'GET',
-      redirect: 'manual',
-      signal: controller.signal,
-      headers: {
-        'user-agent': 'Annuaire-RGAA/1.0 (+https://annuaire-rgaa.fr)',
-        accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-      },
-    })
+    let remoteResponse = null
+    let finalThumbnailUrl = validatedUrl
 
-    if (remoteResponse.status >= 300 && remoteResponse.status < 400) {
-      throw new SiteInsightError('La vignette distante redirige vers une URL non prise en charge.', 502)
+    for (let redirectCount = 0; redirectCount <= THUMBNAIL_PROXY_MAX_REDIRECTS; redirectCount += 1) {
+      remoteResponse = await fetch(finalThumbnailUrl, {
+        method: 'GET',
+        redirect: 'manual',
+        signal: controller.signal,
+        headers: {
+          'user-agent': 'Annuaire-RGAA/1.0 (+https://annuaire-rgaa.fr)',
+          accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        },
+      })
+
+      if (!(remoteResponse.status >= 300 && remoteResponse.status < 400)) {
+        break
+      }
+
+      if (redirectCount >= THUMBNAIL_PROXY_MAX_REDIRECTS) {
+        throw new SiteInsightError('La vignette distante redirige trop de fois.', 502)
+      }
+
+      const redirectUrl = resolveRedirectUrl(
+        remoteResponse.headers.get('location') ?? '',
+        finalThumbnailUrl,
+      )
+      if (!redirectUrl) {
+        throw new SiteInsightError('La vignette distante redirige vers une URL non prise en charge.', 502)
+      }
+
+      finalThumbnailUrl = await validatePublicHttpUrl(redirectUrl)
+    }
+
+    if (!remoteResponse) {
+      throw new SiteInsightError('Réponse distante introuvable.', 502)
     }
 
     if (!remoteResponse.ok) {
@@ -1679,17 +1750,20 @@ app.get('/api/thumbnail-proxy', async (request, response) => {
       )
     }
 
-    const contentType = normalizeImageContentType(remoteResponse.headers.get('content-type') ?? '')
-    if (!contentType) {
-      throw new SiteInsightError("La ressource distante n'est pas une image.", 422)
-    }
-
     const contentLengthHeader = Number.parseInt(remoteResponse.headers.get('content-length') ?? '', 10)
     if (Number.isFinite(contentLengthHeader) && contentLengthHeader > THUMBNAIL_PROXY_MAX_BYTES) {
       throw new SiteInsightError('La vignette distante dépasse la taille autorisée.', 413)
     }
 
     const payload = await readBinaryBodyWithLimit(remoteResponse, THUMBNAIL_PROXY_MAX_BYTES)
+    const contentType = resolveThumbnailContentType(
+      remoteResponse.headers.get('content-type') ?? '',
+      payload,
+      finalThumbnailUrl,
+    )
+    if (!contentType) {
+      throw new SiteInsightError("La ressource distante n'est pas une image.", 422)
+    }
 
     response.setHeader('cache-control', THUMBNAIL_PROXY_CACHE_CONTROL)
     response.setHeader('content-type', contentType)
