@@ -11,6 +11,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Moderation now includes a persisted maintenance-mode control with editable public message, plus `GET /api/moderation/maintenance`, `POST /api/moderation/maintenance`, and public `GET /api/maintenance` endpoints.
 
 ### Fixed
+- Homepage global live announcements now use persistent visually hidden `aria-live` regions instead of inserting visible status panels above the header, removing a major startup CLS source while preserving spoken French feedback for assistive technologies.
 - Public pages now force a stable light-only color scheme at bootstrap and runtime, and the public theme toggle was removed from shared headers to prevent dark-mode contrast regressions while the palette is rebuilt.
 - Latest reference-audit NC criteria (`3.3`, `10.5`, `10.12`, `13.5`) were remediated across shared templates: stronger interface control contrast, explicit text/background CSS pairing in critical shell + React components, profile backlink snippet reflow-safe rendering, and descriptive alternatives for previously cryptic URL-only content on `/accessibilite`.
 - Shared interactive controls now use explicit filled surfaces (instead of transparent backgrounds) across homepage, secondary header/navigation, global search, site map, domain/profile cards, footer actions, and critical shell CSS, closing the latest RGAA `3.2`/`3.3`/`10.5` contrast and text/background pairing findings from the 2026-03-11 audit scope.
@@ -43,6 +44,10 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Homepage result sorting now uses a native high-contrast select with URL persistence, keeps keyboard focus on the control, and updates the visible/live French results summary so sorting changes remain explicit for screen-reader users without breaking SSR-safe hydration behavior.
 - Homepage results header now uses a dedicated responsive two-column layout that keeps the title, help copy, and score disclaimer together in the primary content column while reserving a separate desktop column for sorting controls, improving visual alignment without changing keyboard or live-region behavior.
 - Homepage vote hydration now reuses a lightweight private `vote-state` payload with targeted counters for voted URLs and defers that reconciliation until page load/idle; the backend now also verifies current ownership and self-heals undercounted persisted totals upward from active client-vote indexes so already-owned votes cannot surface an impossible `0 vote(s)` state.
+- Public route bootstrap now starts active-page module loading in parallel with the maintenance probe, and the initial route-data preloader is lazy-loaded only when a detail route needs it, reducing startup dependency chains and initial JavaScript transfer on homepage loads.
+- Route-aware module preloads now also cover homepage, site map, accessibility, and moderation entry paths (in addition to profile/domain pages), reducing route-entry JavaScript waterfalls.
+- Client vote-state synchronization now runs after a short post-load delay and idle slot, keeping the non-critical private vote request out of the early LCP network chain.
+- Atkinson Hyperlegible is now declared through local `@font-face` rules with `font-display: optional`, reducing late text reflow risk during startup font swaps.
 
 ### Changed
 - Accessibility statement snapshot data (`shared/accessibilityStatement.js`) now reports the latest 2026-03-12 five-page audit baseline (`96.7%`, `2` tracked non-conformities) and lists each criterion with impacted templates and remediation status.

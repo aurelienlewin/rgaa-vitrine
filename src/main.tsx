@@ -1,14 +1,12 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import '@fontsource/atkinson-hyperlegible/latin-400.css'
-import '@fontsource/atkinson-hyperlegible/latin-700.css'
+import './fonts.css'
 import './index.css'
 import { initializeTheme } from './theme'
-import { readDomainGroupSlugFromPath } from './domainGroups'
-import { preloadRouteApi } from './routeData'
-import { readSiteSlugFromPath } from './siteProfiles'
 
 const canUseDom = typeof window !== 'undefined' && typeof document !== 'undefined'
+const DOMAIN_GROUP_PATH_PATTERN = /^\/domaine\/([a-z0-9-]{4,120})$/
+const SITE_PROFILE_PATH_PATTERN = /^\/site\/([a-z0-9-]{4,120})$/
 
 declare global {
   interface Window {
@@ -69,15 +67,27 @@ const isAccessibilityRoute = currentPathname === '/accessibilite'
 const isSiteProfileRoute = currentPathname.startsWith('/site/')
 const isDomainGroupRoute = currentPathname.startsWith('/domaine/')
 
-function preloadInitialRouteData(pathname: string) {
+function readDomainGroupSlugFromPath(pathname: string) {
+  const match = pathname.match(DOMAIN_GROUP_PATH_PATTERN)
+  return match?.[1] ?? null
+}
+
+function readSiteSlugFromPath(pathname: string) {
+  const match = pathname.match(SITE_PROFILE_PATH_PATTERN)
+  return match?.[1] ?? null
+}
+
+async function preloadInitialRouteData(pathname: string) {
   const domainGroupSlug = readDomainGroupSlugFromPath(pathname)
   if (domainGroupSlug) {
+    const { preloadRouteApi } = await import('./routeData')
     void preloadRouteApi(`/api/domain-groups?slug=${encodeURIComponent(domainGroupSlug)}`)
     return
   }
 
   const siteSlug = readSiteSlugFromPath(pathname)
   if (siteSlug) {
+    const { preloadRouteApi } = await import('./routeData')
     void preloadRouteApi(`/api/showcase?slug=${encodeURIComponent(siteSlug)}&limit=500`)
   }
 }
@@ -103,16 +113,23 @@ async function resolveRootModule() {
 }
 
 if (canUseDom) {
-  await window.__ANNUAIRE_RGAA_MAINTENANCE_PROMISE__
-  if (!(window.__ANNUAIRE_RGAA_MAINTENANCE__?.enabled === true && !isModerationRoute)) {
-    preloadInitialRouteData(currentPathname)
-    const RootComponent = (await resolveRootModule()).default
-    createRoot(document.getElementById('root')!).render(
-      <StrictMode>
-        <RootComponent />
-      </StrictMode>,
-    )
+  const maintenanceProbePromise = (window.__ANNUAIRE_RGAA_MAINTENANCE_PROMISE__ ?? Promise.resolve()).catch(
+    () => undefined,
+  )
+  const rootModulePromise = resolveRootModule()
 
-    scheduleAnalyticsLoad()
+  await maintenanceProbePromise
+  if (!(window.__ANNUAIRE_RGAA_MAINTENANCE__?.enabled === true && !isModerationRoute)) {
+    void preloadInitialRouteData(currentPathname)
+    const RootComponent = (await rootModulePromise).default
+    if (!(window.__ANNUAIRE_RGAA_MAINTENANCE__?.enabled === true && !isModerationRoute)) {
+      createRoot(document.getElementById('root')!).render(
+        <StrictMode>
+          <RootComponent />
+        </StrictMode>,
+      )
+
+      scheduleAnalyticsLoad()
+    }
   }
 }

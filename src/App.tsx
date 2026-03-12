@@ -10,6 +10,7 @@ import {
 } from './hashNavigation'
 import { applySeo, createAbsoluteUrl } from './seo'
 import { resolveShowcaseProfilePath } from './siteProfiles'
+import { visuallyHiddenStyle } from './visuallyHidden'
 import SiteFooter from './SiteFooter'
 import GlobalSearchForm from './GlobalSearchForm'
 import PrimaryNavigation from './PrimaryNavigation'
@@ -1462,9 +1463,11 @@ function App() {
     }
 
     shouldSyncVoteStateAfterDirectoryLoadRef.current = false
+    let delayId: number | null = null
     let timeoutId: number | null = null
     let idleId: number | null = null
     let loadListenerRegistered = false
+    let handleWindowLoad: (() => void) | null = null
     let cancelled = false
     const syncVoteState = () => {
       if (cancelled) {
@@ -1478,23 +1481,29 @@ function App() {
       }
 
       if (typeof window.requestIdleCallback === 'function') {
-        idleId = window.requestIdleCallback(syncVoteState, { timeout: 2400 })
+        idleId = window.requestIdleCallback(syncVoteState, { timeout: 5000 })
       } else {
-        timeoutId = window.setTimeout(syncVoteState, 1200)
+        timeoutId = window.setTimeout(syncVoteState, 0)
       }
     }
 
     if (document.readyState === 'complete') {
-      scheduleSync()
+      delayId = window.setTimeout(scheduleSync, 3000)
     } else {
       loadListenerRegistered = true
-      window.addEventListener('load', scheduleSync, { once: true })
+      handleWindowLoad = () => {
+        delayId = window.setTimeout(scheduleSync, 3000)
+      }
+      window.addEventListener('load', handleWindowLoad, { once: true })
     }
 
     return () => {
       cancelled = true
-      if (loadListenerRegistered) {
-        window.removeEventListener('load', scheduleSync)
+      if (loadListenerRegistered && handleWindowLoad) {
+        window.removeEventListener('load', handleWindowLoad)
+      }
+      if (delayId !== null) {
+        window.clearTimeout(delayId)
       }
       if (idleId !== null && typeof window.cancelIdleCallback === 'function') {
         window.cancelIdleCallback(idleId)
@@ -1924,28 +1933,24 @@ function App() {
       </div>
 
       <div className="min-h-screen bg-brand-surface text-brand-ink">
-        {assertiveAnnouncement.message ? (
-          <p
-            key={`assertive-announcement-${assertiveAnnouncement.id}`}
-            role="alert"
-            aria-live="assertive"
-            aria-atomic="true"
-            className="mx-auto mt-4 max-w-5xl rounded-xl border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 px-4 py-3 text-sm text-rose-900 dark:text-rose-100"
-          >
-            {assertiveAnnouncement.message}
-          </p>
-        ) : null}
-        {politeAnnouncement.message ? (
-          <p
-            key={`polite-announcement-${politeAnnouncement.id}`}
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-            className="mx-auto mt-4 max-w-5xl rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 px-4 py-3 text-sm text-sky-900 dark:text-sky-100"
-          >
-            {politeAnnouncement.message}
-          </p>
-        ) : null}
+        <p
+          key={`polite-announcement-${politeAnnouncement.id}`}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          style={visuallyHiddenStyle}
+        >
+          {politeAnnouncement.message}
+        </p>
+        <p
+          key={`assertive-announcement-${assertiveAnnouncement.id}`}
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+          style={visuallyHiddenStyle}
+        >
+          {assertiveAnnouncement.message}
+        </p>
         <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center gap-3">

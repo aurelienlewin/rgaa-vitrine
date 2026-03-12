@@ -87,6 +87,8 @@ The repository is a Vite + React frontend paired with a Node + Express backend.
 Important architectural choices:
 
 - public detail routes preload only the route-specific API payload they need
+- route bootstrap resolves the active page module in parallel with the maintenance probe so public routes avoid an avoidable extra startup dependency chain
+- generated route-aware module preloads cover homepage, site map, accessibility, moderation, profile, and domain-group routes to reduce route-entry JavaScript waterfalls
 - route-aware metadata is applied before React hydration where possible
 - shared secondary-page primitives keep search, navigation, footer, and skip-link behavior aligned
 - fragment targets move real DOM focus on load and on `hashchange`
@@ -111,6 +113,7 @@ Implemented principles:
 - shared secondary navigation and global-search controls use explicit filled surfaces and reinforced borders to keep interface-component contrast stable across public templates
 - shared search entry point across homepage and secondary routes
 - homepage results summary and polite announcements stay aligned when search, filters, sorting, and progressive loading update the visible cards
+- global asynchronous announcers stay in persistent visually hidden live regions to avoid layout shifts while keeping French status/error messages available to assistive technologies
 - focus continuity after action outcomes and section jumps
 - minimum `44px`-class interaction targets on primary controls
 - consistent fragment-focus behavior across `/`, `/plan-du-site`, `/accessibilite`, `/site/{slug}`, `/domaine/{groupSlug}`, and `/moderation`

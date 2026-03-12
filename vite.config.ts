@@ -103,6 +103,18 @@ function optimizeCriticalStylesheetDelivery(): Plugin {
       const siteProfileChunk = bundleChunks.find((chunk) =>
         chunk.facadeModuleId?.endsWith('/src/SiteProfilePage.tsx'),
       )
+      const moderationChunk = bundleChunks.find((chunk) =>
+        chunk.facadeModuleId?.endsWith('/src/ModerationPage.tsx'),
+      )
+      const siteMapChunk = bundleChunks.find((chunk) =>
+        chunk.facadeModuleId?.endsWith('/src/SiteMapPage.tsx'),
+      )
+      const accessibilityChunk = bundleChunks.find((chunk) =>
+        chunk.facadeModuleId?.endsWith('/src/AccessibilityPage.tsx'),
+      )
+      const homeChunk = bundleChunks.find((chunk) =>
+        chunk.facadeModuleId?.endsWith('/src/App.tsx'),
+      )
 
       const domainGroupRouteFiles = domainGroupChunk
         ? Array.from(new Set(collectChunkDependencies(bundleByFileName, domainGroupChunk.fileName))).map(
@@ -114,20 +126,55 @@ function optimizeCriticalStylesheetDelivery(): Plugin {
             (fileName) => `/${fileName}`,
           )
         : []
+      const moderationRouteFiles = moderationChunk
+        ? Array.from(new Set(collectChunkDependencies(bundleByFileName, moderationChunk.fileName))).map(
+            (fileName) => `/${fileName}`,
+          )
+        : []
+      const siteMapRouteFiles = siteMapChunk
+        ? Array.from(new Set(collectChunkDependencies(bundleByFileName, siteMapChunk.fileName))).map(
+            (fileName) => `/${fileName}`,
+          )
+        : []
+      const accessibilityRouteFiles = accessibilityChunk
+        ? Array.from(new Set(collectChunkDependencies(bundleByFileName, accessibilityChunk.fileName))).map(
+            (fileName) => `/${fileName}`,
+          )
+        : []
+      const homeRouteFiles = homeChunk
+        ? Array.from(new Set(collectChunkDependencies(bundleByFileName, homeChunk.fileName))).map(
+            (fileName) => `/${fileName}`,
+          )
+        : []
 
       routeModulePreloadScript =
-        domainGroupRouteFiles.length > 0 || siteProfileRouteFiles.length > 0
+        domainGroupRouteFiles.length > 0 ||
+        siteProfileRouteFiles.length > 0 ||
+        moderationRouteFiles.length > 0 ||
+        siteMapRouteFiles.length > 0 ||
+        accessibilityRouteFiles.length > 0 ||
+        homeRouteFiles.length > 0
           ? [
               '    <script>',
               '      (function () {',
               '        var pathname = window.location.pathname;',
               `        var domainRouteFiles = ${JSON.stringify(domainGroupRouteFiles)};`,
               `        var siteRouteFiles = ${JSON.stringify(siteProfileRouteFiles)};`,
+              `        var moderationRouteFiles = ${JSON.stringify(moderationRouteFiles)};`,
+              `        var siteMapRouteFiles = ${JSON.stringify(siteMapRouteFiles)};`,
+              `        var accessibilityRouteFiles = ${JSON.stringify(accessibilityRouteFiles)};`,
+              `        var homeRouteFiles = ${JSON.stringify(homeRouteFiles)};`,
               '        var routeFiles = /^\\/domaine\\/[a-z0-9-]{4,120}\\/?$/.test(pathname)',
               '          ? domainRouteFiles',
               '          : /^\\/site\\/[a-z0-9-]{4,120}\\/?$/.test(pathname)',
               '            ? siteRouteFiles',
-              '            : [];',
+              "            : pathname === '/plan-du-site' || pathname === '/plan-du-site/'",
+              '              ? siteMapRouteFiles',
+              "              : pathname === '/accessibilite' || pathname === '/accessibilite/'",
+              '                ? accessibilityRouteFiles',
+              "                : pathname === '/moderation' || pathname.startsWith('/moderation/')",
+              '                  ? moderationRouteFiles',
+              '                  : homeRouteFiles;',
               '        for (var index = 0; index < routeFiles.length; index += 1) {',
               '          var href = routeFiles[index];',
               '          if (document.querySelector(\'link[rel="modulepreload"][href="\' + href + \'"]\')) {',
