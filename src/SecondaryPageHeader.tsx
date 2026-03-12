@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import type { RefObject } from 'react'
-import ThemeToggle from './ThemeToggle'
 import GlobalSearchForm from './GlobalSearchForm'
 import PrimaryNavigation from './PrimaryNavigation'
 import { formatCategory, readStatusFilterFromQuery, showcaseCategories } from './showcaseFilters'
@@ -42,9 +41,8 @@ function SecondaryPageHeader({
   return (
     <header className="app-secondary-header border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-950 dark:text-slate-50">
       <div className="app-secondary-header__inner mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="app-secondary-header__top flex flex-wrap items-center justify-between gap-3">
+        <div className="app-secondary-header__top flex flex-wrap items-center gap-3">
           <h1 className="app-secondary-header__title text-2xl font-bold">{title}</h1>
-          <ThemeToggle className={`${focusRingClass}`} />
         </div>
         <PrimaryNavigation
           currentPath={currentPath === null ? null : currentPath}

@@ -172,7 +172,7 @@ function GlobalSearchForm({
         <button
           type={onReset ? 'button' : 'reset'}
           onClick={onReset}
-          className={`app-global-search-form__button app-global-search-form__button--reset min-h-11 rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
+          className={`app-global-search-form__button app-global-search-form__button--reset min-h-11 rounded-xl border-2 border-slate-900 dark:border-slate-100 bg-slate-100 dark:bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-950 dark:text-slate-950 hover:bg-slate-200 dark:hover:bg-white ${focusRingClass}`}
         >
           Réinitialiser
         </button>

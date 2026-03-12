@@ -9,10 +9,10 @@
     <meta name="author" content="Aurélien Lewin" />
     <meta name="application-name" content="Annuaire RGAA" />
     <meta name="rgaa:compliance-status" content="partial" />
-    <meta name="rgaa:compliance-score" content="88.7" />
-    <meta name="theme-color" content="#0f172a" />
-    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)" />
+    <meta name="rgaa:compliance-score" content="93.8" />
+    <meta name="theme-color" content="#f3f6fd" />
+    <meta name="theme-color" content="#f3f6fd" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f3f6fd" media="(prefers-color-scheme: light)" />
     <meta
       name="keywords"
       content="RGAA, accessibilité numérique, conformité RGAA, déclaration accessibilité, annuaire accessibilité"
@@ -161,6 +161,7 @@
 
       .app-global-search-form__control::placeholder {
         color: #33415f;
+        background-color: #ffffff;
         opacity: 1;
       }
 
@@ -181,9 +182,9 @@
       }
 
       .app-global-search-form__button--reset {
-        border: 1px solid #33415f;
-        background: #ffffff;
-        color: #121a2b;
+        border: 2px solid #090f1d;
+        background: #e9effa;
+        color: #090f1d;
       }
 
       .app-global-search-form__helper,
@@ -213,6 +214,7 @@
         border-radius: 1.5rem;
         padding: 1.5rem;
         background: rgba(255, 255, 255, 0.96);
+        color: #121a2b;
         box-shadow: 0 1.5rem 4rem rgba(18, 26, 43, 0.12);
       }
 
@@ -228,16 +230,21 @@
         letter-spacing: 0.12em;
         text-transform: uppercase;
         color: #7c2d12;
+        background-color: transparent;
       }
 
       .maintenance-card h1 {
         margin: 0.75rem 0 0;
         font-size: clamp(2rem, 4vw, 2.8rem);
         line-height: 1.1;
+        color: inherit;
+        background-color: transparent;
       }
 
       .maintenance-card p {
         margin: 1rem 0 0;
+        color: inherit;
+        background-color: transparent;
       }
 
       .maintenance-status {
@@ -245,10 +252,12 @@
         border-radius: 1rem;
         padding: 1rem;
         background: #f8fafc;
+        color: #121a2b;
       }
 
       .maintenance-meta {
         color: #334155;
+        background-color: transparent;
         font-size: 0.95rem;
       }
 
@@ -315,10 +324,12 @@
         html:not([data-theme='light']) .app-global-search-form__control {
           border-color: #c6d4ec;
           background: #0f1a30;
+          color: #f6f8ff;
         }
 
         html:not([data-theme='light']) .app-global-search-form__control::placeholder {
           color: #bccde7;
+          background-color: #0f1a30;
         }
 
         html:not([data-theme='light']) .app-global-search-form__button--submit {
@@ -328,27 +339,32 @@
         }
 
         html:not([data-theme='light']) .app-global-search-form__button--reset {
-          border-color: #c6d4ec;
-          background: #182845;
+          border-color: #f7f9ff;
+          background: #f7f9ff;
+          color: #070d1a;
         }
 
         html:not([data-theme='light']) .maintenance-card {
           border-color: #5b728f;
           background: rgba(8, 16, 31, 0.94);
+          color: #f6f8ff;
           box-shadow: 0 1.5rem 4rem rgba(2, 6, 23, 0.45);
         }
 
         html:not([data-theme='light']) .maintenance-kicker {
           color: #fdba74;
+          background-color: transparent;
         }
 
         html:not([data-theme='light']) .maintenance-status {
           border-color: #5b728f;
           background: rgba(15, 23, 42, 0.92);
+          color: #f6f8ff;
         }
 
         html:not([data-theme='light']) .maintenance-meta {
           color: #cbd5e1;
+          background-color: transparent;
         }
       }
 
@@ -391,10 +407,12 @@
       html[data-theme='dark'] .app-global-search-form__control {
         border-color: #c6d4ec;
         background: #0f1a30;
+        color: #f6f8ff;
       }
 
       html[data-theme='dark'] .app-global-search-form__control::placeholder {
         color: #bccde7;
+        background-color: #0f1a30;
       }
 
       html[data-theme='dark'] .app-global-search-form__button--submit {
@@ -404,27 +422,32 @@
       }
 
       html[data-theme='dark'] .app-global-search-form__button--reset {
-        border-color: #c6d4ec;
-        background: #182845;
+        border-color: #f7f9ff;
+        background: #f7f9ff;
+        color: #070d1a;
       }
 
       html[data-theme='dark'] .maintenance-card {
         border-color: #5b728f;
         background: rgba(8, 16, 31, 0.94);
+        color: #f6f8ff;
         box-shadow: 0 1.5rem 4rem rgba(2, 6, 23, 0.45);
       }
 
       html[data-theme='dark'] .maintenance-kicker {
         color: #fdba74;
+        background-color: transparent;
       }
 
       html[data-theme='dark'] .maintenance-status {
         border-color: #5b728f;
         background: rgba(15, 23, 42, 0.92);
+        color: #f6f8ff;
       }
 
       html[data-theme='dark'] .maintenance-meta {
         color: #cbd5e1;
+        background-color: transparent;
       }
     </style>
     <link rel="alternate" type="text/plain" href="/llms.txt" />
@@ -568,14 +591,11 @@
     <script>
       (function () {
         try {
-          var rawPreference = window.localStorage.getItem('annuaire-rgaa-theme');
-          var preference = rawPreference === 'light' || rawPreference === 'dark' ? rawPreference : 'system';
-          var systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-          var resolvedTheme = preference === 'system' ? (systemDark ? 'dark' : 'light') : preference;
           var root = document.documentElement;
-          root.setAttribute('data-theme', resolvedTheme);
-          root.classList.toggle('dark', resolvedTheme === 'dark');
-          root.style.colorScheme = resolvedTheme;
+          root.setAttribute('data-theme', 'light');
+          root.classList.remove('dark');
+          root.style.colorScheme = 'light';
+          window.localStorage.removeItem('annuaire-rgaa-theme');
         } catch (_) {
           // Keep default CSS preference when storage is unavailable.
         }

@@ -2,20 +2,7 @@ export type ThemePreference = 'system' | 'light' | 'dark'
 export type ResolvedTheme = 'light' | 'dark'
 
 const THEME_STORAGE_KEY = 'annuaire-rgaa-theme'
-const SYSTEM_DARK_MEDIA_QUERY = '(prefers-color-scheme: dark)'
-
-function isThemePreference(value: string | null): value is ThemePreference {
-  return value === 'system' || value === 'light' || value === 'dark'
-}
-
-function readSystemTheme(): ResolvedTheme {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-    return 'light'
-  }
-  return window.matchMedia(SYSTEM_DARK_MEDIA_QUERY).matches ? 'dark' : 'light'
-}
-
-function updateThemeColorMeta(theme: ResolvedTheme) {
+function updateThemeColorMeta() {
   if (typeof document === 'undefined') {
     return
   }
@@ -23,52 +10,38 @@ function updateThemeColorMeta(theme: ResolvedTheme) {
   if (!themeColorMeta) {
     return
   }
-  themeColorMeta.setAttribute('content', theme === 'dark' ? '#050913' : '#f3f6fd')
+  themeColorMeta.setAttribute('content', '#f3f6fd')
 }
 
 export function readStoredThemePreference(): ThemePreference {
-  if (typeof window === 'undefined') {
-    return 'system'
-  }
-
-  try {
-    const raw = window.localStorage.getItem(THEME_STORAGE_KEY)
-    return isThemePreference(raw) ? raw : 'system'
-  } catch {
-    return 'system'
-  }
+  return 'light'
 }
 
 export function resolveThemePreference(themePreference: ThemePreference): ResolvedTheme {
-  if (themePreference === 'system') {
-    return readSystemTheme()
-  }
-  return themePreference
+  void themePreference
+  return 'light'
 }
 
 export function applyThemePreference(themePreference: ThemePreference): ResolvedTheme {
-  const resolvedTheme = resolveThemePreference(themePreference)
+  void themePreference
+  const resolvedTheme: ResolvedTheme = 'light'
 
   if (typeof document !== 'undefined') {
     const root = document.documentElement
-    root.setAttribute('data-theme', resolvedTheme)
-    root.classList.toggle('dark', resolvedTheme === 'dark')
-    root.style.colorScheme = resolvedTheme
+    root.setAttribute('data-theme', 'light')
+    root.classList.remove('dark')
+    root.style.colorScheme = 'light'
   }
 
   if (typeof window !== 'undefined') {
     try {
-      if (themePreference === 'system') {
-        window.localStorage.removeItem(THEME_STORAGE_KEY)
-      } else {
-        window.localStorage.setItem(THEME_STORAGE_KEY, themePreference)
-      }
+      window.localStorage.removeItem(THEME_STORAGE_KEY)
     } catch {
       // Local storage may be unavailable in strict privacy contexts.
     }
   }
 
-  updateThemeColorMeta(resolvedTheme)
+  updateThemeColorMeta()
   return resolvedTheme
 }
 
@@ -79,20 +52,6 @@ export function initializeTheme() {
 }
 
 export function subscribeToSystemThemeChange(onChange: (theme: ResolvedTheme) => void) {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-    return () => {}
-  }
-
-  const mediaQueryList = window.matchMedia(SYSTEM_DARK_MEDIA_QUERY)
-  const handleChange = () => {
-    onChange(mediaQueryList.matches ? 'dark' : 'light')
-  }
-
-  if (typeof mediaQueryList.addEventListener === 'function') {
-    mediaQueryList.addEventListener('change', handleChange)
-    return () => mediaQueryList.removeEventListener('change', handleChange)
-  }
-
-  mediaQueryList.addListener(handleChange)
-  return () => mediaQueryList.removeListener(handleChange)
+  void onChange
+  return () => {}
 }
