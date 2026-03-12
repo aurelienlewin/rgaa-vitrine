@@ -62,6 +62,37 @@
         min-height: 100vh;
       }
 
+      html[data-home='0'] .app-initial-hero {
+        display: none;
+      }
+
+      .app-initial-hero {
+        border-bottom: 1px solid #bec9dc;
+        background: #ffffff;
+        color: #121a2b;
+      }
+
+      .app-initial-hero__inner {
+        max-width: 64rem;
+        margin: 0 auto;
+        padding: 1.5rem 1rem;
+      }
+
+      .app-initial-hero__title {
+        margin: 0;
+        font-size: 1.875rem;
+        line-height: 1.2;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+
+      .app-initial-hero__lead {
+        margin: 1rem 0 0;
+        max-width: 56rem;
+        color: #33415f;
+        font-size: 1rem;
+      }
+
       .app-secondary-header {
         border-bottom: 1px solid #bec9dc;
         background: #ffffff;
@@ -267,6 +298,10 @@
       }
 
       @media (min-width: 640px) {
+        .app-initial-hero__inner {
+          padding-inline: 1.5rem;
+        }
+
         .app-secondary-header__inner {
           padding-inline: 1.5rem;
         }
@@ -279,6 +314,10 @@
       }
 
       @media (min-width: 1024px) {
+        .app-initial-hero__inner {
+          padding-inline: 2rem;
+        }
+
         .app-secondary-header__inner {
           padding-inline: 2rem;
         }
@@ -300,6 +339,16 @@
           border-bottom-color: #6f8db9;
           background: #0f1a30;
           color: #f6f8ff;
+        }
+
+        html:not([data-theme='light']) .app-initial-hero {
+          border-bottom-color: #6f8db9;
+          background: #0f1a30;
+          color: #f6f8ff;
+        }
+
+        html:not([data-theme='light']) .app-initial-hero__lead {
+          color: #bccde7;
         }
 
         html:not([data-theme='light']) .app-theme-toggle,
@@ -383,6 +432,16 @@
         border-bottom-color: #6f8db9;
         background: #0f1a30;
         color: #f6f8ff;
+      }
+
+      html[data-theme='dark'] .app-initial-hero {
+        border-bottom-color: #6f8db9;
+        background: #0f1a30;
+        color: #f6f8ff;
+      }
+
+      html[data-theme='dark'] .app-initial-hero__lead {
+        color: #bccde7;
       }
 
       html[data-theme='dark'] .app-theme-toggle,
@@ -610,6 +669,8 @@
       (function () {
         var url = window.location.origin + window.location.pathname;
         var pathname = window.location.pathname;
+        var isHomePath = /^\/$/.test(pathname);
+        document.documentElement.setAttribute('data-home', isHomePath ? '1' : '0');
         var canonical = document.querySelector('link[rel="canonical"]');
         var ogUrl = document.querySelector('meta[property="og:url"]');
         var twitterUrl = document.querySelector('meta[name="twitter:url"]');
@@ -661,7 +722,17 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <section id="app-initial-hero" class="app-initial-hero">
+        <div class="app-initial-hero__inner">
+          <h1 class="app-initial-hero__title">Annuaire RGAA</h1>
+          <p class="app-initial-hero__lead">
+            Une vitrine simple pour référencer et découvrir les sites qui affichent leur conformité RGAA, avec
+            filtres et recherche accessibles à tous, alignés sur les WCAG (Web Content Accessibility Guidelines) 2.2.
+          </p>
+        </div>
+      </section>
+    </div>
     <script>
       window.__ANNUAIRE_RGAA_MAINTENANCE__ = { enabled: false };
       window.__ANNUAIRE_RGAA_MAINTENANCE_PROMISE__ = (function () {
