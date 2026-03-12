@@ -49,6 +49,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - README now documents that `/accessibilite` consumes the shared accessibility-statement snapshot for audit scope, score, and tracked non-conformities.
 - README now documents pointer-visible/wrapping skip-link trays and the text-styled backlink preview behavior on profile pages.
 - README now documents that public pages run in a single light color scheme to keep contrast and CSS pairing deterministic across templates.
+- README accessibility-model wording was normalized to avoid time-relative language and keep the document strictly descriptive (non-changelog style).
 - Maintenance state is now included in moderation archive export/import, in rollback freshness checks, and in `GET /api/health` so operators do not lose service posture during restores.
 - Public JSON/XML endpoints now return `503` with `Retry-After` during maintenance, while the static Vite shell probes `/api/maintenance` before hydration and swaps public SPA routes to an accessible French maintenance screen without exposing the moderation surface.
 - Discovery resources are now synchronized around the current public surface: `llms.txt`, `llms-full.txt`, `robots.txt`, `/sitemap.xml`, and `/ai-context.json` all reference domain-group pages and the public `/api/domain-groups` dataset where relevant.
