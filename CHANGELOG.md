@@ -12,6 +12,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Homepage bootstrap now preloads `/api/showcase` on `/` before `App` mounts and reuses that response on first directory load, reducing the critical request-chain dependency between the route chunk and the annuaire dataset request.
 - Public bootstrap now caps the blocking wait for the maintenance probe to a short bounded window before mounting non-moderation routes, reducing LCP render delay when `/api/maintenance` is slow while keeping maintenance-first behavior when the probe resolves quickly.
 - Homepage now ships a static critical hero shell in `index.html` (shown only on `/`) so the lead paragraph can render before React route code executes, reducing mobile LCP element render delay tied to JS bootstrap.
+- The critical homepage hero shell is now hidden by default and only enabled when bootstrap JS marks `data-home="1"`, avoiding duplicate landmark/content exposure in no-JS fallbacks.
 
 ## [2026-03-12 / v0.5.3]
 

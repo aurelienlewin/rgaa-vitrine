@@ -90,7 +90,7 @@ Important architectural choices:
 - homepage bootstrap preloads `/api/showcase` on `/` and reuses that settled response at first render to overlap directory data fetching with route-chunk loading
 - route bootstrap resolves the active page module in parallel with the maintenance probe so public routes avoid an avoidable extra startup dependency chain
 - public bootstrap applies a short bounded wait on the maintenance probe before mounting non-moderation routes, preventing slow maintenance checks from dominating first render delay
-- homepage also includes a small critical static hero shell in `index.html` (gated to `/`) so the primary lead copy can paint before React initialization on slower mobile paths
+- homepage also includes a small critical static hero shell in `index.html` (JS-gated to `/` via `data-home`) so the primary lead copy can paint before React initialization on slower mobile paths without leaking duplicate fallback content when JavaScript is disabled
 - generated route-aware module preloads cover homepage, site map, accessibility, moderation, profile, and domain-group routes to reduce route-entry JavaScript waterfalls
 - route-aware metadata is applied before React hydration where possible
 - shared secondary-page primitives keep search, navigation, footer, and skip-link behavior aligned

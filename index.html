@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-home="0">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo-rgaa-vitrine.svg" />
@@ -62,11 +62,12 @@
         min-height: 100vh;
       }
 
-      html[data-home='0'] .app-initial-hero {
+      .app-initial-hero {
         display: none;
       }
 
-      .app-initial-hero {
+      html[data-home='1'] .app-initial-hero {
+        display: block;
         border-bottom: 1px solid #bec9dc;
         background: #ffffff;
         color: #121a2b;
