@@ -95,3 +95,11 @@ Use this list as a rapid regression filter before running a full RGAA review.
 - For criterion `10.8`, avoid persistent hidden live-region wrappers as a generic pattern; prefer visible feedback panels with `role="status"` / `role="alert"` and `aria-live`.
 - For criterion `10.4`, enforce `min-w-0`, wrapped text, and URL wrapping (`wrap-anywhere`) inside card/list layouts to keep zoomed content readable.
 - For criteria `10.9` and `10.10`, sanitize declaration/help copy to remove positional cues and keep references tied to named sections, landmarks, or controls.
+
+## Operational lessons learned (2026-03-12 NC stabilization)
+
+- When repeated audit evidence targets dark-first rendering (`3.3`, `10.5`), enforce a single light scheme on public pages until a complete dual-theme palette is revalidated.
+- Pair text/background declarations on pseudo-elements (`::placeholder`) in critical shell CSS, not only on their parent controls.
+- Replace readonly `textarea` code snippets with wrapping `pre/code` blocks for criterion `10.12`, so text-spacing overrides do not clip content.
+- Replace URL-only visible strings on declaration pages with descriptive link labels to address criterion `13.5` without removing useful external references.
+- Keep `shared/accessibilityStatement.js` and static metadata (`rgaa:compliance-score`) aligned with the latest completed audit baseline before shipping accessibility updates.

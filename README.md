@@ -107,6 +107,7 @@ Implemented principles:
 - skip-link trays remain reachable both by keyboard focus and pointer hover, and wrap on narrow portrait widths without forcing horizontal overflow
 - route-level and local live regions for async status and error feedback
 - accessibility declaration data is centralized in `shared/accessibilityStatement.js`, and `/accessibilite` displays the latest reference-audit scope, score, and tracked non-conformities from that shared snapshot
+- public shell enforces a single light color scheme (theme toggle removed from public pages) so first-paint and hydrated text/background pairings stay deterministic across shared templates
 - shared search entry point across homepage and secondary routes
 - homepage results summary and polite announcements stay aligned when search, filters, sorting, and progressive loading update the visible cards
 - focus continuity after action outcomes and section jumps
