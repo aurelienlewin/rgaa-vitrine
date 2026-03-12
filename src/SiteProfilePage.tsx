@@ -533,7 +533,6 @@ function SiteProfilePage() {
       rel: 'alternate',
       type: 'application/json',
       href: profileApiUrl,
-      title: 'Données publiques de la fiche',
     })
     upsertHeadLink(PROFILE_UP_LINK_ID, {
       rel: 'up',

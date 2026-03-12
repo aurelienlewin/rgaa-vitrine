@@ -49,7 +49,7 @@ function SecondaryPageHeader({
           navRef={navigationRef}
           className="app-secondary-nav mt-4"
           listClassName="app-secondary-nav__list flex flex-wrap items-center gap-2"
-          linkClassName={`app-secondary-nav__link inline-flex min-h-11 items-center rounded-xl border border-slate-600 dark:border-slate-500 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
+          linkClassName={`app-secondary-nav__link inline-flex min-h-11 items-center rounded-xl border-2 border-slate-950 dark:border-slate-950 bg-slate-950 dark:bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-50 dark:text-slate-50 hover:bg-slate-800 dark:hover:bg-slate-800 ${focusRingClass}`}
         />
         <GlobalSearchForm
           inputId="header-recherche-annuaire"

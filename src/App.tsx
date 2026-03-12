@@ -159,7 +159,7 @@ const githubProfile = {
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const ctaHoverClass = 'transition-colors duration-150 hover:underline'
-const ctaNeutralClass = `border-2 border-slate-800 dark:border-slate-200 bg-slate-100 dark:bg-slate-100 text-slate-950 dark:text-slate-950 hover:bg-slate-200 dark:hover:bg-white ${ctaHoverClass}`
+const ctaNeutralClass = `border-2 border-slate-950 dark:border-slate-950 bg-slate-950 dark:bg-slate-950 text-slate-50 dark:text-slate-50 hover:bg-slate-800 dark:hover:bg-slate-800 ${ctaHoverClass}`
 const ctaPrimaryClass = `border border-slate-950 dark:border-slate-50 bg-slate-950 dark:bg-slate-50 text-slate-50 dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-200 ${ctaHoverClass}`
 const ctaSkyClass = `border-2 border-sky-900 dark:border-sky-300 bg-sky-800 dark:bg-sky-100 text-white dark:text-sky-950 hover:bg-sky-900 dark:hover:bg-white ${ctaHoverClass}`
 const ctaConfirmClass = `border border-sky-800 dark:border-sky-200 bg-sky-800 dark:bg-sky-200 text-sky-50 dark:text-sky-950 hover:bg-sky-900 dark:hover:bg-sky-100 ${ctaHoverClass}`

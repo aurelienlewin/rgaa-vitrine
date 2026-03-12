@@ -23,6 +23,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Global text/background pairing now propagates inherited surface colors through common layout wrappers and `bg-transparent` text controls, so audited pages no longer rely on computed transparent backgrounds for RGAA criterion `10.5`.
 - Homepage results guidance now references named controls and landmarks instead of positional cues, removing “header / below” wording for RGAA criterion `10.10`.
 - Head discovery links no longer expose a native `title` tooltip, removing the remaining uncontrolled additional-content trigger flagged under RGAA criterion `10.13`.
+- Latest reference audit (`../audit/out/20260312-095556`) now drives remediation scope, with remaining NC criteria (`3.3`, `10.13`) patched on shared controls and profile discovery metadata.
 - Skip-link trays now become visible on pointer hover as well as on keyboard focus, so CSS-only quick-access links are no longer keyboard-exclusive for RGAA criterion `10.14`.
 - Profile backlink previews now use text-styled content instead of an informational badge image, while the optional image embed code remains available separately for RGAA criterion `1.8`.
 - Profile skip links now wrap within the available width on narrow portrait viewports, preventing the same-domain shortcut label from forcing horizontal overflow under RGAA criterion `13.9`.
@@ -44,8 +45,8 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Homepage vote hydration now reuses a lightweight private `vote-state` payload with targeted counters for voted URLs and defers that reconciliation until page load/idle; the backend now also verifies current ownership and self-heals undercounted persisted totals upward from active client-vote indexes so already-owned votes cannot surface an impossible `0 vote(s)` state.
 
 ### Changed
-- Accessibility statement snapshot data (`shared/accessibilityStatement.js`) now reports the latest 2026-03-12 five-page audit baseline (`93.8%`, `4` tracked non-conformities) and lists each criterion with impacted templates and remediation status.
-- Static shell metadata now aligns with the same accessibility snapshot baseline by updating `rgaa:compliance-score` to `93.8`.
+- Accessibility statement snapshot data (`shared/accessibilityStatement.js`) now reports the latest 2026-03-12 five-page audit baseline (`96.7%`, `2` tracked non-conformities) and lists each criterion with impacted templates and remediation status.
+- Static shell metadata now aligns with the same accessibility snapshot baseline by updating `rgaa:compliance-score` to `96.7`.
 - README now documents that `/accessibilite` consumes the shared accessibility-statement snapshot for audit scope, score, and tracked non-conformities.
 - README now documents pointer-visible/wrapping skip-link trays and the text-styled backlink preview behavior on profile pages.
 - README now documents that public pages run in a single light color scheme to keep contrast and CSS pairing deterministic across templates.
