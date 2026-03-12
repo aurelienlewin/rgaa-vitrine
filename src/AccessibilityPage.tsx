@@ -23,6 +23,30 @@ const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 hover:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
 
+function readAuditedPageLabel(pageUrl: string) {
+  try {
+    const parsedUrl = new URL(pageUrl)
+    if (parsedUrl.pathname === '/') {
+      return 'Accueil'
+    }
+    if (parsedUrl.pathname === '/plan-du-site') {
+      return 'Plan du site'
+    }
+    if (parsedUrl.pathname === '/accessibilite') {
+      return 'Déclaration d’accessibilité'
+    }
+    if (parsedUrl.pathname.startsWith('/domaine/')) {
+      return 'Page domaine multi-sites'
+    }
+    if (parsedUrl.pathname.startsWith('/site/')) {
+      return 'Fiche site référencé'
+    }
+    return `Page ${parsedUrl.pathname}`
+  } catch {
+    return 'Page auditée'
+  }
+}
+
 function AccessibilityPage() {
   const mainRef = useRef<HTMLElement | null>(null)
   const navigationRef = useRef<HTMLElement | null>(null)
@@ -171,8 +195,14 @@ function AccessibilityPage() {
           navigationRef={navigationRef}
           description={
             <>
-              Cette déclaration s’applique au site <strong>https://annuaire-rgaa.fr/</strong> et couvre les exigences
-              du Référentiel général d’amélioration de l’accessibilité (RGAA).
+              Cette déclaration s’applique au site{' '}
+              <a
+                href="https://annuaire-rgaa.fr/"
+                className={`font-semibold underline decoration-2 underline-offset-2 ${focusRingClass}`}
+              >
+                annuaire-rgaa.fr
+              </a>{' '}
+              et couvre les exigences du Référentiel général d’amélioration de l’accessibilité (RGAA).
             </>
           }
           currentPath="/accessibilite"
@@ -209,7 +239,13 @@ function AccessibilityPage() {
             <ul className="mt-2 grid gap-1 text-sm text-slate-700 dark:text-slate-300">
               {auditSummary.auditedPages.map((pageUrl) => (
                 <li key={pageUrl} className="wrap-anywhere">
-                  Page auditée: {pageUrl}
+                  Page auditée:{' '}
+                  <a
+                    href={pageUrl}
+                    className={`font-semibold underline decoration-2 underline-offset-2 ${focusRingClass}`}
+                  >
+                    {readAuditedPageLabel(pageUrl)}
+                  </a>
                 </li>
               ))}
             </ul>
@@ -269,7 +305,7 @@ function AccessibilityPage() {
             </h2>
             <p className="mt-2 text-slate-700 dark:text-slate-300">
               Les éléments suivants décrivent la base technique réellement utilisée pour la réalisation du service
-              et la campagne d’audit de référence du <strong>11 mars 2026</strong>.
+              et la campagne d’audit de référence du <strong>{auditSummary.auditDate}</strong>.
             </p>
 
             <h3 className="mt-5 text-base font-semibold">Technologies utilisées pour la réalisation du site</h3>
@@ -334,7 +370,7 @@ function AccessibilityPage() {
                   rel="noreferrer noopener"
                   className={`mt-1 inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 wrap-anywhere font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
                 >
-                  github.com/aurelienlewin
+                  Profil GitHub d’Aurélien Lewin
                 </a>
               </li>
             </ul>
@@ -363,7 +399,7 @@ function AccessibilityPage() {
                   rel="noreferrer noopener"
                   className={`wrap-anywhere underline decoration-2 underline-offset-2 ${focusRingClass}`}
                 >
-                  formulaire.defenseurdesdroits.fr
+                  Formulaire du Défenseur des droits
                 </a>
               </li>
               <li>Courrier: Défenseur des droits, Libre réponse 71120, 75342 Paris CEDEX 07.</li>

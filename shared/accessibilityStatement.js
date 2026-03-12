@@ -2,10 +2,10 @@ export const accessibilityAuditSummary = {
   status: 'Partiellement conforme',
   complianceStatus: 'partial',
   complianceStatusLabel: 'Partiellement conforme',
-  score: '88,7 % (estimation)',
-  complianceScore: 88.7,
-  auditDate: '11 mars 2026',
-  auditDateIso: '2026-03-11',
+  score: '93,8 % (estimation)',
+  complianceScore: 93.8,
+  auditDate: '12 mars 2026',
+  auditDateIso: '2026-03-12',
   scope: '5 pages publiques vérifiées',
   auditedPages: [
     'https://www.annuaire-rgaa.fr/',
@@ -15,66 +15,44 @@ export const accessibilityAuditSummary = {
     'https://www.annuaire-rgaa.fr/accessibilite',
   ],
   applicableCriteria: '106 critères vérifiés',
-  nonConformitiesCount: '7 critères',
-  nonConformitiesTotal: 7,
+  nonConformitiesCount: '4 critères',
+  nonConformitiesTotal: 4,
   remediationStatus: 'Corrections déployées sur les gabarits, recontrôle RGAA à planifier',
   rgaaBaseline: '4.1',
 }
 
 export const accessibilityNonConformities = [
   {
-    id: '3.2',
-    title: 'Contraste texte/fond des libellés de fallback de vignette',
-    detail:
-      'Un fallback de vignette affichait un contraste insuffisant en thème sombre. Les classes de rendu ont été corrigées pour maintenir un contraste conforme dans les deux thèmes.',
-    impactedPages: 'Gabarit carte annuaire (accueil et variantes)',
-    status: 'Correction déployée, en attente de contre-vérification',
-  },
-  {
     id: '3.3',
     title: 'Contraste des composants d’interface interactifs',
     detail:
-      'Plusieurs liens et boutons reposaient sur des styles transparents hétérogènes. Les gabarits partagés utilisent désormais des surfaces explicites et contrastées pour les contrôles interactifs.',
-    impactedPages: 'Accueil, plan du site, fiche site, page domaine, accessibilité, pied de page, en-tête secondaire',
-    status: 'Correction déployée, en attente de contre-vérification',
-  },
-  {
-    id: '10.4',
-    title: 'Lisibilité à 200 % sans débordement horizontal',
-    detail:
-      'Des listes de liens sur la fiche site pouvaient déborder à fort zoom avec des libellés longs. Les liens concernés passent en largeur contrainte, retour à la ligne et rupture de mot.',
-    impactedPages: 'Fiche site référencé',
+      'Plusieurs contrôles partagés (liens et boutons) utilisaient des styles transparents ou des bordures trop faibles. Les gabarits ont été harmonisés avec des surfaces explicites, des bordures renforcées et un thème public stabilisé en mode clair pour éviter les régressions de contraste.',
+    impactedPages:
+      'Accueil, page domaine, fiche site, plan du site, déclaration d’accessibilité, en-tête secondaire, pied de page',
     status: 'Correction déployée, en attente de contre-vérification',
   },
   {
     id: '10.5',
     title: 'Couplage couleur de texte et couleur de fond',
     detail:
-      'Certaines zones utilisaient encore une couleur de texte explicite sur fond transparent (et inversement). Le couplage texte/fond a été normalisé dans les composants React et le CSS critique du shell HTML.',
-    impactedPages: 'Gabarits partagés et shell critique (index HTML)',
+      'Certaines règles CSS définissaient une couleur de texte sans fond associé (ou l’inverse), notamment sur les placeholders, la carte de maintenance et des variantes de contrôles. Les déclarations texte/fond ont été appariées dans les composants et dans le CSS critique du shell HTML.',
+    impactedPages:
+      'Gabarits partagés de recherche, shell critique (index HTML), page accessibilité et variantes de maintenance',
     status: 'Correction déployée, en attente de contre-vérification',
   },
   {
-    id: '10.8',
-    title: 'Contenus cachés non destinés à rester exposés aux TA',
+    id: '10.12',
+    title: 'Espacement du texte sans perte de contenu',
     detail:
-      'Des régions live cachées via `sr-only` étaient remontées comme contenus cachés exposés. Les annonces runtime sont désormais rendues dans des panneaux visibles, ce qui supprime ce pattern caché.',
-    impactedPages: 'Accueil, plan du site, fiche site, page domaine, modération',
+      'Les zones de code backlink de la fiche site utilisaient des `textarea` qui tronquaient le contenu lorsque les espacements de texte étaient redéfinis. Ces extraits sont désormais affichés dans des blocs `pre/code` en retour à la ligne, sans hauteur fixe.',
+    impactedPages: 'Fiche site référencé',
     status: 'Correction déployée, en attente de contre-vérification',
   },
   {
-    id: '10.9',
-    title: 'Information orientée par la position dans la page',
+    id: '13.5',
+    title: 'Contenus cryptiques sans alternative explicite',
     detail:
-      'Certaines formulations d’orientation dépendaient encore de la position visuelle. Elles ont été reformulées avec des termes neutres et des repères nommés.',
-    impactedPages: 'Déclaration d’accessibilité',
-    status: 'Correction déployée, en attente de contre-vérification',
-  },
-  {
-    id: '10.10',
-    title: 'Repères rédigés avec une dépendance à la position',
-    detail:
-      'Une phrase de la déclaration utilisait encore un repère spatial implicite. Elle a été remplacée par une formulation non dépendante de la position.',
+      'La page accessibilité affichait des URLs brutes pouvant être interprétées comme syntaxe cryptique. Les contenus sont reformulés avec des libellés explicites et des liens descriptifs.',
     impactedPages: 'Déclaration d’accessibilité',
     status: 'Correction déployée, en attente de contre-vérification',
   },
@@ -97,7 +75,7 @@ export const accessibilityAuditEnvironment = [
   'macOS 26.3.1 (build 25D2128)',
   'Node.js 25.2.1 (baseline Volta du projet)',
   'npm 11.6.2 (baseline Volta du projet)',
-  'Audit exécuté avec Chrome DevTools (voir journal horodaté du 11 mars 2026)',
+  'Audit exécuté avec Chrome DevTools (voir journal horodaté du 12 mars 2026)',
 ]
 
 export const accessibilityEvaluationTools = [
