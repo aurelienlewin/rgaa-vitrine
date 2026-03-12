@@ -7,6 +7,8 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+## [2026-03-12 / v0.5.3]
+
 ### Added
 - Moderation now includes a persisted maintenance-mode control with editable public message, plus `GET /api/moderation/maintenance`, `POST /api/moderation/maintenance`, and public `GET /api/maintenance` endpoints.
 - Added `GET /api/thumbnail-proxy?url=...`, a validated server-side image proxy for public showcase thumbnails with explicit timeout/size caps and long-lived cache headers.
