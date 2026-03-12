@@ -9,6 +9,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ### Fixed
 - `/api/thumbnail-proxy` now follows bounded HTTP(S) redirects with per-hop public-host revalidation and tolerates mislabeled WebP payloads through signature-based content-type fallback, fixing broken logos served through redirecting or non-standard image headers.
+- Homepage bootstrap now preloads `/api/showcase` on `/` before `App` mounts and reuses that response on first directory load, reducing the critical request-chain dependency between the route chunk and the annuaire dataset request.
 
 ## [2026-03-12 / v0.5.3]
 

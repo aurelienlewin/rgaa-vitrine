@@ -14,6 +14,7 @@ declare global {
       enabled?: boolean
     }
     __ANNUAIRE_RGAA_MAINTENANCE_PROMISE__?: Promise<void>
+    __ANNUAIRE_RGAA_PRELOADED_SHOWCASE_RESPONSE__?: Promise<Response> | null
   }
 }
 
@@ -66,6 +67,24 @@ const isSiteMapRoute = currentPathname === '/plan-du-site'
 const isAccessibilityRoute = currentPathname === '/accessibilite'
 const isSiteProfileRoute = currentPathname.startsWith('/site/')
 const isDomainGroupRoute = currentPathname.startsWith('/domaine/')
+const isHomepageRoute = currentPathname === '/'
+
+function preloadHomepageShowcase() {
+  if (!canUseDom || !isHomepageRoute) {
+    return
+  }
+
+  if (window.__ANNUAIRE_RGAA_PRELOADED_SHOWCASE_RESPONSE__) {
+    return
+  }
+
+  window.__ANNUAIRE_RGAA_PRELOADED_SHOWCASE_RESPONSE__ = fetch('/api/showcase', {
+    credentials: 'omit',
+    headers: {
+      accept: 'application/json',
+    },
+  })
+}
 
 function readDomainGroupSlugFromPath(pathname: string) {
   const match = pathname.match(DOMAIN_GROUP_PATH_PATTERN)
@@ -111,6 +130,8 @@ async function resolveRootModule() {
 
   return import('./App.tsx')
 }
+
+preloadHomepageShowcase()
 
 if (canUseDom) {
   const maintenanceProbePromise = (window.__ANNUAIRE_RGAA_MAINTENANCE_PROMISE__ ?? Promise.resolve()).catch(

@@ -742,6 +742,25 @@ async function readApiPayload(response: Response) {
   return { error: compactBody.slice(0, 220) || 'Réponse serveur non JSON.' }
 }
 
+async function readPreloadedShowcaseResponse() {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const preloadedResponsePromise = window.__ANNUAIRE_RGAA_PRELOADED_SHOWCASE_RESPONSE__
+  window.__ANNUAIRE_RGAA_PRELOADED_SHOWCASE_RESPONSE__ = null
+
+  if (!preloadedResponsePromise) {
+    return null
+  }
+
+  try {
+    return await preloadedResponsePromise
+  } catch {
+    return null
+  }
+}
+
 function App() {
   const [inputUrl, setInputUrl] = useState('')
   const [inputCategory, setInputCategory] = useState(showcaseCategories[0])
@@ -1371,7 +1390,15 @@ function App() {
     announcePolite('Chargement de l’annuaire en cours.')
 
     try {
-      const response = await fetch('/api/showcase', { credentials: 'omit' })
+      const preloadedResponse = await readPreloadedShowcaseResponse()
+      const response =
+        preloadedResponse ??
+        (await fetch('/api/showcase', {
+          credentials: 'omit',
+          headers: {
+            accept: 'application/json',
+          },
+        }))
       const payload = await readApiPayload(response)
 
       if (!response.ok) {

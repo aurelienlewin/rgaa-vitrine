@@ -87,6 +87,7 @@ The repository is a Vite + React frontend paired with a Node + Express backend.
 Important architectural choices:
 
 - public detail routes preload only the route-specific API payload they need
+- homepage bootstrap preloads `/api/showcase` on `/` and reuses that settled response at first render to overlap directory data fetching with route-chunk loading
 - route bootstrap resolves the active page module in parallel with the maintenance probe so public routes avoid an avoidable extra startup dependency chain
 - generated route-aware module preloads cover homepage, site map, accessibility, moderation, profile, and domain-group routes to reduce route-entry JavaScript waterfalls
 - route-aware metadata is applied before React hydration where possible
