@@ -7,6 +7,7 @@ import { initializeTheme } from './theme'
 const canUseDom = typeof window !== 'undefined' && typeof document !== 'undefined'
 const DOMAIN_GROUP_PATH_PATTERN = /^\/domaine\/([a-z0-9-]{4,120})$/
 const SITE_PROFILE_PATH_PATTERN = /^\/site\/([a-z0-9-]{4,120})$/
+const MAINTENANCE_BOOTSTRAP_MAX_WAIT_MS = 250
 
 declare global {
   interface Window {
@@ -86,6 +87,12 @@ function preloadHomepageShowcase() {
   })
 }
 
+function wait(ms: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
+
 function readDomainGroupSlugFromPath(pathname: string) {
   const match = pathname.match(DOMAIN_GROUP_PATH_PATTERN)
   return match?.[1] ?? null
@@ -139,7 +146,10 @@ if (canUseDom) {
   )
   const rootModulePromise = resolveRootModule()
 
-  await maintenanceProbePromise
+  if (!isModerationRoute) {
+    await Promise.race([maintenanceProbePromise, wait(MAINTENANCE_BOOTSTRAP_MAX_WAIT_MS)])
+  }
+
   if (!(window.__ANNUAIRE_RGAA_MAINTENANCE__?.enabled === true && !isModerationRoute)) {
     void preloadInitialRouteData(currentPathname)
     const RootComponent = (await rootModulePromise).default
