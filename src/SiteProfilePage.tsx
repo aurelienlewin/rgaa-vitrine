@@ -802,7 +802,7 @@ function SiteProfilePage() {
                   target="_blank"
                   rel="noopener external"
                   referrerPolicy="strict-origin-when-cross-origin"
-                  className={`inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-xl border-2 border-slate-800 dark:border-slate-200 bg-slate-100 dark:bg-slate-100 px-4 py-2 font-semibold text-slate-950 dark:text-slate-950 hover:bg-slate-200 dark:hover:bg-white ${focusRingClass}`}
                 >
                   Visiter le site d’origine (nouvel onglet)
                 </a>
@@ -817,7 +817,7 @@ function SiteProfilePage() {
                     Déclaration d’accessibilité (nouvel onglet)
                   </a>
                 ) : (
-                  <span className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-4 py-2 text-slate-700 dark:text-slate-300">
+                  <span className="inline-flex min-h-11 items-center rounded-xl border-2 border-slate-700 dark:border-slate-200 bg-slate-100 dark:bg-slate-100 px-4 py-2 text-slate-900 dark:text-slate-900">
                     Déclaration non détectée
                   </span>
                 )}
@@ -909,15 +909,18 @@ function SiteProfilePage() {
                   </p>
                 </div>
 
-                <label htmlFor="backlink-code-badge" className="mt-3 block text-sm font-semibold text-sky-900 dark:text-sky-100">
+                <h4 id="backlink-code-badge-label" className="mt-3 text-sm font-semibold text-sky-900 dark:text-sky-100">
                   Code HTML du badge (recommandé)
-                </label>
-                <textarea
-                  id="backlink-code-badge"
-                  readOnly
-                  value={backlinkBadgeSnippet}
-                  className={`mt-1 min-h-28 w-full rounded-xl border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-                />
+                </h4>
+                <div
+                  role="region"
+                  aria-labelledby="backlink-code-badge-label"
+                  className="mt-1 rounded-xl border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 p-3"
+                >
+                  <pre className="wrap-anywhere whitespace-pre-wrap break-all text-sm leading-relaxed text-slate-900 dark:text-slate-50">
+                    <code>{backlinkBadgeSnippet}</code>
+                  </pre>
+                </div>
                 <button
                   type="button"
                   onClick={() => {
@@ -931,15 +934,18 @@ function SiteProfilePage() {
                   Copier le code du badge
                 </button>
 
-                <label htmlFor="backlink-code-text" className="mt-4 block text-sm font-semibold text-sky-900 dark:text-sky-100">
+                <h4 id="backlink-code-text-label" className="mt-4 text-sm font-semibold text-sky-900 dark:text-sky-100">
                   Alternative texte seule
-                </label>
-                <textarea
-                  id="backlink-code-text"
-                  readOnly
-                  value={backlinkTextSnippet}
-                  className={`mt-1 min-h-24 w-full rounded-xl border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 ${focusRingClass}`}
-                />
+                </h4>
+                <div
+                  role="region"
+                  aria-labelledby="backlink-code-text-label"
+                  className="mt-1 rounded-xl border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 p-3"
+                >
+                  <pre className="wrap-anywhere whitespace-pre-wrap break-all text-sm leading-relaxed text-slate-900 dark:text-slate-50">
+                    <code>{backlinkTextSnippet}</code>
+                  </pre>
+                </div>
                 <button
                   type="button"
                   onClick={() => {
