@@ -726,14 +726,11 @@ function ModerationPage() {
   }, [focusElement])
 
   const focusPrimaryModerationAction = useCallback(() => {
-    const firstPendingApproveButton = Object.values(pendingApproveButtonRefs.current).find(
-      (element): element is HTMLButtonElement => element instanceof HTMLButtonElement,
-    )
     const firstPublishedSaveButton = Object.values(publishedSaveButtonRefs.current).find(
       (element): element is HTMLButtonElement => element instanceof HTMLButtonElement,
     )
 
-    focusElement(firstPendingApproveButton ?? firstPublishedSaveButton ?? pendingRef.current ?? publishedRef.current)
+    focusElement(pendingRef.current ?? firstPublishedSaveButton ?? publishedRef.current)
   }, [focusElement])
 
   const focusMessage = useCallback(() => {

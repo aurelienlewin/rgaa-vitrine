@@ -118,6 +118,7 @@ Implemented principles:
 - homepage results summary and polite announcements stay aligned when search, filters, sorting, and progressive loading update the visible cards
 - global asynchronous announcers stay in persistent visually hidden live regions to avoid layout shifts while keeping French status/error messages available to assistive technologies
 - focus continuity after action outcomes and section jumps
+- moderation unlock places focus on the `Soumissions en attente` section before row-level actions
 - minimum `44px`-class interaction targets on primary controls
 - consistent fragment-focus behavior across `/`, `/plan-du-site`, `/accessibilite`, `/site/{slug}`, `/domaine/{groupSlug}`, and `/moderation`
 - profile pages expose a text-styled backlink preview while still offering copy-ready badge-image and text-only embed snippets
