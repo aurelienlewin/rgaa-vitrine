@@ -290,7 +290,7 @@ async function fetchTextDocument(
       redirect: 'manual',
       signal: controller.signal,
       headers: {
-        'user-agent': 'Annuaire-RGAA/1.0 (+https://annuaire-rgaa.fr)',
+        'user-agent': 'Annuaire-RGAA/1.0 (+https://www.annuaire-rgaa.fr)',
         accept: acceptHeader,
       },
     })

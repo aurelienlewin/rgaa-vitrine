@@ -347,7 +347,7 @@ function SiteProfilePage() {
 
       applySeo({
         title: `${entry.siteTitle} | Fiche annuaire RGAA`,
-        description: `${entry.siteTitle} est référencé sur annuaire-rgaa.fr avec catégorie, niveau détecté, score et liens utiles d’accessibilité.`,
+        description: `${entry.siteTitle} est référencé sur www.annuaire-rgaa.fr avec catégorie, niveau détecté, score et liens utiles d’accessibilité.`,
         path: profilePath,
         ogType: 'website',
         structuredData: {

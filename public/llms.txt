@@ -3,21 +3,21 @@
 Annuaire francophone de sites web qui publient des informations de conformité RGAA.
 
 ## Canonique
-- URL principale: https://annuaire-rgaa.fr/
-- Plan du site: https://annuaire-rgaa.fr/plan-du-site
-- Déclaration d’accessibilité: https://annuaire-rgaa.fr/accessibilite
-- Fiches site: https://annuaire-rgaa.fr/site/{slug}
-- Pages domaine: https://annuaire-rgaa.fr/domaine/{groupSlug}
-- Sitemap XML: https://annuaire-rgaa.fr/sitemap.xml
-- Fichier robots: https://annuaire-rgaa.fr/robots.txt
-- Contexte IA JSON: https://annuaire-rgaa.fr/ai-context.json
+- URL principale: https://www.annuaire-rgaa.fr/
+- Plan du site: https://www.annuaire-rgaa.fr/plan-du-site
+- Déclaration d’accessibilité: https://www.annuaire-rgaa.fr/accessibilite
+- Fiches site: https://www.annuaire-rgaa.fr/site/{slug}
+- Pages domaine: https://www.annuaire-rgaa.fr/domaine/{groupSlug}
+- Sitemap XML: https://www.annuaire-rgaa.fr/sitemap.xml
+- Fichier robots: https://www.annuaire-rgaa.fr/robots.txt
+- Contexte IA JSON: https://www.annuaire-rgaa.fr/ai-context.json
 
 ## Endpoints publics utiles
-- https://annuaire-rgaa.fr/api/showcase (GET JSON, annuaire des sites)
-- https://annuaire-rgaa.fr/api/showcase?slug={slug} (GET JSON, une fiche ciblée)
-- https://annuaire-rgaa.fr/api/domain-groups (GET JSON, groupes de domaines multi-sites)
-- https://annuaire-rgaa.fr/api/domain-groups?slug={groupSlug} (GET JSON, un domaine ciblé)
-- https://annuaire-rgaa.fr/api/health (GET JSON, état du service)
+- https://www.annuaire-rgaa.fr/api/showcase (GET JSON, annuaire des sites)
+- https://www.annuaire-rgaa.fr/api/showcase?slug={slug} (GET JSON, une fiche ciblée)
+- https://www.annuaire-rgaa.fr/api/domain-groups (GET JSON, groupes de domaines multi-sites)
+- https://www.annuaire-rgaa.fr/api/domain-groups?slug={groupSlug} (GET JSON, un domaine ciblé)
+- https://www.annuaire-rgaa.fr/api/health (GET JSON, état du service)
 
 ## Langue et périmètre
 - Langue principale: fr-FR
@@ -31,4 +31,4 @@ Annuaire francophone de sites web qui publient des informations de conformité R
 
 ## Licence
 - Code source: MIT
-- Références: https://annuaire-rgaa.fr/llms-full.txt
+- Références: https://www.annuaire-rgaa.fr/llms-full.txt

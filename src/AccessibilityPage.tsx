@@ -197,10 +197,10 @@ function AccessibilityPage() {
             <>
               Cette déclaration s’applique au site{' '}
               <a
-                href="https://annuaire-rgaa.fr/"
+                href="https://www.annuaire-rgaa.fr/"
                 className={`font-semibold underline decoration-2 underline-offset-2 ${focusRingClass}`}
               >
-                annuaire-rgaa.fr
+                www.annuaire-rgaa.fr
               </a>{' '}
               et couvre les exigences du Référentiel général d’amélioration de l’accessibilité (RGAA).
             </>

@@ -14,7 +14,7 @@ type SeoConfig = {
   structuredData?: JsonLdObject | JsonLdObject[] | null
 }
 
-const DEFAULT_SITE_URL = 'https://annuaire-rgaa.fr'
+const DEFAULT_SITE_URL = 'https://www.annuaire-rgaa.fr'
 const DEFAULT_SITE_NAME = 'Annuaire RGAA'
 const DEFAULT_OG_IMAGE_PATH = '/og-annuaire-rgaa.png'
 const DEFAULT_OG_IMAGE_MIME_TYPE = 'image/png'

@@ -1,4 +1,4 @@
-const DEFAULT_PUBLIC_APP_URL = 'https://annuaire-rgaa.fr'
+const DEFAULT_PUBLIC_APP_URL = 'https://www.annuaire-rgaa.fr'
 
 function resolveBaseUrl(input) {
   if (typeof input !== 'string' || !input.trim()) {

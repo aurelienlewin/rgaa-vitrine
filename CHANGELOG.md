@@ -8,6 +8,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 ## [Unreleased]
 
 ### Fixed
+- Canonical host strategy is now aligned on `https://www.annuaire-rgaa.fr` across default SEO metadata, sitemap/discovery assets, and `.org`/apex redirect targets, matching the production host configuration used for indexing.
 - Public canonicalization now normalizes first-paint metadata to the canonical production origin and slashless public paths, and Vercel redirects collapse trailing-slash variants to a single crawl URL per page.
 - Removed the conflicting app-level `www.annuaire-rgaa.fr -> annuaire-rgaa.fr` redirect rule to prevent host ping-pong loops when platform domain settings already enforce the opposite host direction.
 - Moderation unlock now places keyboard focus on the `Soumissions en attente` section landmark instead of attempting a row-level action button, preventing unstable initial focus jumps and preserving predictable orientation after token authentication.

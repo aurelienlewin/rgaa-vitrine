@@ -10,19 +10,19 @@ Annuaire RGAA est une application web orientée accessibilité numérique, en fr
 - catégorie et date de mise à jour
 
 ## URLs de référence
-- Site: https://annuaire-rgaa.fr/
-- Plan du site: https://annuaire-rgaa.fr/plan-du-site
-- Déclaration d’accessibilité: https://annuaire-rgaa.fr/accessibilite
-- Pattern de fiche publique: https://annuaire-rgaa.fr/site/{slug}
-- Pattern de page domaine: https://annuaire-rgaa.fr/domaine/{groupSlug}
-- Sitemap XML: https://annuaire-rgaa.fr/sitemap.xml
-- Fichier robots: https://annuaire-rgaa.fr/robots.txt
-- Contexte IA JSON: https://annuaire-rgaa.fr/ai-context.json
-- API annuaire: https://annuaire-rgaa.fr/api/showcase
-- API fiche ciblée: https://annuaire-rgaa.fr/api/showcase?slug={slug}
-- API domaines multi-sites: https://annuaire-rgaa.fr/api/domain-groups
-- API domaine ciblé: https://annuaire-rgaa.fr/api/domain-groups?slug={groupSlug}
-- Santé service: https://annuaire-rgaa.fr/api/health
+- Site: https://www.annuaire-rgaa.fr/
+- Plan du site: https://www.annuaire-rgaa.fr/plan-du-site
+- Déclaration d’accessibilité: https://www.annuaire-rgaa.fr/accessibilite
+- Pattern de fiche publique: https://www.annuaire-rgaa.fr/site/{slug}
+- Pattern de page domaine: https://www.annuaire-rgaa.fr/domaine/{groupSlug}
+- Sitemap XML: https://www.annuaire-rgaa.fr/sitemap.xml
+- Fichier robots: https://www.annuaire-rgaa.fr/robots.txt
+- Contexte IA JSON: https://www.annuaire-rgaa.fr/ai-context.json
+- API annuaire: https://www.annuaire-rgaa.fr/api/showcase
+- API fiche ciblée: https://www.annuaire-rgaa.fr/api/showcase?slug={slug}
+- API domaines multi-sites: https://www.annuaire-rgaa.fr/api/domain-groups
+- API domaine ciblé: https://www.annuaire-rgaa.fr/api/domain-groups?slug={groupSlug}
+- Santé service: https://www.annuaire-rgaa.fr/api/health
 
 ## Modèle de données principal (showcase entry)
 - normalizedUrl: string

@@ -1715,7 +1715,7 @@ app.get('/api/thumbnail-proxy', async (request, response) => {
         redirect: 'manual',
         signal: controller.signal,
         headers: {
-          'user-agent': 'Annuaire-RGAA/1.0 (+https://annuaire-rgaa.fr)',
+          'user-agent': 'Annuaire-RGAA/1.0 (+https://www.annuaire-rgaa.fr)',
           accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
         },
       })

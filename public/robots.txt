@@ -2,9 +2,9 @@ User-agent: *
 Allow: /
 Disallow: /moderation
 Disallow: /api/moderation
-Sitemap: https://annuaire-rgaa.fr/sitemap.xml
+Sitemap: https://www.annuaire-rgaa.fr/sitemap.xml
 
 # AI crawler hints
-# llms.txt: https://annuaire-rgaa.fr/llms.txt
-# llms-full.txt: https://annuaire-rgaa.fr/llms-full.txt
-# ai-context: https://annuaire-rgaa.fr/ai-context.json
+# llms.txt: https://www.annuaire-rgaa.fr/llms.txt
+# llms-full.txt: https://www.annuaire-rgaa.fr/llms-full.txt
+# ai-context: https://www.annuaire-rgaa.fr/ai-context.json
