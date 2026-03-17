@@ -8,6 +8,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 ## [Unreleased]
 
 ### Fixed
+- Public canonicalization now normalizes first-paint metadata to the canonical production origin and slashless public paths, and Vercel redirects also consolidate `www.annuaire-rgaa.fr` plus trailing-slash variants to a single crawl URL per page.
 - Moderation unlock now places keyboard focus on the `Soumissions en attente` section landmark instead of attempting a row-level action button, preventing unstable initial focus jumps and preserving predictable orientation after token authentication.
 - `/api/thumbnail-proxy` now follows bounded HTTP(S) redirects with per-hop public-host revalidation and tolerates mislabeled WebP payloads through signature-based content-type fallback, fixing broken logos served through redirecting or non-standard image headers.
 - Homepage bootstrap now preloads `/api/showcase` on `/` before `App` mounts and reuses that response on first directory load, reducing the critical request-chain dependency between the route chunk and the annuaire dataset request.
