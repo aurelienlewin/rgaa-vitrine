@@ -70,7 +70,7 @@ Core characteristics:
 
 - discoverability first: search, filters, internal linking, canonical public routes
 - accessibility first: semantic HTML, keyboard flow, visible focus, non-silent async states
-- moderation continuity: reviewers keep domain context, editable metadata, and rollback options
+- moderation continuity: reviewers keep domain context on multi-site domains, alongside editable metadata and rollback options
 - crawl consistency: public routes, sitemap, site map page, and machine-readable assets expose the same public patterns
 - low-friction operations: Vercel deployment, optional Redis persistence, optional GitHub notifications, and one-click maintenance activation from moderation
 

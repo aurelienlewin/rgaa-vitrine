@@ -243,6 +243,20 @@ function formatRgaaBaseline(value: RgaaBaseline | null | undefined) {
   return value === '5.0-ready' ? 'RGAA 5.0 prêt' : 'RGAA 4.1'
 }
 
+function getPublishedDomainSiteCount(domainContext: ReturnType<typeof normalizeDomainContext> | null | undefined) {
+  if (!domainContext) {
+    return 0
+  }
+
+  return domainContext.publishedSiteCount ?? domainContext.siteCount
+}
+
+function shouldShowModerationDomainContext(
+  domainContext: ReturnType<typeof normalizeDomainContext> | null | undefined,
+): domainContext is NonNullable<ReturnType<typeof normalizeDomainContext>> {
+  return getPublishedDomainSiteCount(domainContext) > 1
+}
+
 function buildProgressiveListSummary(visibleCount: number, totalCount: number, itemLabel: string) {
   return `Affichage de ${visibleCount} sur ${totalCount} ${itemLabel}.`
 }
@@ -2012,15 +2026,15 @@ function ModerationPage() {
                                 <p className="wrap-anywhere text-sm font-semibold text-slate-900 dark:text-slate-50">
                                   {entry.normalizedUrl}
                                 </p>
-                                {entry.domainContext ? (
+                                {shouldShowModerationDomainContext(entry.domainContext) ? (
                                   <div className={`mt-3 rounded-xl px-3 py-3 text-sm ${moderationInfoPanelClass}`}>
                                     <p className="font-semibold">
                                       Domaine rapproché: {entry.domainContext.registrableDomain}
                                     </p>
                                     <p className="mt-1">
-                                      {entry.domainContext.publishedSiteCount ?? entry.domainContext.siteCount} fiche(s)
-                                      publiée(s) et {entry.domainContext.pendingSiteCount ?? 0} soumission(s) en attente
-                                      pour ce domaine.
+                                      {getPublishedDomainSiteCount(entry.domainContext)} fiche(s) publiée(s) et{' '}
+                                      {entry.domainContext.pendingSiteCount ?? 0} soumission(s) en attente pour ce
+                                      domaine.
                                     </p>
                                     {entry.domainContext.groupPath ? (
                                       <p className="mt-2">
@@ -2217,13 +2231,13 @@ function ModerationPage() {
                         <p className={`mt-1 text-sm ${moderationTextMutedClass}`}>
                           Référentiel: {formatRgaaBaseline(entry.rgaaBaseline)}
                         </p>
-                        {entry.domainContext ? (
+                        {shouldShowModerationDomainContext(entry.domainContext) ? (
                           <div className={`mt-3 rounded-xl px-3 py-3 text-sm ${moderationInfoPanelClass}`}>
                             <p className="font-semibold">
                               Domaine rapproché: {entry.domainContext.registrableDomain}
                             </p>
                             <p className="mt-1">
-                              {entry.domainContext.siteCount} fiche(s) publique(s) pour ce domaine.
+                              {getPublishedDomainSiteCount(entry.domainContext)} fiche(s) publique(s) pour ce domaine.
                             </p>
                             {entry.domainContext.groupPath ? (
                               <p className="mt-2">
