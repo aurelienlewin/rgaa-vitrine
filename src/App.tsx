@@ -72,6 +72,13 @@ type DirectoryItem =
   | DirectoryGroupItem
 
 type DirectorySortOption = 'latest' | 'earliest' | 'score-desc' | 'score-asc'
+type InitialDirectoryFilters = {
+  query: string
+  status: ShowcaseStatusFilter
+  category: string
+  sort: DirectorySortOption
+  hasActiveFilters: boolean
+}
 
 type SubmissionStatus = 'approved' | 'duplicate' | 'pending'
 type SubmissionFeedbackKind = 'duplicate' | 'already-pending'
@@ -201,6 +208,38 @@ const directorySortOptions: Array<{
 ]
 const statsValueClass =
   'mt-1 inline-flex min-h-8 min-w-[3ch] items-end text-2xl font-bold [font-variant-numeric:tabular-nums]'
+
+function readInitialDirectoryFilters(): InitialDirectoryFilters {
+  if (typeof window === 'undefined') {
+    return {
+      query: '',
+      status: 'all',
+      category: 'all',
+      sort: defaultDirectorySort,
+      hasActiveFilters: false,
+    }
+  }
+
+  const params = new URLSearchParams(window.location.search)
+  const query = (params.get('recherche') ?? '').slice(0, 120)
+  const status = readStatusFilterFromQuery(params.get('statut'))
+  const sort = readDirectorySortFromQuery(params.get('tri'))
+  const rawCategory = params.get('categorie') ?? 'all'
+  const category = rawCategory === 'all' || rawCategory.trim().length === 0 ? 'all' : rawCategory.slice(0, 60)
+  const hasActiveFilters =
+    Boolean(query.trim()) ||
+    status !== 'all' ||
+    category !== 'all' ||
+    sort !== defaultDirectorySort
+
+  return {
+    query,
+    status,
+    category,
+    sort,
+    hasActiveFilters,
+  }
+}
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('fr-FR', {
@@ -762,6 +801,12 @@ async function readPreloadedShowcaseResponse() {
 }
 
 function App() {
+  const initialDirectoryFiltersRef = useRef<InitialDirectoryFilters | null>(null)
+  if (!initialDirectoryFiltersRef.current) {
+    initialDirectoryFiltersRef.current = readInitialDirectoryFilters()
+  }
+  const initialDirectoryFilters = initialDirectoryFiltersRef.current
+
   const [inputUrl, setInputUrl] = useState('')
   const [inputCategory, setInputCategory] = useState(showcaseCategories[0])
   const [websiteField, setWebsiteField] = useState('')
@@ -778,10 +823,10 @@ function App() {
   const [submissionPreviewToken, setSubmissionPreviewToken] = useState<string | null>(null)
   const [lastAddedEntry, setLastAddedEntry] = useState<ShowcaseEntry | null>(null)
   const [showcaseEntries, setShowcaseEntries] = useState<ShowcaseEntry[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<ShowcaseStatusFilter>('all')
-  const [categoryFilter, setCategoryFilter] = useState('all')
-  const [directorySort, setDirectorySort] = useState<DirectorySortOption>(defaultDirectorySort)
+  const [searchQuery, setSearchQuery] = useState(() => initialDirectoryFilters.query)
+  const [statusFilter, setStatusFilter] = useState<ShowcaseStatusFilter>(() => initialDirectoryFilters.status)
+  const [categoryFilter, setCategoryFilter] = useState(() => initialDirectoryFilters.category)
+  const [directorySort, setDirectorySort] = useState<DirectorySortOption>(() => initialDirectoryFilters.sort)
   const [visibleTilesCount, setVisibleTilesCount] = useState(TILE_BATCH_SIZE)
   const [upvotePendingByUrl, setUpvotePendingByUrl] = useState<Record<string, boolean>>({})
   const [politeAnnouncement, setPoliteAnnouncement] = useState({ id: 0, message: '' })
@@ -805,7 +850,7 @@ function App() {
   const loadMoreButtonRef = useRef<HTMLButtonElement | null>(null)
   const tilesSentinelRef = useRef<HTMLDivElement | null>(null)
   const clientVoterIdRef = useRef<string>('')
-  const shouldFocusResultsAfterQueryInitRef = useRef(false)
+  const shouldFocusResultsAfterInitialFiltersRef = useRef(initialDirectoryFilters.hasActiveFilters)
   const shouldSyncVoteStateAfterDirectoryLoadRef = useRef(false)
 
   const announcePolite = useCallback((message: string) => {
@@ -917,14 +962,43 @@ function App() {
     }
   }, [])
 
+  const resetVisibleTiles = useCallback(() => {
+    setVisibleTilesCount(TILE_BATCH_SIZE)
+  }, [])
+
+  const handleSearchQueryChange = useCallback(
+    (nextQuery: string) => {
+      setSearchQuery(nextQuery)
+      resetVisibleTiles()
+    },
+    [resetVisibleTiles],
+  )
+
+  const handleStatusFilterChange = useCallback(
+    (nextStatus: ShowcaseStatusFilter) => {
+      setStatusFilter(nextStatus)
+      resetVisibleTiles()
+    },
+    [resetVisibleTiles],
+  )
+
+  const handleCategoryFilterChange = useCallback(
+    (nextCategory: string) => {
+      setCategoryFilter(nextCategory)
+      resetVisibleTiles()
+    },
+    [resetVisibleTiles],
+  )
+
   const handleResetFilters = useCallback(() => {
     setSearchQuery('')
     setStatusFilter('all')
     setCategoryFilter('all')
+    resetVisibleTiles()
     syncFiltersInUrl({ query: '', status: 'all', category: 'all', sort: directorySort })
     announcePolite('Filtres réinitialisés.')
     searchInputRef.current?.focus()
-  }, [announcePolite, directorySort, syncFiltersInUrl])
+  }, [announcePolite, directorySort, resetVisibleTiles, syncFiltersInUrl])
 
   const filteredShowcaseEntries = useMemo(() => {
     const normalizedQuery = normalizeText(searchQuery.trim())
@@ -1036,6 +1110,7 @@ function App() {
     (event: ChangeEvent<HTMLSelectElement>) => {
       const nextSort = readDirectorySortFromQuery(event.target.value)
       setDirectorySort(nextSort)
+      resetVisibleTiles()
       syncFiltersInUrl({
         query: searchQuery,
         status: statusFilter,
@@ -1043,7 +1118,7 @@ function App() {
         sort: nextSort,
       })
     },
-    [categoryFilter, searchQuery, statusFilter, syncFiltersInUrl],
+    [categoryFilter, resetVisibleTiles, searchQuery, statusFilter, syncFiltersInUrl],
   )
 
   const directoryStats = useMemo(() => {
@@ -1269,45 +1344,17 @@ function App() {
     })
   }, [homeStructuredData])
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
+  const focusResultsForInitialFilters = useCallback(() => {
+    if (!shouldFocusResultsAfterInitialFiltersRef.current) {
       return
     }
 
-    const params = new URLSearchParams(window.location.search)
-    const initialQuery = params.get('recherche')
-    const initialStatus = readStatusFilterFromQuery(params.get('statut'))
-    const initialCategory = params.get('categorie') ?? 'all'
-    const initialSort = readDirectorySortFromQuery(params.get('tri'))
-    shouldFocusResultsAfterQueryInitRef.current =
-      Boolean(initialQuery?.trim()) || initialStatus !== 'all' || initialCategory !== 'all' || initialSort !== defaultDirectorySort
-
-    if (initialQuery) {
-      setSearchQuery(initialQuery.slice(0, 120))
-    }
-
-    setStatusFilter(initialStatus)
-    setDirectorySort(initialSort)
-    if (initialCategory === 'all' || initialCategory.trim()) {
-      setCategoryFilter(initialCategory === 'all' ? 'all' : initialCategory.slice(0, 60))
-    }
-  }, [])
-
-  useEffect(() => {
-    if (loadingDirectory || directoryErrorMessage || !shouldFocusResultsAfterQueryInitRef.current) {
-      return
-    }
-
-    shouldFocusResultsAfterQueryInitRef.current = false
+    shouldFocusResultsAfterInitialFiltersRef.current = false
     window.setTimeout(() => {
       focusElement(resultsSummaryRef.current)
       announcePolite('Paramètres de résultats appliqués depuis l’URL.')
     }, 0)
-  }, [announcePolite, directoryErrorMessage, focusElement, loadingDirectory])
-
-  useEffect(() => {
-    setVisibleTilesCount(Math.min(TILE_BATCH_SIZE, filteredDirectoryItems.length))
-  }, [categoryFilter, directorySort, filteredDirectoryItems.length, searchQuery, statusFilter])
+  }, [announcePolite, focusElement])
 
   const handleLoadMoreTiles = useCallback(
     (source: 'button' | 'auto') => {
@@ -1377,13 +1424,6 @@ function App() {
     }
   }, [handleLoadMoreTiles, hasMoreTiles, loadingDirectory])
 
-  useEffect(() => {
-    setPoliteAnnouncement((current) => ({
-      id: current.id + 1,
-      message: directorySummaryText,
-    }))
-  }, [directorySummaryText])
-
   const loadShowcaseEntries = useCallback(async () => {
     setDirectoryErrorMessage(null)
     setLoadingDirectory(true)
@@ -1414,18 +1454,23 @@ function App() {
         throw new Error('Liste d’annuaire invalide.')
       }
       setShowcaseEntries(parsedEntries)
+      setVisibleTilesCount(TILE_BATCH_SIZE)
       shouldSyncVoteStateAfterDirectoryLoadRef.current = parsedEntries.length > 0
       announcePolite(`${parsedEntries.length} fiche(s) chargée(s) dans l’annuaire.`)
+      focusResultsForInitialFilters()
     } catch (error) {
       shouldSyncVoteStateAfterDirectoryLoadRef.current = false
       console.error('Unable to load showcase entries', error)
       const localizedMessage = error instanceof Error ? error.message : 'Erreur de chargement de l’annuaire.'
       setDirectoryErrorMessage(localizedMessage)
       announceAssertive(localizedMessage)
+      window.setTimeout(() => {
+        focusElement(directoryErrorRef.current)
+      }, 0)
     } finally {
       setLoadingDirectory(false)
     }
-  }, [announceAssertive, announcePolite])
+  }, [announceAssertive, announcePolite, focusElement, focusResultsForInitialFilters])
 
   useEffect(() => {
     void loadShowcaseEntries()
@@ -1541,47 +1586,21 @@ function App() {
     }
   }, [directoryErrorMessage, loadClientVoteState, loadingDirectory])
 
-  useEffect(() => {
-    if (directoryErrorMessage) {
-      focusElement(directoryErrorRef.current)
-    }
-  }, [directoryErrorMessage, focusElement])
-
-  useEffect(() => {
-    if (submitError) {
-      focusElement(submitErrorRef.current)
-    }
-  }, [submitError, focusElement])
-
-  useEffect(() => {
-    if (submissionFeedback && !submitError) {
-      focusElement(duplicateFeedbackRef.current)
-    }
-  }, [submissionFeedback, focusElement, submitError])
-
   const isSubmissionBusy = isPreAnalyzing || isConfirmingSubmission
 
-  useEffect(() => {
-    if (submitInfoMessage) {
-      if (!isSubmitConfirmationStep && !isSubmissionBusy) {
-        focusElement(submitInfoRef.current)
-      }
-    }
-  }, [submitInfoMessage, focusElement, isSubmitConfirmationStep, isSubmissionBusy])
-
-  useEffect(() => {
-    if (lastAddedEntry) {
-      focusElement(lastAddedRef.current)
-    }
-  }, [focusElement, lastAddedEntry])
-
-  const showSubmitError = useCallback((rawMessage: string, phase: SubmitErrorPhase) => {
-    const nextError = buildSubmitErrorState(rawMessage, phase)
-    setSubmitError((current) => ({
-      id: (current?.id ?? 0) + 1,
-      ...nextError,
-    }))
-  }, [])
+  const showSubmitError = useCallback(
+    (rawMessage: string, phase: SubmitErrorPhase) => {
+      const nextError = buildSubmitErrorState(rawMessage, phase)
+      setSubmitError((current) => ({
+        id: (current?.id ?? 0) + 1,
+        ...nextError,
+      }))
+      window.setTimeout(() => {
+        focusElement(submitErrorRef.current)
+      }, 0)
+    },
+    [focusElement],
+  )
 
   const handleDismissSubmissionFeedback = useCallback(() => {
     const closedMessage =
@@ -1618,8 +1637,11 @@ function App() {
         kind,
       }))
       announcePolite(message)
+      window.setTimeout(() => {
+        focusElement(duplicateFeedbackRef.current)
+      }, 0)
     },
-    [announcePolite],
+    [announcePolite, focusElement],
   )
 
   const handleCancelSubmissionConfirmation = useCallback(() => {
@@ -1876,6 +1898,9 @@ function App() {
         setWebsiteField('')
         setSubmitInfoMessage(pendingMessage)
         announcePolite(pendingMessage)
+        window.setTimeout(() => {
+          focusElement(submitInfoRef.current)
+        }, 0)
         return
       }
 
@@ -1900,7 +1925,8 @@ function App() {
       setSubmissionPreviewEntry(null)
       setSubmissionPreviewStatus(null)
       setSubmissionPreviewToken(null)
-      setLastAddedEntry(normalizeShowcaseEntry(payload))
+      const addedEntry = normalizeShowcaseEntry(payload)
+      setLastAddedEntry(addedEntry)
       setInputUrl('')
       setWebsiteField('')
 
@@ -1909,6 +1935,9 @@ function App() {
       setSubmitInfoMessage(null)
 
       await loadShowcaseEntries()
+      window.setTimeout(() => {
+        focusElement(lastAddedRef.current)
+      }, 0)
     } catch (error) {
       setLastAddedEntry(null)
       const localizedMessage = error instanceof Error ? error.message : 'Erreur réseau.'
@@ -2028,13 +2057,13 @@ function App() {
               resultsTargetId="liste-vitrines"
               helperTextId="recherche-aide"
               helperText="Astuce clavier: appuyez sur Échap dans le champ recherche pour effacer la saisie."
-              onSearchChange={setSearchQuery}
-              onStatusChange={setStatusFilter}
-              onCategoryChange={setCategoryFilter}
+              onSearchChange={handleSearchQueryChange}
+              onStatusChange={handleStatusFilterChange}
+              onCategoryChange={handleCategoryFilterChange}
               onSubmit={handleSearchSubmit}
               onEscapeClear={() => {
                 if (searchQuery) {
-                  setSearchQuery('')
+                  handleSearchQueryChange('')
                   announcePolite('Recherche effacée.')
                 }
               }}

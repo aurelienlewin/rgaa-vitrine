@@ -557,9 +557,20 @@ function useProgressivePagination({
 }
 
 function ModerationPage() {
-  const [moderationToken, setModerationToken] = useState('')
-  const [rememberModerationSession, setRememberModerationSession] = useState(false)
-  const [hasStoredModerationSession, setHasStoredModerationSession] = useState(false)
+  const initialStoredSessionRef = useRef<ReturnType<typeof readStoredModerationSession> | null | undefined>(undefined)
+  if (initialStoredSessionRef.current === undefined) {
+    const restoredSession = readStoredModerationSession()
+    initialStoredSessionRef.current = restoredSession
+  }
+  const initialStoredSession = initialStoredSessionRef.current ?? null
+
+  const [moderationToken, setModerationToken] = useState(() => initialStoredSession?.token ?? '')
+  const [rememberModerationSession, setRememberModerationSession] = useState(
+    () => initialStoredSession?.source === 'local',
+  )
+  const [hasStoredModerationSession, setHasStoredModerationSession] = useState(
+    () => Boolean(initialStoredSession),
+  )
   const [pendingEntries, setPendingEntries] = useState<PendingSubmission[]>([])
   const [publishedEntries, setPublishedEntries] = useState<ShowcaseEntry[]>([])
   const [siteBlocklist, setSiteBlocklist] = useState<string[]>([])
@@ -577,7 +588,9 @@ function ModerationPage() {
   const [runningSubmissionId, setRunningSubmissionId] = useState<string | null>(null)
   const [runningPublishedUrl, setRunningPublishedUrl] = useState<string | null>(null)
   const [deleteConfirmationUrl, setDeleteConfirmationUrl] = useState<string | null>(null)
-  const [politeMessage, setPoliteMessage] = useState('')
+  const [politeMessage, setPoliteMessage] = useState(() =>
+    initialStoredSession ? 'Jeton restauré. Activez le chargement pour ouvrir la modération.' : '',
+  )
   const [assertiveMessage, setAssertiveMessage] = useState('')
   const [showToken, setShowToken] = useState(false)
   const [isExportingArchive, setIsExportingArchive] = useState(false)
@@ -1759,21 +1772,6 @@ function ModerationPage() {
       robots: 'noindex,nofollow,noarchive',
       structuredData: null,
     })
-  }, [])
-
-  useEffect(() => {
-    const restoredSession = readStoredModerationSession()
-    if (!restoredSession) {
-      clearStoredModerationSession()
-      setHasStoredModerationSession(false)
-      return
-    }
-
-    setModerationToken(restoredSession.token)
-    setRememberModerationSession(restoredSession.source === 'local')
-    setHasStoredModerationSession(true)
-    setAssertiveMessage('')
-    setPoliteMessage('Jeton restauré. Activez le chargement pour ouvrir la modération.')
   }, [])
 
   return (

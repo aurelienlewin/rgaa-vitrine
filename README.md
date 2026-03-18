@@ -96,6 +96,7 @@ Important architectural choices:
 - shared secondary-page primitives keep search, navigation, footer, and skip-link behavior aligned
 - fragment targets move real DOM focus on load and on `hashchange`
 - orientation fragments focus their landmark or section, while `#moteur-recherche-global` and `#ajout-site` move directly to the first useful field
+- homepage filter state, tile pagination resets, and local feedback focus transitions are handled from explicit event flows instead of broad effect-based state watchers
 - generated discovery endpoints and static discovery files are intentionally redundant for crawler resilience
 - maintenance mode is persisted server-side; public JSON/XML routes answer `503`, and the static Vite shell swaps to an accessible maintenance screen before React mounts on public SPA routes
 

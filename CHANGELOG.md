@@ -9,9 +9,11 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ### Fixed
 - Moderation tiles now hide the `Domaine rapproché` panel when a domain has only one published public profile, reducing redundant context on single-site entries.
+- Homepage now initializes URL-backed directory filters in state initializers and drives pagination/focus updates directly from user actions, removing several effect-driven UI synchronization paths.
 - Canonical host strategy is now aligned on `https://www.annuaire-rgaa.fr` across default SEO metadata, sitemap/discovery assets, and `.org`/apex redirect targets, matching the production host configuration used for indexing.
 - Public canonicalization now normalizes first-paint metadata to the canonical production origin and slashless public paths, and Vercel redirects collapse trailing-slash variants to a single crawl URL per page.
 - Removed the conflicting app-level `www.annuaire-rgaa.fr -> annuaire-rgaa.fr` redirect rule to prevent host ping-pong loops when platform domain settings already enforce the opposite host direction.
+- Moderation session restoration is now resolved through initial state hydration instead of a mount-time effect, preserving the same reviewer message while simplifying client initialization flow.
 - Moderation unlock now places keyboard focus on the `Soumissions en attente` section landmark instead of attempting a row-level action button, preventing unstable initial focus jumps and preserving predictable orientation after token authentication.
 - `/api/thumbnail-proxy` now follows bounded HTTP(S) redirects with per-hop public-host revalidation and tolerates mislabeled WebP payloads through signature-based content-type fallback, fixing broken logos served through redirecting or non-standard image headers.
 - Homepage bootstrap now preloads `/api/showcase` on `/` before `App` mounts and reuses that response on first directory load, reducing the critical request-chain dependency between the route chunk and the annuaire dataset request.

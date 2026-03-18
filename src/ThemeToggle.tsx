@@ -22,10 +22,6 @@ function ThemeToggle({ className = '' }: ThemeToggleProps) {
   )
 
   useEffect(() => {
-    setResolvedTheme(applyThemePreference(themePreference))
-  }, [themePreference])
-
-  useEffect(() => {
     if (themePreference !== 'system') {
       return
     }
@@ -38,7 +34,9 @@ function ThemeToggle({ className = '' }: ThemeToggleProps) {
   const handleToggle = useCallback(() => {
     setThemePreference((currentPreference) => {
       const currentResolvedTheme = resolveThemePreference(currentPreference)
-      return currentResolvedTheme === 'dark' ? 'light' : 'dark'
+      const nextPreference: ThemePreference = currentResolvedTheme === 'dark' ? 'light' : 'dark'
+      setResolvedTheme(applyThemePreference(nextPreference))
+      return nextPreference
     })
   }, [])
 
