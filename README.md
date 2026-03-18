@@ -375,8 +375,15 @@ Recommended production environment variables:
 npm run dev
 npm run lint
 npm run build
+npm run test:e2e
 npm run preview
 npm run start:api
+```
+
+For browser-based end-to-end checks, install the Playwright browser binary once:
+
+```bash
+npm run test:e2e:install
 ```
 
 ## Open Source

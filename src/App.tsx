@@ -841,7 +841,7 @@ function App() {
   const urlInputRef = useRef<HTMLInputElement | null>(null)
   const resultsSummaryRef = useRef<HTMLParagraphElement | null>(null)
   const directoryErrorRef = useRef<HTMLParagraphElement | null>(null)
-  const submitErrorRef = useRef<HTMLParagraphElement | null>(null)
+  const submitErrorRef = useRef<HTMLElement | null>(null)
   const submitInfoRef = useRef<HTMLParagraphElement | null>(null)
   const duplicateFeedbackRef = useRef<HTMLElement | null>(null)
   const submitConfirmationRef = useRef<HTMLElement | null>(null)
@@ -852,6 +852,8 @@ function App() {
   const clientVoterIdRef = useRef<string>('')
   const shouldFocusResultsAfterInitialFiltersRef = useRef(initialDirectoryFilters.hasActiveFilters)
   const shouldSyncVoteStateAfterDirectoryLoadRef = useRef(false)
+  const shouldFocusSubmitErrorRef = useRef(false)
+  const shouldFocusDuplicateFeedbackRef = useRef(false)
 
   const announcePolite = useCallback((message: string) => {
     setPoliteAnnouncement((current) => ({ id: current.id + 1, message }))
@@ -891,6 +893,36 @@ function App() {
   const focusElement = useCallback((element: HTMLElement | null) => {
     focusElementWithScroll(element)
   }, [])
+
+  const registerSubmitErrorRef = useCallback(
+    (element: HTMLElement | null) => {
+      submitErrorRef.current = element
+      if (!element || !shouldFocusSubmitErrorRef.current) {
+        return
+      }
+
+      shouldFocusSubmitErrorRef.current = false
+      window.setTimeout(() => {
+        focusElement(element)
+      }, 0)
+    },
+    [focusElement],
+  )
+
+  const registerDuplicateFeedbackRef = useCallback(
+    (element: HTMLElement | null) => {
+      duplicateFeedbackRef.current = element
+      if (!element || !shouldFocusDuplicateFeedbackRef.current) {
+        return
+      }
+
+      shouldFocusDuplicateFeedbackRef.current = false
+      window.setTimeout(() => {
+        focusElement(element)
+      }, 0)
+    },
+    [focusElement],
+  )
 
   const handleSkipLinkClick = useCallback(
     (event: ReactMouseEvent<HTMLAnchorElement>, ref: RefObject<HTMLElement | null>) => {
@@ -1591,15 +1623,13 @@ function App() {
   const showSubmitError = useCallback(
     (rawMessage: string, phase: SubmitErrorPhase) => {
       const nextError = buildSubmitErrorState(rawMessage, phase)
+      shouldFocusSubmitErrorRef.current = true
       setSubmitError((current) => ({
         id: (current?.id ?? 0) + 1,
         ...nextError,
       }))
-      window.setTimeout(() => {
-        focusElement(submitErrorRef.current)
-      }, 0)
     },
-    [focusElement],
+    [],
   )
 
   const handleDismissSubmissionFeedback = useCallback(() => {
@@ -1637,11 +1667,9 @@ function App() {
         kind,
       }))
       announcePolite(message)
-      window.setTimeout(() => {
-        focusElement(duplicateFeedbackRef.current)
-      }, 0)
+      shouldFocusDuplicateFeedbackRef.current = true
     },
-    [announcePolite, focusElement],
+    [announcePolite],
   )
 
   const handleCancelSubmissionConfirmation = useCallback(() => {
@@ -2819,7 +2847,7 @@ function App() {
             {submissionFeedback && !submitError && (
               <section
                 key={submissionFeedback.id}
-                ref={duplicateFeedbackRef}
+                ref={registerDuplicateFeedbackRef}
                 tabIndex={-1}
                 className="mt-4 rounded-xl border border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950 p-4 text-amber-950 dark:text-amber-100 focus:outline-3 focus:outline-offset-3 focus:outline-brand-focus"
                 role="status"
@@ -2908,7 +2936,7 @@ function App() {
             {submitError && (
               <section
                 key={submitError.id}
-                ref={submitErrorRef}
+                ref={registerSubmitErrorRef}
                 tabIndex={-1}
                 className="mt-4 rounded-xl border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-4 text-rose-900 dark:text-rose-100 focus:outline-3 focus:outline-offset-3 focus:outline-brand-focus"
                 role="alert"

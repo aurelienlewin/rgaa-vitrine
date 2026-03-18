@@ -7,6 +7,10 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+### Added
+- Added a Playwright end-to-end regression suite (`e2e/homepage-and-moderation-regressions.spec.ts`) covering URL-backed homepage filters, pagination reset behavior, submission feedback focus management, and moderation session restoration.
+- Added Playwright runtime configuration (`playwright.config.mjs`) and dedicated npm scripts for e2e execution (`test:e2e`, `test:e2e:headed`, `test:e2e:ui`, `test:e2e:install`).
+
 ### Fixed
 - Moderation tiles now hide the `Domaine rapproché` panel when a domain has only one published public profile, reducing redundant context on single-site entries.
 - Homepage now initializes URL-backed directory filters in state initializers and drives pagination/focus updates directly from user actions, removing several effect-driven UI synchronization paths.
