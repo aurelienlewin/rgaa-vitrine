@@ -118,10 +118,6 @@ const THUMBNAIL_PROXY_CACHE_CONTROL = 'public, max-age=604800, s-maxage=2592000,
 const SUBMISSION_THUMBNAIL_TIMEOUT_MS = 4500
 const SUBMISSION_THUMBNAIL_MAX_REDIRECTS = 4
 const SUBMISSION_THUMBNAIL_MAX_BYTES = 450_000
-const WEBSHRINKER_API_BASE_URL = 'https://api.webshrinker.com'
-const WEBSHRINKER_TIMEOUT_MS = 4500
-const WEBSHRINKER_MAX_RESPONSE_BYTES = 300_000
-const WEBSHRINKER_CACHE_TTL_MS = 30 * 60 * 1000
 const BLOCKLIST_PROJECT_FETCH_TIMEOUT_MS = 4500
 const BLOCKLIST_PROJECT_MAX_RESPONSE_BYTES = 2_500_000
 const DEFAULT_BLOCKLIST_PROJECT_REFRESH_MINUTES = 180
@@ -166,14 +162,12 @@ PUBLIC_SUBMISSION_CATEGORY_BY_NORMALIZED.set(
   'Coopérative et services',
 )
 const siteInsightPreviewCache = new Map()
-const webshrinkerLookupCache = new Map()
 const blocklistProjectLookupState = {
   domainsByFeedKey: new Map(),
   expiresAt: 0,
   loadPromise: null,
 }
 const githubNotificationQuota = readGithubNotificationQuota()
-const webshrinkerConfig = readWebshrinkerConfig()
 const blocklistProjectConfig = readBlocklistProjectConfig()
 const rateLimitValidationOptions = {
   forwardedHeader: false,
@@ -269,23 +263,6 @@ function readGithubNotificationQuota() {
   return {
     windowMs: windowSeconds * 1000,
     maxPerWindow,
-  }
-}
-
-function readWebshrinkerConfig() {
-  const apiKey = (process.env.WEBSHRINKER_API_KEY ?? '').trim()
-  const apiSecret = (process.env.WEBSHRINKER_API_SECRET ?? '').trim()
-  if (!apiKey || !apiSecret) {
-    return null
-  }
-
-  const taxonomy = (process.env.WEBSHRINKER_TAXONOMY ?? 'webshrinker').trim() || 'webshrinker'
-
-  return {
-    apiKey,
-    apiSecret,
-    taxonomy,
-    baseUrl: WEBSHRINKER_API_BASE_URL,
   }
 }
 
@@ -684,151 +661,6 @@ async function readBlocklistProjectSensitiveReason(normalizedUrl) {
   }
 
   return buildBlocklistProjectSensitiveReason(matches)
-}
-
-function readWebshrinkerCacheEntry(cacheKey) {
-  const cached = webshrinkerLookupCache.get(cacheKey)
-  if (!cached) {
-    return null
-  }
-
-  if (cached.expiresAt <= Date.now()) {
-    webshrinkerLookupCache.delete(cacheKey)
-    return null
-  }
-
-  return cached
-}
-
-function storeWebshrinkerCacheEntry(cacheKey, reason) {
-  webshrinkerLookupCache.set(cacheKey, {
-    reason: typeof reason === 'string' ? reason : null,
-    expiresAt: Date.now() + WEBSHRINKER_CACHE_TTL_MS,
-  })
-}
-
-function readWebshrinkerCategoryIds(payload) {
-  const data = Array.isArray(payload?.data) ? payload.data : []
-  const categoryIds = new Set()
-
-  for (const entry of data) {
-    const categories = Array.isArray(entry?.categories) ? entry.categories : []
-    for (const category of categories) {
-      if (typeof category === 'string') {
-        const normalized = category.trim().toLowerCase()
-        if (normalized) {
-          categoryIds.add(normalized)
-        }
-        continue
-      }
-
-      if (typeof category?.id === 'string') {
-        const normalized = category.id.trim().toLowerCase()
-        if (normalized) {
-          categoryIds.add(normalized)
-        }
-      }
-    }
-  }
-
-  return Array.from(categoryIds)
-}
-
-function buildWebshrinkerSensitiveReason(categoryIds) {
-  const hasAny = (patterns) =>
-    categoryIds.some((categoryId) => patterns.some((pattern) => pattern.test(categoryId)))
-
-  const matchedFamilies = []
-  if (hasAny([/\badult\b/, /\bsex\b/, /\bporn\b/, /\berot/])) {
-    matchedFamilies.push('contenu adulte')
-  }
-  if (hasAny([/\bgambl/, /\bcasino\b/, /\bbet/, /\blotter/, /\bpoker\b/, /\bslot/])) {
-    matchedFamilies.push("jeux d'argent")
-  }
-  if (hasAny([/\bdrug/, /\bcannabis\b/, /\bopioid/, /\bnarcotic/])) {
-    matchedFamilies.push('drogues')
-  }
-  if (hasAny([/\bweapon/, /\bfirearm/, /\bammunition/])) {
-    matchedFamilies.push('armes')
-  }
-  if (hasAny([/\bhate\b/, /\bextremis/, /\bviolence\b/])) {
-    matchedFamilies.push('haine/violence')
-  }
-
-  if (matchedFamilies.length === 0) {
-    return null
-  }
-
-  const preview = categoryIds.slice(0, 6).join(', ')
-  return `Catégorisation externe sensible détectée (${matchedFamilies.join(', ')}). Source Webshrinker: ${preview}.`
-}
-
-async function readWebshrinkerSensitiveReason(normalizedUrl) {
-  if (!webshrinkerConfig || typeof normalizedUrl !== 'string' || !normalizedUrl.trim()) {
-    return null
-  }
-
-  const cacheKey = normalizedUrl.trim().toLowerCase()
-  const cached = readWebshrinkerCacheEntry(cacheKey)
-  if (cached) {
-    return cached.reason
-  }
-
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), WEBSHRINKER_TIMEOUT_MS)
-
-  try {
-    const encodedUrl = Buffer.from(normalizedUrl, 'utf8').toString('base64url')
-    const requestUrl = new URL(`/categories/v3/${encodedUrl}`, webshrinkerConfig.baseUrl)
-    requestUrl.searchParams.set('taxonomy', webshrinkerConfig.taxonomy)
-
-    const authorization = Buffer.from(
-      `${webshrinkerConfig.apiKey}:${webshrinkerConfig.apiSecret}`,
-      'utf8',
-    ).toString('base64')
-
-    const response = await fetch(requestUrl.toString(), {
-      method: 'GET',
-      signal: controller.signal,
-      headers: {
-        authorization: `Basic ${authorization}`,
-        accept: 'application/json',
-        'user-agent': 'Annuaire-RGAA/1.0 (+https://www.annuaire-rgaa.fr)',
-      },
-    })
-
-    if (response.status === 202) {
-      const pendingReason =
-        'Classification externe de l’URL en cours (Webshrinker), validation manuelle requise.'
-      storeWebshrinkerCacheEntry(cacheKey, pendingReason)
-      return pendingReason
-    }
-
-    if (!response.ok) {
-      storeWebshrinkerCacheEntry(cacheKey, null)
-      return null
-    }
-
-    const rawBody = await readTextBodyWithLimit(response, WEBSHRINKER_MAX_RESPONSE_BYTES)
-    let payload = null
-    try {
-      payload = JSON.parse(rawBody)
-    } catch {
-      payload = null
-    }
-
-    const categoryIds = readWebshrinkerCategoryIds(payload)
-    const reason = buildWebshrinkerSensitiveReason(categoryIds)
-    storeWebshrinkerCacheEntry(cacheKey, reason)
-    return reason
-  } catch (error) {
-    if (!(error instanceof DOMException && error.name === 'AbortError')) {
-      console.warn('Webshrinker lookup failed, falling back to local dictionaries.')
-    }
-    return null
-  } finally {
-    clearTimeout(timeout)
-  }
 }
 
 function readRegistrableDomainFromUrl(rawUrl) {
@@ -2069,11 +1901,6 @@ async function findSensitiveSubmissionReasons(siteInsight) {
   const blocklistProjectReason = await readBlocklistProjectSensitiveReason(siteInsight.normalizedUrl)
   if (blocklistProjectReason) {
     reasons.push(blocklistProjectReason)
-  }
-
-  const webshrinkerReason = await readWebshrinkerSensitiveReason(siteInsight.normalizedUrl)
-  if (webshrinkerReason) {
-    reasons.push(webshrinkerReason)
   }
 
   return reasons

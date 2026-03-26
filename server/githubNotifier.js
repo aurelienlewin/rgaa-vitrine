@@ -280,7 +280,6 @@ function readCategorizationInsights(reviewReason) {
   const normalizedReason = normalizeForMatch(reviewReason)
   const hasExternalSensitiveSignal = normalizedReason.includes('categorisation externe sensible detectee')
   const hasBlocklistProjectSource = normalizedReason.includes('source blocklist project')
-  const hasWebshrinkerSource = normalizedReason.includes('source webshrinker')
 
   const labels = []
   if (hasExternalSensitiveSignal) {
@@ -288,9 +287,6 @@ function readCategorizationInsights(reviewReason) {
   }
   if (hasBlocklistProjectSource) {
     labels.push('source-blocklist-project')
-  }
-  if (hasWebshrinkerSource) {
-    labels.push('source-webshrinker')
   }
 
   const rawReason = compactText(reviewReason ?? '')
@@ -307,7 +303,6 @@ function readCategorizationInsights(reviewReason) {
   return {
     hasExternalSensitiveSignal,
     hasBlocklistProjectSource,
-    hasWebshrinkerSource,
     labels,
     highlights: highlights.slice(0, 2),
   }
@@ -374,7 +369,6 @@ function buildPendingModerationIssuePayload(entry) {
     '### Catégorisation sensible',
     `- **Signal externe détecté**: ${categorizationInsights.hasExternalSensitiveSignal ? 'Oui' : 'Non'}`,
     `- **Source Blocklist Project**: ${categorizationInsights.hasBlocklistProjectSource ? 'Oui' : 'Non'}`,
-    `- **Source Webshrinker**: ${categorizationInsights.hasWebshrinkerSource ? 'Oui' : 'Non'}`,
     ...categorizationInsights.highlights.map((highlight) => `- **Extrait**: ${highlight}`),
     '',
     '### Liens utiles',

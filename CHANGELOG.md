@@ -13,9 +13,8 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Added moderation card media/action strips in both pending and published lists: thumbnail preview, direct CTA to the submitted site, direct CTA to the domain page when available, and direct CTA to the accessibility statement when available.
 - Added richer GitHub notifier issue bodies for moderation/publication events with explicit timestamp blocks and direct links to site, declaration, domain page, profile page (when available), and moderation console.
 - Added explicit GitHub notification separation between moderation-required and auto-publication events via distinct issue titles, status banners, and contextual labels (`moderation-required`/`review-needed` vs `auto-publication`/`info-only`).
-- Added optional external URL categorization provider support (`Webshrinker`) for stronger sensitive-content moderation signals before auto-publication.
 - Added a free sensitive-domain categorization provider based on Blocklist Project feeds (porn/gambling/drugs), with cached lookups and optional feed URL overrides.
-- Added GitHub moderation issue enrichment for sensitive categorization: explicit Blocklist Project/Webshrinker source flags, extracted categorization snippets, and contextual labels (`sensitive-category`, `source-blocklist-project`, `source-webshrinker`).
+- Added GitHub moderation issue enrichment for sensitive categorization: explicit source flags, extracted categorization snippets, and contextual labels (`sensitive-category`, `source-blocklist-project`).
 
 ### Fixed
 - Site auto-publication guardrails now send submissions to moderation when the detected accessibility statement points to a different registrable domain than the submitted site.
@@ -23,8 +22,8 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - GitHub notifier issue text rendering no longer over-escapes punctuation in standard content, removing most visible backslashes while keeping mention neutralization safety.
 - Homepage polite announcements now explicitly distinguish annuaire loading lifecycle (`en cours` vs `terminé`) and pagination boundaries (`première page` vs `dernière page`), improving screen-reader feedback clarity.
 - Suspicious submission signals (adult content, gambling, pharmaceutical promotion, and SEO/link-farm patterns) now trigger manual moderation instead of immediate public rejection, including during preview responses.
-- Sensitive submission checks now combine local dictionaries with optional external category lookups, and unresolved external categorization (`202` processing state) is treated as manual-review-only.
-- Sensitive submission checks now combine local dictionaries with free Blocklist Project category feeds and optional external category lookups before auto-publication.
+- Sensitive submission checks now combine local dictionaries with free Blocklist Project category feeds before auto-publication.
+- Removed premium third-party categorization integration to keep moderation categorization fully based on free sources.
 - Moderation tiles now hide the `Domaine rapproché` panel when a domain has only one published public profile, reducing redundant context on single-site entries.
 - Homepage now initializes URL-backed directory filters in state initializers and drives pagination/focus updates directly from user actions, removing several effect-driven UI synchronization paths.
 - Canonical host strategy is now aligned on `https://www.annuaire-rgaa.fr` across default SEO metadata, sitemap/discovery assets, and `.org`/apex redirect targets, matching the production host configuration used for indexing.

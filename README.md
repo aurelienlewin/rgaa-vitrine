@@ -259,16 +259,8 @@ BLOCKLIST_PROJECT_REFRESH_MINUTES=180
 # BLOCKLIST_PROJECT_DRUGS_URL=https://raw.githubusercontent.com/blocklistproject/Lists/refs/heads/master/drugs.txt
 ```
 
-Optional premium external URL categorization:
-
-```bash
-WEBSHRINKER_API_KEY=...
-WEBSHRINKER_API_SECRET=...
-WEBSHRINKER_TAXONOMY=webshrinker
-```
-
-When configured, the moderation pipeline combines local dictionaries with free blocklist
-feeds and optional external category signals before deciding auto-publication versus manual review.
+The moderation pipeline combines local dictionaries with free blocklist
+feeds before deciding auto-publication versus manual review.
 
 ### GitHub Notifications
 
@@ -305,7 +297,7 @@ Issue bodies are rendered in rich Markdown with:
 - direct operational links to the submitted/published site, accessibility declaration, domain page, public profile (when available), and moderation console
 - mention-safe text rendering without noisy Markdown escape backslashes in normal content
 - clear notification separation between moderation-required issues and auto-publication informational issues (distinct titles, status banners, and dedicated GitHub labels)
-- moderation issues now expose sensitive categorization signals (external signal + source: Blocklist Project/Webshrinker) and add contextual labels (`sensitive-category`, `source-blocklist-project`, `source-webshrinker`) when applicable
+- moderation issues now expose sensitive categorization signals and add contextual labels (`sensitive-category`, `source-blocklist-project`) when applicable
 
 Publication issues are intentionally informational and do not imply operator action is required.
 
@@ -375,7 +367,6 @@ Key controls:
 - response size and timeout limits, with a slightly larger homepage HTML budget than secondary remote documents
 - dictionary-based sensitive-content signals (adult/gambling/pharmaceutical/SEO-abuse keywords) route suspicious submissions to manual moderation instead of auto-publication
 - optional free Blocklist Project category feeds (porn/gambling/drugs) reinforce sensitive-content detection and can route newly detected risky domains to manual moderation
-- optional external URL categorization (`Webshrinker`) reinforces sensitive-content detection and can route newly detected risky categories to manual moderation
 - remote-thumbnail proxying keeps URL validation server-side, follows a bounded redirect chain with host revalidation at each hop, restricts payloads to image content types (including WebP fallback detection when headers are incorrect), and enforces explicit timeout/size ceilings before bytes are relayed
 - rate limiting on public endpoints, keyed from extracted client IP headers on proxied deployments, with stricter submission and vote controls
 - moderation token strength checks and auth throttling
