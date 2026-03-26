@@ -71,6 +71,9 @@ const THUMBNAIL_PROXY_TIMEOUT_MS = 5000
 const THUMBNAIL_PROXY_MAX_BYTES = 450_000
 const THUMBNAIL_PROXY_MAX_REDIRECTS = 5
 const THUMBNAIL_PROXY_CACHE_CONTROL = 'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=604800'
+const SUBMISSION_THUMBNAIL_TIMEOUT_MS = 4500
+const SUBMISSION_THUMBNAIL_MAX_REDIRECTS = 4
+const SUBMISSION_THUMBNAIL_MAX_BYTES = 450_000
 const MAX_MAINTENANCE_MESSAGE_LENGTH = 280
 const DEFAULT_MAINTENANCE_MESSAGE = 'Nous revenons très vite. Merci de réessayer dans quelques instants.'
 const MAINTENANCE_RETRY_AFTER_SECONDS = 15 * 60
@@ -292,6 +295,131 @@ async function readBinaryBodyWithLimit(response, maxBytes) {
   }
 
   return Buffer.concat(chunks, totalBytes)
+}
+
+function readRegistrableDomainFromUrl(rawUrl) {
+  if (typeof rawUrl !== 'string' || !rawUrl.trim()) {
+    return null
+  }
+
+  try {
+    return readRegistrableDomain(new URL(rawUrl).toString())
+  } catch {
+    return null
+  }
+}
+
+function hasAccessibilityDomainMismatch(siteUrl, accessibilityPageUrl) {
+  const siteDomain = readRegistrableDomainFromUrl(siteUrl)
+  const accessibilityDomain = readRegistrableDomainFromUrl(accessibilityPageUrl)
+  if (!siteDomain || !accessibilityDomain) {
+    return true
+  }
+
+  return siteDomain !== accessibilityDomain
+}
+
+async function readSubmissionThumbnailReviewReason(thumbnailUrl) {
+  if (!thumbnailUrl) {
+    return null
+  }
+
+  let currentUrl
+  try {
+    currentUrl = await validatePublicHttpUrl(thumbnailUrl)
+  } catch (error) {
+    if (error instanceof SiteInsightError) {
+      return 'L’URL de vignette détectée est invalide ou non autorisée.'
+    }
+    return 'La vignette détectée ne peut pas être vérifiée.'
+  }
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), SUBMISSION_THUMBNAIL_TIMEOUT_MS)
+
+  try {
+    let remoteResponse = null
+    let finalThumbnailUrl = currentUrl
+
+    for (let redirectCount = 0; redirectCount <= SUBMISSION_THUMBNAIL_MAX_REDIRECTS; redirectCount += 1) {
+      remoteResponse = await fetch(finalThumbnailUrl, {
+        method: 'GET',
+        redirect: 'manual',
+        signal: controller.signal,
+        headers: {
+          'user-agent': 'Annuaire-RGAA/1.0 (+https://www.annuaire-rgaa.fr)',
+          accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        },
+      })
+
+      if (!(remoteResponse.status >= 300 && remoteResponse.status < 400)) {
+        break
+      }
+
+      if (redirectCount >= SUBMISSION_THUMBNAIL_MAX_REDIRECTS) {
+        return 'La vignette détectée redirige trop de fois.'
+      }
+
+      const redirectUrl = resolveRedirectUrl(
+        remoteResponse.headers.get('location') ?? '',
+        finalThumbnailUrl,
+      )
+      if (!redirectUrl) {
+        return 'La vignette détectée redirige vers une URL non prise en charge.'
+      }
+
+      try {
+        finalThumbnailUrl = await validatePublicHttpUrl(redirectUrl)
+      } catch {
+        return 'La vignette détectée redirige vers une URL non autorisée.'
+      }
+    }
+
+    if (!remoteResponse) {
+      return 'La vignette détectée n’a pas renvoyé de réponse exploitable.'
+    }
+
+    if (!remoteResponse.ok) {
+      return `La vignette détectée est inaccessible (statut ${remoteResponse.status}).`
+    }
+
+    const contentLengthHeader = Number.parseInt(remoteResponse.headers.get('content-length') ?? '', 10)
+    if (Number.isFinite(contentLengthHeader) && contentLengthHeader > SUBMISSION_THUMBNAIL_MAX_BYTES) {
+      return 'La vignette détectée dépasse la taille maximale autorisée.'
+    }
+
+    let payload
+    try {
+      payload = await readBinaryBodyWithLimit(remoteResponse, SUBMISSION_THUMBNAIL_MAX_BYTES)
+    } catch (error) {
+      if (error instanceof SiteInsightError) {
+        return error.message
+      }
+      return 'La vignette détectée ne peut pas être vérifiée.'
+    }
+    const contentType = resolveThumbnailContentType(
+      remoteResponse.headers.get('content-type') ?? '',
+      payload,
+      finalThumbnailUrl,
+    )
+    if (!contentType) {
+      return 'La vignette détectée n’est pas une image exploitable.'
+    }
+
+    if (!Buffer.isBuffer(payload) || payload.length === 0) {
+      return 'La vignette détectée est vide.'
+    }
+
+    return null
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return 'La vérification de la vignette a expiré.'
+    }
+
+    return 'La vignette détectée est inaccessible.'
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 function isPreviewRequested(request) {
@@ -1393,16 +1521,36 @@ function findSuspiciousMarketingToken(siteInsight) {
   return SUSPICIOUS_MARKETING_TOKENS.find((token) => haystack.includes(token)) ?? null
 }
 
-function getManualReviewReason(siteInsight) {
+function formatManualReviewReason(reasons) {
+  if (!Array.isArray(reasons) || reasons.length === 0) {
+    return null
+  }
+
+  return reasons
+    .map((reason) => String(reason).trim())
+    .filter(Boolean)
+    .join(' ')
+}
+
+async function getManualReviewReasons(siteInsight) {
+  const reasons = []
+
   if (!siteInsight.accessibilityPageUrl) {
-    return 'Aucune déclaration d’accessibilité détectée.'
+    reasons.push('Aucune déclaration d’accessibilité détectée.')
+  } else if (hasAccessibilityDomainMismatch(siteInsight.normalizedUrl, siteInsight.accessibilityPageUrl)) {
+    reasons.push('La déclaration d’accessibilité détectée pointe vers un domaine différent du site soumis.')
+  }
+
+  const thumbnailReviewReason = await readSubmissionThumbnailReviewReason(siteInsight.thumbnailUrl)
+  if (thumbnailReviewReason) {
+    reasons.push(thumbnailReviewReason)
   }
 
   if (!AUTO_PUBLISH_STATUSES.has(siteInsight.complianceStatus ?? '')) {
-    return "Niveau de conformité insuffisant pour publication automatique."
+    reasons.push('Niveau de conformité insuffisant pour publication automatique.')
   }
 
-  return null
+  return reasons
 }
 
 function readMostRecentUpdatedAt(entries) {
@@ -2102,7 +2250,8 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       return
     }
 
-    const manualReviewReason = getManualReviewReason(normalizedInsight)
+    const manualReviewReasons = await getManualReviewReasons(normalizedInsight)
+    const manualReviewReason = formatManualReviewReason(manualReviewReasons)
     if (previewMode) {
       const previewStatus = manualReviewReason ? 'pending' : 'approved'
       const previewEntry = withCandidateDomainContext(

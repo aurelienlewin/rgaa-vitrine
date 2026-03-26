@@ -2024,6 +2024,62 @@ function ModerationPage() {
                                 <p className="wrap-anywhere text-sm font-semibold text-slate-900 dark:text-slate-50">
                                   {entry.normalizedUrl}
                                 </p>
+                                <div className="mt-3 overflow-hidden rounded-2xl border border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-900">
+                                  <div className="site-thumbnail-frame h-40 border-b border-slate-200 dark:border-slate-700">
+                                    {entry.thumbnailUrl ? (
+                                      <div className="site-thumbnail-canvas">
+                                        <img
+                                          src={entry.thumbnailUrl}
+                                          alt={`Vignette détectée pour ${entry.siteTitle}`}
+                                          className="site-thumbnail-image h-full w-full"
+                                          loading="lazy"
+                                          decoding="async"
+                                          referrerPolicy="no-referrer"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <div className="site-thumbnail-canvas flex items-center justify-center bg-linear-to-br from-slate-50 via-white to-sky-50 px-3 text-center text-sm font-medium text-slate-800 dark:from-slate-900 dark:via-slate-800 dark:to-sky-950 dark:text-slate-100">
+                                        Aucune vignette détectée
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="grid gap-2 p-3 sm:grid-cols-2">
+                                    <a
+                                      href={entry.normalizedUrl}
+                                      target="_blank"
+                                      rel="noreferrer noopener"
+                                      className={`inline-flex min-h-11 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${moderationCtaPrimaryClass} ${focusRingClass}`}
+                                    >
+                                      Ouvrir le site
+                                    </a>
+                                    {entry.domainContext?.groupPath ? (
+                                      <a
+                                        href={entry.domainContext.groupPath}
+                                        className={`inline-flex min-h-11 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${moderationCtaNeutralClass} ${focusRingClass}`}
+                                      >
+                                        Voir la page domaine
+                                      </a>
+                                    ) : (
+                                      <span className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 dark:border-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                                        Pas de page domaine
+                                      </span>
+                                    )}
+                                    {entry.accessibilityPageUrl ? (
+                                      <a
+                                        href={entry.accessibilityPageUrl}
+                                        target="_blank"
+                                        rel="noreferrer noopener"
+                                        className={`sm:col-span-2 inline-flex min-h-11 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${moderationCtaSuccessClass} ${focusRingClass}`}
+                                      >
+                                        Ouvrir la déclaration d’accessibilité
+                                      </a>
+                                    ) : (
+                                      <span className="sm:col-span-2 inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 dark:border-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                                        Déclaration d’accessibilité non détectée
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
                                 {shouldShowModerationDomainContext(entry.domainContext) ? (
                                   <div className={`mt-3 rounded-xl px-3 py-3 text-sm ${moderationInfoPanelClass}`}>
                                     <p className="font-semibold">
@@ -2223,6 +2279,62 @@ function ModerationPage() {
                       <article>
                         <h3 className="text-lg font-semibold">{entry.siteTitle}</h3>
                         <p className={`mt-2 wrap-anywhere text-sm ${moderationTextMutedClass}`}>{entry.normalizedUrl}</p>
+                        <div className="mt-3 overflow-hidden rounded-2xl border border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-900">
+                          <div className="site-thumbnail-frame h-40 border-b border-slate-200 dark:border-slate-700">
+                            {entry.thumbnailUrl ? (
+                              <div className="site-thumbnail-canvas">
+                                <img
+                                  src={entry.thumbnailUrl}
+                                  alt={`Vignette publiée pour ${entry.siteTitle}`}
+                                  className="site-thumbnail-image h-full w-full"
+                                  loading="lazy"
+                                  decoding="async"
+                                  referrerPolicy="no-referrer"
+                                />
+                              </div>
+                            ) : (
+                              <div className="site-thumbnail-canvas flex items-center justify-center bg-linear-to-br from-slate-50 via-white to-emerald-50 px-3 text-center text-sm font-medium text-slate-800 dark:from-slate-900 dark:via-slate-800 dark:to-emerald-950 dark:text-slate-100">
+                                Aucune vignette enregistrée
+                              </div>
+                            )}
+                          </div>
+                          <div className="grid gap-2 p-3 sm:grid-cols-2">
+                            <a
+                              href={entry.normalizedUrl}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              className={`inline-flex min-h-11 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${moderationCtaPrimaryClass} ${focusRingClass}`}
+                            >
+                              Ouvrir le site
+                            </a>
+                            {entry.domainContext?.groupPath ? (
+                              <a
+                                href={entry.domainContext.groupPath}
+                                className={`inline-flex min-h-11 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${moderationCtaNeutralClass} ${focusRingClass}`}
+                              >
+                                Voir la page domaine
+                              </a>
+                            ) : (
+                              <span className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 dark:border-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                                Pas de page domaine
+                              </span>
+                            )}
+                            {entry.accessibilityPageUrl ? (
+                              <a
+                                href={entry.accessibilityPageUrl}
+                                target="_blank"
+                                rel="noreferrer noopener"
+                                className={`sm:col-span-2 inline-flex min-h-11 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${moderationCtaSuccessClass} ${focusRingClass}`}
+                              >
+                                Ouvrir la déclaration d’accessibilité
+                              </a>
+                            ) : (
+                              <span className="sm:col-span-2 inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 dark:border-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                                Déclaration d’accessibilité non renseignée
+                              </span>
+                            )}
+                          </div>
+                        </div>
                         <p className={`mt-1 text-sm ${moderationTextMutedClass}`}>
                           Dernière mise à jour: {formatDate(entry.updatedAt)}
                         </p>
