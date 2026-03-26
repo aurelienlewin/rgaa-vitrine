@@ -1,4 +1,9 @@
 import { isIP } from 'node:net'
+import {
+  buildDomainGroupSlug,
+  readRegistrableDomain,
+  resolveDomainGroupPath,
+} from './domainGroups.js'
 
 const DEFAULT_GITHUB_API_BASE_URL = 'https://api.github.com'
 const GITHUB_NOTIFY_TIMEOUT_MS = 8_000
@@ -136,12 +141,6 @@ function readGithubNotifierConfig() {
 
 const githubNotifierConfig = readGithubNotifierConfig()
 
-function markdownEscapeInline(value) {
-  return String(value)
-    .replace(/[\\`*_{}\[\]()#+\-.!|>]/g, '\\$&')
-    .trim()
-}
-
 function neutralizeGithubMentions(value) {
   return String(value).replace(/@/g, '@\u200b')
 }
@@ -155,6 +154,95 @@ function truncate(value, maxLength) {
     return value
   }
   return `${value.slice(0, Math.max(0, maxLength - 1))}…`
+}
+
+function sanitizeIssueText(value, maxLength, fallback = 'N/A') {
+  const compactValue = compactText(value ?? '')
+  const safeValue = neutralizeGithubMentions(compactValue || fallback)
+  return truncate(safeValue, maxLength)
+}
+
+function sanitizeIssueUrl(value) {
+  if (typeof value !== 'string' || !value.trim()) {
+    return null
+  }
+
+  try {
+    const parsed = new URL(value.trim())
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return null
+    }
+    return parsed.toString()
+  } catch {
+    return null
+  }
+}
+
+function resolveAppUrl(pathOrUrl) {
+  if (typeof pathOrUrl !== 'string' || !pathOrUrl.trim()) {
+    return null
+  }
+
+  if (/^https?:\/\//i.test(pathOrUrl)) {
+    return sanitizeIssueUrl(pathOrUrl)
+  }
+
+  if (!pathOrUrl.startsWith('/')) {
+    return null
+  }
+
+  if (!githubNotifierConfig?.appBaseUrl) {
+    return pathOrUrl
+  }
+
+  return `${githubNotifierConfig.appBaseUrl}${pathOrUrl}`
+}
+
+function buildDomainPageUrl(normalizedUrl) {
+  if (typeof normalizedUrl !== 'string' || !normalizedUrl.trim()) {
+    return null
+  }
+
+  const registrableDomain = readRegistrableDomain(normalizedUrl)
+  if (!registrableDomain) {
+    return null
+  }
+
+  const groupSlug = buildDomainGroupSlug(registrableDomain)
+  const groupPath = resolveDomainGroupPath(groupSlug)
+  return groupPath ? resolveAppUrl(groupPath) : null
+}
+
+function formatIssueDate(dateValue) {
+  const parsedTimestamp = Date.parse(typeof dateValue === 'string' ? dateValue : '')
+  const resolvedDate = Number.isFinite(parsedTimestamp) ? new Date(parsedTimestamp) : new Date()
+  const iso = resolvedDate.toISOString()
+
+  const parisDate = new Intl.DateTimeFormat('fr-FR', {
+    dateStyle: 'full',
+    timeStyle: 'long',
+    timeZone: 'Europe/Paris',
+  }).format(resolvedDate)
+
+  const utcDate = new Intl.DateTimeFormat('fr-FR', {
+    dateStyle: 'full',
+    timeStyle: 'long',
+    timeZone: 'UTC',
+  }).format(resolvedDate)
+
+  return {
+    iso,
+    parisDate,
+    utcDate,
+  }
+}
+
+function toIssueLinkLine(label, url, fallbackLabel) {
+  if (!url) {
+    return `- **${label}**: ${fallbackLabel}`
+  }
+
+  return `- **${label}**: <${url}>`
 }
 
 async function readJsonSafely(response) {
@@ -177,97 +265,93 @@ async function readJsonSafely(response) {
 }
 
 function buildPendingModerationIssuePayload(entry) {
-  const shortSubmissionId = truncate(markdownEscapeInline(neutralizeGithubMentions(entry.submissionId)), 18)
-  const safeTitle = truncate(markdownEscapeInline(neutralizeGithubMentions(compactText(entry.siteTitle || 'Site sans titre'))), 90)
-  const safeUrl = truncate(markdownEscapeInline(neutralizeGithubMentions(compactText(entry.normalizedUrl || 'N/A'))), 250)
-  const safeCategory = truncate(markdownEscapeInline(neutralizeGithubMentions(compactText(entry.category || 'Autre'))), 40)
-  const safeStatus = truncate(
-    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.complianceStatusLabel || 'Niveau inconnu'))),
-    80,
-  )
+  const shortSubmissionId = sanitizeIssueText(entry.submissionId, 24)
+  const safeTitle = sanitizeIssueText(entry.siteTitle, 90, 'Site sans titre')
+  const safeCategory = sanitizeIssueText(entry.category, 40, 'Autre')
+  const safeStatus = sanitizeIssueText(entry.complianceStatusLabel, 80, 'Niveau inconnu')
   const safeScore =
     typeof entry.complianceScore === 'number' && Number.isFinite(entry.complianceScore)
       ? `${entry.complianceScore}%`
       : 'N/A'
-  const safeReason = truncate(
-    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.reviewReason || 'Non précisé'))),
-    300,
-  )
-  const safeCreatedAt = truncate(
-    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.createdAt || new Date().toISOString()))),
-    80,
-  )
-  const moderationUrl = githubNotifierConfig?.appBaseUrl
-    ? `${githubNotifierConfig.appBaseUrl}/moderation`
-    : '/moderation'
+  const safeReason = sanitizeIssueText(entry.reviewReason, 400, 'Non précisé')
+  const createdAt = formatIssueDate(entry.createdAt)
+  const siteUrl = sanitizeIssueUrl(entry.normalizedUrl)
+  const declarationUrl = sanitizeIssueUrl(entry.accessibilityPageUrl)
+  const domainUrl = buildDomainPageUrl(entry.normalizedUrl)
+  const moderationUrl = resolveAppUrl('/moderation')
 
-  const title = `[Modération RGAA] ${safeTitle} • ${shortSubmissionId}`
+  const title = `[Modération RGAA] ${safeTitle} - ${shortSubmissionId}`
   const body = [
     '<!-- annuaire-rgaa:pending-moderation -->',
-    `Une soumission nécessite une validation manuelle dans l’annuaire RGAA.`,
+    '## Nouvelle soumission en attente de modération',
     '',
-    `- **submissionId**: \`${shortSubmissionId}\``,
+    '> Cette issue est informative et centralise les liens utiles pour traiter la soumission.',
+    '',
+    '### Horodatage',
+    `- **Créée (Europe/Paris)**: ${createdAt.parisDate}`,
+    `- **Créée (UTC)**: ${createdAt.utcDate}`,
+    `- **ISO 8601**: \`${createdAt.iso}\``,
+    '',
+    '### Résumé',
+    `- **Submission ID**: \`${shortSubmissionId}\``,
     `- **Site**: ${safeTitle}`,
-    `- **URL**: ${safeUrl}`,
     `- **Catégorie**: ${safeCategory}`,
     `- **Conformité détectée**: ${safeStatus}`,
     `- **Score**: ${safeScore}`,
-    `- **Raison de revue manuelle**: ${safeReason}`,
-    `- **Créée le**: ${safeCreatedAt}`,
+    `- **Motif de revue manuelle**: ${safeReason}`,
     '',
-    `Accès modération: ${moderationUrl}`,
+    '### Liens utiles',
+    toIssueLinkLine('Site soumis', siteUrl, 'URL invalide ou indisponible'),
+    toIssueLinkLine('Déclaration d’accessibilité', declarationUrl, 'Non détectée'),
+    toIssueLinkLine('Page domaine', domainUrl, 'Domaine introuvable ou lien non résolu'),
+    toIssueLinkLine('Console de modération', moderationUrl, 'PUBLIC_APP_URL non configurée'),
+    '',
   ].join('\n')
 
   return { title, body }
 }
 
 function buildApprovedPublicationIssuePayload(entry) {
-  const safeTitle = truncate(
-    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.siteTitle || 'Site sans titre'))),
-    90,
-  )
-  const safeUrl = truncate(
-    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.normalizedUrl || 'N/A'))),
-    250,
-  )
-  const safeCategory = truncate(
-    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.category || 'Autre'))),
-    40,
-  )
-  const safeStatus = truncate(
-    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.complianceStatusLabel || 'Niveau inconnu'))),
-    80,
-  )
+  const safeTitle = sanitizeIssueText(entry.siteTitle, 90, 'Site sans titre')
+  const safeCategory = sanitizeIssueText(entry.category, 40, 'Autre')
+  const safeStatus = sanitizeIssueText(entry.complianceStatusLabel, 80, 'Niveau inconnu')
   const safeScore =
     typeof entry.complianceScore === 'number' && Number.isFinite(entry.complianceScore)
       ? `${entry.complianceScore}%`
       : 'N/A'
-  const safePublishedAt = truncate(
-    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.updatedAt || new Date().toISOString()))),
-    80,
-  )
-  const safeProfilePath = truncate(
-    markdownEscapeInline(neutralizeGithubMentions(compactText(entry.profilePath || 'N/A'))),
-    160,
-  )
-  const moderationUrl = githubNotifierConfig?.appBaseUrl
-    ? `${githubNotifierConfig.appBaseUrl}/moderation`
-    : '/moderation'
+  const publishedAt = formatIssueDate(entry.updatedAt)
+  const siteUrl = sanitizeIssueUrl(entry.normalizedUrl)
+  const declarationUrl = sanitizeIssueUrl(entry.accessibilityPageUrl)
+  const domainUrl = buildDomainPageUrl(entry.normalizedUrl)
+  const profileUrl = resolveAppUrl(typeof entry.profilePath === 'string' ? entry.profilePath : '')
+  const moderationUrl = resolveAppUrl('/moderation')
 
   const title = `[Publication RGAA] ${safeTitle}`
   const body = [
     '<!-- annuaire-rgaa:auto-approved-publication -->',
-    'Publication automatique informative. Aucune action de modération n’est requise.',
+    '## Publication automatique informative',
+    '',
+    '> Aucune action de modération n’est requise. Cette issue conserve les liens de suivi.',
+    '',
+    '### Horodatage',
+    `- **Publiée (Europe/Paris)**: ${publishedAt.parisDate}`,
+    `- **Publiée (UTC)**: ${publishedAt.utcDate}`,
+    `- **ISO 8601**: \`${publishedAt.iso}\``,
+    '',
+    '### Résumé',
     '',
     `- **Site**: ${safeTitle}`,
-    `- **URL**: ${safeUrl}`,
     `- **Catégorie**: ${safeCategory}`,
     `- **Conformité détectée**: ${safeStatus}`,
     `- **Score**: ${safeScore}`,
-    `- **Publiée le**: ${safePublishedAt}`,
-    `- **Fiche publique**: ${safeProfilePath}`,
     '',
-    `Accès modération: ${moderationUrl}`,
+    '### Liens utiles',
+    toIssueLinkLine('Site publié', siteUrl, 'URL invalide ou indisponible'),
+    toIssueLinkLine('Déclaration d’accessibilité', declarationUrl, 'Non détectée'),
+    toIssueLinkLine('Page domaine', domainUrl, 'Domaine introuvable ou lien non résolu'),
+    toIssueLinkLine('Fiche publique', profileUrl, 'Lien fiche indisponible'),
+    toIssueLinkLine('Console de modération', moderationUrl, 'PUBLIC_APP_URL non configurée'),
+    '',
   ].join('\n')
 
   return { title, body }

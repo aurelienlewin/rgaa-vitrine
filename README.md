@@ -276,7 +276,13 @@ When enabled, the notifier can create:
 - moderation issues for submissions that require manual review
 - informational publication issues for sites that are auto-approved and published immediately
 
-Publication issues are intentionally worded as informational and do not imply operator action is required.
+Issue bodies are rendered in rich Markdown with:
+
+- high-visibility timestamp blocks (Europe/Paris, UTC, and ISO 8601)
+- direct operational links to the submitted/published site, accessibility declaration, domain page, public profile (when available), and moderation console
+- mention-safe text rendering without noisy Markdown escape backslashes in normal content
+
+Publication issues are intentionally informational and do not imply operator action is required.
 
 ## API Surface
 
