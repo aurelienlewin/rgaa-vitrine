@@ -10,8 +10,11 @@ Changelog entries are written in English; referenced UI labels remain in French 
 ### Added
 - Added a Playwright end-to-end regression suite (`e2e/homepage-and-moderation-regressions.spec.ts`) covering URL-backed homepage filters, pagination reset behavior, submission feedback focus management, and moderation session restoration.
 - Added Playwright runtime configuration (`playwright.config.mjs`) and dedicated npm scripts for e2e execution (`test:e2e`, `test:e2e:headed`, `test:e2e:ui`, `test:e2e:install`).
+- Added moderation card media/action strips in both pending and published lists: thumbnail preview, direct CTA to the submitted site, direct CTA to the domain page when available, and direct CTA to the accessibility statement when available.
 
 ### Fixed
+- Site auto-publication guardrails now send submissions to moderation when the detected accessibility statement points to a different registrable domain than the submitted site.
+- Site auto-publication guardrails now send submissions to moderation when a detected thumbnail is invalid, unreachable, oversized, or not an image payload.
 - Moderation tiles now hide the `Domaine rapproché` panel when a domain has only one published public profile, reducing redundant context on single-site entries.
 - Homepage now initializes URL-backed directory filters in state initializers and drives pagination/focus updates directly from user actions, removing several effect-driven UI synchronization paths.
 - Canonical host strategy is now aligned on `https://www.annuaire-rgaa.fr` across default SEO metadata, sitemap/discovery assets, and `.org`/apex redirect targets, matching the production host configuration used for indexing.
@@ -71,6 +74,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Atkinson Hyperlegible is now declared through local `@font-face` rules with `font-display: optional`, reducing late text reflow risk during startup font swaps.
 
 ### Changed
+- Homepage directory cards now use explicit page-based pagination controls (`Page précédente`, `Page suivante`, and direct page select) instead of viewport-end auto-loading, which keeps the mobile path to the submission form shorter and predictable.
 - Accessibility statement snapshot data (`shared/accessibilityStatement.js`) now reports the latest 2026-03-12 five-page audit baseline (`96.7%`, `2` tracked non-conformities) and lists each criterion with impacted templates and remediation status.
 - Static shell metadata now aligns with the same accessibility snapshot baseline by updating `rgaa:compliance-score` to `96.7`.
 - README now documents that `/accessibilite` consumes the shared accessibility-statement snapshot for audit scope, score, and tracked non-conformities.

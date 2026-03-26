@@ -45,7 +45,7 @@ Core characteristics:
 
 ### Public routes
 
-- `/`: homepage, shared search entry point, live filters, sort controls, progressive results, submission flow, accessibility guidance
+- `/`: homepage, shared search entry point, live filters, sort controls, paginated results, submission flow, accessibility guidance
 - `/plan-du-site`: public site map with crawl-oriented internal links
 - `/accessibilite`: accessibility declaration and contact/recourse information
 - `/site/{slug}`: one public profile page per referenced site
@@ -70,7 +70,7 @@ Core characteristics:
 
 - discoverability first: search, filters, internal linking, canonical public routes
 - accessibility first: semantic HTML, keyboard flow, visible focus, non-silent async states
-- moderation continuity: reviewers keep domain context on multi-site domains, alongside editable metadata and rollback options
+- moderation continuity: reviewers keep domain context on multi-site domains, thumbnail visibility, direct site/declaration CTAs, editable metadata, and rollback options
 - crawl consistency: public routes, sitemap, site map page, and machine-readable assets expose the same public patterns
 - low-friction operations: Vercel deployment, optional Redis persistence, optional GitHub notifications, and one-click maintenance activation from moderation
 
@@ -116,7 +116,7 @@ Implemented principles:
 - public shell enforces a single light color scheme (theme toggle removed from public pages) so first-paint and hydrated text/background pairings stay deterministic across shared templates
 - shared secondary navigation and global-search controls use explicit filled surfaces and reinforced borders to keep interface-component contrast stable across public templates
 - shared search entry point across homepage and secondary routes
-- homepage results summary and polite announcements stay aligned when search, filters, sorting, and progressive loading update the visible cards
+- homepage results summary and polite announcements stay aligned when search, filters, sorting, and page-based pagination update the visible cards
 - global asynchronous announcers stay in persistent visually hidden live regions to avoid layout shifts while keeping French status/error messages available to assistive technologies
 - focus continuity after action outcomes and section jumps
 - moderation unlock places focus on the `Soumissions en attente` section before row-level actions
@@ -323,7 +323,7 @@ x-moderation-token: <MODERATION_API_TOKEN>
 
 - `approved`: published immediately
 - `duplicate`: already listed
-- `pending`: stored for moderation
+- `pending`: stored for moderation when key integrity checks fail (for example missing accessibility statement, mismatch between statement domain and submitted site domain, or invalid/inaccessible detected thumbnail)
 
 Preview mode:
 

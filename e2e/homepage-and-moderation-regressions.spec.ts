@@ -124,7 +124,7 @@ test('initialise les filtres depuis l’URL et place le focus sur le résumé', 
     .toBe('annuaire-resultats-resume')
 })
 
-test('réinitialise la pagination visible après changement de filtre', async ({ page }) => {
+test('réinitialise la pagination par page après changement de filtre', async ({ page }) => {
   const entries = Array.from({ length: 40 }, (_, index) =>
     createShowcaseEntry(index + 1, {
       complianceStatus: index < 30 ? 'full' : 'partial',
@@ -137,14 +137,17 @@ test('réinitialise la pagination visible après changement de filtre', async ({
   await page.goto('/')
 
   const cards = page.locator('#liste-vitrines > li')
+  const paginationInfo = page.locator('#annuaire-pagination-info')
   await expect(cards).toHaveCount(24)
+  await expect(paginationInfo).toHaveText('Page 1 sur 2')
 
-  await page.getByRole('button', { name: /Charger \d+ carte\(s\) de plus/ }).click()
-  await expect(cards).toHaveCount(40)
+  await page.getByRole('button', { name: 'Page suivante' }).click()
+  await expect(cards).toHaveCount(16)
+  await expect(paginationInfo).toHaveText('Page 2 sur 2')
 
   await page.selectOption('#accueil-recherche-annuaire-statut', 'full')
   await expect(cards).toHaveCount(24)
-  await expect(page.getByRole('button', { name: 'Charger 6 carte(s) de plus' })).toBeVisible()
+  await expect(paginationInfo).toHaveText('Page 1 sur 2')
 })
 
 test('affiche une erreur de pré-analyse et déplace le focus sur le panneau', async ({ page }) => {

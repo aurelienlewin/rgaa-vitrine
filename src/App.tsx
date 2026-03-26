@@ -77,6 +77,7 @@ type InitialDirectoryFilters = {
   status: ShowcaseStatusFilter
   category: string
   sort: DirectorySortOption
+  page: number
   hasActiveFilters: boolean
 }
 
@@ -177,7 +178,7 @@ const moderationContactEmail = 'mailto:aurelienlewin@proton.me'
 const skipLinksContainerClass =
   'fixed start-2 top-2 z-60 flex max-w-[calc(100vw-1rem)] -translate-y-[120%] flex-col items-start gap-2 transition-transform duration-150 motion-reduce:transition-none focus-within:translate-y-0 hover:translate-y-0 sm:start-4 sm:top-4 sm:max-w-none'
 const skipLinkClass = `inline-flex min-h-11 items-center rounded-lg border border-slate-900 bg-slate-950 px-3 py-2 text-slate-50 underline decoration-2 underline-offset-2 shadow-lg dark:border-slate-50 dark:bg-slate-50 dark:text-slate-950 ${focusRingClass}`
-const TILE_BATCH_SIZE = 24
+const DIRECTORY_PAGE_SIZE = 24
 const CLIENT_VOTER_ID_STORAGE_KEY = 'annuaire-rgaa-voter-id'
 const defaultDirectorySort: DirectorySortOption = 'latest'
 const directorySortOptions: Array<{
@@ -216,6 +217,7 @@ function readInitialDirectoryFilters(): InitialDirectoryFilters {
       status: 'all',
       category: 'all',
       sort: defaultDirectorySort,
+      page: 1,
       hasActiveFilters: false,
     }
   }
@@ -224,19 +226,23 @@ function readInitialDirectoryFilters(): InitialDirectoryFilters {
   const query = (params.get('recherche') ?? '').slice(0, 120)
   const status = readStatusFilterFromQuery(params.get('statut'))
   const sort = readDirectorySortFromQuery(params.get('tri'))
+  const pageFromQuery = Number.parseInt(params.get('page') ?? '1', 10)
+  const page = Number.isFinite(pageFromQuery) && pageFromQuery > 0 ? pageFromQuery : 1
   const rawCategory = params.get('categorie') ?? 'all'
   const category = rawCategory === 'all' || rawCategory.trim().length === 0 ? 'all' : rawCategory.slice(0, 60)
   const hasActiveFilters =
     Boolean(query.trim()) ||
     status !== 'all' ||
     category !== 'all' ||
-    sort !== defaultDirectorySort
+    sort !== defaultDirectorySort ||
+    page > 1
 
   return {
     query,
     status,
     category,
     sort,
+    page,
     hasActiveFilters,
   }
 }
@@ -567,12 +573,16 @@ function buildDirectorySummaryText({
   totalCardCount,
   filteredEntryCount,
   totalEntryCount,
+  currentPage,
+  totalPages,
   sortLabel,
 }: {
   visibleCardCount: number
   totalCardCount: number
   filteredEntryCount: number
   totalEntryCount: number
+  currentPage: number
+  totalPages: number
   sortLabel: string
 }) {
   const usesGrouping = filteredEntryCount !== totalCardCount || totalEntryCount !== totalCardCount
@@ -587,14 +597,20 @@ function buildDirectorySummaryText({
         ? `${totalCardCount} carte(s) après regroupement par domaine`
         : `${visibleCardCount} carte(s) affichée(s) sur ${totalCardCount} après regroupement par domaine`
 
-    return `${entryLabel}, ${cardLabel}. Tri actuel : ${sortLabel}.`
+    const pageLabel =
+      totalPages > 1 ? ` Page ${currentPage} sur ${totalPages}.` : ''
+    return `${entryLabel}, ${cardLabel}. Tri actuel : ${sortLabel}.${pageLabel}`
   }
 
   if (filteredEntryCount === totalEntryCount) {
-    return `${visibleCardCount} fiche(s) affichée(s) sur ${totalEntryCount} fiche(s) référencée(s). Tri actuel : ${sortLabel}.`
+    const pageLabel =
+      totalPages > 1 ? ` Page ${currentPage} sur ${totalPages}.` : ''
+    return `${visibleCardCount} fiche(s) affichée(s) sur ${totalEntryCount} fiche(s) référencée(s). Tri actuel : ${sortLabel}.${pageLabel}`
   }
 
-  return `${visibleCardCount} fiche(s) affichée(s) sur ${filteredEntryCount} fiche(s) filtrée(s), ${totalEntryCount} fiche(s) référencée(s) au total. Tri actuel : ${sortLabel}.`
+  const pageLabel =
+    totalPages > 1 ? ` Page ${currentPage} sur ${totalPages}.` : ''
+  return `${visibleCardCount} fiche(s) affichée(s) sur ${filteredEntryCount} fiche(s) filtrée(s), ${totalEntryCount} fiche(s) référencée(s) au total. Tri actuel : ${sortLabel}.${pageLabel}`
 }
 
 function createClientVoterId() {
@@ -827,7 +843,7 @@ function App() {
   const [statusFilter, setStatusFilter] = useState<ShowcaseStatusFilter>(() => initialDirectoryFilters.status)
   const [categoryFilter, setCategoryFilter] = useState(() => initialDirectoryFilters.category)
   const [directorySort, setDirectorySort] = useState<DirectorySortOption>(() => initialDirectoryFilters.sort)
-  const [visibleTilesCount, setVisibleTilesCount] = useState(TILE_BATCH_SIZE)
+  const [directoryPage, setDirectoryPage] = useState(() => initialDirectoryFilters.page)
   const [upvotePendingByUrl, setUpvotePendingByUrl] = useState<Record<string, boolean>>({})
   const [politeAnnouncement, setPoliteAnnouncement] = useState({ id: 0, message: '' })
   const [assertiveAnnouncement, setAssertiveAnnouncement] = useState({ id: 0, message: '' })
@@ -847,8 +863,6 @@ function App() {
   const submitConfirmationRef = useRef<HTMLElement | null>(null)
   const confirmSubmissionButtonRef = useRef<HTMLButtonElement | null>(null)
   const lastAddedRef = useRef<HTMLElement | null>(null)
-  const loadMoreButtonRef = useRef<HTMLButtonElement | null>(null)
-  const tilesSentinelRef = useRef<HTMLDivElement | null>(null)
   const clientVoterIdRef = useRef<string>('')
   const shouldFocusResultsAfterInitialFiltersRef = useRef(initialDirectoryFilters.hasActiveFilters)
   const shouldSyncVoteStateAfterDirectoryLoadRef = useRef(false)
@@ -959,6 +973,7 @@ function App() {
     status: ShowcaseStatusFilter
     category: string
     sort: DirectorySortOption
+    page: number
   }) => {
     if (typeof window === 'undefined') {
       return
@@ -986,6 +1001,11 @@ function App() {
     } else {
       currentUrl.searchParams.set('tri', filters.sort)
     }
+    if (filters.page <= 1) {
+      currentUrl.searchParams.delete('page')
+    } else {
+      currentUrl.searchParams.set('page', String(filters.page))
+    }
 
     const nextRelativeUrl = `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`
     const currentRelativeUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`
@@ -994,43 +1014,43 @@ function App() {
     }
   }, [])
 
-  const resetVisibleTiles = useCallback(() => {
-    setVisibleTilesCount(TILE_BATCH_SIZE)
+  const resetDirectoryPage = useCallback(() => {
+    setDirectoryPage(1)
   }, [])
 
   const handleSearchQueryChange = useCallback(
     (nextQuery: string) => {
       setSearchQuery(nextQuery)
-      resetVisibleTiles()
+      resetDirectoryPage()
     },
-    [resetVisibleTiles],
+    [resetDirectoryPage],
   )
 
   const handleStatusFilterChange = useCallback(
     (nextStatus: ShowcaseStatusFilter) => {
       setStatusFilter(nextStatus)
-      resetVisibleTiles()
+      resetDirectoryPage()
     },
-    [resetVisibleTiles],
+    [resetDirectoryPage],
   )
 
   const handleCategoryFilterChange = useCallback(
     (nextCategory: string) => {
       setCategoryFilter(nextCategory)
-      resetVisibleTiles()
+      resetDirectoryPage()
     },
-    [resetVisibleTiles],
+    [resetDirectoryPage],
   )
 
   const handleResetFilters = useCallback(() => {
     setSearchQuery('')
     setStatusFilter('all')
     setCategoryFilter('all')
-    resetVisibleTiles()
-    syncFiltersInUrl({ query: '', status: 'all', category: 'all', sort: directorySort })
+    resetDirectoryPage()
+    syncFiltersInUrl({ query: '', status: 'all', category: 'all', sort: directorySort, page: 1 })
     announcePolite('Filtres réinitialisés.')
     searchInputRef.current?.focus()
-  }, [announcePolite, directorySort, resetVisibleTiles, syncFiltersInUrl])
+  }, [announcePolite, directorySort, resetDirectoryPage, syncFiltersInUrl])
 
   const filteredShowcaseEntries = useMemo(() => {
     const normalizedQuery = normalizeText(searchQuery.trim())
@@ -1083,12 +1103,28 @@ function App() {
     [availableCategoryOptions],
   )
 
-  const visibleDirectoryItems = useMemo(
-    () => filteredDirectoryItems.slice(0, visibleTilesCount),
-    [filteredDirectoryItems, visibleTilesCount],
-  )
+  const totalDirectoryPages = Math.max(1, Math.ceil(filteredDirectoryItems.length / DIRECTORY_PAGE_SIZE))
+  const currentDirectoryPage = Math.min(Math.max(directoryPage, 1), totalDirectoryPages)
+  const visibleDirectoryItems = useMemo(() => {
+    if (filteredDirectoryItems.length === 0) {
+      return []
+    }
 
-  const hasMoreTiles = visibleTilesCount < filteredDirectoryItems.length
+    const startIndex = (currentDirectoryPage - 1) * DIRECTORY_PAGE_SIZE
+    return filteredDirectoryItems.slice(startIndex, startIndex + DIRECTORY_PAGE_SIZE)
+  }, [currentDirectoryPage, filteredDirectoryItems])
+
+  useEffect(() => {
+    if (directoryPage > totalDirectoryPages) {
+      setDirectoryPage(totalDirectoryPages)
+      return
+    }
+
+    if (directoryPage < 1) {
+      setDirectoryPage(1)
+    }
+  }, [directoryPage, totalDirectoryPages])
+
   const directorySummaryText = useMemo(
     () =>
       buildDirectorySummaryText({
@@ -1096,13 +1132,17 @@ function App() {
         totalCardCount: filteredDirectoryItems.length,
         filteredEntryCount: filteredShowcaseEntries.length,
         totalEntryCount: showcaseEntries.length,
+        currentPage: currentDirectoryPage,
+        totalPages: totalDirectoryPages,
         sortLabel: activeDirectorySort.summaryLabel,
       }),
     [
       activeDirectorySort.summaryLabel,
+      currentDirectoryPage,
       filteredDirectoryItems.length,
       filteredShowcaseEntries.length,
       showcaseEntries.length,
+      totalDirectoryPages,
       visibleDirectoryItems.length,
     ],
   )
@@ -1110,14 +1150,24 @@ function App() {
   const handleSearchSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
-      syncFiltersInUrl({ query: searchQuery, status: statusFilter, category: categoryFilter, sort: directorySort })
-      const nextVisibleCardCount = Math.min(filteredDirectoryItems.length, TILE_BATCH_SIZE)
+      setDirectoryPage(1)
+      syncFiltersInUrl({
+        query: searchQuery,
+        status: statusFilter,
+        category: categoryFilter,
+        sort: directorySort,
+        page: 1,
+      })
+      const nextVisibleCardCount = Math.min(filteredDirectoryItems.length, DIRECTORY_PAGE_SIZE)
+      const nextTotalPages = Math.max(1, Math.ceil(filteredDirectoryItems.length / DIRECTORY_PAGE_SIZE))
       announcePolite(
         `Recherche appliquée. ${buildDirectorySummaryText({
           visibleCardCount: nextVisibleCardCount,
           totalCardCount: filteredDirectoryItems.length,
           filteredEntryCount: filteredShowcaseEntries.length,
           totalEntryCount: showcaseEntries.length,
+          currentPage: 1,
+          totalPages: nextTotalPages,
           sortLabel: activeDirectorySort.summaryLabel,
         })}`,
       )
@@ -1142,15 +1192,47 @@ function App() {
     (event: ChangeEvent<HTMLSelectElement>) => {
       const nextSort = readDirectorySortFromQuery(event.target.value)
       setDirectorySort(nextSort)
-      resetVisibleTiles()
+      setDirectoryPage(1)
       syncFiltersInUrl({
         query: searchQuery,
         status: statusFilter,
         category: categoryFilter,
         sort: nextSort,
+        page: 1,
       })
     },
-    [categoryFilter, resetVisibleTiles, searchQuery, statusFilter, syncFiltersInUrl],
+    [categoryFilter, searchQuery, statusFilter, syncFiltersInUrl],
+  )
+
+  const handleDirectoryPageChange = useCallback(
+    (nextPage: number) => {
+      const clampedPage = Math.min(Math.max(nextPage, 1), totalDirectoryPages)
+      if (clampedPage === currentDirectoryPage) {
+        return
+      }
+
+      setDirectoryPage(clampedPage)
+      syncFiltersInUrl({
+        query: searchQuery,
+        status: statusFilter,
+        category: categoryFilter,
+        sort: directorySort,
+        page: clampedPage,
+      })
+      announcePolite(`Pagination appliquée: page ${clampedPage} sur ${totalDirectoryPages}.`)
+      focusElement(resultsSummaryRef.current)
+    },
+    [
+      announcePolite,
+      categoryFilter,
+      currentDirectoryPage,
+      directorySort,
+      focusElement,
+      searchQuery,
+      statusFilter,
+      syncFiltersInUrl,
+      totalDirectoryPages,
+    ],
   )
 
   const directoryStats = useMemo(() => {
@@ -1388,74 +1470,6 @@ function App() {
     }, 0)
   }, [announcePolite, focusElement])
 
-  const handleLoadMoreTiles = useCallback(
-    (source: 'button' | 'auto') => {
-      if (!hasMoreTiles) {
-        return
-      }
-
-      setVisibleTilesCount((current) => {
-        const next = Math.min(current + TILE_BATCH_SIZE, filteredDirectoryItems.length)
-        if (next > current && source === 'button') {
-          announcePolite(
-            buildDirectorySummaryText({
-              visibleCardCount: next,
-              totalCardCount: filteredDirectoryItems.length,
-              filteredEntryCount: filteredShowcaseEntries.length,
-              totalEntryCount: showcaseEntries.length,
-              sortLabel: activeDirectorySort.summaryLabel,
-            }),
-          )
-          if (next >= filteredDirectoryItems.length) {
-            window.setTimeout(() => {
-              focusElement(resultsSummaryRef.current)
-            }, 0)
-          }
-        }
-        return next
-      })
-    },
-    [
-      activeDirectorySort.summaryLabel,
-      announcePolite,
-      filteredDirectoryItems.length,
-      filteredShowcaseEntries.length,
-      focusElement,
-      hasMoreTiles,
-      showcaseEntries.length,
-    ],
-  )
-
-  useEffect(() => {
-    if (!hasMoreTiles || loadingDirectory || !tilesSentinelRef.current) {
-      return
-    }
-
-    if (typeof window.IntersectionObserver !== 'function') {
-      return
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries
-        if (entry?.isIntersecting) {
-          handleLoadMoreTiles('auto')
-        }
-      },
-      {
-        root: null,
-        rootMargin: '300px 0px',
-        threshold: 0.01,
-      },
-    )
-
-    observer.observe(tilesSentinelRef.current)
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [handleLoadMoreTiles, hasMoreTiles, loadingDirectory])
-
   const loadShowcaseEntries = useCallback(async () => {
     setDirectoryErrorMessage(null)
     setLoadingDirectory(true)
@@ -1486,7 +1500,6 @@ function App() {
         throw new Error('Liste d’annuaire invalide.')
       }
       setShowcaseEntries(parsedEntries)
-      setVisibleTilesCount(TILE_BATCH_SIZE)
       shouldSyncVoteStateAfterDirectoryLoadRef.current = parsedEntries.length > 0
       announcePolite(`${parsedEntries.length} fiche(s) chargée(s) dans l’annuaire.`)
       focusResultsForInitialFilters()
@@ -2579,24 +2592,62 @@ function App() {
               </ul>
             )}
 
-            {filteredDirectoryItems.length > 0 && hasMoreTiles && (
-              <div className="mt-4 flex flex-col items-start gap-3">
-                <button
-                  ref={loadMoreButtonRef}
-                  type="button"
-                  onClick={() => handleLoadMoreTiles('button')}
-                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
-                >
-                  Charger {Math.min(TILE_BATCH_SIZE, filteredDirectoryItems.length - visibleDirectoryItems.length)} carte(s) de plus
-                </button>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  Chargement progressif actif pour alléger le rendu initial.
-                </p>
-              </div>
-            )}
-
-            {filteredDirectoryItems.length > 0 && (
-              <div ref={tilesSentinelRef} className="h-1 w-full" aria-hidden="true" />
+            {filteredDirectoryItems.length > 0 && totalDirectoryPages > 1 && (
+              <nav
+                aria-label="Pagination des résultats annuaire"
+                className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleDirectoryPageChange(currentDirectoryPage - 1)}
+                    disabled={currentDirectoryPage <= 1}
+                    aria-controls="liste-vitrines"
+                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                  >
+                    Page précédente
+                  </button>
+                  <p
+                    id="annuaire-pagination-info"
+                    className="rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200"
+                  >
+                    Page {currentDirectoryPage} sur {totalDirectoryPages}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleDirectoryPageChange(currentDirectoryPage + 1)}
+                    disabled={currentDirectoryPage >= totalDirectoryPages}
+                    aria-controls="liste-vitrines"
+                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                  >
+                    Page suivante
+                  </button>
+                </div>
+                <div className="mt-3">
+                  <label htmlFor="annuaire-pagination-select" className="block text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    Aller directement à une page
+                  </label>
+                  <select
+                    id="annuaire-pagination-select"
+                    value={currentDirectoryPage}
+                    onChange={(event) => {
+                      handleDirectoryPageChange(Number(event.target.value))
+                    }}
+                    aria-controls="liste-vitrines"
+                    aria-describedby="annuaire-pagination-info annuaire-resultats-resume"
+                    className={`mt-1 min-h-11 w-full rounded-xl border-2 border-slate-900 dark:border-slate-50 bg-white dark:bg-slate-950 px-3 py-2 text-sm font-semibold text-slate-950 dark:text-slate-50 ${focusRingClass}`}
+                  >
+                    {Array.from({ length: totalDirectoryPages }, (_, index) => {
+                      const pageNumber = index + 1
+                      return (
+                        <option key={`page-${pageNumber}`} value={pageNumber}>
+                          Page {pageNumber}
+                        </option>
+                      )
+                    })}
+                  </select>
+                </div>
+              </nav>
             )}
           </section>
 
