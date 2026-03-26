@@ -331,7 +331,7 @@ x-moderation-token: <MODERATION_API_TOKEN>
 
 - `approved`: published immediately
 - `duplicate`: already listed
-- `pending`: stored for moderation when key integrity checks fail (for example missing accessibility statement, mismatch between statement domain and submitted site domain, or invalid/inaccessible detected thumbnail)
+- `pending`: stored for moderation when key integrity checks fail (for example missing accessibility statement, mismatch between statement domain and submitted site domain, invalid/inaccessible detected thumbnail, or sensitive dictionary matches on submitted metadata)
 
 Preview mode:
 
@@ -350,6 +350,7 @@ Key controls:
 - redirect-by-redirect target revalidation
 - DNS checks before remote fetch
 - response size and timeout limits, with a slightly larger homepage HTML budget than secondary remote documents
+- dictionary-based sensitive-content signals (adult/gambling/pharmaceutical/SEO-abuse keywords) route suspicious submissions to manual moderation instead of auto-publication
 - remote-thumbnail proxying keeps URL validation server-side, follows a bounded redirect chain with host revalidation at each hop, restricts payloads to image content types (including WebP fallback detection when headers are incorrect), and enforces explicit timeout/size ceilings before bytes are relayed
 - rate limiting on public endpoints, keyed from extracted client IP headers on proxied deployments, with stricter submission and vote controls
 - moderation token strength checks and auth throttling

@@ -38,17 +38,61 @@ const COMPLIANCE_LABELS = {
   partial: 'Partiellement conforme',
   none: 'Non conforme',
 }
-const SUSPICIOUS_MARKETING_TOKENS = [
-  'casino',
-  'bet',
-  'paris sportif',
-  'porn',
-  'viagra',
-  'seo',
-  'backlink',
-  'linkbuilding',
-  'guest post',
-  'crypto airdrop',
+const SENSITIVE_SUBMISSION_DICTIONARIES = [
+  {
+    reason: 'Signal de contenu adulte détecté.',
+    tokens: [
+      'porn',
+      'porno',
+      'pornographie',
+      'xvideos',
+      'xnxx',
+      'onlyfans',
+      'camgirl',
+      'cam sex',
+      'escort',
+      'sexshop',
+      'hentai',
+      'bdsm',
+      'fetich',
+      'fétich',
+      'sexcam',
+    ],
+  },
+  {
+    reason: 'Signal de jeux d’argent détecté.',
+    tokens: [
+      'casino',
+      'bet',
+      'betting',
+      'bookmaker',
+      'sportsbook',
+      'paris sportif',
+      'slot',
+      'jackpot',
+      'roulette',
+      'blackjack',
+      'poker',
+    ],
+  },
+  {
+    reason: 'Signal de promotion pharmaceutique sensible détecté.',
+    tokens: ['viagra', 'cialis', 'levitra'],
+  },
+  {
+    reason: 'Signal SEO agressif ou ferme de liens détecté.',
+    tokens: [
+      'seo',
+      'backlink',
+      'linkbuilding',
+      'guest post',
+      'buy links',
+      'paid links',
+      'private blog network',
+      'pbn',
+      'crypto airdrop',
+    ],
+  },
 ]
 const VOTE_FINGERPRINT_SALT = process.env.VOTE_FINGERPRINT_SALT ?? 'annuaire-rgaa-votes'
 const MAX_ARCHIVE_IMPORT_BYTES = 2_000_000
@@ -1511,14 +1555,28 @@ function requireModerationAuth(request, response, next) {
   next()
 }
 
-function findSuspiciousMarketingToken(siteInsight) {
+function findSensitiveSubmissionReasons(siteInsight) {
+  const reasons = []
   const title = typeof siteInsight.siteTitle === 'string' ? siteInsight.siteTitle.trim() : ''
   if (title.length < 3 || title.length > 120) {
-    return 'title-length'
+    reasons.push('Titre de site atypique: longueur hors plage attendue pour publication automatique.')
   }
 
-  const haystack = normalizeForMatch(`${siteInsight.siteTitle} ${siteInsight.normalizedUrl}`)
-  return SUSPICIOUS_MARKETING_TOKENS.find((token) => haystack.includes(token)) ?? null
+  const haystack = normalizeForMatch(
+    `${siteInsight.siteTitle} ${siteInsight.normalizedUrl} ${siteInsight.accessibilityPageUrl ?? ''}`,
+  )
+  for (const dictionary of SENSITIVE_SUBMISSION_DICTIONARIES) {
+    const matchedTokens = dictionary.tokens
+      .filter((token) => haystack.includes(normalizeForMatch(token)))
+      .slice(0, 4)
+    if (matchedTokens.length <= 0) {
+      continue
+    }
+
+    reasons.push(`${dictionary.reason} Mots-clés détectés: ${matchedTokens.join(', ')}.`)
+  }
+
+  return reasons
 }
 
 function formatManualReviewReason(reasons) {
@@ -1534,6 +1592,7 @@ function formatManualReviewReason(reasons) {
 
 async function getManualReviewReasons(siteInsight) {
   const reasons = []
+  reasons.push(...findSensitiveSubmissionReasons(siteInsight))
 
   if (!siteInsight.accessibilityPageUrl) {
     reasons.push('Aucune déclaration d’accessibilité détectée.')
@@ -2237,16 +2296,6 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
         message:
           'Ce site a déjà été soumis et reste en attente de validation manuelle. Inutile de le renvoyer.',
       })
-      return
-    }
-
-    const suspiciousToken = findSuspiciousMarketingToken(normalizedInsight)
-    if (suspiciousToken) {
-      sendJsonError(
-        response,
-        422,
-        'Soumission rejetée: le site ne correspond pas aux critères qualité de la vitrine RGAA.',
-      )
       return
     }
 
