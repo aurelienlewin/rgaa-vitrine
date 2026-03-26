@@ -17,6 +17,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Added GitHub moderation issue enrichment for sensitive categorization: explicit source flags, extracted categorization snippets, and contextual labels (`sensitive-category`, `source-blocklist-project`).
 
 ### Fixed
+- Dependency lockfile now resolves `undici` to `7.24.6`, `picomatch` to `4.0.4`, and `flatted` to `3.4.2`, addressing the latest reported npm advisories affecting the previous transitive versions.
 - Site auto-publication guardrails now send submissions to moderation when the detected accessibility statement points to a different registrable domain than the submitted site.
 - Site auto-publication guardrails now send submissions to moderation when a detected thumbnail is invalid, unreachable, oversized, or not an image payload.
 - GitHub notifier issue text rendering no longer over-escapes punctuation in standard content, removing most visible backslashes while keeping mention neutralization safety.

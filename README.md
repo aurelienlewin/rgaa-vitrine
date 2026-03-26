@@ -202,6 +202,12 @@ npm install
 npm run dev
 ```
 
+Security maintenance check:
+
+```bash
+npm audit
+```
+
 Local services:
 
 - frontend: `http://127.0.0.1:5173`
