@@ -180,6 +180,13 @@ function sanitizeIssueUrl(value) {
   }
 }
 
+function normalizeForMatch(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
 function resolveAppUrl(pathOrUrl) {
   if (typeof pathOrUrl !== 'string' || !pathOrUrl.trim()) {
     return null
@@ -269,6 +276,43 @@ function mergeIssueLabels(baseLabels, contextualLabels = []) {
   return labels
 }
 
+function readCategorizationInsights(reviewReason) {
+  const normalizedReason = normalizeForMatch(reviewReason)
+  const hasExternalSensitiveSignal = normalizedReason.includes('categorisation externe sensible detectee')
+  const hasBlocklistProjectSource = normalizedReason.includes('source blocklist project')
+  const hasWebshrinkerSource = normalizedReason.includes('source webshrinker')
+
+  const labels = []
+  if (hasExternalSensitiveSignal) {
+    labels.push('sensitive-category')
+  }
+  if (hasBlocklistProjectSource) {
+    labels.push('source-blocklist-project')
+  }
+  if (hasWebshrinkerSource) {
+    labels.push('source-webshrinker')
+  }
+
+  const rawReason = compactText(reviewReason ?? '')
+  const highlights = []
+  if (rawReason) {
+    const regex = /Catégorisation externe sensible détectée[^.]*\.\s*Source [^.]*\./gi
+    let match = regex.exec(rawReason)
+    while (match) {
+      highlights.push(sanitizeIssueText(match[0], 280, 'N/A'))
+      match = regex.exec(rawReason)
+    }
+  }
+
+  return {
+    hasExternalSensitiveSignal,
+    hasBlocklistProjectSource,
+    hasWebshrinkerSource,
+    labels,
+    highlights: highlights.slice(0, 2),
+  }
+}
+
 async function readJsonSafely(response) {
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
   const rawBody = await response.text()
@@ -298,6 +342,7 @@ function buildPendingModerationIssuePayload(entry) {
       ? `${entry.complianceScore}%`
       : 'N/A'
   const safeReason = sanitizeIssueText(entry.reviewReason, 400, 'Non précisé')
+  const categorizationInsights = readCategorizationInsights(entry.reviewReason)
   const createdAt = formatIssueDate(entry.createdAt)
   const siteUrl = sanitizeIssueUrl(entry.normalizedUrl)
   const declarationUrl = sanitizeIssueUrl(entry.accessibilityPageUrl)
@@ -326,6 +371,12 @@ function buildPendingModerationIssuePayload(entry) {
     `- **Score**: ${safeScore}`,
     `- **Motif de revue manuelle**: ${safeReason}`,
     '',
+    '### Catégorisation sensible',
+    `- **Signal externe détecté**: ${categorizationInsights.hasExternalSensitiveSignal ? 'Oui' : 'Non'}`,
+    `- **Source Blocklist Project**: ${categorizationInsights.hasBlocklistProjectSource ? 'Oui' : 'Non'}`,
+    `- **Source Webshrinker**: ${categorizationInsights.hasWebshrinkerSource ? 'Oui' : 'Non'}`,
+    ...categorizationInsights.highlights.map((highlight) => `- **Extrait**: ${highlight}`),
+    '',
     '### Liens utiles',
     toIssueLinkLine('Site soumis', siteUrl, 'URL invalide ou indisponible'),
     toIssueLinkLine('Déclaration d’accessibilité', declarationUrl, 'Non détectée'),
@@ -337,7 +388,10 @@ function buildPendingModerationIssuePayload(entry) {
   return {
     title,
     body,
-    labels: mergeIssueLabels(githubNotifierConfig?.labels ?? [], PENDING_MODERATION_LABELS),
+    labels: mergeIssueLabels(
+      githubNotifierConfig?.labels ?? [],
+      [...PENDING_MODERATION_LABELS, ...categorizationInsights.labels],
+    ),
   }
 }
 

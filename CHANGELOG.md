@@ -15,6 +15,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Added explicit GitHub notification separation between moderation-required and auto-publication events via distinct issue titles, status banners, and contextual labels (`moderation-required`/`review-needed` vs `auto-publication`/`info-only`).
 - Added optional external URL categorization provider support (`Webshrinker`) for stronger sensitive-content moderation signals before auto-publication.
 - Added a free sensitive-domain categorization provider based on Blocklist Project feeds (porn/gambling/drugs), with cached lookups and optional feed URL overrides.
+- Added GitHub moderation issue enrichment for sensitive categorization: explicit Blocklist Project/Webshrinker source flags, extracted categorization snippets, and contextual labels (`sensitive-category`, `source-blocklist-project`, `source-webshrinker`).
 
 ### Fixed
 - Site auto-publication guardrails now send submissions to moderation when the detected accessibility statement points to a different registrable domain than the submitted site.
