@@ -1546,11 +1546,38 @@ function withPublicThumbnailProxy(entry) {
   }
 }
 
+function normalizeComplianceSnapshot(entry) {
+  const score =
+    typeof entry?.complianceScore === 'number' && Number.isFinite(entry.complianceScore)
+      ? entry.complianceScore
+      : null
+  const statusCandidate = entry?.complianceStatus
+  const status =
+    statusCandidate === 'full' || statusCandidate === 'partial' || statusCandidate === 'none'
+      ? statusCandidate
+      : null
+
+  if (status === 'full' && typeof score === 'number' && score < 100) {
+    return {
+      complianceStatus: 'partial',
+      complianceStatusLabel: COMPLIANCE_LABELS.partial,
+      complianceScore: score,
+    }
+  }
+
+  return {
+    complianceStatus: status,
+    complianceStatusLabel: status ? COMPLIANCE_LABELS[status] : null,
+    complianceScore: score,
+  }
+}
+
 function withShowcasePublicMetadata(entry) {
   if (!entry || typeof entry !== 'object' || typeof entry.normalizedUrl !== 'string') {
     return entry
   }
 
+  const normalizedCompliance = normalizeComplianceSnapshot(entry)
   const slug = buildShowcaseEntrySlug(entry.normalizedUrl)
   const siteHost = readSiteHost(entry.normalizedUrl)
   const siteOrigin = readSiteOrigin(entry.normalizedUrl)
@@ -1558,6 +1585,7 @@ function withShowcasePublicMetadata(entry) {
   const domainGroupSlug = registrableDomain ? buildDomainGroupSlug(registrableDomain) : null
   return {
     ...entry,
+    ...normalizedCompliance,
     slug,
     profilePath: `/site/${slug}`,
     siteHost,
@@ -1574,6 +1602,7 @@ function toSiblingPreview(entry) {
     return null
   }
 
+  const normalizedCompliance = normalizeComplianceSnapshot(entry)
   return {
     normalizedUrl: entry.normalizedUrl,
     slug: typeof entry.slug === 'string' ? entry.slug : null,
@@ -1581,16 +1610,9 @@ function toSiblingPreview(entry) {
     siteTitle: typeof entry.siteTitle === 'string' ? entry.siteTitle : entry.normalizedUrl,
     updatedAt: typeof entry.updatedAt === 'string' ? entry.updatedAt : new Date().toISOString(),
     category: typeof entry.category === 'string' ? entry.category : 'Autre',
-    complianceStatus:
-      entry.complianceStatus === 'full' || entry.complianceStatus === 'partial' || entry.complianceStatus === 'none'
-        ? entry.complianceStatus
-        : null,
-    complianceStatusLabel:
-      typeof entry.complianceStatusLabel === 'string' ? entry.complianceStatusLabel : null,
-    complianceScore:
-      typeof entry.complianceScore === 'number' && Number.isFinite(entry.complianceScore)
-        ? entry.complianceScore
-        : null,
+    complianceStatus: normalizedCompliance.complianceStatus,
+    complianceStatusLabel: normalizedCompliance.complianceStatusLabel,
+    complianceScore: normalizedCompliance.complianceScore,
     accessibilityPageUrl:
       typeof entry.accessibilityPageUrl === 'string' ? entry.accessibilityPageUrl : null,
     hasAccessibilityPage: Boolean(entry.accessibilityPageUrl),
@@ -3244,15 +3266,21 @@ app.post('/api/moderation/showcase/update', requireModerationAuth, async (reques
       nextAccessibilityPageUrl = await validatePublicHttpUrl(accessibilityRaw)
     }
 
+    const normalizedModerationCompliance = normalizeComplianceSnapshot({
+      complianceStatus: nextComplianceStatus,
+      complianceStatusLabel: nextComplianceStatus ? COMPLIANCE_LABELS[nextComplianceStatus] : null,
+      complianceScore: scoreCandidate,
+    })
+
     const updatedEntry = {
       ...existingEntry,
       siteTitle: nextSiteTitle,
       category: nextCategory,
       thumbnailUrl: nextThumbnailUrl,
       accessibilityPageUrl: nextAccessibilityPageUrl,
-      complianceStatus: nextComplianceStatus,
-      complianceStatusLabel: nextComplianceStatus ? COMPLIANCE_LABELS[nextComplianceStatus] : null,
-      complianceScore: scoreCandidate,
+      complianceStatus: normalizedModerationCompliance.complianceStatus,
+      complianceStatusLabel: normalizedModerationCompliance.complianceStatusLabel,
+      complianceScore: normalizedModerationCompliance.complianceScore,
       rgaaBaseline: nextRgaaBaseline,
       rgaaBaselineEdited: true,
       updatedAt: new Date().toISOString(),

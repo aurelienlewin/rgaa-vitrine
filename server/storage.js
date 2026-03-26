@@ -90,6 +90,28 @@ function toNullableString(value) {
   return value === null || value === undefined ? null : String(value)
 }
 
+function normalizeComplianceSnapshot({ complianceStatus, complianceScore }) {
+  const status = ALLOWED_STATUSES.has(complianceStatus ?? '') ? complianceStatus : null
+  const score =
+    typeof complianceScore === 'number' && Number.isFinite(complianceScore)
+      ? Math.round(complianceScore * 100) / 100
+      : null
+
+  if (status === 'full' && typeof score === 'number' && score < 100) {
+    return {
+      complianceStatus: 'partial',
+      complianceStatusLabel: COMPLIANCE_LABEL_BY_STATUS.partial,
+      complianceScore: score,
+    }
+  }
+
+  return {
+    complianceStatus: status,
+    complianceStatusLabel: status ? COMPLIANCE_LABEL_BY_STATUS[status] : null,
+    complianceScore: score,
+  }
+}
+
 function sanitizeMaintenanceMessage(value) {
   if (typeof value !== 'string') {
     return null
@@ -781,7 +803,12 @@ function applyEntryFilters(entries, options) {
   const categoryFilter = options.category ? sanitizeCategory(options.category) : null
 
   return entries.filter((entry) => {
-    if (statusFilter && entry.complianceStatus !== statusFilter) {
+    const normalizedCompliance = normalizeComplianceSnapshot({
+      complianceStatus: entry.complianceStatus ?? null,
+      complianceScore: entry.complianceScore ?? null,
+    })
+
+    if (statusFilter && normalizedCompliance.complianceStatus !== statusFilter) {
       return false
     }
 
@@ -794,7 +821,7 @@ function applyEntryFilters(entries, options) {
     }
 
     const searchable = normalizeText(
-      `${entry.siteTitle} ${entry.normalizedUrl} ${entry.category} ${entry.complianceStatusLabel ?? ''}`,
+      `${entry.siteTitle} ${entry.normalizedUrl} ${entry.category} ${normalizedCompliance.complianceStatusLabel ?? ''}`,
     )
     return searchable.includes(search)
   })
@@ -2424,8 +2451,14 @@ export function createShowcaseStorage() {
 }
 
 export function buildShowcaseEntry(siteInsight, rawCategory) {
+  const normalizedCompliance = normalizeComplianceSnapshot({
+    complianceStatus: siteInsight.complianceStatus ?? null,
+    complianceScore: siteInsight.complianceScore ?? null,
+  })
+
   return {
     ...siteInsight,
+    ...normalizedCompliance,
     rgaaBaseline: '4.1',
     rgaaBaselineEdited: false,
     upvoteCount: toNonNegativeInteger(siteInsight.upvoteCount),
@@ -2434,15 +2467,20 @@ export function buildShowcaseEntry(siteInsight, rawCategory) {
 }
 
 export function buildPendingSubmission(siteInsight, rawCategory, rawReason) {
+  const normalizedCompliance = normalizeComplianceSnapshot({
+    complianceStatus: siteInsight.complianceStatus ?? null,
+    complianceScore: siteInsight.complianceScore ?? null,
+  })
+
   return {
     submissionId: encodeEntryId(siteInsight.normalizedUrl),
     normalizedUrl: siteInsight.normalizedUrl,
     siteTitle: siteInsight.siteTitle,
     thumbnailUrl: siteInsight.thumbnailUrl ?? null,
     accessibilityPageUrl: siteInsight.accessibilityPageUrl ?? null,
-    complianceStatus: siteInsight.complianceStatus ?? null,
-    complianceStatusLabel: siteInsight.complianceStatusLabel ?? null,
-    complianceScore: siteInsight.complianceScore ?? null,
+    complianceStatus: normalizedCompliance.complianceStatus,
+    complianceStatusLabel: normalizedCompliance.complianceStatusLabel,
+    complianceScore: normalizedCompliance.complianceScore,
     rgaaBaseline: '4.1',
     rgaaBaselineEdited: false,
     updatedAt: siteInsight.updatedAt,

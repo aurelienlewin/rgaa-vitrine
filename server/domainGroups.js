@@ -1,6 +1,11 @@
 import { getDomain } from 'tldts'
 
 const MAX_SIBLING_PREVIEW = 6
+const COMPLIANCE_LABEL_BY_STATUS = {
+  full: 'Totalement conforme',
+  partial: 'Partiellement conforme',
+  none: 'Non conforme',
+}
 
 function normalizeForSlug(value) {
   return String(value)
@@ -25,6 +30,32 @@ function computeShortHash(value) {
   return hash.toString(36).padStart(6, '0').slice(0, 6)
 }
 
+function normalizeComplianceSnapshot(entry) {
+  const score =
+    typeof entry?.complianceScore === 'number' && Number.isFinite(entry.complianceScore)
+      ? entry.complianceScore
+      : null
+  const statusCandidate = entry?.complianceStatus
+  const status =
+    statusCandidate === 'full' || statusCandidate === 'partial' || statusCandidate === 'none'
+      ? statusCandidate
+      : null
+
+  if (status === 'full' && typeof score === 'number' && score < 100) {
+    return {
+      complianceStatus: 'partial',
+      complianceStatusLabel: COMPLIANCE_LABEL_BY_STATUS.partial,
+      complianceScore: score,
+    }
+  }
+
+  return {
+    complianceStatus: status,
+    complianceStatusLabel: status ? COMPLIANCE_LABEL_BY_STATUS[status] : null,
+    complianceScore: score,
+  }
+}
+
 function summarizeStatuses(entries) {
   const summary = {
     full: 0,
@@ -34,15 +65,16 @@ function summarizeStatuses(entries) {
   }
 
   for (const entry of entries) {
-    if (entry.complianceStatus === 'full') {
+    const normalizedCompliance = normalizeComplianceSnapshot(entry)
+    if (normalizedCompliance.complianceStatus === 'full') {
       summary.full += 1
       continue
     }
-    if (entry.complianceStatus === 'partial') {
+    if (normalizedCompliance.complianceStatus === 'partial') {
       summary.partial += 1
       continue
     }
-    if (entry.complianceStatus === 'none') {
+    if (normalizedCompliance.complianceStatus === 'none') {
       summary.none += 1
       continue
     }
@@ -54,6 +86,7 @@ function summarizeStatuses(entries) {
 }
 
 function toSiblingSummary(entry) {
+  const normalizedCompliance = normalizeComplianceSnapshot(entry)
   return {
     normalizedUrl: entry.normalizedUrl,
     slug: typeof entry.slug === 'string' ? entry.slug : null,
@@ -61,16 +94,9 @@ function toSiblingSummary(entry) {
     siteTitle: typeof entry.siteTitle === 'string' ? entry.siteTitle : entry.normalizedUrl,
     updatedAt: typeof entry.updatedAt === 'string' ? entry.updatedAt : new Date().toISOString(),
     category: typeof entry.category === 'string' ? entry.category : 'Autre',
-    complianceStatus:
-      entry.complianceStatus === 'full' || entry.complianceStatus === 'partial' || entry.complianceStatus === 'none'
-        ? entry.complianceStatus
-        : null,
-    complianceStatusLabel:
-      typeof entry.complianceStatusLabel === 'string' ? entry.complianceStatusLabel : null,
-    complianceScore:
-      typeof entry.complianceScore === 'number' && Number.isFinite(entry.complianceScore)
-        ? entry.complianceScore
-        : null,
+    complianceStatus: normalizedCompliance.complianceStatus,
+    complianceStatusLabel: normalizedCompliance.complianceStatusLabel,
+    complianceScore: normalizedCompliance.complianceScore,
     accessibilityPageUrl:
       typeof entry.accessibilityPageUrl === 'string' ? entry.accessibilityPageUrl : null,
     hasAccessibilityPage: Boolean(entry.accessibilityPageUrl),

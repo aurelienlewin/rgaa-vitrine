@@ -726,6 +726,10 @@ function detectRgaaBaseline(normalizedText) {
 }
 
 function resolveComplianceStatus(explicitStatus, score, normalizedText) {
+  if (explicitStatus === 'full' && typeof score === 'number' && Number.isFinite(score) && score < 100) {
+    return 'partial'
+  }
+
   if (explicitStatus) {
     return explicitStatus
   }
