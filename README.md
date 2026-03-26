@@ -248,6 +248,17 @@ Optional archive signing:
 MODERATION_ARCHIVE_SIGNING_SECRET=replace-with-a-long-random-secret
 ```
 
+Optional external URL categorization (stronger moderation signal):
+
+```bash
+WEBSHRINKER_API_KEY=...
+WEBSHRINKER_API_SECRET=...
+WEBSHRINKER_TAXONOMY=webshrinker
+```
+
+When configured, the moderation pipeline combines local dictionaries with external category
+signals before deciding auto-publication versus manual review.
+
 ### GitHub Notifications
 
 ```bash
@@ -351,6 +362,7 @@ Key controls:
 - DNS checks before remote fetch
 - response size and timeout limits, with a slightly larger homepage HTML budget than secondary remote documents
 - dictionary-based sensitive-content signals (adult/gambling/pharmaceutical/SEO-abuse keywords) route suspicious submissions to manual moderation instead of auto-publication
+- optional external URL categorization (`Webshrinker`) reinforces sensitive-content detection and can route newly detected risky categories to manual moderation
 - remote-thumbnail proxying keeps URL validation server-side, follows a bounded redirect chain with host revalidation at each hop, restricts payloads to image content types (including WebP fallback detection when headers are incorrect), and enforces explicit timeout/size ceilings before bytes are relayed
 - rate limiting on public endpoints, keyed from extracted client IP headers on proxied deployments, with stricter submission and vote controls
 - moderation token strength checks and auth throttling
