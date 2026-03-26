@@ -122,6 +122,28 @@ const WEBSHRINKER_API_BASE_URL = 'https://api.webshrinker.com'
 const WEBSHRINKER_TIMEOUT_MS = 4500
 const WEBSHRINKER_MAX_RESPONSE_BYTES = 300_000
 const WEBSHRINKER_CACHE_TTL_MS = 30 * 60 * 1000
+const BLOCKLIST_PROJECT_FETCH_TIMEOUT_MS = 4500
+const BLOCKLIST_PROJECT_MAX_RESPONSE_BYTES = 2_500_000
+const DEFAULT_BLOCKLIST_PROJECT_REFRESH_MINUTES = 180
+const MIN_BLOCKLIST_PROJECT_REFRESH_MINUTES = 10
+const MAX_BLOCKLIST_PROJECT_REFRESH_MINUTES = 24 * 60
+const BLOCKLIST_PROJECT_FEED_SOURCES = [
+  {
+    key: 'porn',
+    familyLabel: 'contenu adulte',
+    defaultUrl: 'https://raw.githubusercontent.com/blocklistproject/Lists/refs/heads/master/porn.txt',
+  },
+  {
+    key: 'gambling',
+    familyLabel: "jeux d'argent",
+    defaultUrl: 'https://raw.githubusercontent.com/blocklistproject/Lists/refs/heads/master/gambling.txt',
+  },
+  {
+    key: 'drugs',
+    familyLabel: 'drogues',
+    defaultUrl: 'https://raw.githubusercontent.com/blocklistproject/Lists/refs/heads/master/drugs.txt',
+  },
+]
 const MAX_MAINTENANCE_MESSAGE_LENGTH = 280
 const DEFAULT_MAINTENANCE_MESSAGE = 'Nous revenons très vite. Merci de réessayer dans quelques instants.'
 const MAINTENANCE_RETRY_AFTER_SECONDS = 15 * 60
@@ -145,8 +167,14 @@ PUBLIC_SUBMISSION_CATEGORY_BY_NORMALIZED.set(
 )
 const siteInsightPreviewCache = new Map()
 const webshrinkerLookupCache = new Map()
+const blocklistProjectLookupState = {
+  domainsByFeedKey: new Map(),
+  expiresAt: 0,
+  loadPromise: null,
+}
 const githubNotificationQuota = readGithubNotificationQuota()
 const webshrinkerConfig = readWebshrinkerConfig()
+const blocklistProjectConfig = readBlocklistProjectConfig()
 const rateLimitValidationOptions = {
   forwardedHeader: false,
 }
@@ -199,6 +227,27 @@ function parseBoundedInteger(rawValue, fallback, { min, max }) {
   return Math.min(Math.max(parsed, min), max)
 }
 
+function parseBooleanEnv(rawValue, fallback = false) {
+  if (typeof rawValue !== 'string') {
+    return fallback
+  }
+
+  const normalized = rawValue.trim().toLowerCase()
+  if (normalized === '') {
+    return fallback
+  }
+
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+    return true
+  }
+
+  if (['0', 'false', 'no', 'off'].includes(normalized)) {
+    return false
+  }
+
+  return fallback
+}
+
 function readGithubNotificationQuota() {
   const windowSeconds = parseBoundedInteger(
     process.env.GITHUB_NOTIFY_WINDOW_SECONDS,
@@ -237,6 +286,38 @@ function readWebshrinkerConfig() {
     apiSecret,
     taxonomy,
     baseUrl: WEBSHRINKER_API_BASE_URL,
+  }
+}
+
+function readBlocklistProjectConfig() {
+  const enabled = parseBooleanEnv(process.env.BLOCKLIST_PROJECT_ENABLED, true)
+  if (!enabled) {
+    return null
+  }
+
+  const refreshMinutes = parseBoundedInteger(
+    process.env.BLOCKLIST_PROJECT_REFRESH_MINUTES,
+    DEFAULT_BLOCKLIST_PROJECT_REFRESH_MINUTES,
+    {
+      min: MIN_BLOCKLIST_PROJECT_REFRESH_MINUTES,
+      max: MAX_BLOCKLIST_PROJECT_REFRESH_MINUTES,
+    },
+  )
+
+  const feeds = BLOCKLIST_PROJECT_FEED_SOURCES.map((source) => {
+    const envName = `BLOCKLIST_PROJECT_${source.key.toUpperCase()}_URL`
+    const rawUrl = process.env[envName]
+    const configuredUrl = typeof rawUrl === 'string' ? rawUrl.trim() : ''
+    const url = configuredUrl || source.defaultUrl
+    return {
+      ...source,
+      url,
+    }
+  })
+
+  return {
+    refreshMs: refreshMinutes * 60 * 1000,
+    feeds,
   }
 }
 
@@ -367,6 +448,242 @@ async function readBinaryBodyWithLimit(response, maxBytes) {
 async function readTextBodyWithLimit(response, maxBytes) {
   const payload = await readBinaryBodyWithLimit(response, maxBytes)
   return new TextDecoder().decode(payload)
+}
+
+function normalizeBlocklistLineToHost(line) {
+  if (typeof line !== 'string') {
+    return null
+  }
+
+  const withoutInlineComment = line.split('#', 1)[0]?.trim() ?? ''
+  if (!withoutInlineComment) {
+    return null
+  }
+
+  let token = withoutInlineComment
+
+  const parts = token.split(/\s+/).filter(Boolean)
+  if (parts.length > 1) {
+    token = parts[parts.length - 1]
+  }
+
+  if (!token) {
+    return null
+  }
+
+  token = token.trim()
+  if (token.startsWith('||')) {
+    token = token.slice(2)
+  }
+  if (token.startsWith('.')) {
+    token = token.slice(1)
+  }
+  if (token.includes('^')) {
+    token = token.split('^', 1)[0]
+  }
+
+  if (token.startsWith('http://') || token.startsWith('https://')) {
+    try {
+      token = new URL(token).hostname
+    } catch {
+      return null
+    }
+  }
+
+  token = token.split('/', 1)[0]?.trim().toLowerCase() ?? ''
+  if (!token || token === 'localhost') {
+    return null
+  }
+
+  if (isIP(token) !== 0) {
+    return token
+  }
+
+  if (!token.includes('.')) {
+    return null
+  }
+
+  if (!/^[a-z0-9.-]+$/i.test(token)) {
+    return null
+  }
+
+  return token
+}
+
+async function fetchBlocklistProjectFeedDomains(feed) {
+  if (!feed || typeof feed.url !== 'string' || !feed.url.trim()) {
+    return null
+  }
+
+  let validatedFeedUrl = null
+  try {
+    validatedFeedUrl = await validatePublicHttpUrl(feed.url)
+  } catch {
+    console.warn(`Blocklist Project feed URL refused (${feed.key}).`)
+    return null
+  }
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), BLOCKLIST_PROJECT_FETCH_TIMEOUT_MS)
+
+  try {
+    const response = await fetch(validatedFeedUrl, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: {
+        accept: 'text/plain, application/octet-stream;q=0.9, */*;q=0.1',
+        'user-agent': 'Annuaire-RGAA/1.0 (+https://www.annuaire-rgaa.fr)',
+      },
+    })
+
+    if (!response.ok) {
+      console.warn(`Blocklist Project feed unavailable (${feed.key}): HTTP ${response.status}.`)
+      return null
+    }
+
+    const rawBody = await readTextBodyWithLimit(response, BLOCKLIST_PROJECT_MAX_RESPONSE_BYTES)
+    const domains = new Set()
+    const lines = rawBody.split(/\r?\n/)
+    for (const line of lines) {
+      const normalizedHost = normalizeBlocklistLineToHost(line)
+      if (normalizedHost) {
+        domains.add(normalizedHost)
+      }
+    }
+
+    return domains
+  } catch (error) {
+    if (!(error instanceof DOMException && error.name === 'AbortError')) {
+      console.warn(`Blocklist Project feed load failed (${feed.key}).`)
+    }
+    return null
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+function findBlockedHostMatch(hostname, blockedHosts) {
+  if (typeof hostname !== 'string' || !hostname || !(blockedHosts instanceof Set)) {
+    return null
+  }
+
+  const normalizedHost = hostname.toLowerCase()
+  if (blockedHosts.has(normalizedHost)) {
+    return normalizedHost
+  }
+
+  let current = normalizedHost
+  while (current.includes('.')) {
+    current = current.slice(current.indexOf('.') + 1)
+    if (blockedHosts.has(current)) {
+      return current
+    }
+  }
+
+  return null
+}
+
+async function ensureBlocklistProjectFeedsLoaded() {
+  if (!blocklistProjectConfig) {
+    return null
+  }
+
+  const now = Date.now()
+  if (blocklistProjectLookupState.domainsByFeedKey.size > 0 && blocklistProjectLookupState.expiresAt > now) {
+    return blocklistProjectLookupState.domainsByFeedKey
+  }
+
+  if (blocklistProjectLookupState.loadPromise) {
+    return blocklistProjectLookupState.loadPromise
+  }
+
+  blocklistProjectLookupState.loadPromise = (async () => {
+    const domainsByFeedKey = new Map()
+
+    const loadedFeeds = await Promise.all(
+      blocklistProjectConfig.feeds.map(async (feed) => {
+        const domains = await fetchBlocklistProjectFeedDomains(feed)
+        return {
+          key: feed.key,
+          domains,
+        }
+      }),
+    )
+
+    for (const feedResult of loadedFeeds) {
+      if (feedResult.domains instanceof Set && feedResult.domains.size > 0) {
+        domainsByFeedKey.set(feedResult.key, feedResult.domains)
+      }
+    }
+
+    if (domainsByFeedKey.size > 0) {
+      blocklistProjectLookupState.domainsByFeedKey = domainsByFeedKey
+      blocklistProjectLookupState.expiresAt = Date.now() + blocklistProjectConfig.refreshMs
+    } else if (blocklistProjectLookupState.domainsByFeedKey.size > 0) {
+      blocklistProjectLookupState.expiresAt =
+        Date.now() + Math.min(blocklistProjectConfig.refreshMs, 30 * 60 * 1000)
+    } else {
+      blocklistProjectLookupState.expiresAt = Date.now() + 15 * 60 * 1000
+    }
+
+    return blocklistProjectLookupState.domainsByFeedKey
+  })().finally(() => {
+    blocklistProjectLookupState.loadPromise = null
+  })
+
+  return blocklistProjectLookupState.loadPromise
+}
+
+function buildBlocklistProjectSensitiveReason(matches) {
+  if (!Array.isArray(matches) || matches.length === 0) {
+    return null
+  }
+
+  const families = matches.map((match) => match.familyLabel)
+  const preview = matches
+    .slice(0, 3)
+    .map((match) => `${match.matchedHost} (${match.key})`)
+    .join(', ')
+  return `Catégorisation externe sensible détectée (${families.join(', ')}). Source Blocklist Project: ${preview}.`
+}
+
+async function readBlocklistProjectSensitiveReason(normalizedUrl) {
+  if (!blocklistProjectConfig || typeof normalizedUrl !== 'string' || !normalizedUrl.trim()) {
+    return null
+  }
+
+  let hostname = null
+  try {
+    hostname = new URL(normalizedUrl).hostname.toLowerCase()
+  } catch {
+    return null
+  }
+
+  const domainsByFeedKey = await ensureBlocklistProjectFeedsLoaded()
+  if (!(domainsByFeedKey instanceof Map) || domainsByFeedKey.size === 0) {
+    return null
+  }
+
+  const matches = []
+  for (const feed of blocklistProjectConfig.feeds) {
+    const blockedHosts = domainsByFeedKey.get(feed.key)
+    if (!(blockedHosts instanceof Set) || blockedHosts.size === 0) {
+      continue
+    }
+
+    const matchedHost = findBlockedHostMatch(hostname, blockedHosts)
+    if (!matchedHost) {
+      continue
+    }
+
+    matches.push({
+      key: feed.key,
+      familyLabel: feed.familyLabel,
+      matchedHost,
+    })
+  }
+
+  return buildBlocklistProjectSensitiveReason(matches)
 }
 
 function readWebshrinkerCacheEntry(cacheKey) {
@@ -1747,6 +2064,11 @@ async function findSensitiveSubmissionReasons(siteInsight) {
     }
 
     reasons.push(`${dictionary.reason} Mots-clés détectés: ${matchedTokens.join(', ')}.`)
+  }
+
+  const blocklistProjectReason = await readBlocklistProjectSensitiveReason(siteInsight.normalizedUrl)
+  if (blocklistProjectReason) {
+    reasons.push(blocklistProjectReason)
   }
 
   const webshrinkerReason = await readWebshrinkerSensitiveReason(siteInsight.normalizedUrl)

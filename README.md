@@ -248,7 +248,18 @@ Optional archive signing:
 MODERATION_ARCHIVE_SIGNING_SECRET=replace-with-a-long-random-secret
 ```
 
-Optional external URL categorization (stronger moderation signal):
+Optional free URL categorization feeds (enabled by default):
+
+```bash
+BLOCKLIST_PROJECT_ENABLED=true
+BLOCKLIST_PROJECT_REFRESH_MINUTES=180
+# Optional overrides:
+# BLOCKLIST_PROJECT_PORN_URL=https://raw.githubusercontent.com/blocklistproject/Lists/refs/heads/master/porn.txt
+# BLOCKLIST_PROJECT_GAMBLING_URL=https://raw.githubusercontent.com/blocklistproject/Lists/refs/heads/master/gambling.txt
+# BLOCKLIST_PROJECT_DRUGS_URL=https://raw.githubusercontent.com/blocklistproject/Lists/refs/heads/master/drugs.txt
+```
+
+Optional premium external URL categorization:
 
 ```bash
 WEBSHRINKER_API_KEY=...
@@ -256,8 +267,8 @@ WEBSHRINKER_API_SECRET=...
 WEBSHRINKER_TAXONOMY=webshrinker
 ```
 
-When configured, the moderation pipeline combines local dictionaries with external category
-signals before deciding auto-publication versus manual review.
+When configured, the moderation pipeline combines local dictionaries with free blocklist
+feeds and optional external category signals before deciding auto-publication versus manual review.
 
 ### GitHub Notifications
 
@@ -362,6 +373,7 @@ Key controls:
 - DNS checks before remote fetch
 - response size and timeout limits, with a slightly larger homepage HTML budget than secondary remote documents
 - dictionary-based sensitive-content signals (adult/gambling/pharmaceutical/SEO-abuse keywords) route suspicious submissions to manual moderation instead of auto-publication
+- optional free Blocklist Project category feeds (porn/gambling/drugs) reinforce sensitive-content detection and can route newly detected risky domains to manual moderation
 - optional external URL categorization (`Webshrinker`) reinforces sensitive-content detection and can route newly detected risky categories to manual moderation
 - remote-thumbnail proxying keeps URL validation server-side, follows a bounded redirect chain with host revalidation at each hop, restricts payloads to image content types (including WebP fallback detection when headers are incorrect), and enforces explicit timeout/size ceilings before bytes are relayed
 - rate limiting on public endpoints, keyed from extracted client IP headers on proxied deployments, with stricter submission and vote controls
