@@ -117,6 +117,7 @@ Implemented principles:
 - shared secondary navigation and global-search controls use explicit filled surfaces and reinforced borders to keep interface-component contrast stable across public templates
 - shared search entry point across homepage and secondary routes
 - homepage results summary and polite announcements stay aligned when search, filters, sorting, and page-based pagination update the visible cards
+- homepage polite announcements now expose explicit loading states (`en cours`, `terminé`) and explicit pagination boundaries (`première page`, `dernière page`)
 - global asynchronous announcers stay in persistent visually hidden live regions to avoid layout shifts while keeping French status/error messages available to assistive technologies
 - focus continuity after action outcomes and section jumps
 - moderation unlock places focus on the `Soumissions en attente` section before row-level actions

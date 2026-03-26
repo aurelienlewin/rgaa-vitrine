@@ -18,6 +18,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Site auto-publication guardrails now send submissions to moderation when the detected accessibility statement points to a different registrable domain than the submitted site.
 - Site auto-publication guardrails now send submissions to moderation when a detected thumbnail is invalid, unreachable, oversized, or not an image payload.
 - GitHub notifier issue text rendering no longer over-escapes punctuation in standard content, removing most visible backslashes while keeping mention neutralization safety.
+- Homepage polite announcements now explicitly distinguish annuaire loading lifecycle (`en cours` vs `terminé`) and pagination boundaries (`première page` vs `dernière page`), improving screen-reader feedback clarity.
 - Moderation tiles now hide the `Domaine rapproché` panel when a domain has only one published public profile, reducing redundant context on single-site entries.
 - Homepage now initializes URL-backed directory filters in state initializers and drives pagination/focus updates directly from user actions, removing several effect-driven UI synchronization paths.
 - Canonical host strategy is now aligned on `https://www.annuaire-rgaa.fr` across default SEO metadata, sitemap/discovery assets, and `.org`/apex redirect targets, matching the production host configuration used for indexing.

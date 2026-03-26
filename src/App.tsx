@@ -1219,7 +1219,15 @@ function App() {
         sort: directorySort,
         page: clampedPage,
       })
-      announcePolite(`Pagination appliquée: page ${clampedPage} sur ${totalDirectoryPages}.`)
+      const boundaryAnnouncement =
+        totalDirectoryPages <= 1
+          ? 'Pagination terminée: une seule page disponible.'
+          : clampedPage === 1
+            ? `Première page atteinte: page 1 sur ${totalDirectoryPages}.`
+            : clampedPage === totalDirectoryPages
+              ? `Dernière page atteinte: page ${clampedPage} sur ${totalDirectoryPages}.`
+              : `Page ${clampedPage} sur ${totalDirectoryPages}.`
+      announcePolite(`Pagination appliquée. ${boundaryAnnouncement}`)
       focusElement(resultsSummaryRef.current)
     },
     [
@@ -1501,7 +1509,14 @@ function App() {
       }
       setShowcaseEntries(parsedEntries)
       shouldSyncVoteStateAfterDirectoryLoadRef.current = parsedEntries.length > 0
-      announcePolite(`${parsedEntries.length} fiche(s) chargée(s) dans l’annuaire.`)
+      const loadedPageCount = Math.max(1, Math.ceil(parsedEntries.length / DIRECTORY_PAGE_SIZE))
+      const loadingCompletedMessage =
+        parsedEntries.length <= 0
+          ? 'Chargement terminé: aucune fiche référencée dans l’annuaire.'
+          : loadedPageCount === 1
+            ? `Chargement terminé: ${parsedEntries.length} fiche(s) chargée(s), une seule page disponible.`
+            : `Chargement terminé: ${parsedEntries.length} fiche(s) chargée(s), ${loadedPageCount} pages disponibles.`
+      announcePolite(loadingCompletedMessage)
       focusResultsForInitialFilters()
     } catch (error) {
       shouldSyncVoteStateAfterDirectoryLoadRef.current = false
