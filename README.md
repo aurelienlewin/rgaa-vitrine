@@ -368,6 +368,7 @@ Key controls:
 - dictionary-based sensitive-content signals (adult/gambling/pharmaceutical/SEO-abuse keywords) route suspicious submissions to manual moderation instead of auto-publication
 - optional free Blocklist Project category feeds (porn/gambling/drugs) reinforce sensitive-content detection and can route newly detected risky domains to manual moderation
 - compliance status normalization prevents exposing `Totalement conforme` when a numeric score is below `100`
+- submissions with declaration inconsistency (`Totalement conforme` declared with score `<100`) are forced into manual moderation
 - remote-thumbnail proxying keeps URL validation server-side, follows a bounded redirect chain with host revalidation at each hop, restricts payloads to image content types (including WebP fallback detection when headers are incorrect), and enforces explicit timeout/size ceilings before bytes are relayed
 - rate limiting on public endpoints, keyed from extracted client IP headers on proxied deployments, with stricter submission and vote controls
 - moderation token strength checks and auth throttling

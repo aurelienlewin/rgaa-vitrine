@@ -835,7 +835,7 @@ function cleanupSiteInsightPreviewCache(now = Date.now()) {
   }
 }
 
-function storeSiteInsightPreview(inputUrl, insight) {
+function storeSiteInsightPreview(inputUrl, insight, complianceConsistencyIssue = null) {
   const now = Date.now()
   cleanupSiteInsightPreviewCache(now)
 
@@ -845,6 +845,8 @@ function storeSiteInsightPreview(inputUrl, insight) {
     expiresAt: now + SITE_INSIGHT_PREVIEW_CACHE_TTL_MS,
     inputUrl: typeof inputUrl === 'string' ? inputUrl.trim() : '',
     insight,
+    complianceConsistencyIssue:
+      typeof complianceConsistencyIssue === 'string' ? complianceConsistencyIssue.trim() : null,
   })
 
   cleanupSiteInsightPreviewCache(now)
@@ -868,7 +870,11 @@ function readSiteInsightPreview(inputUrl, previewToken) {
     return null
   }
 
-  return entry.insight ?? null
+  return {
+    insight: entry.insight ?? null,
+    complianceConsistencyIssue:
+      typeof entry.complianceConsistencyIssue === 'string' ? entry.complianceConsistencyIssue : null,
+  }
 }
 
 function parseAuthorizationToken(request) {
@@ -1867,6 +1873,31 @@ function sanitizePublicSubmissionCategory(value) {
   return PUBLIC_SUBMISSION_CATEGORY_BY_NORMALIZED.get(normalized) ?? PUBLIC_SUBMISSION_CATEGORY_FALLBACK
 }
 
+function normalizeSiteInsightForSubmission(siteInsight) {
+  return {
+    normalizedUrl: typeof siteInsight?.normalizedUrl === 'string' ? siteInsight.normalizedUrl : '',
+    siteTitle: typeof siteInsight?.siteTitle === 'string' ? siteInsight.siteTitle : '',
+    thumbnailUrl: typeof siteInsight?.thumbnailUrl === 'string' ? siteInsight.thumbnailUrl : null,
+    accessibilityPageUrl:
+      typeof siteInsight?.accessibilityPageUrl === 'string' ? siteInsight.accessibilityPageUrl : null,
+    complianceStatus:
+      siteInsight?.complianceStatus === 'full' ||
+      siteInsight?.complianceStatus === 'partial' ||
+      siteInsight?.complianceStatus === 'none'
+        ? siteInsight.complianceStatus
+        : null,
+    complianceStatusLabel:
+      typeof siteInsight?.complianceStatusLabel === 'string' ? siteInsight.complianceStatusLabel : null,
+    complianceScore:
+      typeof siteInsight?.complianceScore === 'number' && Number.isFinite(siteInsight.complianceScore)
+        ? siteInsight.complianceScore
+        : null,
+    rgaaBaseline: '4.1',
+    rgaaBaselineEdited: false,
+    updatedAt: typeof siteInsight?.updatedAt === 'string' ? siteInsight.updatedAt : new Date().toISOString(),
+  }
+}
+
 function requireModerationAuth(request, response, next) {
   const configuredToken = readModerationToken()
   if (!configuredToken) {
@@ -1939,9 +1970,13 @@ function formatManualReviewReason(reasons) {
     .join(' ')
 }
 
-async function getManualReviewReasons(siteInsight) {
+async function getManualReviewReasons(siteInsight, { complianceConsistencyIssue = null } = {}) {
   const reasons = []
   reasons.push(...(await findSensitiveSubmissionReasons(siteInsight)))
+
+  if (typeof complianceConsistencyIssue === 'string' && complianceConsistencyIssue.trim()) {
+    reasons.push(complianceConsistencyIssue.trim())
+  }
 
   if (!siteInsight.accessibilityPageUrl) {
     reasons.push('Aucune déclaration d’accessibilité détectée.')
@@ -2596,13 +2631,19 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
   }
 
   try {
-    const cachedInsight = !previewMode ? readSiteInsightPreview(url, previewToken) : null
+    const cachedPreview = !previewMode ? readSiteInsightPreview(url, previewToken) : null
+    const cachedInsight =
+      cachedPreview && typeof cachedPreview === 'object' && 'insight' in cachedPreview
+        ? cachedPreview.insight
+        : cachedPreview
     const insight = cachedInsight ?? (await buildSiteInsight(url))
-    const normalizedInsight = {
-      ...insight,
-      rgaaBaseline: '4.1',
-      rgaaBaselineEdited: false,
-    }
+    const normalizedInsight = normalizeSiteInsightForSubmission(insight)
+    const complianceConsistencyIssue =
+      cachedPreview && typeof cachedPreview === 'object' && 'insight' in cachedPreview
+        ? cachedPreview.complianceConsistencyIssue ?? null
+        : typeof insight?.complianceConsistencyIssue === 'string'
+          ? insight.complianceConsistencyIssue
+          : null
     const isBlocked = await showcaseStorage.isSiteBlocked(normalizedInsight.normalizedUrl)
     if (isBlocked) {
       sendJsonError(
@@ -2648,7 +2689,9 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       return
     }
 
-    const manualReviewReasons = await getManualReviewReasons(normalizedInsight)
+    const manualReviewReasons = await getManualReviewReasons(normalizedInsight, {
+      complianceConsistencyIssue,
+    })
     const manualReviewReason = formatManualReviewReason(manualReviewReasons)
     if (previewMode) {
       const previewStatus = manualReviewReason ? 'pending' : 'approved'
@@ -2670,7 +2713,11 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
             previewEntry.domainContext,
             'Cette URL sera publiée comme sous-site distinct si vous confirmez l’envoi.',
           )
-      const nextPreviewToken = storeSiteInsightPreview(url, normalizedInsight)
+      const nextPreviewToken = storeSiteInsightPreview(
+        url,
+        normalizedInsight,
+        complianceConsistencyIssue,
+      )
 
       response.status(previewStatus === 'pending' ? 202 : 200).json({
         ...previewEntry,

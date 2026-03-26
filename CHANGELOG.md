@@ -22,6 +22,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - GitHub notifier issue text rendering no longer over-escapes punctuation in standard content, removing most visible backslashes while keeping mention neutralization safety.
 - Homepage polite announcements now explicitly distinguish annuaire loading lifecycle (`en cours` vs `terminé`) and pagination boundaries (`première page` vs `dernière page`), improving screen-reader feedback clarity.
 - Compliance status integrity now prevents entries with a numeric score below `100` from being exposed as `Totalement conforme` in public payloads and new persistence flows.
+- Submissions declaring `Totalement conforme` with a numeric score below `100` are now automatically routed to manual moderation as inconsistent declarations.
 - Suspicious submission signals (adult content, gambling, pharmaceutical promotion, and SEO/link-farm patterns) now trigger manual moderation instead of immediate public rejection, including during preview responses.
 - Sensitive submission checks now combine local dictionaries with free Blocklist Project category feeds before auto-publication.
 - Removed premium third-party categorization integration to keep moderation categorization fully based on free sources.

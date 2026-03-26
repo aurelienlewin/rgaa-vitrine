@@ -15,6 +15,8 @@ const COMPLIANCE_LABELS = {
   none: 'Non conforme',
 }
 const DEFAULT_RGAA_BASELINE = '4.1'
+const COMPLIANCE_INCONSISTENT_FULL_REASON =
+  'Incohérence détectée: la déclaration indique "Totalement conforme" avec un score inférieur à 100.'
 
 const accessibilityKeywords = [
   'accessibilite',
@@ -649,8 +651,9 @@ function extractCompliance(text) {
   const explicitStatus = extractExplicitComplianceStatus(normalized)
   const complianceScore = extractComplianceScore(normalized)
   const complianceStatus = resolveComplianceStatus(explicitStatus, complianceScore, normalized)
+  const complianceConsistencyIssue = readComplianceConsistencyIssue(explicitStatus, complianceScore)
 
-  return { complianceStatus, complianceScore }
+  return { complianceStatus, complianceScore, complianceConsistencyIssue }
 }
 
 function extractExplicitComplianceStatus(normalizedText) {
@@ -720,6 +723,14 @@ function detectRgaaBaseline(normalizedText) {
 
   if (/(?:\brgaa\s*(?:v|version)?\s*4(?:[.,]1(?:[.,]2)?)?\b)|(?:\brgaa4\b)/.test(normalizedText)) {
     return '4.1'
+  }
+
+  return null
+}
+
+function readComplianceConsistencyIssue(explicitStatus, score) {
+  if (explicitStatus === 'full' && typeof score === 'number' && Number.isFinite(score) && score < 100) {
+    return COMPLIANCE_INCONSISTENT_FULL_REASON
   }
 
   return null
@@ -1032,6 +1043,10 @@ async function extractComplianceFromAccessibilityPage(accessibilityPageUrl, cont
   const textBased = extractCompliance(signalText)
   const metaBased = extractComplianceFromMetaTags($)
   const textBasedRgaaBaseline = detectRgaaBaseline(normalizedSignalText)
+  const metaBasedConsistencyIssue = readComplianceConsistencyIssue(
+    metaBased.explicitStatus,
+    metaBased.complianceScore,
+  )
 
   const complianceScore = textBased.complianceScore ?? metaBased.complianceScore
   const complianceStatus = resolveComplianceStatus(
@@ -1044,6 +1059,8 @@ async function extractComplianceFromAccessibilityPage(accessibilityPageUrl, cont
   return {
     complianceStatus,
     complianceScore,
+    complianceConsistencyIssue:
+      textBased.complianceConsistencyIssue ?? metaBasedConsistencyIssue ?? null,
     rgaaBaseline,
     scoreSource:
       textBased.complianceScore !== null ? 'text' : metaBased.complianceScore !== null ? 'meta' : null,
@@ -1079,10 +1096,12 @@ function extractComplianceFromAiContextPayload(payload) {
   )
   const normalizedStatementText = normalizeForMatch(JSON.stringify(statement))
   const complianceStatus = resolveComplianceStatus(explicitStatus, complianceScore, normalizedStatementText)
+  const complianceConsistencyIssue = readComplianceConsistencyIssue(explicitStatus, complianceScore)
 
   return {
     complianceStatus,
     complianceScore,
+    complianceConsistencyIssue,
     rgaaBaseline,
   }
 }
@@ -1126,6 +1145,7 @@ export async function buildSiteInsight(inputUrl) {
 
   let complianceStatus = null
   let complianceScore = null
+  let complianceConsistencyIssue = null
   let rgaaBaseline = null
   let accessibilityPageScoreSource = null
 
@@ -1133,6 +1153,7 @@ export async function buildSiteInsight(inputUrl) {
     const compliance = await extractComplianceFromAccessibilityPage(accessibilityPageUrl, context)
     complianceStatus = compliance.complianceStatus
     complianceScore = compliance.complianceScore
+    complianceConsistencyIssue = compliance.complianceConsistencyIssue ?? null
     rgaaBaseline = compliance.rgaaBaseline
     accessibilityPageScoreSource = compliance.scoreSource
   } catch {
@@ -1150,6 +1171,10 @@ export async function buildSiteInsight(inputUrl) {
       complianceStatus = aiContextCompliance.complianceStatus
     }
 
+    if (aiContextCompliance.complianceConsistencyIssue) {
+      complianceConsistencyIssue = complianceConsistencyIssue ?? aiContextCompliance.complianceConsistencyIssue
+    }
+
     rgaaBaseline = rgaaBaseline ?? aiContextCompliance.rgaaBaseline
   } catch {
     // AI context parsing is best effort and should not fail the main result.
@@ -1159,6 +1184,7 @@ export async function buildSiteInsight(inputUrl) {
     const fallback = extractCompliance(load(homepage.html).text())
     complianceStatus = complianceStatus ?? fallback.complianceStatus
     complianceScore = complianceScore ?? fallback.complianceScore
+    complianceConsistencyIssue = complianceConsistencyIssue ?? fallback.complianceConsistencyIssue ?? null
   }
 
   if (!rgaaBaseline) {
@@ -1174,6 +1200,7 @@ export async function buildSiteInsight(inputUrl) {
     complianceStatus,
     complianceStatusLabel: complianceStatus ? COMPLIANCE_LABELS[complianceStatus] : null,
     complianceScore,
+    complianceConsistencyIssue,
     rgaaBaseline: rgaaBaseline ?? DEFAULT_RGAA_BASELINE,
     updatedAt: new Date().toISOString(),
   }
