@@ -281,6 +281,7 @@ Issue bodies are rendered in rich Markdown with:
 - high-visibility timestamp blocks (Europe/Paris, UTC, and ISO 8601)
 - direct operational links to the submitted/published site, accessibility declaration, domain page, public profile (when available), and moderation console
 - mention-safe text rendering without noisy Markdown escape backslashes in normal content
+- clear notification separation between moderation-required issues and auto-publication informational issues (distinct titles, status banners, and dedicated GitHub labels)
 
 Publication issues are intentionally informational and do not imply operator action is required.
 

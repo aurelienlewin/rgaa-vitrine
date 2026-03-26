@@ -12,6 +12,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Added Playwright runtime configuration (`playwright.config.mjs`) and dedicated npm scripts for e2e execution (`test:e2e`, `test:e2e:headed`, `test:e2e:ui`, `test:e2e:install`).
 - Added moderation card media/action strips in both pending and published lists: thumbnail preview, direct CTA to the submitted site, direct CTA to the domain page when available, and direct CTA to the accessibility statement when available.
 - Added richer GitHub notifier issue bodies for moderation/publication events with explicit timestamp blocks and direct links to site, declaration, domain page, profile page (when available), and moderation console.
+- Added explicit GitHub notification separation between moderation-required and auto-publication events via distinct issue titles, status banners, and contextual labels (`moderation-required`/`review-needed` vs `auto-publication`/`info-only`).
 
 ### Fixed
 - Site auto-publication guardrails now send submissions to moderation when the detected accessibility statement points to a different registrable domain than the submitted site.

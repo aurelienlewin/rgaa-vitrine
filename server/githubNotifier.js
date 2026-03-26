@@ -7,6 +7,8 @@ import {
 
 const DEFAULT_GITHUB_API_BASE_URL = 'https://api.github.com'
 const GITHUB_NOTIFY_TIMEOUT_MS = 8_000
+const PENDING_MODERATION_LABELS = ['moderation-required', 'review-needed']
+const APPROVED_PUBLICATION_LABELS = ['auto-publication', 'info-only']
 
 function isPrivateIpLiteral(host) {
   const version = isIP(host)
@@ -245,6 +247,28 @@ function toIssueLinkLine(label, url, fallbackLabel) {
   return `- **${label}**: <${url}>`
 }
 
+function mergeIssueLabels(baseLabels, contextualLabels = []) {
+  const labels = []
+  const seen = new Set()
+
+  for (const rawLabel of [...baseLabels, ...contextualLabels]) {
+    if (typeof rawLabel !== 'string') {
+      continue
+    }
+    const label = rawLabel.trim()
+    if (!label || seen.has(label.toLowerCase())) {
+      continue
+    }
+    seen.add(label.toLowerCase())
+    labels.push(label)
+    if (labels.length >= 12) {
+      break
+    }
+  }
+
+  return labels
+}
+
 async function readJsonSafely(response) {
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
   const rawBody = await response.text()
@@ -280,12 +304,14 @@ function buildPendingModerationIssuePayload(entry) {
   const domainUrl = buildDomainPageUrl(entry.normalizedUrl)
   const moderationUrl = resolveAppUrl('/moderation')
 
-  const title = `[Modération RGAA] ${safeTitle} - ${shortSubmissionId}`
+  const title = `[MODERATION REQUISE] ${safeTitle} - ${shortSubmissionId}`
   const body = [
     '<!-- annuaire-rgaa:pending-moderation -->',
     '## Nouvelle soumission en attente de modération',
     '',
-    '> Cette issue est informative et centralise les liens utiles pour traiter la soumission.',
+    '> Statut: ACTION REQUISE',
+    '>',
+    '> Cette issue nécessite une intervention de modération.',
     '',
     '### Horodatage',
     `- **Créée (Europe/Paris)**: ${createdAt.parisDate}`,
@@ -308,7 +334,11 @@ function buildPendingModerationIssuePayload(entry) {
     '',
   ].join('\n')
 
-  return { title, body }
+  return {
+    title,
+    body,
+    labels: mergeIssueLabels(githubNotifierConfig?.labels ?? [], PENDING_MODERATION_LABELS),
+  }
 }
 
 function buildApprovedPublicationIssuePayload(entry) {
@@ -326,11 +356,13 @@ function buildApprovedPublicationIssuePayload(entry) {
   const profileUrl = resolveAppUrl(typeof entry.profilePath === 'string' ? entry.profilePath : '')
   const moderationUrl = resolveAppUrl('/moderation')
 
-  const title = `[Publication RGAA] ${safeTitle}`
+  const title = `[INFO PUBLICATION AUTO] ${safeTitle}`
   const body = [
     '<!-- annuaire-rgaa:auto-approved-publication -->',
     '## Publication automatique informative',
     '',
+    '> Statut: INFORMATIF UNIQUEMENT',
+    '>',
     '> Aucune action de modération n’est requise. Cette issue conserve les liens de suivi.',
     '',
     '### Horodatage',
@@ -354,14 +386,18 @@ function buildApprovedPublicationIssuePayload(entry) {
     '',
   ].join('\n')
 
-  return { title, body }
+  return {
+    title,
+    body,
+    labels: mergeIssueLabels(githubNotifierConfig?.labels ?? [], APPROVED_PUBLICATION_LABELS),
+  }
 }
 
 export function isGithubNotifierEnabled() {
   return Boolean(githubNotifierConfig)
 }
 
-async function createGithubIssue({ title, body }) {
+async function createGithubIssue({ title, body, labels }) {
   if (!githubNotifierConfig) {
     return { enabled: false, notified: false }
   }
@@ -378,7 +414,7 @@ async function createGithubIssue({ title, body }) {
     body: JSON.stringify({
       title,
       body,
-      labels: githubNotifierConfig.labels,
+      labels: Array.isArray(labels) && labels.length > 0 ? labels : githubNotifierConfig.labels,
     }),
   }
 
