@@ -26,16 +26,16 @@
     "@fontsource/lexend": "^5.2.11",
     "@fontsource/opendyslexic": "^5.2.5",
     "@tailwindcss/vite": "^4.3.3",
-    "@upstash/redis": "^1.36.4",
+    "@upstash/redis": "^1.38.2",
     "@vercel/analytics": "^1.6.1",
     "cheerio": "^1.2.0",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.3.0",
-    "helmet": "^8.1.0",
+    "express-rate-limit": "^8.6.2",
+    "helmet": "^8.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "tailwindcss": "^4.3.3",
-    "tldts": "^7.0.25"
+    "tldts": "^7.4.10"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
