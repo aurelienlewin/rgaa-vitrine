@@ -17,6 +17,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Added GitHub moderation issue enrichment for sensitive categorization: explicit source flags, extracted categorization snippets, and contextual labels (`sensitive-category`, `source-blocklist-project`).
 
 ### Fixed
+- Homepage KPI cards now display a loading dash with a screen-reader-only `Chargement en cours` label instead of temporary zero values while directory cards load; the results summary also stays in an explicit loading state until data is available.
 - Refreshed compatible transitive dependencies through `npm audit fix`, resolving the remaining production audit findings including `vite`, `undici`, `body-parser`, `path-to-regexp`, `postcss`, `nanoid`, `qs`, and `esbuild`.
 - Upgraded server-facing runtime dependencies (`@upstash/redis`, `express-rate-limit`, `helmet`, and `tldts`), reducing the npm audit finding count while preserving the existing URL-validation and remote-fetch guardrails.
 - Upgraded Tailwind CSS, the Tailwind Vite plugin, and the React Vite plugin to their current compatible minor releases; the production CSS bundle remains slightly smaller after the refresh.

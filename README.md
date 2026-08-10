@@ -117,7 +117,8 @@ Implemented principles:
 - shared secondary navigation and global-search controls use explicit filled surfaces and reinforced borders to keep interface-component contrast stable across public templates
 - shared search entry point across homepage and secondary routes
 - homepage results summary and polite announcements stay aligned when search, filters, sorting, and page-based pagination update the visible cards
-- homepage polite announcements now expose explicit loading states (`en cours`, `terminé`) and explicit pagination boundaries (`première page`, `dernière page`)
+- homepage KPI cards expose an explicit loading placeholder before directory data is available, with screen-reader text that announces the pending state instead of temporary zero counts
+- homepage polite announcements expose explicit loading states (`en cours`, `terminé`) and explicit pagination boundaries (`première page`, `dernière page`)
 - global asynchronous announcers stay in persistent visually hidden live regions to avoid layout shifts while keeping French status/error messages available to assistive technologies
 - focus continuity after action outcomes and section jumps
 - moderation unlock places focus on the `Soumissions en attente` section before row-level actions
@@ -303,7 +304,7 @@ Issue bodies are rendered in rich Markdown with:
 - direct operational links to the submitted/published site, accessibility declaration, domain page, public profile (when available), and moderation console
 - mention-safe text rendering without noisy Markdown escape backslashes in normal content
 - clear notification separation between moderation-required issues and auto-publication informational issues (distinct titles, status banners, and dedicated GitHub labels)
-- moderation issues now expose sensitive categorization signals and add contextual labels (`sensitive-category`, `source-blocklist-project`) when applicable
+- sensitive categorization signals and contextual labels (`sensitive-category`, `source-blocklist-project`) on moderation issues when applicable
 
 Publication issues are intentionally informational and do not imply operator action is required.
 

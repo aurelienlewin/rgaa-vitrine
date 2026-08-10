@@ -210,6 +210,19 @@ const directorySortOptions: Array<{
 const statsValueClass =
   'mt-1 inline-flex min-h-8 min-w-[3ch] items-end text-2xl font-bold [font-variant-numeric:tabular-nums]'
 
+function DirectoryStatValue({ isLoading, value }: { isLoading: boolean; value: number }) {
+  if (isLoading) {
+    return (
+      <>
+        <span aria-hidden="true">-</span>
+        <span style={visuallyHiddenStyle}>Chargement en cours</span>
+      </>
+    )
+  }
+
+  return value
+}
+
 function readInitialDirectoryFilters(): InitialDirectoryFilters {
   if (typeof window === 'undefined') {
     return {
@@ -1126,8 +1139,12 @@ function App() {
   }, [directoryPage, totalDirectoryPages])
 
   const directorySummaryText = useMemo(
-    () =>
-      buildDirectorySummaryText({
+    () => {
+      if (loadingDirectory) {
+        return 'Chargement de l’annuaire en cours.'
+      }
+
+      return buildDirectorySummaryText({
         visibleCardCount: visibleDirectoryItems.length,
         totalCardCount: filteredDirectoryItems.length,
         filteredEntryCount: filteredShowcaseEntries.length,
@@ -1135,12 +1152,14 @@ function App() {
         currentPage: currentDirectoryPage,
         totalPages: totalDirectoryPages,
         sortLabel: activeDirectorySort.summaryLabel,
-      }),
+      })
+    },
     [
       activeDirectorySort.summaryLabel,
       currentDirectoryPage,
       filteredDirectoryItems.length,
       filteredShowcaseEntries.length,
+      loadingDirectory,
       showcaseEntries.length,
       totalDirectoryPages,
       visibleDirectoryItems.length,
@@ -2136,19 +2155,27 @@ function App() {
             <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
                 <dt className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Fiches référencées</dt>
-                <dd className={`${statsValueClass} text-slate-900 dark:text-slate-50`}>{directoryStats.total}</dd>
+                <dd className={`${statsValueClass} text-slate-900 dark:text-slate-50`}>
+                  <DirectoryStatValue isLoading={loadingDirectory} value={directoryStats.total} />
+                </dd>
               </div>
               <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950 px-4 py-3">
                 <dt className="text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-100">Totalement conformes</dt>
-                <dd className={`${statsValueClass} text-emerald-900 dark:text-emerald-100`}>{directoryStats.full}</dd>
+                <dd className={`${statsValueClass} text-emerald-900 dark:text-emerald-100`}>
+                  <DirectoryStatValue isLoading={loadingDirectory} value={directoryStats.full} />
+                </dd>
               </div>
               <div className="rounded-xl bg-amber-50 dark:bg-amber-950 px-4 py-3">
                 <dt className="text-sm font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-100">Partiellement conformes</dt>
-                <dd className={`${statsValueClass} text-amber-900 dark:text-amber-100`}>{directoryStats.partial}</dd>
+                <dd className={`${statsValueClass} text-amber-900 dark:text-amber-100`}>
+                  <DirectoryStatValue isLoading={loadingDirectory} value={directoryStats.partial} />
+                </dd>
               </div>
               <div className="rounded-xl bg-rose-50 dark:bg-rose-950 px-4 py-3">
                 <dt className="text-sm font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-100">Non conformes</dt>
-                <dd className={`${statsValueClass} text-rose-900 dark:text-rose-100`}>{directoryStats.none}</dd>
+                <dd className={`${statsValueClass} text-rose-900 dark:text-rose-100`}>
+                  <DirectoryStatValue isLoading={loadingDirectory} value={directoryStats.none} />
+                </dd>
               </div>
             </dl>
             <p className="mt-4 rounded-xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-3 text-sm font-medium text-sky-900 dark:text-sky-100">
