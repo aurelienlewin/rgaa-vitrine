@@ -17,6 +17,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Added GitHub moderation issue enrichment for sensitive categorization: explicit source flags, extracted categorization snippets, and contextual labels (`sensitive-category`, `source-blocklist-project`).
 
 ### Fixed
+- Upgraded Tailwind CSS, the Tailwind Vite plugin, and the React Vite plugin to their current compatible minor releases; the production CSS bundle remains slightly smaller after the refresh.
 - Upgraded React runtime packages to `19.2.8` with matching React type packages, keeping the Vite production build green.
 - Dependency lockfile now resolves `undici` to `7.24.6`, `picomatch` to `4.0.4`, and `flatted` to `3.4.2`, addressing the latest reported npm advisories affecting the previous transitive versions.
 - Site auto-publication guardrails now send submissions to moderation when the detected accessibility statement points to a different registrable domain than the submitted site.
