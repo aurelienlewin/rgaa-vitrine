@@ -160,7 +160,7 @@ Discovery asset lifecycle:
 
 ## Tech Stack
 
-- Vite 7
+- Vite 8
 - React 19
 - TypeScript 5
 - Tailwind CSS 4

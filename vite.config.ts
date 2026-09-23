@@ -1,5 +1,4 @@
-import { defineConfig, type Plugin } from 'vite'
-import type { OutputChunk } from 'rollup'
+import { defineConfig, type Plugin, type Rollup } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { execSync } from 'node:child_process'
@@ -56,7 +55,7 @@ function optimizeCriticalStylesheetDelivery(): Plugin {
   let routeModulePreloadScript = ''
 
   function collectChunkDependencies(
-    bundle: Record<string, OutputChunk>,
+    bundle: Record<string, Rollup.OutputChunk>,
     fileName: string,
     seen = new Set<string>(),
   ): string[] {
@@ -91,7 +90,7 @@ function optimizeCriticalStylesheetDelivery(): Plugin {
       criticalFontPreloads = fontHrefs.join('\n')
 
       const bundleChunks = Object.values(bundle).filter(
-        (chunk): chunk is OutputChunk => chunk.type === 'chunk',
+        (chunk): chunk is Rollup.OutputChunk => chunk.type === 'chunk',
       )
       const bundleByFileName = Object.fromEntries(
         bundleChunks.map((chunk) => [chunk.fileName, chunk]),
