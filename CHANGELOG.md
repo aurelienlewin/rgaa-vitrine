@@ -24,6 +24,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Upgraded React runtime packages to `19.2.8` with matching React type packages, keeping the Vite production build green.
 - Refreshed audited transitive dev dependencies (`@humanfs/node`, `js-yaml`, `qs`) via `npm audit fix`, resolving the last reported `npm audit` findings (0 vulnerabilities remaining).
 - Upgraded React runtime packages to `19.3.0` with matching React type packages; upgraded the accessible font packages (`@fontsource/atkinson-hyperlegible`, `@fontsource/lexend`, `@fontsource/opendyslexic`) to `5.3.0` and server-facing runtime dependencies (`@upstash/redis`, `express-rate-limit`, `tldts`) to their latest compatible releases. Verified with a clean production build and a full pass of the Playwright e2e regression suite.
+- Upgraded `@vercel/analytics` to `2.0.1` (deferred-loaded `Analytics` React component API is unchanged); verified with a clean build, lint, and the full Playwright e2e suite.
 - Dependency lockfile now resolves `undici` to `7.24.6`, `picomatch` to `4.0.4`, and `flatted` to `3.4.2`, addressing the latest reported npm advisories affecting the previous transitive versions.
 - Site auto-publication guardrails now send submissions to moderation when the detected accessibility statement points to a different registrable domain than the submitted site.
 - Site auto-publication guardrails now send submissions to moderation when a detected thumbnail is invalid, unreachable, oversized, or not an image payload.
