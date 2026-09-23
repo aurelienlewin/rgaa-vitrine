@@ -1370,6 +1370,7 @@ class UpstashShowcaseStorage {
     this.showcaseCacheExpiresAt = 0
     this.pendingCacheEntries = null
     this.pendingCacheById = new Map()
+    this.pendingCacheByNormalizedUrl = new Map()
     this.pendingCacheExpiresAt = 0
     this.clientVotesCacheById = new Map()
     this.siteBlocklistCache = null
@@ -1403,12 +1404,14 @@ class UpstashShowcaseStorage {
   _setPendingCache(entries) {
     this.pendingCacheEntries = entries
     this.pendingCacheById = new Map(entries.map((entry) => [entry.submissionId, entry]))
+    this.pendingCacheByNormalizedUrl = new Map(entries.map((entry) => [entry.normalizedUrl, entry]))
     this.pendingCacheExpiresAt = Date.now() + this.cacheTtlMs
   }
 
   _invalidatePendingCache() {
     this.pendingCacheEntries = null
     this.pendingCacheById.clear()
+    this.pendingCacheByNormalizedUrl.clear()
     this.pendingCacheExpiresAt = 0
   }
 
@@ -1686,10 +1689,12 @@ class UpstashShowcaseStorage {
         return []
       }
 
+      const rawEntries = await Promise.all(
+        entryIds.map((entryId) => this.redis.hgetall(entryKeyFromId(entryId))),
+      )
       const entries = []
-      for (const entryId of entryIds) {
-        const rawEntry = await this.redis.hgetall(entryKeyFromId(entryId))
-        const parsed = parseStoredEntry(rawEntry, { entryId })
+      for (const [index, entryId] of entryIds.entries()) {
+        const parsed = parseStoredEntry(rawEntries[index], { entryId })
         if (parsed) {
           entries.push(parsed)
         }
@@ -2186,7 +2191,7 @@ class UpstashShowcaseStorage {
 
   async getPendingByNormalizedUrl(normalizedUrl) {
     if (this._isPendingCacheFresh()) {
-      const cachedEntry = this.pendingCacheEntries.find((entry) => entry.normalizedUrl === normalizedUrl)
+      const cachedEntry = this.pendingCacheByNormalizedUrl.get(normalizedUrl)
       if (cachedEntry) {
         return cachedEntry
       }
@@ -2203,6 +2208,7 @@ class UpstashShowcaseStorage {
 
       if (this._isPendingCacheFresh()) {
         this.pendingCacheById.set(parsed.submissionId, parsed)
+        this.pendingCacheByNormalizedUrl.set(parsed.normalizedUrl, parsed)
       }
       return parsed
     } catch (error) {
@@ -2235,10 +2241,12 @@ class UpstashShowcaseStorage {
         return []
       }
 
+      const rawEntries = await Promise.all(
+        entryIds.map((entryId) => this.redis.hgetall(pendingKeyFromId(entryId))),
+      )
       const entries = []
-      for (const entryId of entryIds) {
-        const rawEntry = await this.redis.hgetall(pendingKeyFromId(entryId))
-        const parsed = parsePendingEntry(rawEntry, { submissionId: entryId })
+      for (const [index, entryId] of entryIds.entries()) {
+        const parsed = parsePendingEntry(rawEntries[index], { submissionId: entryId })
         if (parsed) {
           entries.push(parsed)
         }

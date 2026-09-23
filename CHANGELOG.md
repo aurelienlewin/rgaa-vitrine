@@ -16,6 +16,10 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Added a free sensitive-domain categorization provider based on Blocklist Project feeds (porn/gambling/drugs), with cached lookups and optional feed URL overrides.
 - Added GitHub moderation issue enrichment for sensitive categorization: explicit source flags, extracted categorization snippets, and contextual labels (`sensitive-category`, `source-blocklist-project`).
 
+### Performance
+- Moderation storage now indexes pending submissions by normalized URL (`pendingCacheByNormalizedUrl`), mirroring the existing published-showcase URL index, so duplicate-URL checks during submission no longer do a linear scan over the in-memory pending cache.
+- Showcase and pending-moderation list reads now hydrate each entry's Redis hash concurrently (`Promise.all`) instead of one sequential round-trip per entry, cutting cold-cache load latency roughly proportional to the number of stored entries; result order and content are unchanged.
+
 ### Fixed
 - Homepage KPI cards now display a loading dash with a screen-reader-only `Chargement en cours` label instead of temporary zero values while directory cards load; the results summary also stays in an explicit loading state until data is available.
 - Refreshed compatible transitive dependencies through `npm audit fix`, resolving the remaining production audit findings including `vite`, `undici`, `body-parser`, `path-to-regexp`, `postcss`, `nanoid`, `qs`, and `esbuild`.
