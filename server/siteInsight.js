@@ -571,6 +571,7 @@ function findStructuredDataLogoUrl($, baseUrl) {
       const absolute = findFirstAbsoluteUrl(baseUrl, logoValue)
       if (absolute) {
         bestMatch = absolute
+        return false
       }
     } catch {
       // Ignore invalid JSON-LD blocks.
@@ -609,6 +610,7 @@ function findHtmlLogoUrl($, baseUrl) {
 
       if (absolute) {
         bestMatch = absolute
+        return false
       }
     })
 

@@ -19,6 +19,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 ### Performance
 - Moderation storage now indexes pending submissions by normalized URL (`pendingCacheByNormalizedUrl`), mirroring the existing published-showcase URL index, so duplicate-URL checks during submission no longer do a linear scan over the in-memory pending cache.
 - Showcase and pending-moderation list reads now hydrate each entry's Redis hash concurrently (`Promise.all`) instead of one sequential round-trip per entry, cutting cold-cache load latency roughly proportional to the number of stored entries; result order and content are unchanged.
+- Site-insight logo detection (`findStructuredDataLogoUrl`, `findHtmlLogoUrl`) now stops scanning further JSON-LD blocks or DOM elements as soon as a matching logo is found, instead of continuing to parse/inspect every remaining match; both helpers already only kept the first match, so the result is unchanged.
 
 ### Fixed
 - Homepage KPI cards now display a loading dash with a screen-reader-only `Chargement en cours` label instead of temporary zero values while directory cards load; the results summary also stays in an explicit loading state until data is available.
