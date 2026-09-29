@@ -337,6 +337,7 @@ Publication issues are intentionally informational and do not imply operator act
 - `POST /api/moderation/showcase/update`
 - `POST /api/moderation/showcase/delete`
 - `POST /api/moderation/showcase/delete-and-block`
+- `POST /api/moderation/showcase/delete-domain`
 - `POST /api/moderation/blocklist/site`
 - `POST /api/moderation/blocklist/votes`
 - `POST /api/moderation/archive/import`

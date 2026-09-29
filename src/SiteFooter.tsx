@@ -10,7 +10,7 @@ type SiteFooterProps = {
 const githubProfile = {
   name: 'Aurélien Lewin',
   login: 'aurelienlewin',
-  avatarUrl: 'https://avatars.githubusercontent.com/u/45093822?v=4',
+  avatarUrl: '/avatar-aurelien-lewin.png',
   profileUrl: 'https://github.com/aurelienlewin',
 }
 
@@ -51,7 +51,6 @@ function SiteFooter({ id = 'pied-page', footerRef, helpHref = '/#aide-accessibil
               height={48}
               className="h-12 w-12 rounded-full border border-slate-300 dark:border-slate-600"
               loading="lazy"
-              referrerPolicy="no-referrer"
             />
             <p className="text-sm text-slate-800 dark:text-slate-200">
               Créé et maintenu par{' '}

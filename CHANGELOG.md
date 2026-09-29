@@ -8,6 +8,8 @@ Changelog entries are written in English; referenced UI labels remain in French 
 ## [Unreleased]
 
 ### Added
+- Added a one-click "Supprimer le domaine et ses sous-sites" moderation CTA on published entries that belong to a multi-site domain group, backed by a new `POST /api/moderation/showcase/delete-domain` endpoint that removes every showcase entry sharing the same registrable domain in a single confirmed action.
+- The project footer's GitHub avatar is now served from a locally stored image (`public/avatar-aurelien-lewin.png`) instead of being hotlinked from `avatars.githubusercontent.com`.
 - Added a Playwright end-to-end regression suite (`e2e/homepage-and-moderation-regressions.spec.ts`) covering URL-backed homepage filters, pagination reset behavior, submission feedback focus management, and moderation session restoration.
 - Added Playwright runtime configuration (`playwright.config.mjs`) and dedicated npm scripts for e2e execution (`test:e2e`, `test:e2e:headed`, `test:e2e:ui`, `test:e2e:install`).
 - Added moderation card media/action strips in both pending and published lists: thumbnail preview, direct CTA to the submitted site, direct CTA to the domain page when available, and direct CTA to the accessibility statement when available.

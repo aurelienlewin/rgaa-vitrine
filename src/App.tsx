@@ -161,7 +161,6 @@ const wcagResources = [
 const githubProfile = {
   name: 'Aurélien Lewin',
   login: 'aurelienlewin',
-  avatarUrl: 'https://avatars.githubusercontent.com/u/45093822?v=4',
   profileUrl: 'https://github.com/aurelienlewin',
 }
 

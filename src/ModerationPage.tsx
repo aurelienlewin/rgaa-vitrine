@@ -588,6 +588,8 @@ function ModerationPage() {
   const [runningSubmissionId, setRunningSubmissionId] = useState<string | null>(null)
   const [runningPublishedUrl, setRunningPublishedUrl] = useState<string | null>(null)
   const [deleteConfirmationUrl, setDeleteConfirmationUrl] = useState<string | null>(null)
+  const [runningDomainGroupSlug, setRunningDomainGroupSlug] = useState<string | null>(null)
+  const [deleteConfirmationGroupSlug, setDeleteConfirmationGroupSlug] = useState<string | null>(null)
   const [politeMessage, setPoliteMessage] = useState(() =>
     initialStoredSession ? 'Jeton restauré. Activez le chargement pour ouvrir la modération.' : '',
   )
@@ -615,6 +617,7 @@ function ModerationPage() {
   const publishedSaveButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const publishedDeleteButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const publishedDeleteAndBlockButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const domainDeleteButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const publishedScoreInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const publishedFeedbackRefs = useRef<Record<string, HTMLParagraphElement | null>>({})
   const siteBlocklistSectionRef = useRef<HTMLElement | null>(null)
@@ -1720,6 +1723,79 @@ function ModerationPage() {
     [buildAuthHeaders, focusElement, focusMessage, loadBlocklists, publishedEntries],
   )
 
+  const handleDeleteDomainGroup = useCallback(
+    async (groupSlug: string, registrableDomain: string) => {
+      if (deleteConfirmationGroupSlug !== groupSlug) {
+        setDeleteConfirmationGroupSlug(groupSlug)
+        setAssertiveMessage('')
+        setPoliteMessage('Cliquez à nouveau sur supprimer le domaine pour confirmer.')
+        window.setTimeout(() => {
+          focusElement(domainDeleteButtonRefs.current[groupSlug])
+        }, 0)
+        return
+      }
+
+      setRunningDomainGroupSlug(groupSlug)
+      setAssertiveMessage('')
+      setPoliteMessage(`Suppression des fiches du domaine ${registrableDomain} en cours...`)
+
+      try {
+        const response = await fetch('/api/moderation/showcase/delete-domain', {
+          method: 'POST',
+          headers: buildAuthHeaders(true),
+          body: JSON.stringify({
+            groupSlug,
+          }),
+        })
+        const payload = await readApiPayload(response)
+
+        if (!response.ok) {
+          throw new Error(typeof payload.error === 'string' ? payload.error : 'Suppression du domaine impossible.')
+        }
+
+        const removedUrls = new Set(
+          Array.isArray(payload.removedUrls)
+            ? payload.removedUrls.filter((value): value is string => typeof value === 'string')
+            : [],
+        )
+        setPublishedEntries((current) => current.filter((entry) => !removedUrls.has(entry.normalizedUrl)))
+        setPublishedDrafts((current) => {
+          const next = { ...current }
+          for (const normalizedUrl of removedUrls) {
+            delete next[normalizedUrl]
+          }
+          return next
+        })
+        setPublishedFeedbackByUrl((current) => {
+          const next = { ...current }
+          for (const normalizedUrl of removedUrls) {
+            delete next[normalizedUrl]
+          }
+          return next
+        })
+        setDeleteConfirmationGroupSlug(null)
+        setDeleteConfirmationUrl(null)
+
+        const info =
+          typeof payload.message === 'string'
+            ? payload.message
+            : `Fiches supprimées pour le domaine ${registrableDomain}.`
+        setPoliteMessage(info)
+        setAssertiveMessage('')
+        focusMessage()
+      } catch (error) {
+        const localizedMessage =
+          error instanceof Error ? error.message : 'Erreur lors de la suppression du domaine.'
+        setAssertiveMessage(localizedMessage)
+        setPoliteMessage('')
+        focusMessage()
+      } finally {
+        setRunningDomainGroupSlug(null)
+      }
+    },
+    [buildAuthHeaders, deleteConfirmationGroupSlug, focusElement, focusMessage],
+  )
+
   const handleAddSiteBlocklist = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
@@ -2341,47 +2417,78 @@ function ModerationPage() {
                         <p className={`mt-1 text-sm ${moderationTextMutedClass}`}>
                           Référentiel: {formatRgaaBaseline(entry.rgaaBaseline)}
                         </p>
-                        {shouldShowModerationDomainContext(entry.domainContext) ? (
-                          <div className={`mt-3 rounded-xl px-3 py-3 text-sm ${moderationInfoPanelClass}`}>
-                            <p className="font-semibold">
-                              Domaine rapproché: {entry.domainContext.registrableDomain}
-                            </p>
-                            <p className="mt-1">
-                              {getPublishedDomainSiteCount(entry.domainContext)} fiche(s) publique(s) pour ce domaine.
-                            </p>
-                            {entry.domainContext.groupPath ? (
-                              <p className="mt-2">
-                                <a
-                                  href={entry.domainContext.groupPath}
-                                  className={moderationPanelLinkClass}
-                                >
-                                  Voir la page domaine
-                                </a>
-                              </p>
-                            ) : null}
-                            {entry.domainContext.siblings.length > 0 ? (
-                              <ul className="mt-2 list-disc space-y-1 ps-5">
-                                {entry.domainContext.siblings.slice(0, 3).map((sibling) => (
-                                  <li key={sibling.normalizedUrl}>
-                                    {sibling.siteTitle}
-                                    {sibling.profilePath ? (
-                                      <>
-                                        {' '}
-                                        ·{' '}
-                                        <a
-                                          href={sibling.profilePath}
-                                          className={moderationPanelLinkClass}
-                                        >
-                                          fiche publique
-                                        </a>
-                                      </>
-                                    ) : null}
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : null}
-                          </div>
-                        ) : null}
+                        {shouldShowModerationDomainContext(entry.domainContext)
+                          ? (() => {
+                              const domainContext = entry.domainContext
+                              return (
+                                <div className={`mt-3 rounded-xl px-3 py-3 text-sm ${moderationInfoPanelClass}`}>
+                                  <p className="font-semibold">
+                                    Domaine rapproché: {domainContext.registrableDomain}
+                                  </p>
+                                  <p className="mt-1">
+                                    {getPublishedDomainSiteCount(domainContext)} fiche(s) publique(s) pour ce domaine.
+                                  </p>
+                                  {domainContext.groupPath ? (
+                                    <p className="mt-2">
+                                      <a
+                                        href={domainContext.groupPath}
+                                        className={moderationPanelLinkClass}
+                                      >
+                                        Voir la page domaine
+                                      </a>
+                                    </p>
+                                  ) : null}
+                                  {domainContext.siblings.length > 0 ? (
+                                    <ul className="mt-2 list-disc space-y-1 ps-5">
+                                      {domainContext.siblings.slice(0, 3).map((sibling) => (
+                                        <li key={sibling.normalizedUrl}>
+                                          {sibling.siteTitle}
+                                          {sibling.profilePath ? (
+                                            <>
+                                              {' '}
+                                              ·{' '}
+                                              <a
+                                                href={sibling.profilePath}
+                                                className={moderationPanelLinkClass}
+                                              >
+                                                fiche publique
+                                              </a>
+                                            </>
+                                          ) : null}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  ) : null}
+                                  <p className="mt-3">
+                                    <button
+                                      ref={(element) => {
+                                        domainDeleteButtonRefs.current[domainContext.groupSlug] = element
+                                      }}
+                                      type="button"
+                                      onClick={() => {
+                                        void handleDeleteDomainGroup(
+                                          domainContext.groupSlug,
+                                          domainContext.registrableDomain,
+                                        )
+                                      }}
+                                      disabled={runningDomainGroupSlug === domainContext.groupSlug}
+                                      className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${focusRingClass} ${
+                                        deleteConfirmationGroupSlug === domainContext.groupSlug
+                                          ? moderationCtaDangerStrongClass
+                                          : moderationCtaDangerClass
+                                      }`}
+                                    >
+                                      {runningDomainGroupSlug === domainContext.groupSlug
+                                        ? 'Traitement...'
+                                        : deleteConfirmationGroupSlug === domainContext.groupSlug
+                                          ? 'Confirmer suppression du domaine'
+                                          : `Supprimer le domaine et ses sous-sites (${getPublishedDomainSiteCount(domainContext)})`}
+                                    </button>
+                                  </p>
+                                </div>
+                              )
+                            })()
+                          : null}
                         <div className="mt-2 flex flex-wrap gap-2">
                           <span
                             className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${

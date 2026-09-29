@@ -3430,6 +3430,49 @@ app.post('/api/moderation/showcase/delete-and-block', requireModerationAuth, asy
   }
 })
 
+app.post('/api/moderation/showcase/delete-domain', requireModerationAuth, async (request, response) => {
+  const groupSlug = normalizeDomainGroupSlug(request.body?.groupSlug)
+  if (!groupSlug) {
+    sendJsonError(response, 400, 'groupSlug est obligatoire.')
+    return
+  }
+
+  try {
+    const entries = await showcaseStorage.list({ limit: MAX_SHOWCASE_ENTRY_LIMIT })
+    const { groupsBySlug } = buildDomainGroups(entries)
+    const group = groupsBySlug.get(groupSlug)
+
+    if (!group || group.entries.length === 0) {
+      sendJsonError(response, 404, 'Domaine introuvable dans l’annuaire.')
+      return
+    }
+
+    const removedUrls = []
+    for (const groupEntry of group.entries) {
+      const removedSlug = buildShowcaseEntrySlug(groupEntry.normalizedUrl)
+      await showcaseStorage.rememberSlugRedirect(removedSlug, groupEntry.normalizedUrl)
+      await showcaseStorage.deleteByNormalizedUrl(groupEntry.normalizedUrl)
+      removedUrls.push(groupEntry.normalizedUrl)
+    }
+
+    response.json({
+      groupSlug,
+      registrableDomain: group.registrableDomain,
+      removedUrls,
+      removedCount: removedUrls.length,
+      message: `${removedUrls.length} fiche(s) supprimée(s) pour le domaine ${group.registrableDomain}.`,
+    })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/showcase/delete-domain', error)
+    sendJsonError(response, 500, 'Erreur interne lors de la suppression du domaine.')
+  }
+})
+
 app.use('/api', (_request, response) => {
   sendJsonError(response, 404, 'Point d’accès API introuvable.')
 })
