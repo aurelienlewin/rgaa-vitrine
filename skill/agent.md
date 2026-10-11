@@ -103,3 +103,12 @@ Use this list as a rapid regression filter before running a full RGAA review.
 - Replace readonly `textarea` code snippets with wrapping `pre/code` blocks for criterion `10.12`, so text-spacing overrides do not clip content.
 - Replace URL-only visible strings on declaration pages with descriptive link labels to address criterion `13.5` without removing useful external references.
 - Keep `shared/accessibilityStatement.js` and static metadata (`rgaa:compliance-score`) aligned with the latest completed audit baseline before shipping accessibility updates.
+
+## Operational lessons learned (2026-10-11 WCAG 2.2 sweep)
+
+- `2.5.8`: native checkboxes/radios render at `13×13px`; give them `h-6 w-6` even when the wrapping label is large. Inline links inside sentences are exempt, list/CTA links are not.
+- `3.3.8`: never set `autocomplete="off"` on secret fields; use `current-password` plus a `username` field so password managers can fill them, and never block paste.
+- Show/hide toggles: keep a stable name and expose the state with `aria-pressed`; do not combine `aria-pressed` with a label that flips.
+- `13.2`: every `target="_blank"` link states `(nouvel onglet)` visibly; when an `aria-label` exists, append the same suffix so the visible label stays in the accessible name (`2.5.3`).
+- `2.4.11`: measure skip-link trays with reduced motion emulated; their slide-in transition otherwise reads as off-screen focus.
+- Run `e2e/wcag22-regressions.spec.ts` before shipping UI changes on public or moderation routes.

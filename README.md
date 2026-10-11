@@ -122,9 +122,21 @@ Implemented principles:
 - global asynchronous announcers stay in persistent visually hidden live regions to avoid layout shifts while keeping French status/error messages available to assistive technologies
 - focus continuity after action outcomes and section jumps
 - moderation unlock places focus on the `Soumissions en attente` section before row-level actions
-- minimum `44px`-class interaction targets on primary controls
+- minimum `44px`-class interaction targets on primary controls, and at least `24×24px` for every non-inline target including native checkboxes and radios (WCAG 2.2 `2.5.8`)
+- links opening a new tab state `(nouvel onglet)` in their visible text and accessible name (RGAA `13.2`)
+- the moderation token form accepts paste and password managers (`autocomplete="username"`/`current-password`), and the token visibility toggle exposes its state with `aria-pressed` (WCAG 2.2 `3.3.8`)
+- the shared footer exposes `Aide accessibilité` in the same place on every route (WCAG 2.2 `3.2.6`)
+- submission error panels expose an incident reference linked to the alert through `aria-describedby`
 - consistent fragment-focus behavior across `/`, `/plan-du-site`, `/accessibilite`, `/site/{slug}`, `/domaine/{groupSlug}`, and `/moderation`
 - profile pages expose a text-styled backlink preview while still offering copy-ready badge-image and text-only embed snippets
+
+Automated WCAG 2.2 regression filters (`e2e/wcag22-regressions.spec.ts`), run on `/`, `/plan-du-site`, `/accessibilite`, and `/moderation` at `1280px` and `320px`:
+
+- `2.5.8` target size (minimum): every non-inline interactive target measures at least `24×24px`
+- `2.4.11` focus not obscured (minimum): the first 40 tab stops are never off-screen or fully covered
+- `1.4.10` reflow: no horizontal scrolling at `320px`
+- `3.3.8` accessible authentication: password-manager-compatible token form
+- RGAA `13.2`: every `target="_blank"` link announces `nouvel onglet`
 
 Accessibility-specific public assets:
 

@@ -2704,10 +2704,10 @@ function App() {
                                 target="_blank"
                                 rel="noopener external"
                                 referrerPolicy="strict-origin-when-cross-origin"
-                                aria-label={`Visiter le site ${entry.siteTitle}`}
+                                aria-label={`Visiter le site ${entry.siteTitle} (nouvel onglet)`}
                                 className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
                               >
-                                Visiter le site
+                                Visiter le site (nouvel onglet)
                               </a>
                               {entry.accessibilityPageUrl ? (
                                 <a
@@ -2715,10 +2715,10 @@ function App() {
                                   target="_blank"
                                   rel="noopener external"
                                   referrerPolicy="strict-origin-when-cross-origin"
-                                  aria-label={`Ouvrir la déclaration d’accessibilité de ${entry.siteTitle}`}
+                                  aria-label={`Ouvrir la déclaration d’accessibilité de ${entry.siteTitle} (nouvel onglet)`}
                                   className={`@sm:col-span-2 inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaEmeraldClass} ${focusRingClass}`}
                                 >
-                                  Déclaration d’accessibilité
+                                  Déclaration d’accessibilité (nouvel onglet)
                                 </a>
                               ) : (
                                 <span className="@sm:col-span-2 inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-600 dark:border-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -2861,7 +2861,7 @@ function App() {
                   rel="noreferrer noopener"
                   className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 font-semibold ${ctaSkyClass} ${focusRingClass}`}
                 >
-                  {resource.label}
+                  {resource.label} (nouvel onglet)
                 </a>
               ))}
             </div>
@@ -3303,7 +3303,7 @@ function App() {
                   rel="noreferrer noopener"
                   className={`font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
                 >
-                  Lire l’article "L’arrivée de RGAA 5 est annoncée"
+                  Lire l’article "L’arrivée de RGAA 5 est annoncée" (nouvel onglet)
                 </a>
               </p>
             </aside>
@@ -3316,7 +3316,7 @@ function App() {
                     rel="noreferrer noopener"
                     className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
                   >
-                    {resource.label}
+                    {resource.label} (nouvel onglet)
                   </a>
                 </li>
               ))}

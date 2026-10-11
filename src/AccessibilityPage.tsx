@@ -370,7 +370,7 @@ function AccessibilityPage() {
                   rel="noreferrer noopener"
                   className={`mt-1 inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 wrap-anywhere font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
                 >
-                  Profil GitHub d’Aurélien Lewin
+                  Profil GitHub d’Aurélien Lewin (nouvel onglet)
                 </a>
               </li>
             </ul>
@@ -399,7 +399,7 @@ function AccessibilityPage() {
                   rel="noreferrer noopener"
                   className={`wrap-anywhere underline decoration-2 underline-offset-2 ${focusRingClass}`}
                 >
-                  Formulaire du Défenseur des droits
+                  Formulaire du Défenseur des droits (nouvel onglet)
                 </a>
               </li>
               <li>Courrier: Défenseur des droits, Libre réponse 71120, 75342 Paris CEDEX 07.</li>

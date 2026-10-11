@@ -7,6 +7,13 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+### Accessibility
+- WCAG 2.2 `2.5.8` (Target Size, Minimum): moderation checkboxes and radios (session memory, archive import mode, rollback authorization) grow from the native `13×13px` to `24×24px`.
+- WCAG 2.2 `3.3.8` (Accessible Authentication, Minimum): the moderation token field switches from `autocomplete="off"` to `current-password` with a fixed `username` companion field so password managers can store and fill the token; help text states that paste and password managers are accepted.
+- The token visibility toggle has a stable, explicit name (`Afficher le jeton`) and exposes its state through `aria-pressed` + `aria-controls` instead of the ambiguous `Afficher`/`Masquer` text swap.
+- RGAA `13.2` / WCAG technique G201: the 13 remaining `target="_blank"` links (homepage cards and resources, footer, accessibility statement, moderation cards) state `(nouvel onglet)` in their visible text, and matching `aria-label` values keep the visible label in the accessible name (WCAG `2.5.3`). The Ko-fi link drops its divergent `aria-label` and shows `M’offrir un café via Ko-fi (nouvel onglet)`.
+- Added `e2e/wcag22-regressions.spec.ts`, an automated WCAG 2.2 filter over the four main routes at `1280px` and `320px` (target size `2.5.8`, focus not obscured `2.4.11`, reflow `1.4.10`, accessible authentication `3.3.8`, new-tab disclosure). Audit evidence: no obscured focus, no horizontal overflow, and consistent help (`3.2.6`) already satisfied by the shared footer.
+
 ### Added
 - Added GitHub submission-failure alerts (`[ÉCHEC SOUMISSION] host - cause`, labels `submission-failure`/`bug`) raised whenever a user cannot submit a site for an identified reason, with incident reference, stage, cause code, HTTP status, displayed message and submitted URL; alerts are deduplicated per host and cause for 6 hours and skipped for input mistakes, forbidden hosts and moderation-blocked sites.
 - Added `POST /api/site-insight/failure-report`, a rate-limited browser relay so failures the API cannot report itself (platform `FUNCTION_INVOCATION_TIMEOUT`, non-JSON gateway pages, network loss) still raise an alert; the relayed URL is recorded, never fetched.

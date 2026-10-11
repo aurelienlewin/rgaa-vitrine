@@ -1910,6 +1910,15 @@ function ModerationPage() {
             <section className={`rounded-2xl p-6 ${moderationSurfaceClass}`}>
             <h2 className="text-lg font-semibold">Authentification modérateur</h2>
             <form className="mt-4 grid gap-3 md:grid-cols-[2fr_auto_auto]" onSubmit={handleTokenSubmit}>
+              {/* WCAG 3.3.8: a fixed username lets password managers store and fill the token. */}
+              <input
+                type="text"
+                name="username"
+                value="moderation"
+                autoComplete="username"
+                readOnly
+                hidden
+              />
               <div>
                 <label htmlFor="token-moderation" className="block text-sm font-medium">
                   Jeton de modération
@@ -1932,8 +1941,9 @@ function ModerationPage() {
                       }
                     }
                   }}
+                  name="password"
                   aria-describedby="token-session-help"
-                  autoComplete="off"
+                  autoComplete="current-password"
                   required
                   spellCheck={false}
                   className={`mt-1 ${moderationFieldClass}`}
@@ -1941,21 +1951,24 @@ function ModerationPage() {
                 <label className={`mt-3 inline-flex min-h-11 items-center gap-2 text-sm ${focusRingClass}`}>
                   <input
                     type="checkbox"
+                    className="h-6 w-6 shrink-0 accent-sky-800 dark:accent-sky-300"
                     checked={rememberModerationSession}
                     onChange={(event) => setRememberModerationSession(event.target.checked)}
                   />
                   Mémoriser sur cet appareil pendant 12 heures
                 </label>
                 <p id="token-session-help" className={`mt-1 text-sm ${moderationTextMutedClass}`}>
-                  La session est conservée dans cet onglet. Avec l’option “Mémoriser sur cet appareil”, elle est aussi conservée pendant 12 heures.
+                  Le collage et les gestionnaires de mots de passe sont acceptés. La session est conservée dans cet onglet. Avec l’option “Mémoriser sur cet appareil”, elle est aussi conservée pendant 12 heures.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowToken((current) => !current)}
+                aria-pressed={showToken}
+                aria-controls="token-moderation"
                 className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaNeutralClass} ${focusRingClass} md:self-end`}
               >
-                {showToken ? 'Masquer' : 'Afficher'}
+                Afficher le jeton
               </button>
               <button
                 type="submit"
@@ -2126,7 +2139,7 @@ function ModerationPage() {
                                       rel="noreferrer noopener"
                                       className={`inline-flex min-h-11 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${moderationCtaPrimaryClass} ${focusRingClass}`}
                                     >
-                                      Ouvrir le site
+                                      Ouvrir le site (nouvel onglet)
                                     </a>
                                     {entry.domainContext?.groupPath ? (
                                       <a
@@ -2147,7 +2160,7 @@ function ModerationPage() {
                                         rel="noreferrer noopener"
                                         className={`sm:col-span-2 inline-flex min-h-11 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${moderationCtaSuccessClass} ${focusRingClass}`}
                                       >
-                                        Ouvrir la déclaration d’accessibilité
+                                        Ouvrir la déclaration d’accessibilité (nouvel onglet)
                                       </a>
                                     ) : (
                                       <span className="sm:col-span-2 inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 dark:border-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200">
@@ -2381,7 +2394,7 @@ function ModerationPage() {
                               rel="noreferrer noopener"
                               className={`inline-flex min-h-11 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${moderationCtaPrimaryClass} ${focusRingClass}`}
                             >
-                              Ouvrir le site
+                              Ouvrir le site (nouvel onglet)
                             </a>
                             {entry.domainContext?.groupPath ? (
                               <a
@@ -2402,7 +2415,7 @@ function ModerationPage() {
                                 rel="noreferrer noopener"
                                 className={`sm:col-span-2 inline-flex min-h-11 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${moderationCtaSuccessClass} ${focusRingClass}`}
                               >
-                                Ouvrir la déclaration d’accessibilité
+                                Ouvrir la déclaration d’accessibilité (nouvel onglet)
                               </a>
                             ) : (
                               <span className="sm:col-span-2 inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 dark:border-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200">
@@ -3004,6 +3017,7 @@ function ModerationPage() {
                         <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm ${moderationCtaNeutralClass} ${focusRingClass}`}>
                           <input
                             type="radio"
+                            className="h-6 w-6 shrink-0 accent-sky-800 dark:accent-sky-300"
                             name="archive-import-mode"
                             value="merge"
                             checked={archiveImportMode === 'merge'}
@@ -3017,6 +3031,7 @@ function ModerationPage() {
                         <label className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm ${moderationCtaNeutralClass} ${focusRingClass}`}>
                           <input
                             type="radio"
+                            className="h-6 w-6 shrink-0 accent-sky-800 dark:accent-sky-300"
                             name="archive-import-mode"
                             value="replace"
                             checked={archiveImportMode === 'replace'}
@@ -3030,6 +3045,7 @@ function ModerationPage() {
                         <label className={`mt-3 inline-flex min-h-11 items-start gap-2 rounded-xl px-3 py-2 text-sm ${moderationWarningPanelClass} ${focusRingClass}`}>
                           <input
                             type="checkbox"
+                            className="h-6 w-6 shrink-0 accent-sky-800 dark:accent-sky-300"
                             checked={allowArchiveRollbackImport}
                             onChange={(event) => setAllowArchiveRollbackImport(event.target.checked)}
                           />
