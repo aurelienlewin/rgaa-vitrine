@@ -8,6 +8,24 @@ Changelog entries are written in English; referenced UI labels remain in French 
 ## [Unreleased]
 
 ### Added
+- Added GitHub submission-failure alerts (`[ÉCHEC SOUMISSION] host - cause`, labels `submission-failure`/`bug`) raised whenever a user cannot submit a site for an identified reason, with incident reference, stage, cause code, HTTP status, displayed message and submitted URL; alerts are deduplicated per host and cause for 6 hours and skipped for input mistakes, forbidden hosts and moderation-blocked sites.
+- Added `POST /api/site-insight/failure-report`, a rate-limited browser relay so failures the API cannot report itself (platform `FUNCTION_INVOCATION_TIMEOUT`, non-JSON gateway pages, network loss) still raise an alert; the relayed URL is recorded, never fetched.
+- Submission error responses carry a stable `errorCode` and a `SUB-…` incident `reference`, displayed in the homepage error panel (linked through `aria-describedby`) so users can quote it to the moderation team.
+- Sites that refuse or delay automated analysis (WAF/bot protection `401`/`403`/`406`/`429`/`503`, timeouts, connection resets, TLS chain errors) are routed to manual moderation with an `Analyse automatique impossible` reason and the `analysis-fallback` issue label instead of being rejected.
+- Added Playwright coverage for the incident reference display and the browser failure relay.
+
+### Changed
+- Site analysis runs within a 14 s global budget (fetch timeouts clamped to the remaining budget, optional probes skipped when it runs low) and the Vercel function `maxDuration` is raised from 10 s to 30 s; the previous sequential chain could exceed 30 s and was killed by the platform, which surfaced to users as an unexplained failure.
+- Accessibility-statement path probes, AI-context lookup, compliance extraction, sensitive-category checks and thumbnail validation run concurrently.
+- Remote fetches retry once with a browser-compatible (still identifiable) user agent on `401`/`403`/`406`/`429`/`503`, send `Accept-Language: fr-FR`, truncate oversized homepages to 1 MB instead of failing, accept HTML served without `Content-Type`, and classify network failures (TLS, refused, reset, timeout, DNS) into explicit French messages.
+- Preview results are persisted in Redis (10 min TTL) in addition to memory, so the confirmation step reuses the pre-analysis on another serverless instance instead of re-fetching the site.
+- Submission rate limiting is split: 20 previews and 10 confirmations per hour per IP (previously 8 combined requests, i.e. as few as 4 complete submissions).
+- Client-side submission requests abort after 35 s with an explicit timeout message.
+
+### Dependencies
+- Upgraded in-range releases: `express` 5.3.0, `express-rate-limit` 8.7.1, `tldts` 7.4.18, `vite` 8.3.4, `@vitejs/plugin-react` 6.1.2, `@playwright/test` 1.64.0, `@types/node` 26.6.5, `concurrently` 10.0.6, `globals` 17.13.0, `typescript-eslint` 8.71.1; `npm audit fix` resolved the 7 reported advisories (`proxy-addr`, `shell-quote`, `undici`, `brace-expansion`, `source-map-js`, `ip-address`), leaving 0 vulnerabilities.
+- `eslint-plugin-react-hooks` is pinned to `~7.0.1`: 7.1 enables React Compiler rules (`refs during render`, `setState in effect`) that flag 18 existing patterns and require a dedicated refactor. Major upgrades `eslint`/`@eslint/js` 10 and `typescript` 7 are deferred. `depcheck` reports only CSS-imported packages (`@fontsource/*`, `tailwindcss`) as false positives.
+
 - Added a one-click "Supprimer le domaine et ses sous-sites" moderation CTA on published entries that belong to a multi-site domain group, backed by a new `POST /api/moderation/showcase/delete-domain` endpoint that removes every showcase entry sharing the same registrable domain in a single confirmed action.
 - The project footer's GitHub avatar is now served from a locally stored image (`public/avatar-aurelien-lewin.png`) instead of being hotlinked from `avatars.githubusercontent.com`.
 - Added a Playwright end-to-end regression suite (`e2e/homepage-and-moderation-regressions.spec.ts`) covering URL-backed homepage filters, pagination reset behavior, submission feedback focus management, and moderation session restoration.
@@ -24,6 +42,7 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Site-insight logo detection (`findStructuredDataLogoUrl`, `findHtmlLogoUrl`) now stops scanning further JSON-LD blocks or DOM elements as soon as a matching logo is found, instead of continuing to parse/inspect every remaining match; both helpers already only kept the first match, so the result is unchanged.
 
 ### Fixed
+- Blocklist Project feeds were unreachable (`HTTP 404` after the upstream move from `master` to `main`) and the adult/gambling lists also exceeded the 2.5 MB cap, so external sensitive categorization was silently inactive; defaults now use the `main` branch domain-only (`-nl`) lists with a 24 MB cap, an 8 s timeout, and warm-up in parallel with the site analysis.
 - Homepage KPI cards now display a loading dash with a screen-reader-only `Chargement en cours` label instead of temporary zero values while directory cards load; the results summary also stays in an explicit loading state until data is available.
 - Refreshed compatible transitive dependencies through `npm audit fix`, resolving the remaining production audit findings including `vite`, `undici`, `body-parser`, `path-to-regexp`, `postcss`, `nanoid`, `qs`, and `esbuild`.
 - Upgraded server-facing runtime dependencies (`@upstash/redis`, `express-rate-limit`, `helmet`, and `tldts`), reducing the npm audit finding count while preserving the existing URL-validation and remote-fetch guardrails.

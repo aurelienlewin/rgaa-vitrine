@@ -152,6 +152,9 @@ test('réinitialise la pagination par page après changement de filtre', async (
 
 test('affiche une erreur de pré-analyse et déplace le focus sur le panneau', async ({ page }) => {
   await mockShowcaseApis(page, [createShowcaseEntry(1)])
+  await page.route(/\/api\/site-insight\/failure-report$/, async (route) => {
+    await route.fulfill({ status: 202, contentType: 'application/json', body: '{"reference":"SUB-TEST"}' })
+  })
   await page.route(/\/api\/site-insight\?preview=1$/, async (route) => {
     await route.fulfill({
       status: 500,
@@ -168,6 +171,65 @@ test('affiche une erreur de pré-analyse et déplace le focus sur le panneau', a
   await expect(errorPanel).toBeVisible()
   await expect(errorPanel).toBeFocused()
   await expect(page.locator('#url-error-title')).toContainText('Analyse interrompue')
+})
+
+test('affiche la référence serveur d’un échec identifié sans relais navigateur', async ({ page }) => {
+  await mockShowcaseApis(page, [createShowcaseEntry(1)])
+  let relayCalls = 0
+  await page.route(/\/api\/site-insight\/failure-report$/, async (route) => {
+    relayCalls += 1
+    await route.fulfill({ status: 202, contentType: 'application/json', body: '{"reference":"SUB-RELAY"}' })
+  })
+  await page.route(/\/api\/site-insight\?preview=1$/, async (route) => {
+    await route.fulfill({
+      status: 502,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        error: 'Le certificat HTTPS du site est invalide ou incomplet (chaîne de certificats non vérifiable).',
+        errorCode: 'tls-error',
+        reference: 'SUB-SERVEUR01',
+      }),
+    })
+  })
+
+  await page.goto('/')
+  await page.fill('#url', 'https://certificat-casse.fr/')
+  await page.getByRole('button', { name: 'Lancer la pré-analyse' }).click()
+
+  const errorPanel = page.locator('section[aria-labelledby="url-error-title"]')
+  await expect(errorPanel).toBeFocused()
+  await expect(page.locator('#url-error-reference')).toContainText('SUB-SERVEUR01')
+  await expect(errorPanel).toHaveAttribute('aria-describedby', /url-error-reference/)
+  expect(relayCalls).toBe(0)
+})
+
+test('relaie un timeout plateforme non JSON et affiche la référence du relais', async ({ page }) => {
+  await mockShowcaseApis(page, [createShowcaseEntry(1)])
+  let relayedPayload: Record<string, unknown> | null = null
+  await page.route(/\/api\/site-insight\/failure-report$/, async (route) => {
+    relayedPayload = route.request().postDataJSON() as Record<string, unknown>
+    await route.fulfill({ status: 202, contentType: 'application/json', body: '{"reference":"SUB-RELAIS01"}' })
+  })
+  await page.route(/\/api\/site-insight\?preview=1$/, async (route) => {
+    await route.fulfill({
+      status: 504,
+      contentType: 'text/plain',
+      body: 'An error occurred with your deployment FUNCTION_INVOCATION_TIMEOUT',
+    })
+  })
+
+  await page.goto('/')
+  await page.fill('#url', 'https://site-lent.fr/')
+  await page.getByRole('button', { name: 'Lancer la pré-analyse' }).click()
+
+  await expect(page.locator('#url-error-message')).toContainText('prend plus de temps que prévu')
+  await expect(page.locator('#url-error-reference')).toContainText('SUB-RELAIS01')
+  expect(relayedPayload).toMatchObject({
+    url: 'https://site-lent.fr/',
+    stage: 'preview',
+    kind: 'timeout',
+    statusCode: 504,
+  })
 })
 
 test('affiche un retour duplicate et place le focus sur le panneau contextuel', async ({ page }) => {

@@ -9,6 +9,17 @@ const DEFAULT_GITHUB_API_BASE_URL = 'https://api.github.com'
 const GITHUB_NOTIFY_TIMEOUT_MS = 8_000
 const PENDING_MODERATION_LABELS = ['moderation-required', 'review-needed']
 const APPROVED_PUBLICATION_LABELS = ['auto-publication', 'info-only']
+const SUBMISSION_FAILURE_LABELS = ['submission-failure', 'bug']
+const ANALYSIS_FALLBACK_LABEL = 'analysis-fallback'
+const ANALYSIS_FALLBACK_REASON_MARKER = 'analyse automatique impossible'
+const SUBMISSION_FAILURE_STAGE_LABELS = {
+  preview: 'Pré-analyse',
+  confirmation: 'Confirmation de l’envoi',
+}
+const SUBMISSION_FAILURE_SOURCE_LABELS = {
+  server: 'Serveur (erreur identifiée par l’API)',
+  client: 'Navigateur (réponse API absente ou inexploitable)',
+}
 
 function isPrivateIpLiteral(host) {
   const version = isIP(host)
@@ -282,6 +293,9 @@ function readCategorizationInsights(reviewReason) {
   const hasBlocklistProjectSource = normalizedReason.includes('source blocklist project')
 
   const labels = []
+  if (normalizedReason.includes(ANALYSIS_FALLBACK_REASON_MARKER)) {
+    labels.push(ANALYSIS_FALLBACK_LABEL)
+  }
   if (hasExternalSensitiveSignal) {
     labels.push('sensitive-category')
   }
@@ -441,6 +455,64 @@ function buildApprovedPublicationIssuePayload(entry) {
   }
 }
 
+function buildSubmissionFailureIssuePayload(failure) {
+  const stripBackticks = (value) => value.replace(/`/g, "'")
+  const safeReference = stripBackticks(sanitizeIssueText(failure.reference, 40))
+  const safeHost = sanitizeIssueText(failure.host, 120, 'Hôte inconnu')
+  const safeInputUrl = stripBackticks(sanitizeIssueText(failure.inputUrl, 300, 'Non transmise'))
+  const safeCode = stripBackticks(sanitizeIssueText(failure.errorCode, 60, 'unknown'))
+  const safeMessage = sanitizeIssueText(failure.message, 400, 'Non précisé')
+  const safeStage = SUBMISSION_FAILURE_STAGE_LABELS[failure.stage] ?? 'Inconnue'
+  const safeSource = SUBMISSION_FAILURE_SOURCE_LABELS[failure.source] ?? 'Inconnue'
+  const safeStatus =
+    typeof failure.statusCode === 'number' && Number.isFinite(failure.statusCode) ? `${failure.statusCode}` : 'N/A'
+  const safeUserAgent = sanitizeIssueText(failure.userAgent, 200, 'Non transmis')
+  const occurredAt = formatIssueDate(failure.occurredAt)
+  const siteUrl = sanitizeIssueUrl(failure.siteUrl)
+  const moderationUrl = resolveAppUrl('/moderation')
+
+  const title = `[ÉCHEC SOUMISSION] ${safeHost} - ${safeCode}`
+  const body = [
+    '<!-- annuaire-rgaa:submission-failure -->',
+    '## Soumission de site non aboutie',
+    '',
+    '> Statut: À ANALYSER',
+    '>',
+    '> Un utilisateur n’a pas pu soumettre ce site. Les alertes identiques (même hôte et même cause) sont regroupées pendant une fenêtre de déduplication.',
+    '',
+    '### Horodatage',
+    `- **Survenue (Europe/Paris)**: ${occurredAt.parisDate}`,
+    `- **Survenue (UTC)**: ${occurredAt.utcDate}`,
+    `- **ISO 8601**: \`${occurredAt.iso}\``,
+    '',
+    '### Diagnostic',
+    `- **Référence affichée à l’utilisateur**: \`${safeReference}\``,
+    `- **Étape**: ${safeStage}`,
+    `- **Origine du signalement**: ${safeSource}`,
+    `- **Code de cause**: \`${safeCode}\``,
+    `- **Statut HTTP renvoyé**: ${safeStatus}`,
+    `- **Message affiché**: ${safeMessage}`,
+    `- **URL saisie**: \`${safeInputUrl}\``,
+    `- **Navigateur**: ${safeUserAgent}`,
+    '',
+    '### Liens utiles',
+    toIssueLinkLine('Site concerné', siteUrl, 'URL invalide ou indisponible'),
+    toIssueLinkLine('Console de modération', moderationUrl, 'PUBLIC_APP_URL non configurée'),
+    '',
+    '### Pistes de résolution',
+    '- Vérifier que le site répond publiquement (statut HTTP, certificat, pare-feu applicatif).',
+    '- Si le site bloque les robots, l’ajouter manuellement depuis la console de modération.',
+    '- Si la cause est interne (`internal-error`, `storage-unavailable`), consulter les journaux serveur à l’horodatage indiqué.',
+    '',
+  ].join('\n')
+
+  return {
+    title,
+    body,
+    labels: mergeIssueLabels(githubNotifierConfig?.labels ?? [], SUBMISSION_FAILURE_LABELS),
+  }
+}
+
 export function isGithubNotifierEnabled() {
   return Boolean(githubNotifierConfig)
 }
@@ -501,4 +573,8 @@ export async function notifyPendingModerationOnGithub(entry) {
 
 export async function notifyApprovedPublicationOnGithub(entry) {
   return createGithubIssue(buildApprovedPublicationIssuePayload(entry))
+}
+
+export async function notifySubmissionFailureOnGithub(failure) {
+  return createGithubIssue(buildSubmissionFailureIssuePayload(failure))
 }

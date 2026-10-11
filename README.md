@@ -261,13 +261,17 @@ Optional free URL categorization feeds (enabled by default):
 BLOCKLIST_PROJECT_ENABLED=true
 BLOCKLIST_PROJECT_REFRESH_MINUTES=180
 # Optional overrides:
-# BLOCKLIST_PROJECT_PORN_URL=https://raw.githubusercontent.com/blocklistproject/Lists/refs/heads/master/porn.txt
-# BLOCKLIST_PROJECT_GAMBLING_URL=https://raw.githubusercontent.com/blocklistproject/Lists/refs/heads/master/gambling.txt
-# BLOCKLIST_PROJECT_DRUGS_URL=https://raw.githubusercontent.com/blocklistproject/Lists/refs/heads/master/drugs.txt
+# BLOCKLIST_PROJECT_PORN_URL=https://raw.githubusercontent.com/blocklistproject/Lists/main/alt-version/porn-nl.txt
+# BLOCKLIST_PROJECT_GAMBLING_URL=https://raw.githubusercontent.com/blocklistproject/Lists/main/alt-version/gambling-nl.txt
+# BLOCKLIST_PROJECT_DRUGS_URL=https://raw.githubusercontent.com/blocklistproject/Lists/main/alt-version/drugs-nl.txt
 ```
 
 The moderation pipeline combines local dictionaries with free blocklist
-feeds before deciding auto-publication versus manual review.
+feeds before deciding auto-publication versus manual review. Feeds use the
+domain-only (`-nl`) format, are capped at 24 MB each with an 8 s download
+timeout, are cached in memory for the refresh window, and start loading in
+parallel with the remote site analysis. An unavailable feed never blocks a
+submission.
 
 ### GitHub Notifications
 
@@ -297,6 +301,7 @@ When enabled, the notifier can create:
 
 - moderation issues for submissions that require manual review
 - informational publication issues for sites that are auto-approved and published immediately
+- submission-failure alerts (`submission-failure`, `bug` labels) when a user could not submit a site for an identified reason
 
 Issue bodies are rendered in rich Markdown with:
 
@@ -308,12 +313,23 @@ Issue bodies are rendered in rich Markdown with:
 
 Publication issues are intentionally informational and do not imply operator action is required.
 
+Submission-failure alerts:
+
+- cover API-identified causes (DNS, TLS, HTTP status, invalid content, rate limit, storage or internal errors) and browser-relayed causes (platform timeout, non-JSON gateway response, network loss)
+- carry the incident reference shown to the user (`SUB-…`), the stage (pre-analysis or confirmation), the cause code, the HTTP status, the displayed message, and the submitted URL
+- are deduplicated per host and cause for 6 hours (Redis `SET NX` when Redis is configured)
+- are not raised for input mistakes (`invalid-input`), forbidden private/local hosts (`forbidden-host`), or moderation-blocked sites (`site-blocked`)
+- share the global notification quota (`GITHUB_NOTIFY_MAX_PER_WINDOW`)
+
+Every submission failure is also logged as a structured `submission-failure` JSON line.
+
 ## API Surface
 
 ### Public APIs
 
 - `POST /api/site-insight`: submit and enrich one site
 - `POST /api/site-insight?preview=1`: preview-only pre-analysis without persistence
+- `POST /api/site-insight/failure-report`: browser relay for submission failures the API could not report itself (`url`, `stage`, `kind` in `network`/`timeout`/`invalid-response`, optional `statusCode` and `message`); the URL is recorded, never fetched; returns `{ reference }`
 - `GET /api/showcase`: list public entries
 - `GET /api/showcase?slug={slug}`: retrieve one public profile payload
 - `GET /api/showcase/vote-state?clientVoterId={id}`: list vote ownership for a browser identity plus targeted vote counters for the same voted URLs; responses are served as private non-cacheable payloads
@@ -356,11 +372,35 @@ x-moderation-token: <MODERATION_API_TOKEN>
 - `duplicate`: already listed
 - `pending`: stored for moderation when key integrity checks fail (for example missing accessibility statement, mismatch between statement domain and submitted site domain, invalid/inaccessible detected thumbnail, or sensitive dictionary matches on submitted metadata)
 
+Analysis fallback to manual moderation:
+
+- when the site exists but refuses or delays automated analysis (HTTP `401`/`403`/`406`/`429`/`503`, fetch timeout, analysis budget exceeded, connection reset, TLS chain error), the submission is not rejected: it becomes `pending` with the reason `Analyse automatique impossible: …`, the response carries `analysisFallback: true`, and the moderation issue gets the `analysis-fallback` label
+- unresolvable domains, `404`-style statuses, and non-HTML content remain refused with an explicit error
+
+Error responses:
+
+- carry `error` (French message), `errorCode` (stable cause code such as `dns-unresolved`, `tls-error`, `http-404`, `invalid-content-type`, `rate-limited`, `storage-unavailable`, `internal-error`), and `reference` (`SUB-…` incident reference displayed to the user)
+
+Analysis pipeline:
+
+- the whole remote analysis runs within a 14 s budget; each fetch timeout is clamped to the remaining budget and optional probes are skipped when the budget runs low
+- conventional accessibility-statement paths, the AI context document, and the compliance extraction run concurrently; sensitive-category and thumbnail checks run concurrently
+- a request rejected with `401`/`403`/`406`/`429`/`503` is retried once with a browser-compatible, still identifiable user agent
+- oversized homepages are truncated to their first 1 MB instead of failing; documents served without `Content-Type` are accepted when the payload is HTML
+- network failures are classified (TLS, refused, reset, timeout, DNS) into explicit messages
+
 Preview mode:
 
-- never persists data
+- never persists showcase or moderation data
 - returns extracted metadata and projected submission status
-- may return a short-lived `previewToken` reused by the confirmation step
+- returns a short-lived `previewToken` (10 minutes) reused by the confirmation step; the preview is kept in memory and in Redis so the confirmation step can reuse it on another serverless instance
+
+Rate limits (per client IP, per hour): 20 previews, 10 confirmations, 10 failure reports.
+
+Browser behavior:
+
+- submission requests abort after 35 s on the client side
+- error panels display the incident reference when one is available
 
 ## Security Posture
 
@@ -394,6 +434,7 @@ Important deployment characteristics:
 - `api/index.js` and `api/[...slug].js` funnel requests into the Express app
 - rewrites keep `/api/*`, `/sitemap.xml`, and `/ai-context.json` on the server path
 - SPA routes resolve to `index.html` on refresh/direct access
+- API functions run with `maxDuration: 30` seconds, above the 14 s analysis budget plus moderation checks and notifications
 - host-level redirects should avoid cyclic apex/`www` rules
 
 Recommended production environment variables:

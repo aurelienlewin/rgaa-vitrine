@@ -8,6 +8,14 @@ const MAX_JSON_BYTES = 400_000
 const REQUIRED_FETCH_TIMEOUT_MS = 7000
 const OPTIONAL_FETCH_TIMEOUT_MS = 1800
 const MAX_REDIRECTS = 5
+export const DEFAULT_SITE_INSIGHT_BUDGET_MS = 14_000
+const MIN_REQUIRED_FETCH_BUDGET_MS = 1200
+const MIN_OPTIONAL_FETCH_BUDGET_MS = 600
+const DEFAULT_USER_AGENT = 'Annuaire-RGAA/1.0 (+https://www.annuaire-rgaa.fr)'
+// Some WAF/CDN layers reject non-browser agents; the fallback stays identifiable.
+const BROWSER_COMPATIBLE_USER_AGENT =
+  'Mozilla/5.0 (compatible; Annuaire-RGAA/1.0; +https://www.annuaire-rgaa.fr) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36'
+const RETRYABLE_WITH_BROWSER_AGENT_STATUSES = new Set([401, 403, 406, 429, 503])
 
 const COMPLIANCE_LABELS = {
   full: 'Totalement conforme',
@@ -34,11 +42,100 @@ const commonAccessibilityPaths = [
   '/accessibilite-et-conformite',
 ]
 export class SiteInsightError extends Error {
-  constructor(message, statusCode = 400) {
+  constructor(message, statusCode = 400, code = null) {
     super(message)
     this.name = 'SiteInsightError'
     this.statusCode = statusCode
+    this.code = code ?? defaultSiteInsightErrorCode(statusCode)
   }
+}
+
+function defaultSiteInsightErrorCode(statusCode) {
+  if (statusCode === 504) {
+    return 'fetch-timeout'
+  }
+  if (statusCode === 413) {
+    return 'document-too-large'
+  }
+  if (statusCode === 422) {
+    return 'invalid-content'
+  }
+  if (statusCode >= 500) {
+    return 'fetch-failed'
+  }
+  return 'invalid-input'
+}
+
+function readNetworkErrorCode(error) {
+  const candidates = [error?.cause?.code, error?.code, error?.cause?.cause?.code]
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate) {
+      return candidate
+    }
+  }
+  return ''
+}
+
+function toNetworkSiteInsightError(error) {
+  const networkCode = readNetworkErrorCode(error)
+
+  if (/CERT|SSL|TLS|SELF_SIGNED|UNABLE_TO_VERIFY|ERR_TLS/i.test(networkCode)) {
+    return new SiteInsightError(
+      'Le certificat HTTPS du site est invalide ou incomplet (chaîne de certificats non vérifiable).',
+      502,
+      'tls-error',
+    )
+  }
+
+  if (networkCode === 'ECONNREFUSED') {
+    return new SiteInsightError('Le serveur du site a refusé la connexion.', 502, 'connection-refused')
+  }
+
+  if (networkCode === 'ECONNRESET' || networkCode === 'UND_ERR_SOCKET' || networkCode === 'EPIPE') {
+    return new SiteInsightError('La connexion avec le site a été interrompue.', 502, 'connection-reset')
+  }
+
+  if (networkCode === 'UND_ERR_CONNECT_TIMEOUT' || networkCode === 'ETIMEDOUT') {
+    return new SiteInsightError('La récupération du site a expiré.', 504, 'fetch-timeout')
+  }
+
+  if (networkCode === 'ENOTFOUND' || networkCode === 'EAI_AGAIN') {
+    return new SiteInsightError('Impossible de résoudre le nom de domaine.', 400, 'dns-unresolved')
+  }
+
+  return new SiteInsightError(
+    'Impossible de récupérer les métadonnées de ce site.',
+    502,
+    networkCode ? `fetch-failed:${networkCode.toLowerCase().slice(0, 40)}` : 'fetch-failed',
+  )
+}
+
+function readRemainingBudgetMs(context) {
+  if (!context || !Number.isFinite(context.deadline)) {
+    return Number.POSITIVE_INFINITY
+  }
+  return context.deadline - Date.now()
+}
+
+function resolveFetchTimeoutMs(timeoutMs, context, { required }) {
+  const remaining = readRemainingBudgetMs(context)
+  const minimum = required ? MIN_REQUIRED_FETCH_BUDGET_MS : MIN_OPTIONAL_FETCH_BUDGET_MS
+  if (remaining < minimum) {
+    throw new SiteInsightError(
+      'L’analyse du site a dépassé le temps maximal autorisé.',
+      504,
+      'analysis-budget-exceeded',
+    )
+  }
+  return Math.max(1, Math.min(timeoutMs, Math.floor(remaining)))
+}
+
+function hasOptionalBudget(context) {
+  return readRemainingBudgetMs(context) >= MIN_OPTIONAL_FETCH_BUDGET_MS
+}
+
+function looksLikeHtmlDocument(text) {
+  return /^\s*(?:<!--[\s\S]*?-->\s*)*(?:<!doctype html|<html[\s>]|<head[\s>])/i.test(text.slice(0, 4096))
 }
 
 function normalizeForMatch(value) {
@@ -107,9 +204,10 @@ export async function validatePublicHttpUrl(rawValue) {
   return parsed.toString()
 }
 
-function createSiteInsightContext() {
+function createSiteInsightContext(budgetMs) {
   return {
     validatedHosts: new Map(),
+    deadline: Number.isFinite(budgetMs) && budgetMs > 0 ? Date.now() + budgetMs : Number.POSITIVE_INFINITY,
   }
 }
 
@@ -188,11 +286,11 @@ async function validatePublicHost(hostname, context) {
   const normalizedHost = hostname.toLowerCase()
 
   if (normalizedHost.endsWith('.local') || normalizedHost.endsWith('.internal')) {
-    throw new SiteInsightError('Hôte non autorisé.', 400)
+    throw new SiteInsightError('Hôte non autorisé.', 400, 'forbidden-host')
   }
 
   if (isBlockedAddress(normalizedHost)) {
-    throw new SiteInsightError('Adresse locale ou privée non autorisée.', 400)
+    throw new SiteInsightError('Adresse locale ou privée non autorisée.', 400, 'forbidden-host')
   }
 
   if (isIP(normalizedHost) !== 0) {
@@ -210,16 +308,16 @@ async function validatePublicHost(hostname, context) {
     try {
       resolved = await lookup(normalizedHost, { all: true, verbatim: true })
     } catch {
-      throw new SiteInsightError('Impossible de résoudre le nom de domaine.', 400)
+      throw new SiteInsightError('Impossible de résoudre le nom de domaine.', 400, 'dns-unresolved')
     }
 
     if (!Array.isArray(resolved) || resolved.length === 0) {
-      throw new SiteInsightError('Nom de domaine introuvable.', 400)
+      throw new SiteInsightError('Nom de domaine introuvable.', 400, 'dns-unresolved')
     }
 
     for (const record of resolved) {
       if (isBlockedAddress(record.address)) {
-        throw new SiteInsightError('Domaine résolu vers une adresse non autorisée.', 400)
+        throw new SiteInsightError('Domaine résolu vers une adresse non autorisée.', 400, 'forbidden-host')
       }
     }
   })()
@@ -234,7 +332,7 @@ async function validatePublicHost(hostname, context) {
   }
 }
 
-async function readBodyWithLimit(response, maxBytes) {
+async function readBodyWithLimit(response, maxBytes, { truncateOnLimit = false } = {}) {
   const reader = response.body?.getReader()
   if (!reader) {
     return ''
@@ -249,11 +347,23 @@ async function readBodyWithLimit(response, maxBytes) {
       break
     }
 
-    byteLength += value.byteLength
-    if (byteLength > maxBytes) {
-      throw new SiteInsightError('Le document est trop volumineux pour être analysé.', 413)
+    if (byteLength + value.byteLength > maxBytes) {
+      if (!truncateOnLimit) {
+        await reader.cancel().catch(() => {})
+        throw new SiteInsightError('Le document est trop volumineux pour être analysé.', 413)
+      }
+
+      // Metadata lives in <head>: keep the leading bytes and stop downloading.
+      const remainingBytes = maxBytes - byteLength
+      if (remainingBytes > 0) {
+        chunks.push(value.subarray(0, remainingBytes))
+        byteLength += remainingBytes
+      }
+      await reader.cancel().catch(() => {})
+      break
     }
 
+    byteLength += value.byteLength
     chunks.push(value)
   }
 
@@ -277,14 +387,30 @@ async function fetchTextDocument(
     acceptHeader,
     invalidContentMessage,
     isExpectedContentType,
+    sniffContent = null,
     maxBytes,
+    truncateOnLimit = false,
     timeoutMs = REQUIRED_FETCH_TIMEOUT_MS,
+    required = true,
     context,
   },
   redirectCount = 0,
+  userAgent = DEFAULT_USER_AGENT,
 ) {
+  const effectiveTimeoutMs = resolveFetchTimeoutMs(timeoutMs, context, { required })
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  const timeout = setTimeout(() => controller.abort(), effectiveTimeoutMs)
+  const options = {
+    acceptHeader,
+    invalidContentMessage,
+    isExpectedContentType,
+    sniffContent,
+    maxBytes,
+    truncateOnLimit,
+    timeoutMs,
+    required,
+    context,
+  }
 
   try {
     const response = await fetch(url, {
@@ -292,48 +418,69 @@ async function fetchTextDocument(
       redirect: 'manual',
       signal: controller.signal,
       headers: {
-        'user-agent': 'Annuaire-RGAA/1.0 (+https://www.annuaire-rgaa.fr)',
+        'user-agent': userAgent,
         accept: acceptHeader,
+        'accept-language': 'fr-FR,fr;q=0.9,en;q=0.6',
       },
     })
 
     if (isRedirectStatus(response.status)) {
+      await response.body?.cancel().catch(() => {})
       if (redirectCount >= MAX_REDIRECTS) {
-        throw new SiteInsightError('Trop de redirections lors de la récupération du site.', 502)
+        throw new SiteInsightError('Trop de redirections lors de la récupération du site.', 502, 'too-many-redirects')
       }
 
       const locationHeader = response.headers.get('location')?.trim() ?? ''
       const nextUrl = toAbsoluteUrl(locationHeader, url)
       if (!nextUrl) {
-        throw new SiteInsightError('Redirection invalide vers une URL non prise en charge.', 502)
+        throw new SiteInsightError('Redirection invalide vers une URL non prise en charge.', 502, 'invalid-redirect')
       }
 
       const nextParsedUrl = new URL(nextUrl)
       await validatePublicHost(nextParsedUrl.hostname, context)
-      return fetchTextDocument(
-        nextUrl,
-        {
-          acceptHeader,
-          invalidContentMessage,
-          isExpectedContentType,
-          maxBytes,
-          timeoutMs,
-          context,
-        },
-        redirectCount + 1,
-      )
+      return fetchTextDocument(nextUrl, options, redirectCount + 1, userAgent)
     }
 
     if (!response.ok) {
-      throw new SiteInsightError(`Le site a répondu avec le statut ${response.status}.`, 502)
+      await response.body?.cancel().catch(() => {})
+      if (userAgent === DEFAULT_USER_AGENT && RETRYABLE_WITH_BROWSER_AGENT_STATUSES.has(response.status)) {
+        clearTimeout(timeout)
+        try {
+          return await fetchTextDocument(url, options, redirectCount, BROWSER_COMPATIBLE_USER_AGENT)
+        } catch (retryError) {
+          if (!(retryError instanceof SiteInsightError) || retryError.code === 'analysis-budget-exceeded') {
+            throw new SiteInsightError(
+              `Le site a répondu avec le statut ${response.status}.`,
+              502,
+              `http-${response.status}`,
+            )
+          }
+          throw retryError
+        }
+      }
+
+      throw new SiteInsightError(
+        response.status === 401 || response.status === 403 || response.status === 429
+          ? `Le site a répondu avec le statut ${response.status} (accès refusé à notre robot d’analyse, probablement par un pare-feu applicatif).`
+          : `Le site a répondu avec le statut ${response.status}.`,
+        502,
+        `http-${response.status}`,
+      )
     }
 
     const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
-    if (!isExpectedContentType(contentType)) {
-      throw new SiteInsightError(invalidContentMessage, 422)
+    const hasExpectedContentType = isExpectedContentType(contentType)
+    // Servers that omit Content-Type are accepted when the payload itself matches.
+    if (!hasExpectedContentType && (contentType.trim() || typeof sniffContent !== 'function')) {
+      await response.body?.cancel().catch(() => {})
+      throw new SiteInsightError(invalidContentMessage, 422, 'invalid-content-type')
     }
 
-    const text = await readBodyWithLimit(response, maxBytes)
+    const text = await readBodyWithLimit(response, maxBytes, { truncateOnLimit })
+    if (!hasExpectedContentType && !sniffContent(text)) {
+      throw new SiteInsightError(invalidContentMessage, 422, 'invalid-content-type')
+    }
+
     return { finalUrl: url, text }
   } catch (error) {
     if (error instanceof SiteInsightError) {
@@ -341,10 +488,10 @@ async function fetchTextDocument(
     }
 
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new SiteInsightError('La récupération du site a expiré.', 504)
+      throw new SiteInsightError('La récupération du site a expiré.', 504, 'fetch-timeout')
     }
 
-    throw new SiteInsightError('Impossible de récupérer les métadonnées de ce site.', 502)
+    throw toNetworkSiteInsightError(error)
   } finally {
     clearTimeout(timeout)
   }
@@ -356,16 +503,21 @@ async function fetchHtml(url, options = {}) {
     timeoutMs = REQUIRED_FETCH_TIMEOUT_MS,
     context,
     maxBytes = MAX_HTML_BYTES,
+    truncateOnLimit = false,
+    required = timeoutMs >= REQUIRED_FETCH_TIMEOUT_MS,
   } = options
   const { finalUrl, text } = await fetchTextDocument(
     url,
     {
-      acceptHeader: 'text/html,application/xhtml+xml',
+      acceptHeader: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
       invalidContentMessage: 'Le contenu cible n’est pas une page HTML.',
       isExpectedContentType: (contentType) =>
         contentType.includes('text/html') || contentType.includes('application/xhtml+xml'),
+      sniffContent: looksLikeHtmlDocument,
       maxBytes,
+      truncateOnLimit,
       timeoutMs,
+      required,
       context,
     },
     redirectCount,
@@ -388,6 +540,7 @@ async function fetchJson(url, options = {}) {
         contentType.includes('application/json') || contentType.includes('+json'),
       maxBytes: MAX_JSON_BYTES,
       timeoutMs,
+      required: false,
       context,
     },
     redirectCount,
@@ -868,29 +1021,32 @@ async function resolveAccessibilityPageUrl(baseUrl, detectedAccessibilityPageUrl
     return detectedAccessibilityPageUrl
   }
 
-  for (const path of commonAccessibilityPaths) {
-    const candidateUrl = toAbsoluteUrl(path, baseUrl)
-    if (!candidateUrl) {
-      continue
-    }
-
-    try {
-      const parsedCandidate = new URL(candidateUrl)
-      await validatePublicHost(parsedCandidate.hostname, context)
-      const { html } = await fetchHtml(candidateUrl, {
-        timeoutMs: OPTIONAL_FETCH_TIMEOUT_MS,
-        context,
-      })
-
-      if (looksLikeAccessibilityPage(html)) {
-        return candidateUrl
-      }
-    } catch {
-      // Tentative suivante.
-    }
+  if (!hasOptionalBudget(context)) {
+    return null
   }
 
-  return null
+  const candidateUrls = commonAccessibilityPaths
+    .map((path) => toAbsoluteUrl(path, baseUrl))
+    .filter(Boolean)
+
+  // Probe the conventional paths concurrently; keep the first one in declared order.
+  const probeResults = await Promise.all(
+    candidateUrls.map(async (candidateUrl) => {
+      try {
+        const parsedCandidate = new URL(candidateUrl)
+        await validatePublicHost(parsedCandidate.hostname, context)
+        const { html } = await fetchHtml(candidateUrl, {
+          timeoutMs: OPTIONAL_FETCH_TIMEOUT_MS,
+          context,
+        })
+        return looksLikeAccessibilityPage(html) ? candidateUrl : null
+      } catch {
+        return null
+      }
+    }),
+  )
+
+  return probeResults.find(Boolean) ?? null
 }
 
 function looksLikeAiContextPayload(payload) {
@@ -898,7 +1054,7 @@ function looksLikeAiContextPayload(payload) {
 }
 
 async function resolveAiContextUrl(_baseUrl, detectedAiContextUrl, context) {
-  if (!detectedAiContextUrl) {
+  if (!detectedAiContextUrl || !hasOptionalBudget(context)) {
     return null
   }
 
@@ -1127,23 +1283,23 @@ async function extractComplianceFromAiContext(aiContextUrl, context) {
   return extractComplianceFromAiContextPayload(json)
 }
 
-export async function buildSiteInsight(inputUrl) {
-  const context = createSiteInsightContext()
+export async function buildSiteInsight(inputUrl, { budgetMs = DEFAULT_SITE_INSIGHT_BUDGET_MS } = {}) {
+  const context = createSiteInsightContext(budgetMs)
   const parsed = normalizeSubmittedUrl(inputUrl)
   await validatePublicHost(parsed.hostname, context)
 
-  // Homepages often embed large inline CSS/JS while secondary documents stay smaller.
+  // Homepages often embed large inline CSS/JS while secondary documents stay smaller:
+  // oversized homepages are truncated since the metadata lives in the leading <head>.
   const homepage = await fetchHtml(parsed.toString(), {
     context,
     maxBytes: MAX_HOMEPAGE_HTML_BYTES,
+    truncateOnLimit: true,
   })
   const metadata = extractMetaInformation(homepage.html, homepage.finalUrl)
-  const accessibilityPageUrl = await resolveAccessibilityPageUrl(
-    homepage.finalUrl,
-    metadata.accessibilityPageUrl,
-    context,
-  )
-  const aiContextUrl = await resolveAiContextUrl(homepage.finalUrl, metadata.aiContextUrl, context)
+  const [accessibilityPageUrl, aiContextUrl] = await Promise.all([
+    resolveAccessibilityPageUrl(homepage.finalUrl, metadata.accessibilityPageUrl, context),
+    resolveAiContextUrl(homepage.finalUrl, metadata.aiContextUrl, context),
+  ])
 
   let complianceStatus = null
   let complianceScore = null
@@ -1151,19 +1307,23 @@ export async function buildSiteInsight(inputUrl) {
   let rgaaBaseline = null
   let accessibilityPageScoreSource = null
 
-  try {
-    const compliance = await extractComplianceFromAccessibilityPage(accessibilityPageUrl, context)
+  // Both sources are best effort and should not fail the main result.
+  const [accessibilityPageResult, aiContextResult] = await Promise.allSettled([
+    extractComplianceFromAccessibilityPage(accessibilityPageUrl, context),
+    extractComplianceFromAiContext(aiContextUrl, context),
+  ])
+
+  if (accessibilityPageResult.status === 'fulfilled') {
+    const compliance = accessibilityPageResult.value
     complianceStatus = compliance.complianceStatus
     complianceScore = compliance.complianceScore
     complianceConsistencyIssue = compliance.complianceConsistencyIssue ?? null
     rgaaBaseline = compliance.rgaaBaseline
     accessibilityPageScoreSource = compliance.scoreSource
-  } catch {
-    // Accessibility page parsing is best effort and should not fail the main result.
   }
 
-  try {
-    const aiContextCompliance = await extractComplianceFromAiContext(aiContextUrl, context)
+  if (aiContextResult.status === 'fulfilled') {
+    const aiContextCompliance = aiContextResult.value
 
     if (aiContextCompliance.complianceScore !== null && accessibilityPageScoreSource !== 'text') {
       complianceScore = aiContextCompliance.complianceScore
@@ -1178,8 +1338,6 @@ export async function buildSiteInsight(inputUrl) {
     }
 
     rgaaBaseline = rgaaBaseline ?? aiContextCompliance.rgaaBaseline
-  } catch {
-    // AI context parsing is best effort and should not fail the main result.
   }
 
   if (!complianceStatus || complianceScore === null) {
@@ -1204,6 +1362,40 @@ export async function buildSiteInsight(inputUrl) {
     complianceScore,
     complianceConsistencyIssue,
     rgaaBaseline: rgaaBaseline ?? DEFAULT_RGAA_BASELINE,
+    updatedAt: new Date().toISOString(),
+  }
+}
+
+// Remote-access failures that do not invalidate the submission itself: the site exists
+// but refuses or delays automated analysis (WAF, bot protection, slow origin, TLS chain).
+const MANUAL_REVIEW_FALLBACK_ERROR_CODES = new Set([
+  'http-401',
+  'http-403',
+  'http-406',
+  'http-429',
+  'http-503',
+  'fetch-timeout',
+  'analysis-budget-exceeded',
+  'connection-reset',
+  'tls-error',
+])
+
+export function isManualReviewFallbackError(error) {
+  return error instanceof SiteInsightError && MANUAL_REVIEW_FALLBACK_ERROR_CODES.has(error.code)
+}
+
+export function buildUnreachableSiteInsight(inputUrl) {
+  const parsed = normalizeSubmittedUrl(inputUrl)
+  return {
+    normalizedUrl: canonicalizeListingUrl(parsed.toString()),
+    siteTitle: parsed.hostname.toLowerCase().replace(/^www\./, ''),
+    thumbnailUrl: null,
+    accessibilityPageUrl: null,
+    complianceStatus: null,
+    complianceStatusLabel: null,
+    complianceScore: null,
+    complianceConsistencyIssue: null,
+    rgaaBaseline: DEFAULT_RGAA_BASELINE,
     updatedAt: new Date().toISOString(),
   }
 }

@@ -13,6 +13,9 @@ const PENDING_INDEX_KEY = 'rgaa:vitrine:moderation:pending:index'
 const PENDING_ENTRY_PREFIX = 'rgaa:vitrine:moderation:pending:'
 const PENDING_BY_URL_HASH_KEY = 'rgaa:vitrine:moderation:pending:by-url'
 const GITHUB_NOTIFY_WINDOW_KEY_PREFIX = 'rgaa:vitrine:notifications:github:window:'
+const SUBMISSION_FAILURE_ALERT_KEY_PREFIX = 'rgaa:vitrine:notifications:submission-failure:'
+const SUBMISSION_PREVIEW_KEY_PREFIX = 'rgaa:vitrine:submission:preview:'
+const MAX_SUBMISSION_PREVIEW_BYTES = 32_000
 const MAX_STORED_ENTRIES = 500
 const MAX_PENDING_STORED_ENTRIES = 2000
 const MAX_LIST_LIMIT = MAX_STORED_ENTRIES
@@ -888,6 +891,8 @@ class InMemoryShowcaseStorage {
     this.maintenanceState = buildMaintenanceState()
     this.slugRedirectsBySlug = new Map()
     this.githubNotificationCountByWindow = new Map()
+    this.submissionFailureAlertExpiresAt = new Map()
+    this.submissionPreviews = new Map()
   }
 
   async upsert(entry) {
@@ -1207,6 +1212,41 @@ class InMemoryShowcaseStorage {
       remaining: Math.max(0, limit - nextCount),
       resetAt: new Date((currentWindow + 1) * windowMs).toISOString(),
     }
+  }
+
+  async reserveSubmissionFailureAlert(fingerprint, ttlMs) {
+    const now = Date.now()
+    for (const [key, expiresAt] of this.submissionFailureAlertExpiresAt.entries()) {
+      if (expiresAt <= now) {
+        this.submissionFailureAlertExpiresAt.delete(key)
+      }
+    }
+
+    if (this.submissionFailureAlertExpiresAt.has(fingerprint)) {
+      return false
+    }
+
+    this.submissionFailureAlertExpiresAt.set(fingerprint, now + ttlMs)
+    return true
+  }
+
+  async storeSubmissionPreview(token, payload, ttlMs) {
+    const now = Date.now()
+    for (const [key, entry] of this.submissionPreviews.entries()) {
+      if (entry.expiresAt <= now) {
+        this.submissionPreviews.delete(key)
+      }
+    }
+    this.submissionPreviews.set(token, { payload, expiresAt: now + ttlMs })
+  }
+
+  async readSubmissionPreview(token) {
+    const entry = this.submissionPreviews.get(token)
+    if (!entry || entry.expiresAt <= Date.now()) {
+      this.submissionPreviews.delete(token)
+      return null
+    }
+    return entry.payload
   }
 
   async getPendingById(submissionId) {
@@ -2165,6 +2205,51 @@ class UpstashShowcaseStorage {
     } catch (error) {
       console.error('Redis reserveGithubNotificationSlot failed', error)
       throw new ShowcaseStorageError('Protection anti-abus des notifications indisponible.', 503)
+    }
+  }
+
+  async reserveSubmissionFailureAlert(fingerprint, ttlMs) {
+    try {
+      const result = await this.redis.set(`${SUBMISSION_FAILURE_ALERT_KEY_PREFIX}${fingerprint}`, '1', {
+        nx: true,
+        px: Math.max(1000, Math.floor(ttlMs)),
+      })
+      return result === 'OK'
+    } catch (error) {
+      console.error('Redis reserveSubmissionFailureAlert failed', error)
+      throw new ShowcaseStorageError('Déduplication des alertes de soumission indisponible.', 503)
+    }
+  }
+
+  async storeSubmissionPreview(token, payload, ttlMs) {
+    const serialized = JSON.stringify(payload)
+    if (serialized.length > MAX_SUBMISSION_PREVIEW_BYTES) {
+      return
+    }
+
+    try {
+      await this.redis.set(`${SUBMISSION_PREVIEW_KEY_PREFIX}${token}`, serialized, {
+        px: Math.max(1000, Math.floor(ttlMs)),
+      })
+    } catch (error) {
+      // Preview persistence is an optimization: the confirmation step re-runs the analysis.
+      console.warn('Redis storeSubmissionPreview failed', error)
+    }
+  }
+
+  async readSubmissionPreview(token) {
+    try {
+      const raw = await this.redis.get(`${SUBMISSION_PREVIEW_KEY_PREFIX}${token}`)
+      if (!raw) {
+        return null
+      }
+      if (typeof raw === 'object') {
+        return raw
+      }
+      return JSON.parse(String(raw))
+    } catch (error) {
+      console.warn('Redis readSubmissionPreview failed', error)
+      return null
     }
   }
 

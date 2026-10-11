@@ -95,6 +95,113 @@ type SubmitErrorState = {
   summary: string
   guidance: string
   detail: string | null
+  reference: string | null
+}
+type SubmissionRequestStage = 'preview' | 'confirmation'
+type ClientSubmissionFailureKind = 'network' | 'timeout' | 'invalid-response'
+
+const SUBMISSION_REQUEST_TIMEOUT_MS = 35_000
+const SUBMISSION_FAILURE_REPORT_TIMEOUT_MS = 5_000
+
+class SubmissionRequestError extends Error {
+  reference: string | null
+
+  constructor(message: string, reference: string | null = null) {
+    super(message)
+    this.name = 'SubmissionRequestError'
+    this.reference = reference
+  }
+}
+
+function readSubmissionReference(payload: Record<string, unknown>) {
+  return typeof payload.reference === 'string' && payload.reference.trim() ? payload.reference.trim() : null
+}
+
+// Relays failures the API could not report itself (platform timeout, gateway page, network loss).
+async function reportClientSubmissionFailure(details: {
+  url: string
+  stage: SubmissionRequestStage
+  kind: ClientSubmissionFailureKind
+  statusCode: number | null
+  message: string
+}) {
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), SUBMISSION_FAILURE_REPORT_TIMEOUT_MS)
+  try {
+    const response = await fetch('/api/site-insight/failure-report', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(details),
+      keepalive: true,
+      signal: controller.signal,
+    })
+    if (!response.ok) {
+      return null
+    }
+    const payload = (await response.json()) as Record<string, unknown>
+    return readSubmissionReference(payload)
+  } catch {
+    return null
+  } finally {
+    window.clearTimeout(timeoutId)
+  }
+}
+
+async function postSubmissionRequest(
+  stage: SubmissionRequestStage,
+  body: Record<string, unknown>,
+  inputUrl: string,
+) {
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), SUBMISSION_REQUEST_TIMEOUT_MS)
+  let response: Response
+  try {
+    response = await fetch(stage === 'preview' ? '/api/site-insight?preview=1' : '/api/site-insight', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+  } catch (error) {
+    const isTimeout = error instanceof DOMException && error.name === 'AbortError'
+    const message = isTimeout
+      ? "La requête d'analyse a expiré (timeout) sans réponse du serveur."
+      : 'Erreur réseau: impossible de joindre le service d’ajout (failed to fetch).'
+    const reference = await reportClientSubmissionFailure({
+      url: inputUrl,
+      stage,
+      kind: isTimeout ? 'timeout' : 'network',
+      statusCode: null,
+      message,
+    })
+    throw new SubmissionRequestError(message, reference)
+  } finally {
+    window.clearTimeout(timeoutId)
+  }
+
+  const payload = await readApiPayload(response)
+  // JSON errors carrying an errorCode were already identified and reported by the API.
+  if (!response.ok && typeof payload.errorCode !== 'string' && response.status !== 429) {
+    const rawError = typeof payload.error === 'string' ? payload.error : ''
+    const isTimeout = response.status === 504 || /function_invocation_timeout/i.test(rawError)
+    const message = isTimeout
+      ? `FUNCTION_INVOCATION_TIMEOUT: le serveur n'a pas répondu à temps (HTTP ${response.status}).`
+      : rawError || `Réponse serveur inexploitable (HTTP ${response.status}).`
+    const reference = await reportClientSubmissionFailure({
+      url: inputUrl,
+      stage,
+      kind: isTimeout ? 'timeout' : 'invalid-response',
+      statusCode: response.status,
+      message: message.slice(0, 300),
+    })
+    throw new SubmissionRequestError(message, reference)
+  }
+
+  return { response, payload }
 }
 
 const statusClassByValue: Record<Exclude<ComplianceStatus, null>, string> = {
@@ -687,7 +794,10 @@ function readPreviewToken(payload: Record<string, unknown>) {
     : null
 }
 
-function buildSubmitErrorState(rawMessage: string, phase: SubmitErrorPhase): Omit<SubmitErrorState, 'id'> {
+function buildSubmitErrorState(
+  rawMessage: string,
+  phase: SubmitErrorPhase,
+): Omit<SubmitErrorState, 'id' | 'reference'> {
   const fallbackMessage = phase === 'preview' ? 'Pré-analyse impossible.' : 'Ajout impossible.'
   const message = typeof rawMessage === 'string' && rawMessage.trim() ? rawMessage.trim() : fallbackMessage
   const normalized = normalizeText(message)
@@ -695,6 +805,7 @@ function buildSubmitErrorState(rawMessage: string, phase: SubmitErrorPhase): Omi
   if (
     normalized.includes('function_invocation_timeout') ||
     normalized.includes('a expire') ||
+    normalized.includes('temps maximal autorise') ||
     normalized.includes('timeout') ||
     normalized.includes('timed out')
   ) {
@@ -744,6 +855,29 @@ function buildSubmitErrorState(rawMessage: string, phase: SubmitErrorPhase): Omi
       summary: 'Veuillez saisir une URL complète, par exemple https://www.exemple.fr.',
       guidance: "Corrigez le champ URL puis relancez l'analyse.",
       detail: null,
+    }
+  }
+
+  if (normalized.includes('trop de soumissions')) {
+    return {
+      summary: 'Trop de soumissions ont été envoyées depuis votre connexion.',
+      guidance: 'Patientez une heure avant de réessayer, ou contactez la modération avec l’URL concernée.',
+      detail: message,
+    }
+  }
+
+  if (
+    normalized.includes('certificat https') ||
+    normalized.includes('refuse la connexion') ||
+    normalized.includes('connexion avec le site a ete interrompue') ||
+    normalized.includes('resoudre le nom de domaine') ||
+    normalized.includes('nom de domaine introuvable')
+  ) {
+    return {
+      summary: "Le site n'a pas pu être joint par notre service d'analyse.",
+      guidance:
+        "Vérifiez l'orthographe du domaine et que le site est accessible publiquement en HTTPS, puis réessayez.",
+      detail: message,
     }
   }
 
@@ -1667,12 +1801,13 @@ function App() {
   const isSubmissionBusy = isPreAnalyzing || isConfirmingSubmission
 
   const showSubmitError = useCallback(
-    (rawMessage: string, phase: SubmitErrorPhase) => {
+    (rawMessage: string, phase: SubmitErrorPhase, reference: string | null = null) => {
       const nextError = buildSubmitErrorState(rawMessage, phase)
       shouldFocusSubmitErrorRef.current = true
       setSubmitError((current) => ({
         id: (current?.id ?? 0) + 1,
         ...nextError,
+        reference,
       }))
     },
     [],
@@ -1828,20 +1963,19 @@ function App() {
     announcePolite('Pré-analyse du site en cours.')
 
     try {
-      const response = await fetch('/api/site-insight?preview=1', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ url: inputUrl, category: categoryForSubmission, website: websiteField }),
-      })
-
-      const payload = await readApiPayload(response)
+      const { response, payload } = await postSubmissionRequest(
+        'preview',
+        { url: inputUrl, category: categoryForSubmission, website: websiteField },
+        inputUrl,
+      )
       const submissionStatus = readSubmissionStatus(payload)
       const submissionMessage = readSubmissionMessage(payload)
 
       if (!response.ok) {
-        throw new Error(typeof payload?.error === 'string' ? payload.error : 'Pré-analyse impossible.')
+        throw new SubmissionRequestError(
+          typeof payload?.error === 'string' ? payload.error : 'Pré-analyse impossible.',
+          readSubmissionReference(payload),
+        )
       }
 
       if (typeof payload.error === 'string') {
@@ -1896,7 +2030,11 @@ function App() {
       setSubmissionPreviewStatus(null)
       setSubmissionPreviewToken(null)
       const localizedMessage = error instanceof Error ? error.message : 'Erreur réseau.'
-      showSubmitError(localizedMessage, 'preview')
+      showSubmitError(
+        localizedMessage,
+        'preview',
+        error instanceof SubmissionRequestError ? error.reference : null,
+      )
     } finally {
       setIsPreAnalyzing(false)
     }
@@ -1922,25 +2060,24 @@ function App() {
     announcePolite("Analyse du site en cours.")
 
     try {
-      const response = await fetch('/api/site-insight', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { response, payload } = await postSubmissionRequest(
+        'confirmation',
+        {
           url: inputUrl,
           category: categoryForSubmission,
           website: websiteField,
           previewToken: submissionPreviewToken ?? undefined,
-        }),
-      })
-
-      const payload = await readApiPayload(response)
+        },
+        inputUrl,
+      )
       const submissionStatus = readSubmissionStatus(payload)
       const submissionMessage = readSubmissionMessage(payload)
 
       if (!response.ok) {
-        throw new Error(typeof payload?.error === 'string' ? payload.error : 'Ajout impossible.')
+        throw new SubmissionRequestError(
+          typeof payload?.error === 'string' ? payload.error : 'Ajout impossible.',
+          readSubmissionReference(payload),
+        )
       }
 
       if (typeof payload.error === 'string') {
@@ -2015,7 +2152,11 @@ function App() {
     } catch (error) {
       setLastAddedEntry(null)
       const localizedMessage = error instanceof Error ? error.message : 'Erreur réseau.'
-      showSubmitError(localizedMessage, 'submit')
+      showSubmitError(
+        localizedMessage,
+        'submit',
+        error instanceof SubmissionRequestError ? error.reference : null,
+      )
     } finally {
       setIsConfirmingSubmission(false)
     }
@@ -3034,7 +3175,11 @@ function App() {
                 role="alert"
                 aria-atomic="true"
                 aria-labelledby="url-error-title"
-                aria-describedby="url-error-message url-error-guidance"
+                aria-describedby={
+                  submitError.reference
+                    ? 'url-error-message url-error-guidance url-error-reference'
+                    : 'url-error-message url-error-guidance'
+                }
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -3047,6 +3192,13 @@ function App() {
                     <p id="url-error-guidance" className="mt-2 text-sm">
                       {submitError.guidance}
                     </p>
+                    {submitError.reference && (
+                      <p id="url-error-reference" className="mt-2 text-sm">
+                        Référence de l’incident :{' '}
+                        <span className="font-mono font-semibold">{submitError.reference}</span>. Indiquez-la si
+                        vous contactez la modération.
+                      </p>
+                    )}
                   </div>
                   <button
                     type="button"

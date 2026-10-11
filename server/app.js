@@ -3,11 +3,18 @@ import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { isIP } from 'node:net'
-import { buildSiteInsight, SiteInsightError, validatePublicHttpUrl } from './siteInsight.js'
+import {
+  buildSiteInsight,
+  buildUnreachableSiteInsight,
+  isManualReviewFallbackError,
+  SiteInsightError,
+  validatePublicHttpUrl,
+} from './siteInsight.js'
 import {
   isGithubNotifierEnabled,
   notifyApprovedPublicationOnGithub,
   notifyPendingModerationOnGithub,
+  notifySubmissionFailureOnGithub,
 } from './githubNotifier.js'
 import { buildSitemapXml, resolvePublicAppUrl } from './sitemap.js'
 import { buildAiContextPayload } from './aiContext.js'
@@ -105,6 +112,12 @@ const ARCHIVE_INTEGRITY_ALGORITHM = 'hmac-sha256'
 const MIN_ARCHIVE_SIGNING_SECRET_LENGTH = 32
 const SITE_INSIGHT_PREVIEW_CACHE_TTL_MS = 10 * 60 * 1000
 const SITE_INSIGHT_PREVIEW_CACHE_MAX_ENTRIES = 200
+const SUBMISSION_FAILURE_ALERT_DEDUP_MS = 6 * 60 * 60 * 1000
+// Causes that come from the submitter's input or a moderation decision, not from a defect.
+const NON_ALERTING_SUBMISSION_ERROR_CODES = new Set(['invalid-input', 'forbidden-host', 'site-blocked'])
+const CLIENT_SUBMISSION_FAILURE_KINDS = new Set(['network', 'timeout', 'invalid-response'])
+const MAX_CLIENT_FAILURE_URL_LENGTH = 2048
+const MAX_CLIENT_FAILURE_MESSAGE_LENGTH = 300
 const DEFAULT_GITHUB_NOTIFY_WINDOW_SECONDS = 60 * 60
 const MIN_GITHUB_NOTIFY_WINDOW_SECONDS = 60
 const MAX_GITHUB_NOTIFY_WINDOW_SECONDS = 24 * 60 * 60
@@ -118,8 +131,9 @@ const THUMBNAIL_PROXY_CACHE_CONTROL = 'public, max-age=604800, s-maxage=2592000,
 const SUBMISSION_THUMBNAIL_TIMEOUT_MS = 4500
 const SUBMISSION_THUMBNAIL_MAX_REDIRECTS = 4
 const SUBMISSION_THUMBNAIL_MAX_BYTES = 450_000
-const BLOCKLIST_PROJECT_FETCH_TIMEOUT_MS = 4500
-const BLOCKLIST_PROJECT_MAX_RESPONSE_BYTES = 2_500_000
+const BLOCKLIST_PROJECT_FETCH_TIMEOUT_MS = 8000
+// Domain-only feeds weigh up to ~20 MB (adult content list): the cap must stay above that.
+const BLOCKLIST_PROJECT_MAX_RESPONSE_BYTES = 24_000_000
 const DEFAULT_BLOCKLIST_PROJECT_REFRESH_MINUTES = 180
 const MIN_BLOCKLIST_PROJECT_REFRESH_MINUTES = 10
 const MAX_BLOCKLIST_PROJECT_REFRESH_MINUTES = 24 * 60
@@ -127,17 +141,17 @@ const BLOCKLIST_PROJECT_FEED_SOURCES = [
   {
     key: 'porn',
     familyLabel: 'contenu adulte',
-    defaultUrl: 'https://raw.githubusercontent.com/blocklistproject/Lists/refs/heads/master/porn.txt',
+    defaultUrl: 'https://raw.githubusercontent.com/blocklistproject/Lists/main/alt-version/porn-nl.txt',
   },
   {
     key: 'gambling',
     familyLabel: "jeux d'argent",
-    defaultUrl: 'https://raw.githubusercontent.com/blocklistproject/Lists/refs/heads/master/gambling.txt',
+    defaultUrl: 'https://raw.githubusercontent.com/blocklistproject/Lists/main/alt-version/gambling-nl.txt',
   },
   {
     key: 'drugs',
     familyLabel: 'drogues',
-    defaultUrl: 'https://raw.githubusercontent.com/blocklistproject/Lists/refs/heads/master/drugs.txt',
+    defaultUrl: 'https://raw.githubusercontent.com/blocklistproject/Lists/main/alt-version/drugs-nl.txt',
   },
 ]
 const MAX_MAINTENANCE_MESSAGE_LENGTH = 280
@@ -326,6 +340,104 @@ function isStrongArchiveSigningSecret(secret) {
 
 function sendJsonError(response, statusCode, message) {
   response.status(statusCode).json({ error: message })
+}
+
+function buildSubmissionReference() {
+  return `SUB-${randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase()}`
+}
+
+function readSubmissionHost(rawUrl) {
+  if (typeof rawUrl !== 'string' || !rawUrl.trim()) {
+    return null
+  }
+
+  const trimmed = rawUrl.trim()
+  try {
+    const parsed = new URL(/^[a-z]+:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`)
+    return parsed.hostname.toLowerCase().replace(/^www\./, '') || null
+  } catch {
+    return null
+  }
+}
+
+function readSubmissionSiteUrl(rawUrl) {
+  const host = readSubmissionHost(rawUrl)
+  return host ? `https://${host}/` : null
+}
+
+async function reportSubmissionFailure({
+  request,
+  stage,
+  source = 'server',
+  inputUrl,
+  errorCode,
+  statusCode,
+  message,
+  reference,
+}) {
+  const host = readSubmissionHost(inputUrl)
+  const safeErrorCode = typeof errorCode === 'string' && errorCode ? errorCode : 'unknown'
+
+  console.warn(
+    JSON.stringify({
+      event: 'submission-failure',
+      reference,
+      stage,
+      source,
+      host,
+      errorCode: safeErrorCode,
+      statusCode,
+      message,
+    }),
+  )
+
+  if (NON_ALERTING_SUBMISSION_ERROR_CODES.has(safeErrorCode) || !isGithubNotifierEnabled()) {
+    return
+  }
+
+  try {
+    const fingerprint = createHash('sha256')
+      .update(`${host ?? 'unknown-host'}|${safeErrorCode}`)
+      .digest('hex')
+      .slice(0, 32)
+    const shouldAlert = await showcaseStorage.reserveSubmissionFailureAlert(
+      fingerprint,
+      SUBMISSION_FAILURE_ALERT_DEDUP_MS,
+    )
+    if (!shouldAlert) {
+      return
+    }
+  } catch (dedupError) {
+    console.error('Submission failure alert deduplication failed', dedupError)
+    return
+  }
+
+  const userAgentHeader = request?.headers?.['user-agent']
+  await tryGithubNotification('submission-failure', () =>
+    notifySubmissionFailureOnGithub({
+      reference,
+      stage,
+      source,
+      host,
+      inputUrl: typeof inputUrl === 'string' ? inputUrl.trim().slice(0, MAX_CLIENT_FAILURE_URL_LENGTH) : null,
+      siteUrl: readSubmissionSiteUrl(inputUrl),
+      errorCode: safeErrorCode,
+      statusCode,
+      message,
+      userAgent: typeof userAgentHeader === 'string' ? userAgentHeader : null,
+      occurredAt: new Date().toISOString(),
+    }),
+  )
+}
+
+async function sendSubmissionFailure(response, request, { stage, inputUrl, statusCode, message, errorCode }) {
+  const reference = buildSubmissionReference()
+  await reportSubmissionFailure({ request, stage, inputUrl, errorCode, statusCode, message, reference })
+  response.status(statusCode).json({
+    error: message,
+    errorCode,
+    reference,
+  })
 }
 
 function firstQueryValue(value) {
@@ -835,33 +947,44 @@ function cleanupSiteInsightPreviewCache(now = Date.now()) {
   }
 }
 
-function storeSiteInsightPreview(inputUrl, insight, complianceConsistencyIssue = null) {
+async function storeSiteInsightPreview(
+  inputUrl,
+  insight,
+  complianceConsistencyIssue = null,
+  analysisFailure = null,
+) {
   const now = Date.now()
   cleanupSiteInsightPreviewCache(now)
 
   const token = randomUUID().replace(/-/g, '')
-  siteInsightPreviewCache.set(token, {
+  const entry = {
     createdAt: now,
     expiresAt: now + SITE_INSIGHT_PREVIEW_CACHE_TTL_MS,
     inputUrl: typeof inputUrl === 'string' ? inputUrl.trim() : '',
     insight,
     complianceConsistencyIssue:
       typeof complianceConsistencyIssue === 'string' ? complianceConsistencyIssue.trim() : null,
-  })
-
+    analysisFailure,
+  }
+  siteInsightPreviewCache.set(token, entry)
   cleanupSiteInsightPreviewCache(now)
+
+  // Serverless instances do not share memory: persist so the confirmation step can reuse it.
+  await showcaseStorage.storeSubmissionPreview(token, entry, SITE_INSIGHT_PREVIEW_CACHE_TTL_MS)
   return token
 }
 
-function readSiteInsightPreview(inputUrl, previewToken) {
+async function readSiteInsightPreview(inputUrl, previewToken) {
   const normalizedToken = normalizePreviewToken(previewToken)
   if (!normalizedToken) {
     return null
   }
 
   cleanupSiteInsightPreviewCache()
-  const entry = siteInsightPreviewCache.get(normalizedToken)
-  if (!entry) {
+  const entry =
+    siteInsightPreviewCache.get(normalizedToken) ??
+    (await showcaseStorage.readSubmissionPreview(normalizedToken))
+  if (!entry || typeof entry !== 'object' || !(entry.expiresAt > Date.now())) {
     return null
   }
 
@@ -874,6 +997,8 @@ function readSiteInsightPreview(inputUrl, previewToken) {
     insight: entry.insight ?? null,
     complianceConsistencyIssue:
       typeof entry.complianceConsistencyIssue === 'string' ? entry.complianceConsistencyIssue : null,
+    analysisFailure:
+      entry.analysisFailure && typeof entry.analysisFailure === 'object' ? entry.analysisFailure : null,
   }
 }
 
@@ -1972,7 +2097,11 @@ function formatManualReviewReason(reasons) {
 
 async function getManualReviewReasons(siteInsight, { complianceConsistencyIssue = null } = {}) {
   const reasons = []
-  reasons.push(...(await findSensitiveSubmissionReasons(siteInsight)))
+  const [sensitiveReasons, thumbnailReviewReason] = await Promise.all([
+    findSensitiveSubmissionReasons(siteInsight),
+    readSubmissionThumbnailReviewReason(siteInsight.thumbnailUrl),
+  ])
+  reasons.push(...sensitiveReasons)
 
   if (typeof complianceConsistencyIssue === 'string' && complianceConsistencyIssue.trim()) {
     reasons.push(complianceConsistencyIssue.trim())
@@ -1984,7 +2113,6 @@ async function getManualReviewReasons(siteInsight, { complianceConsistencyIssue 
     reasons.push('La déclaration d’accessibilité détectée pointe vers un domaine différent du site soumis.')
   }
 
-  const thumbnailReviewReason = await readSubmissionThumbnailReviewReason(siteInsight.thumbnailUrl)
   if (thumbnailReviewReason) {
     reasons.push(thumbnailReviewReason)
   }
@@ -2034,17 +2162,51 @@ app.use(
 
 app.use(express.json({ limit: '3mb' }))
 
-const submissionLimiter = rateLimit({
+function createSubmissionLimiter(max, stage) {
+  return rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max,
+    keyGenerator: buildRateLimitKey,
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: rateLimitValidationOptions,
+    handler: (request, response, _next, options) => {
+      void sendSubmissionFailure(response, request, {
+        stage,
+        inputUrl: request.body?.url,
+        statusCode: options.statusCode,
+        message: 'Trop de soumissions depuis votre connexion. Merci de réessayer dans une heure.',
+        errorCode: 'rate-limited',
+      }).catch((error) => {
+        console.error('Unable to send rate-limited submission response', error)
+        if (!response.headersSent) {
+          sendJsonError(response, options.statusCode, 'Trop de soumissions. Merci de réessayer dans une heure.')
+        }
+      })
+    },
+  })
+}
+
+// Preview and confirmation are counted separately so that one submission (preview + confirm)
+// and a few corrected retries never exhaust the confirmation quota.
+const submissionPreviewLimiter = createSubmissionLimiter(20, 'preview')
+const submissionConfirmLimiter = createSubmissionLimiter(10, 'confirmation')
+const submissionFailureReportLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 8,
+  max: 10,
   keyGenerator: buildRateLimitKey,
   standardHeaders: true,
   legacyHeaders: false,
   validate: rateLimitValidationOptions,
   message: {
-    error: "Trop de soumissions. Merci de réessayer dans une heure.",
+    error: 'Trop de signalements. Merci de réessayer plus tard.',
   },
 })
+
+function submissionLimiter(request, response, next) {
+  const limiter = isPreviewRequested(request) ? submissionPreviewLimiter : submissionConfirmLimiter
+  return limiter(request, response, next)
+}
 
 const voteLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -2613,15 +2775,71 @@ app.post('/api/showcase/upvote', voteLimiter, async (request, response) => {
   }
 })
 
+function buildAnalysisFallbackReason(analysisFailure) {
+  const detail =
+    typeof analysisFailure?.message === 'string' && analysisFailure.message.trim()
+      ? ` ${analysisFailure.message.trim()}`
+      : ''
+  return `Analyse automatique impossible:${detail} Vérification manuelle requise.`
+}
+
+async function resolveSubmissionInsight(url, previewMode, previewToken) {
+  const cachedPreview = !previewMode ? await readSiteInsightPreview(url, previewToken) : null
+  if (cachedPreview?.insight) {
+    return {
+      insight: cachedPreview.insight,
+      complianceConsistencyIssue: cachedPreview.complianceConsistencyIssue ?? null,
+      analysisFailure: cachedPreview.analysisFailure ?? null,
+    }
+  }
+
+  try {
+    const insight = await buildSiteInsight(url)
+    return {
+      insight,
+      complianceConsistencyIssue:
+        typeof insight?.complianceConsistencyIssue === 'string' ? insight.complianceConsistencyIssue : null,
+      analysisFailure: null,
+    }
+  } catch (error) {
+    if (!isManualReviewFallbackError(error)) {
+      throw error
+    }
+
+    // The site exists but refuses or delays automated analysis: keep the submission
+    // and hand it to manual moderation instead of rejecting it.
+    console.warn(
+      JSON.stringify({
+        event: 'submission-analysis-fallback',
+        host: readSubmissionHost(url),
+        errorCode: error.code,
+        message: error.message,
+      }),
+    )
+    return {
+      insight: buildUnreachableSiteInsight(url),
+      complianceConsistencyIssue: null,
+      analysisFailure: { code: error.code, message: error.message },
+    }
+  }
+}
+
 app.post('/api/site-insight', submissionLimiter, async (request, response) => {
   const url = request.body?.url
   const category = request.body?.category
   const honeypot = request.body?.website
   const previewMode = isPreviewRequested(request)
   const previewToken = normalizePreviewToken(request.body?.previewToken)
+  const stage = previewMode ? 'preview' : 'confirmation'
 
   if (typeof url !== 'string') {
-    sendJsonError(response, 400, 'Le champ URL est obligatoire.')
+    await sendSubmissionFailure(response, request, {
+      stage,
+      inputUrl: null,
+      statusCode: 400,
+      message: 'Le champ URL est obligatoire.',
+      errorCode: 'invalid-input',
+    })
     return
   }
 
@@ -2630,27 +2848,25 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
     return
   }
 
+  // Warm the sensitive-category feeds while the remote site is analysed.
+  void ensureBlocklistProjectFeedsLoaded()?.catch(() => {})
+
   try {
-    const cachedPreview = !previewMode ? readSiteInsightPreview(url, previewToken) : null
-    const cachedInsight =
-      cachedPreview && typeof cachedPreview === 'object' && 'insight' in cachedPreview
-        ? cachedPreview.insight
-        : cachedPreview
-    const insight = cachedInsight ?? (await buildSiteInsight(url))
+    const { insight, complianceConsistencyIssue, analysisFailure } = await resolveSubmissionInsight(
+      url,
+      previewMode,
+      previewToken,
+    )
     const normalizedInsight = normalizeSiteInsightForSubmission(insight)
-    const complianceConsistencyIssue =
-      cachedPreview && typeof cachedPreview === 'object' && 'insight' in cachedPreview
-        ? cachedPreview.complianceConsistencyIssue ?? null
-        : typeof insight?.complianceConsistencyIssue === 'string'
-          ? insight.complianceConsistencyIssue
-          : null
     const isBlocked = await showcaseStorage.isSiteBlocked(normalizedInsight.normalizedUrl)
     if (isBlocked) {
-      sendJsonError(
-        response,
-        423,
-        'Soumission refusée: ce site est actuellement bloqué par la modération.',
-      )
+      await sendSubmissionFailure(response, request, {
+        stage,
+        inputUrl: url,
+        statusCode: 423,
+        message: 'Soumission refusée: ce site est actuellement bloqué par la modération.',
+        errorCode: 'site-blocked',
+      })
       return
     }
 
@@ -2692,6 +2908,9 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
     const manualReviewReasons = await getManualReviewReasons(normalizedInsight, {
       complianceConsistencyIssue,
     })
+    if (analysisFailure) {
+      manualReviewReasons.unshift(buildAnalysisFallbackReason(analysisFailure))
+    }
     const manualReviewReason = formatManualReviewReason(manualReviewReasons)
     if (previewMode) {
       const previewStatus = manualReviewReason ? 'pending' : 'approved'
@@ -2702,21 +2921,28 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
         },
         domainSnapshot,
       )
-      const previewMessage = manualReviewReason
+      const previewMessage = analysisFailure
         ? buildSubsiteContextMessage(
-            `Pré-analyse terminée: ${manualReviewReason}`,
+            `Pré-analyse partielle: notre robot n’a pas pu analyser ce site (${analysisFailure.message}) Si vous confirmez l’envoi, la soumission sera transmise à la modération pour une vérification manuelle.`,
             previewEntry.domainContext,
             'Cette URL sera traitée comme un sous-site distinct si vous confirmez l’envoi.',
           )
-        : buildSubsiteContextMessage(
-            'Pré-analyse terminée. Le site est prêt pour confirmation.',
-            previewEntry.domainContext,
-            'Cette URL sera publiée comme sous-site distinct si vous confirmez l’envoi.',
-          )
-      const nextPreviewToken = storeSiteInsightPreview(
+        : manualReviewReason
+          ? buildSubsiteContextMessage(
+              `Pré-analyse terminée: ${manualReviewReason}`,
+              previewEntry.domainContext,
+              'Cette URL sera traitée comme un sous-site distinct si vous confirmez l’envoi.',
+            )
+          : buildSubsiteContextMessage(
+              'Pré-analyse terminée. Le site est prêt pour confirmation.',
+              previewEntry.domainContext,
+              'Cette URL sera publiée comme sous-site distinct si vous confirmez l’envoi.',
+            )
+      const nextPreviewToken = await storeSiteInsightPreview(
         url,
         normalizedInsight,
         complianceConsistencyIssue,
+        analysisFailure,
       )
 
       response.status(previewStatus === 'pending' ? 202 : 200).json({
@@ -2724,6 +2950,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
         submissionStatus: previewStatus,
         preview: true,
         previewToken: nextPreviewToken,
+        analysisFallback: Boolean(analysisFailure),
         message: previewMessage,
       })
       return
@@ -2742,8 +2969,11 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       response.status(202).json({
         ...pendingEntryWithContext,
         submissionStatus: 'pending',
+        analysisFallback: Boolean(analysisFailure),
         message: buildSubsiteContextMessage(
-          'Soumission reçue. Elle est enregistrée en file de validation manuelle avant publication.',
+          analysisFailure
+            ? 'Soumission reçue. Le site n’a pas pu être analysé automatiquement: il est enregistré en file de validation manuelle avant publication.'
+            : 'Soumission reçue. Elle est enregistrée en file de validation manuelle avant publication.',
           pendingEntryWithContext.domainContext,
           'La modération verra ce site comme un sous-site distinct du même domaine.',
         ),
@@ -2773,18 +3003,85 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
     })
   } catch (error) {
     if (error instanceof SiteInsightError) {
-      sendJsonError(response, error.statusCode, error.message)
+      await sendSubmissionFailure(response, request, {
+        stage,
+        inputUrl: url,
+        statusCode: error.statusCode,
+        message: error.message,
+        errorCode: error.code,
+      })
       return
     }
 
     if (error instanceof ShowcaseStorageError) {
-      sendJsonError(response, error.statusCode, error.message)
+      console.error('Storage error in /api/site-insight', error)
+      await sendSubmissionFailure(response, request, {
+        stage,
+        inputUrl: url,
+        statusCode: error.statusCode,
+        message: error.message,
+        errorCode: 'storage-unavailable',
+      })
       return
     }
 
     console.error('Unexpected error in /api/site-insight', error)
-    sendJsonError(response, 500, 'Erreur interne lors de l’analyse.')
+    await sendSubmissionFailure(response, request, {
+      stage,
+      inputUrl: url,
+      statusCode: 500,
+      message: 'Erreur interne lors de l’analyse.',
+      errorCode: 'internal-error',
+    })
   }
+})
+
+// Relay for failures the API could not report itself (function killed by the platform
+// timeout, network loss, non-JSON gateway response). The URL is recorded, never fetched.
+app.post('/api/site-insight/failure-report', submissionFailureReportLimiter, async (request, response) => {
+  const rawUrl = request.body?.url
+  const rawStage = request.body?.stage
+  const rawKind = request.body?.kind
+  const rawStatus = request.body?.statusCode
+  const rawMessage = request.body?.message
+
+  if (
+    typeof rawUrl !== 'string' ||
+    !rawUrl.trim() ||
+    rawUrl.length > MAX_CLIENT_FAILURE_URL_LENGTH ||
+    !readSubmissionHost(rawUrl) ||
+    (rawStage !== 'preview' && rawStage !== 'confirmation') ||
+    typeof rawKind !== 'string' ||
+    !CLIENT_SUBMISSION_FAILURE_KINDS.has(rawKind)
+  ) {
+    sendJsonError(response, 400, 'Signalement invalide.')
+    return
+  }
+
+  const statusCode =
+    Number.isInteger(rawStatus) && rawStatus >= 0 && rawStatus <= 599 ? rawStatus : null
+  const message =
+    typeof rawMessage === 'string' && rawMessage.trim()
+      ? rawMessage.trim().slice(0, MAX_CLIENT_FAILURE_MESSAGE_LENGTH)
+      : null
+  const reference = buildSubmissionReference()
+
+  try {
+    await reportSubmissionFailure({
+      request,
+      stage: rawStage,
+      source: 'client',
+      inputUrl: rawUrl,
+      errorCode: `client-${rawKind}`,
+      statusCode,
+      message,
+      reference,
+    })
+  } catch (error) {
+    console.error('Unable to relay client submission failure', error)
+  }
+
+  response.status(202).json({ reference })
 })
 
 app.get('/api/moderation/pending', requireModerationAuth, async (request, response) => {
