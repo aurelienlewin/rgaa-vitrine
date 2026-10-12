@@ -7,6 +7,8 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+## [2026-10-13 / v0.8.0]
+
 ### Changed
 - Typographic system for the public pages (`docs/design-system.md`):
   - Type scale on an 8px vertical rhythm: `ui-h1` to `ui-h4`, `ui-lead` and `ui-small`, with every heading mapped onto it. The secondary page titles, previously pinned to 1.5rem by the first-paint shell, now match the homepage `h1`.
