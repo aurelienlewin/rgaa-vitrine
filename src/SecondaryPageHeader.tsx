@@ -12,8 +12,6 @@ type SecondaryPageHeaderProps = {
   navigationRef?: RefObject<HTMLElement | null>
 }
 
-const focusRingClass =
-  'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 
 function SecondaryPageHeader({
   title,
@@ -39,18 +37,23 @@ function SecondaryPageHeader({
   }, [])
 
   return (
-    <header className="app-secondary-header border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-950 dark:text-slate-50">
-      <div className="app-secondary-header__inner mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="app-secondary-header__top flex flex-wrap items-center gap-3">
-          <h1 className="app-secondary-header__title text-2xl font-bold">{title}</h1>
-        </div>
+    <header className="app-secondary-header border-b border-slate-200 bg-white text-slate-950">
+      <div className="ui-container py-4">
         <PrimaryNavigation
           currentPath={currentPath === null ? null : currentPath}
           navRef={navigationRef}
-          className="app-secondary-nav mt-4"
-          listClassName="app-secondary-nav__list flex flex-wrap items-center gap-2"
-          linkClassName={`app-secondary-nav__link inline-flex min-h-11 items-center rounded-xl border-2 border-slate-950 dark:border-slate-950 bg-slate-950 dark:bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-50 dark:text-slate-50 hover:bg-slate-800 dark:hover:bg-slate-800 ${focusRingClass}`}
+          className="app-secondary-nav"
+          listClassName="app-secondary-nav__list ui-nav-list"
+          linkClassName="app-secondary-nav__link ui-nav-link"
         />
+      </div>
+      <div className="app-secondary-header__inner ui-container pb-8 pt-4">
+        <div className="app-secondary-header__top">
+          <h1 className="app-secondary-header__title text-3xl font-bold tracking-tight">{title}</h1>
+        </div>
+        {description ? (
+          <p className="app-secondary-header__description ui-prose ui-muted mt-2">{description}</p>
+        ) : null}
         <GlobalSearchForm
           inputId="header-recherche-annuaire"
           searchValue={defaultSearchValues.searchQuery}
@@ -59,16 +62,10 @@ function SecondaryPageHeader({
           categoryOptions={showcaseCategories.map((category) => ({ value: category, label: formatCategory(category) }))}
           onReset={handleResetSearch}
           helperTextId="header-recherche-aide"
-          helperText="Astuce clavier: appuyez sur Échap dans le champ recherche pour effacer la saisie."
+          helperText="Astuce clavier : appuyez sur Échap dans le champ recherche pour effacer la saisie."
         />
-        {description ? (
-          <p className="app-secondary-header__description mt-2 max-w-3xl text-slate-700 dark:text-slate-300">
-            {description}
-          </p>
-        ) : null}
-        <p className="app-secondary-header__glossary mt-2 text-sm text-slate-700 dark:text-slate-300">
-          Glossaire: RGAA = Référentiel général d’amélioration de l’accessibilité, WCAG = Web Content Accessibility
-          Guidelines, UX = expérience utilisateur.
+        <p className="app-secondary-header__glossary ui-muted mt-3 text-sm">
+          Glossaire : RGAA = Référentiel général d’amélioration de l’accessibilité, WCAG = <span lang="en">Web Content Accessibility Guidelines</span>, UX = expérience utilisateur.
         </p>
       </div>
     </header>

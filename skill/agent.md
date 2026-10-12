@@ -112,3 +112,13 @@ Use this list as a rapid regression filter before running a full RGAA review.
 - `13.2`: every `target="_blank"` link states `(nouvel onglet)` visibly; when an `aria-label` exists, append the same suffix so the visible label stays in the accessible name (`2.5.3`).
 - `2.4.11`: measure skip-link trays with reduced motion emulated; their slide-in transition otherwise reads as off-screen focus.
 - Run `e2e/wcag22-regressions.spec.ts` before shipping UI changes on public or moderation routes.
+
+## Operational lessons learned (2026-10-12 « Sobre » redesign and RGAA re-audit)
+
+- Follow `docs/design-system.md`: links for navigation (underlined), buttons only for actions, one primary button per context, flat cards, no nested boxes.
+- Any in-place list update (search, filter, sort) must end with a polite status message; debounce while typing.
+- Never disable a focused control during an async action: use `aria-disabled` and guard the handler, or focus is lost to `body`.
+- Selects must not move focus on change (7.4 / 3.2.2); reserve focus moves for explicit button activations.
+- Skip links: same order on every page, same-page targets only, and render links to data-dependent sections only once they exist.
+- `aria-label` on a plain `p`/`div`/`span` is invalid ARIA: put the text in the content instead.
+- Re-run `e2e/rgaa-audit.spec.ts` and `e2e/wcag22-regressions.spec.ts` before shipping, and update `shared/accessibilityStatement.js` only from a completed audit (`docs/audits/`).

@@ -15,6 +15,7 @@ import {
   accessibilityEvaluationTools,
   accessibilityImplementationTechnologies as implementationTechnologies,
   accessibilityNonConformities as currentNonConformities,
+  accessibilityResolvedNonConformities as resolvedNonConformities,
 } from '../shared/accessibilityStatement.js'
 
 const focusRingClass =
@@ -162,7 +163,7 @@ function AccessibilityPage() {
 
   return (
     <>
-      <div
+      <nav
         className={skipLinksContainerClass}
         aria-label="Liens d’évitement"
       >
@@ -172,7 +173,7 @@ function AccessibilityPage() {
         <a href="#navigation-principale" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, navigationRef)}>
           Aller à la navigation principale
         </a>
-        <a href="/#moteur-recherche-global" className={skipLinkClass}>
+        <a href="#moteur-recherche-global" className={skipLinkClass}>
           Aller à la recherche annuaire
         </a>
         <a href="#non-conformites" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, reportRef)}>
@@ -187,19 +188,16 @@ function AccessibilityPage() {
         <a href="#pied-page" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, footerRef)}>
           Aller au pied de page
         </a>
-      </div>
+      </nav>
 
-      <div className="min-h-screen bg-brand-surface text-brand-ink">
+      <div className="min-h-screen bg-white text-brand-ink">
         <SecondaryPageHeader
           title="Déclaration d’accessibilité"
           navigationRef={navigationRef}
           description={
             <>
               Cette déclaration s’applique au site{' '}
-              <a
-                href="https://www.annuaire-rgaa.fr/"
-                className={`font-semibold underline decoration-2 underline-offset-2 ${focusRingClass}`}
-              >
+              <a href="https://www.annuaire-rgaa.fr/" className="font-semibold">
                 www.annuaire-rgaa.fr
               </a>{' '}
               et couvre les exigences du Référentiel général d’amélioration de l’accessibilité (RGAA).
@@ -212,118 +210,127 @@ function AccessibilityPage() {
           id="contenu-accessibilite"
           ref={mainRef}
           tabIndex={-1}
-          className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+          className={`ui-container space-y-12 py-10 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
         >
-          <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
-            <h2 className="text-xl font-semibold">État actuel</h2>
-            <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
-                <dt className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
-                  État de conformité
-                </dt>
-                <dd className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">{auditSummary.status}</dd>
-              </div>
-              <div className="rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
-                <dt className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
-                  Taux estimé
-                </dt>
-                <dd className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">
-                  {auditSummary.score}
-                </dd>
-              </div>
-            </dl>
-            <p className="mt-4 text-slate-700 dark:text-slate-300">
-              Audit de référence réalisé le <strong>{auditSummary.auditDate}</strong> sur la version en production
-              auditée à la date du contrôle ({auditSummary.scope}).
-            </p>
-            <ul className="mt-2 grid gap-1 text-sm text-slate-700 dark:text-slate-300">
-              {auditSummary.auditedPages.map((pageUrl) => (
-                <li key={pageUrl} className="wrap-anywhere">
-                  Page auditée:{' '}
-                  <a
-                    href={pageUrl}
-                    className={`font-semibold underline decoration-2 underline-offset-2 ${focusRingClass}`}
-                  >
-                    {readAuditedPageLabel(pageUrl)}
-                  </a>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-              {auditSummary.applicableCriteria}.
-            </p>
-            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-              Non-conformités en cours: {auditSummary.nonConformitiesCount}.
-            </p>
-            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-              Échantillon couvrant l’accueil, une page domaine multi-sites, une fiche site, le plan du site et la
-              déclaration d’accessibilité.
-            </p>
+          <section aria-labelledby="etat-titre">
+            <h2 id="etat-titre" className="ui-section-title">
+              État actuel
+            </h2>
+            <div className="ui-panel ui-prose mt-4">
+              <dl className="grid gap-2">
+                <div className="flex flex-wrap gap-x-2">
+                  <dt className="font-bold">État de conformité :</dt>
+                  <dd className="m-0">{auditSummary.status}</dd>
+                </div>
+                <div className="flex flex-wrap gap-x-2">
+                  <dt className="font-bold">Taux estimé :</dt>
+                  <dd className="m-0">{auditSummary.score}</dd>
+                </div>
+              </dl>
+            </div>
+            <div className="ui-prose mt-4 space-y-3">
+              <p>
+                Audit de référence réalisé le <strong>{auditSummary.auditDate}</strong> sur la version en production
+                auditée à la date du contrôle ({auditSummary.scope}).
+              </p>
+              <ul className="list-disc space-y-1 ps-5">
+                {auditSummary.auditedPages.map((pageUrl) => (
+                  <li key={pageUrl} className="wrap-anywhere">
+                    Page auditée : <a href={pageUrl}>{readAuditedPageLabel(pageUrl)}</a>
+                  </li>
+                ))}
+              </ul>
+              <p>{auditSummary.applicableCriteria}.</p>
+              <p>Non-conformités en cours : {auditSummary.nonConformitiesCount}.</p>
+              <p className="ui-muted">
+                Échantillon couvrant l’accueil, une page domaine multi-sites, une fiche site, le plan du site et la
+                déclaration d’accessibilité.
+              </p>
+            </div>
           </section>
 
           <section
             id="non-conformites"
             ref={reportRef}
             tabIndex={-1}
-            className={`mt-8 ${focusTargetScrollMarginClass} rounded-2xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-6 ${focusTargetClass}`}
+            className={`${focusTargetScrollMarginClass} ${focusTargetClass}`}
             aria-labelledby="non-conformites-titre"
           >
-            <h2 id="non-conformites-titre" className="text-xl font-semibold text-amber-900 dark:text-amber-100">
-              Non-conformités en cours de traitement
+            <h2 id="non-conformites-titre" className="ui-section-title">
+              {auditSummary.nonConformitiesTotal > 0 ? 'Non-conformités en cours de traitement' : 'Non-conformités'}
             </h2>
-            <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">
-              {auditSummary.nonConformitiesTotal} non-conformité(s) issues de l’audit de référence restent suivies
-              jusqu’au recontrôle.
-            </p>
-            <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">
-              État d’avancement: <strong>{auditSummary.remediationStatus}</strong>.
-            </p>
-            <ul className="mt-4 grid gap-3">
+            <div className="ui-prose mt-4 space-y-3">
+              <p>
+                {auditSummary.nonConformitiesTotal > 0
+                  ? `${auditSummary.nonConformitiesTotal} non-conformité(s) issues de l’audit de référence restent suivies jusqu’au recontrôle.`
+                  : `Aucune non-conformité relevée lors de l’audit du ${auditSummary.auditDate} (${auditSummary.applicableCriteria}).`}
+              </p>
+              <p>
+                État d’avancement : <strong>{auditSummary.remediationStatus}</strong>
+              </p>
+            </div>
+            {resolvedNonConformities.length > 0 ? (
+              <>
+                <h3 className="mt-6 text-lg font-bold">Non-conformités levées depuis l’audit précédent</h3>
+                <ul className="ui-prose mt-3 list-none space-y-4 p-0">
+                  {resolvedNonConformities.map((item) => (
+                    <li key={item.id} className="border-t border-slate-200 pt-3">
+                      <p className="font-bold">
+                        Critère {item.id} · {item.title}
+                      </p>
+                      <p className="mt-1 wrap-anywhere text-slate-800">{item.detail}</p>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            <ul className="ui-prose mt-6 list-none space-y-6 p-0 empty:hidden">
               {currentNonConformities.map((item) => (
-                <li key={item.id} className="rounded-xl border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 p-4">
-                  <p className="wrap-anywhere text-base font-semibold text-amber-900 dark:text-amber-100">
+                <li key={item.id} className="border-t border-slate-200 pt-4">
+                  <h3 className="wrap-anywhere text-lg font-bold text-slate-900">
                     Critère {item.id} · {item.title}
-                  </p>
-                  <p className="mt-1 wrap-anywhere text-sm text-slate-800 dark:text-slate-200">{item.detail}</p>
-                  <p className="mt-2 text-sm text-slate-800 dark:text-slate-200">
-                    Pages concernées: <strong>{item.impactedPages}</strong>
-                  </p>
-                  <p className="mt-2 text-sm text-slate-800 dark:text-slate-200">
-                    Statut: <strong>{item.status}</strong>
-                  </p>
+                  </h3>
+                  <p className="mt-1 wrap-anywhere text-slate-800">{item.detail}</p>
+                  <dl className="ui-meta mt-2">
+                    <div>
+                      <dt>Pages concernées :</dt>
+                      <dd className="wrap-anywhere">{item.impactedPages}</dd>
+                    </div>
+                    <div>
+                      <dt>Statut :</dt>
+                      <dd>{item.status}</dd>
+                    </div>
+                  </dl>
                 </li>
               ))}
             </ul>
           </section>
 
-          <section
-            className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
-            aria-labelledby="methodologie-titre"
-          >
-            <h2 id="methodologie-titre" className="text-xl font-semibold">
+          <section aria-labelledby="methodologie-titre">
+            <h2 id="methodologie-titre" className="ui-section-title">
               Technologies, environnement de test et outils
             </h2>
-            <p className="mt-2 text-slate-700 dark:text-slate-300">
+            <p className="ui-prose mt-4">
               Les éléments suivants décrivent la base technique réellement utilisée pour la réalisation du service
               et la campagne d’audit de référence du <strong>{auditSummary.auditDate}</strong>.
             </p>
 
-            <h3 className="mt-5 text-base font-semibold">Technologies utilisées pour la réalisation du site</h3>
-            <ul className="mt-2 list-disc space-y-1 ps-5 text-sm text-slate-700 dark:text-slate-300">
+            <h3 className="mt-6 text-lg font-bold">Technologies utilisées pour la réalisation du site</h3>
+            <ul className="ui-prose mt-2 list-disc space-y-1 ps-5">
               {implementationTechnologies.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
 
-            <h3 className="mt-5 text-base font-semibold">Environnement de test de référence</h3>
-            <ul className="mt-2 list-disc space-y-1 ps-5 text-sm text-slate-700 dark:text-slate-300">
+            <h3 className="mt-6 text-lg font-bold">Environnement de test de référence</h3>
+            <ul className="ui-prose mt-2 list-disc space-y-1 ps-5">
               {accessibilityAuditEnvironment.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
 
-            <h3 className="mt-5 text-base font-semibold">Outils utilisés pour évaluer l’accessibilité</h3>
-            <ul className="mt-2 list-disc space-y-1 ps-5 text-sm text-slate-700 dark:text-slate-300">
+            <h3 className="mt-6 text-lg font-bold">Outils utilisés pour évaluer l’accessibilité</h3>
+            <ul className="ui-prose mt-2 list-disc space-y-1 ps-5">
               {accessibilityEvaluationTools.map((item) => (
                 <li key={item}>{item}</li>
               ))}
@@ -334,78 +341,81 @@ function AccessibilityPage() {
             id="contact-accessibilite"
             ref={contactRef}
             tabIndex={-1}
-            className={`mt-8 ${focusTargetScrollMarginClass} rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetClass}`}
+            className={`${focusTargetScrollMarginClass} ${focusTargetClass}`}
             aria-labelledby="contact-titre"
           >
-            <h2 id="contact-titre" className="text-xl font-semibold">
+            <h2 id="contact-titre" className="ui-section-title">
               Retour d’information et contact
             </h2>
-            <p className="mt-2 text-slate-700 dark:text-slate-300">
-              Si vous ne parvenez pas à accéder à un contenu ou à une fonctionnalité, contactez le responsable du site
-              pour obtenir une alternative accessible.
-            </p>
-            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-              Les scores publiés dans l’annuaire sont déclarés par les organismes qui soumettent leur site. Ils sont
-              affichés à titre informatif et peuvent être réévalués sur demande motivée auprès de la modération.
-            </p>
-            <ul className="mt-4 grid gap-3">
-              <li className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Contact principal</p>
-                <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">Aurélien Lewin</p>
-              </li>
-              <li className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">E-mail</p>
-                <a
-                  href="mailto:aurelienlewin@proton.me"
-                  className={`mt-1 inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 wrap-anywhere font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
-                >
-                  aurelienlewin@proton.me
-                </a>
-              </li>
-              <li className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Profil public</p>
-                <a
-                  href="https://github.com/aurelienlewin"
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className={`mt-1 inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 wrap-anywhere font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
-                >
-                  Profil GitHub d’Aurélien Lewin (nouvel onglet)
-                </a>
-              </li>
-            </ul>
+            <div className="ui-prose mt-4 space-y-3">
+              <p>
+                Si vous ne parvenez pas à accéder à un contenu ou à une fonctionnalité, contactez le responsable du
+                site pour obtenir une alternative accessible.
+              </p>
+              <p className="ui-muted">
+                Les scores publiés dans l’annuaire sont déclarés par les organismes qui soumettent leur site. Ils sont
+                affichés à titre informatif et peuvent être réévalués sur demande motivée auprès de la modération.
+              </p>
+            </div>
+            <dl className="ui-prose mt-4 grid gap-3">
+              <div>
+                <dt className="font-bold">Contact principal</dt>
+                <dd className="m-0">Aurélien Lewin</dd>
+              </div>
+              <div>
+                <dt className="font-bold">E-mail</dt>
+                <dd className="m-0">
+                  <a href="mailto:aurelienlewin@proton.me" className="ui-action-link wrap-anywhere">
+                    aurelienlewin@proton.me
+                  </a>
+                </dd>
+              </div>
+              <div>
+                <dt className="font-bold">Profil public</dt>
+                <dd className="m-0">
+                  <a
+                    href="https://github.com/aurelienlewin"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="ui-action-link wrap-anywhere"
+                  >
+                    Profil GitHub d’Aurélien Lewin (nouvel onglet)
+                  </a>
+                </dd>
+              </div>
+            </dl>
           </section>
 
           <section
             id="voies-recours"
             ref={legalRef}
             tabIndex={-1}
-            className={`mt-8 ${focusTargetScrollMarginClass} rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetClass}`}
+            className={`${focusTargetScrollMarginClass} ${focusTargetClass}`}
             aria-labelledby="recours-titre"
           >
-            <h2 id="recours-titre" className="text-xl font-semibold">
+            <h2 id="recours-titre" className="ui-section-title">
               Voies de recours
             </h2>
-            <p className="mt-2 text-slate-700 dark:text-slate-300">
+            <p className="ui-prose mt-4">
               Si vous constatez un défaut d’accessibilité bloquant et que vous n’obtenez pas de réponse satisfaisante
               après contact, vous pouvez saisir le Défenseur des droits.
             </p>
-            <ul className="mt-4 list-disc space-y-2 ps-5 text-sm text-slate-700 dark:text-slate-300">
+            <ul className="ui-prose mt-4 list-disc space-y-1 ps-5">
               <li>
-                Formulaire en ligne:{' '}
+                Formulaire en ligne :{' '}
                 <a
                   href="https://formulaire.defenseurdesdroits.fr/"
                   target="_blank"
                   rel="noreferrer noopener"
-                  className={`wrap-anywhere underline decoration-2 underline-offset-2 ${focusRingClass}`}
+                  className="ui-action-link wrap-anywhere"
                 >
                   Formulaire du Défenseur des droits (nouvel onglet)
                 </a>
               </li>
-              <li>Courrier: Défenseur des droits, Libre réponse 71120, 75342 Paris CEDEX 07.</li>
+              <li>Courrier : Défenseur des droits, Libre réponse 71120, 75342 Paris CEDEX 07.</li>
               <li>
-                Téléphone:{' '}
-                <a href="tel:+33153732900" className={`underline decoration-2 underline-offset-2 ${focusRingClass}`}>
+                Téléphone :{' '}
+                <a href="tel:+33153732900" className="ui-action-link">
                   01 53 73 29 00
                 </a>
               </li>

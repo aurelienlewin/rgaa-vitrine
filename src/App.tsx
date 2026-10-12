@@ -213,9 +213,9 @@ async function postSubmissionRequest(
 }
 
 const statusClassByValue: Record<Exclude<ComplianceStatus, null>, string> = {
-  full: 'border border-emerald-700 bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100',
-  partial: 'border border-amber-700 bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-100',
-  none: 'border border-rose-700 bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-100',
+  full: 'ui-badge ui-badge-full',
+  partial: 'ui-badge ui-badge-partial',
+  none: 'ui-badge ui-badge-none',
 }
 
 const publicSubmissionCategoryFallback = 'Autre'
@@ -281,12 +281,6 @@ const githubProfile = {
 
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
-const ctaHoverClass = 'transition-colors duration-150 hover:underline'
-const ctaNeutralClass = `border-2 border-slate-950 dark:border-slate-950 bg-slate-950 dark:bg-slate-950 text-slate-50 dark:text-slate-50 hover:bg-slate-800 dark:hover:bg-slate-800 ${ctaHoverClass}`
-const ctaPrimaryClass = `border border-slate-950 dark:border-slate-50 bg-slate-950 dark:bg-slate-50 text-slate-50 dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-200 ${ctaHoverClass}`
-const ctaSkyClass = `border-2 border-sky-900 dark:border-sky-300 bg-sky-800 dark:bg-sky-100 text-white dark:text-sky-950 hover:bg-sky-900 dark:hover:bg-white ${ctaHoverClass}`
-const ctaConfirmClass = `border border-sky-800 dark:border-sky-200 bg-sky-800 dark:bg-sky-200 text-sky-50 dark:text-sky-950 hover:bg-sky-900 dark:hover:bg-sky-100 ${ctaHoverClass}`
-const ctaEmeraldClass = `border-2 border-emerald-900 dark:border-emerald-300 bg-emerald-800 dark:bg-emerald-100 text-white dark:text-emerald-950 hover:bg-emerald-900 dark:hover:bg-white ${ctaHoverClass}`
 const moderationContactPath = '/accessibilite#contact-accessibilite'
 const moderationContactEmail = 'mailto:aurelienlewin@proton.me'
 const skipLinksContainerClass =
@@ -321,8 +315,51 @@ const directorySortOptions: Array<{
     summaryLabel: 'score le plus faible d’abord',
   },
 ]
-const statsValueClass =
-  'mt-1 inline-flex min-h-8 min-w-[3ch] items-end text-2xl font-bold [font-variant-numeric:tabular-nums]'
+
+function CardThumbnail({ url }: { url: string | null }) {
+  return (
+    <div className="site-thumbnail-frame h-32 border-b border-slate-200">
+      {url ? (
+        <div className="site-thumbnail-canvas">
+          <img
+            src={url}
+            alt=""
+            aria-hidden="true"
+            className="site-thumbnail-image h-full w-full"
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+      ) : (
+        <p className="ui-muted text-sm">Aucune vignette disponible</p>
+      )}
+    </div>
+  )
+}
+
+// One readable line: status as text badge (colour only reinforces it), score and baseline as plain text.
+function ComplianceLine({
+  status,
+  statusLabel,
+  score,
+  rgaaLabel,
+}: {
+  status: ComplianceStatus
+  statusLabel: string | null
+  score: number | null
+  rgaaLabel: string
+}) {
+  return (
+    <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <span className={status ? statusClassByValue[status] : 'ui-badge ui-badge-unknown'}>
+        {status ? statusLabel : 'Niveau inconnu'}
+      </span>
+      <span className="font-semibold [font-variant-numeric:tabular-nums]">Score {formatScore(score)}</span>
+      <span className="ui-muted">{rgaaLabel}</span>
+    </p>
+  )
+}
 
 function DirectoryStatValue({ isLoading, value }: { isLoading: boolean; value: number }) {
   if (isLoading) {
@@ -1201,8 +1238,13 @@ function App() {
     setDirectoryPage(1)
   }, [])
 
+  // RGAA 7.5 / WCAG 4.1.3: search, filter and sort changes update the list in place, so the
+  // resulting summary is announced politely once the user pauses (debounced, no focus move).
+  const pendingResultsAnnouncementRef = useRef(false)
+
   const handleSearchQueryChange = useCallback(
     (nextQuery: string) => {
+      pendingResultsAnnouncementRef.current = true
       setSearchQuery(nextQuery)
       resetDirectoryPage()
     },
@@ -1211,6 +1253,7 @@ function App() {
 
   const handleStatusFilterChange = useCallback(
     (nextStatus: ShowcaseStatusFilter) => {
+      pendingResultsAnnouncementRef.current = true
       setStatusFilter(nextStatus)
       resetDirectoryPage()
     },
@@ -1219,6 +1262,7 @@ function App() {
 
   const handleCategoryFilterChange = useCallback(
     (nextCategory: string) => {
+      pendingResultsAnnouncementRef.current = true
       setCategoryFilter(nextCategory)
       resetDirectoryPage()
     },
@@ -1380,6 +1424,7 @@ function App() {
   const handleDirectorySortChange = useCallback(
     (event: ChangeEvent<HTMLSelectElement>) => {
       const nextSort = readDirectorySortFromQuery(event.target.value)
+      pendingResultsAnnouncementRef.current = true
       setDirectorySort(nextSort)
       setDirectoryPage(1)
       syncFiltersInUrl({
@@ -1393,8 +1438,20 @@ function App() {
     [categoryFilter, searchQuery, statusFilter, syncFiltersInUrl],
   )
 
+  useEffect(() => {
+    if (!pendingResultsAnnouncementRef.current || loadingDirectory) {
+      return undefined
+    }
+    const timeoutId = window.setTimeout(() => {
+      pendingResultsAnnouncementRef.current = false
+      announcePolite(directorySummaryText)
+    }, 700)
+    return () => window.clearTimeout(timeoutId)
+  }, [announcePolite, categoryFilter, directorySort, directorySummaryText, loadingDirectory, searchQuery, statusFilter])
+
   const handleDirectoryPageChange = useCallback(
-    (nextPage: number) => {
+    // A select change must not move focus (RGAA 7.4 / WCAG 3.2.2); buttons are explicit actions and may.
+    (nextPage: number, { moveFocus = true }: { moveFocus?: boolean } = {}) => {
       const clampedPage = Math.min(Math.max(nextPage, 1), totalDirectoryPages)
       if (clampedPage === currentDirectoryPage) {
         return
@@ -1417,7 +1474,9 @@ function App() {
               ? `Dernière page atteinte: page ${clampedPage} sur ${totalDirectoryPages}.`
               : `Page ${clampedPage} sur ${totalDirectoryPages}.`
       announcePolite(`Pagination appliquée. ${boundaryAnnouncement}`)
-      focusElement(resultsSummaryRef.current)
+      if (moveFocus) {
+        focusElement(resultsSummaryRef.current)
+      }
     },
     [
       announcePolite,
@@ -2224,7 +2283,7 @@ function App() {
 
   return (
     <>
-      <div
+      <nav
         className={skipLinksContainerClass}
         aria-label="Liens d’évitement"
       >
@@ -2249,9 +2308,9 @@ function App() {
         <a href="#pied-page" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, footerRef)}>
           Aller au pied de page
         </a>
-      </div>
+      </nav>
 
-      <div className="min-h-screen bg-brand-surface text-brand-ink">
+      <div className="min-h-screen bg-white text-brand-ink">
         <p
           key={`polite-announcement-${politeAnnouncement.id}`}
           role="status"
@@ -2270,44 +2329,37 @@ function App() {
         >
           {assertiveAnnouncement.message}
         </p>
-        <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-          <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap items-center gap-3">
-              <p className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Annuaire public RGAA</p>
-            </div>
+        <header className="app-site-header border-b border-slate-200 bg-white">
+          <div className="ui-container py-4">
             <PrimaryNavigation
               currentPath="/"
               navId="navigation-principale"
               navRef={primaryNavigationRef}
-              className="mt-4"
-              listClassName="flex flex-wrap items-center gap-2"
-              linkClassName={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+              listClassName="ui-nav-list"
+              linkClassName="ui-nav-link"
             />
-            <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+          </div>
+          <div className="ui-container pb-8 pt-4">
+            <div className="flex items-center gap-4">
               <img
                 src="/logo-rgaa-vitrine.svg"
-                alt="Icône Annuaire RGAA"
-                width={112}
-                height={112}
+                alt=""
+                width={64}
+                height={64}
                 fetchPriority="high"
-                className="h-28 w-28 flex-none rounded-2xl border-2 border-slate-800 dark:border-slate-200 bg-slate-900 dark:bg-slate-100 p-2"
+                className="h-16 w-16 flex-none rounded-md"
                 loading="eager"
               />
               <div className="min-w-0">
-                <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50">
-                  Annuaire RGAA
-                </h1>
-                <p className="mt-1 text-lg font-semibold text-slate-800 dark:text-slate-100">
-                  Le Référentiel général d’amélioration de l’accessibilité (RGAA), visible avec fierté.
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900">Annuaire RGAA</h1>
+                <p className="mt-1 text-lg text-slate-800">
+                  Les sites qui affichent leur conformité au Référentiel général d’amélioration de l’accessibilité.
                 </p>
-                <span className="mt-3 inline-flex min-h-10 items-center rounded-full border border-sky-300 dark:border-sky-600 bg-sky-50 dark:bg-sky-950 px-4 py-1 text-sm font-bold text-sky-900 dark:text-sky-100">
-                  Annuaire RGAA conforme
-                </span>
               </div>
             </div>
-            <p className="mt-4 max-w-4xl text-base text-slate-700 dark:text-slate-300">
+            <p className="ui-prose ui-muted mt-4">
               Une vitrine simple pour référencer et découvrir les sites qui affichent leur conformité RGAA, avec
-              filtres et recherche accessibles à tous, alignés sur les WCAG (Web Content Accessibility Guidelines) 2.2.
+              filtres et recherche accessibles à tous, alignés sur les WCAG (<span lang="en">Web Content Accessibility Guidelines</span>) 2.2.
             </p>
             <GlobalSearchForm
               inputId="accueil-recherche-annuaire"
@@ -2317,9 +2369,9 @@ function App() {
               categoryValue={categoryFilter}
               categoryOptions={categoryFilterOptions}
               searchInputRef={searchInputRef}
-              resultsTargetId="liste-vitrines"
+              resultsTargetId={filteredDirectoryItems.length > 0 ? 'liste-vitrines' : undefined}
               helperTextId="recherche-aide"
-              helperText="Astuce clavier: appuyez sur Échap dans le champ recherche pour effacer la saisie."
+              helperText="Astuce clavier : appuyez sur Échap dans le champ recherche pour effacer la saisie."
               onSearchChange={handleSearchQueryChange}
               onStatusChange={handleStatusFilterChange}
               onCategoryChange={handleCategoryFilterChange}
@@ -2335,38 +2387,38 @@ function App() {
           </div>
         </header>
 
-        <main id="contenu" ref={mainContentRef} tabIndex={-1} className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}>
-          <section aria-labelledby="annuaire-titre" className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
-            <h2 id="annuaire-titre" className="text-xl font-semibold">
-              Annuaire
+        <main id="contenu" ref={mainContentRef} tabIndex={-1} className={`ui-container space-y-12 py-10 ${focusTargetScrollMarginClass} ${focusTargetClass}`}>
+          <section aria-labelledby="annuaire-titre">
+            <h2 id="annuaire-titre" className="ui-section-title">
+              L’annuaire en chiffres
             </h2>
-            <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
-                <dt className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Fiches référencées</dt>
-                <dd className={`${statsValueClass} text-slate-900 dark:text-slate-50`}>
+            <dl className="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-base">
+              <div className="flex items-baseline gap-2">
+                <dt className="font-semibold">Fiches référencées</dt>
+                <dd className="text-xl font-bold [font-variant-numeric:tabular-nums]">
                   <DirectoryStatValue isLoading={loadingDirectory} value={directoryStats.total} />
                 </dd>
               </div>
-              <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950 px-4 py-3">
-                <dt className="text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-100">Totalement conformes</dt>
-                <dd className={`${statsValueClass} text-emerald-900 dark:text-emerald-100`}>
+              <div className="flex items-baseline gap-2">
+                <dt className="font-semibold">Totalement conformes</dt>
+                <dd className="text-xl font-bold [font-variant-numeric:tabular-nums]">
                   <DirectoryStatValue isLoading={loadingDirectory} value={directoryStats.full} />
                 </dd>
               </div>
-              <div className="rounded-xl bg-amber-50 dark:bg-amber-950 px-4 py-3">
-                <dt className="text-sm font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-100">Partiellement conformes</dt>
-                <dd className={`${statsValueClass} text-amber-900 dark:text-amber-100`}>
+              <div className="flex items-baseline gap-2">
+                <dt className="font-semibold">Partiellement conformes</dt>
+                <dd className="text-xl font-bold [font-variant-numeric:tabular-nums]">
                   <DirectoryStatValue isLoading={loadingDirectory} value={directoryStats.partial} />
                 </dd>
               </div>
-              <div className="rounded-xl bg-rose-50 dark:bg-rose-950 px-4 py-3">
-                <dt className="text-sm font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-100">Non conformes</dt>
-                <dd className={`${statsValueClass} text-rose-900 dark:text-rose-100`}>
+              <div className="flex items-baseline gap-2">
+                <dt className="font-semibold">Non conformes</dt>
+                <dd className="text-xl font-bold [font-variant-numeric:tabular-nums]">
                   <DirectoryStatValue isLoading={loadingDirectory} value={directoryStats.none} />
                 </dd>
               </div>
             </dl>
-            <p className="mt-4 rounded-xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-3 text-sm font-medium text-sky-900 dark:text-sky-100">
+            <p className="ui-prose ui-muted mt-3">
               Le score indique une direction. La vraie mesure, c’est un parcours client débloqué et une expérience
               utilisateur (UX) qui laisse passer chaque personne.
             </p>
@@ -2380,122 +2432,63 @@ function App() {
             aria-labelledby="galerie-titre"
             aria-busy={loadingDirectory}
           >
-            <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(19rem,3fr)] lg:auto-rows-fr lg:items-stretch">
-              <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-sm md:p-6">
-                <div className="space-y-3">
-                  <h2 id="galerie-titre" className="text-xl font-semibold text-slate-950 dark:text-slate-50">
-                    Résultats annuaire
-                  </h2>
-                  <p className="text-pretty text-slate-700 dark:text-slate-300">
-                    Le moteur de recherche global « Recherche globale dans l’annuaire » et ses filtres pilotent cette
-                    liste. Le lien d’évitement « Aller à la recherche annuaire » permet d’y revenir directement.
-                  </p>
-                </div>
-
-                {showcaseEntries.length > 0 && (
-                  <p className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                    Les scores affichés sont déclarés par les organismes qui soumettent leur site et sont publiés à titre
-                    informatif. Ils n’engagent pas la responsabilité éditoriale d’Annuaire RGAA. En cas de réévaluation
-                    documentée, vous pouvez{' '}
-                    <a href={moderationContactPath} className={`font-semibold underline ${focusRingClass}`}>
-                      contacter la modération
-                    </a>{' '}
-                    pour demander une mise à jour.
-                  </p>
-                )}
-
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div className="min-w-0">
+                <h2 id="galerie-titre" className="ui-section-title">
+                  Résultats annuaire
+                </h2>
                 <p
                   id="annuaire-resultats-resume"
                   ref={resultsSummaryRef}
                   tabIndex={-1}
-                  className="mt-4 min-h-[3rem] rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-700 dark:text-slate-300 [font-variant-numeric:tabular-nums] sm:min-h-6"
+                  className="ui-muted mt-2 [font-variant-numeric:tabular-nums]"
                 >
                   {directorySummaryText}
                 </p>
               </div>
-
-              <aside
-                aria-labelledby="annuaire-tri-resultats-legende"
-                className="rounded-3xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 p-4 shadow-sm md:p-5 lg:grid lg:content-center"
-              >
-                <p
-                  id="annuaire-tri-resultats-legende"
-                  className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300"
-                >
-                  Affichage
-                </p>
-                <label
-                  htmlFor="annuaire-tri-resultats"
-                  className="mt-3 block text-sm font-semibold text-slate-900 dark:text-slate-50"
-                >
+              <div>
+                <label htmlFor="annuaire-tri-resultats" className="ui-label">
                   Trier les résultats
                 </label>
-                <div className="relative mt-1">
-                  <select
-                    id="annuaire-tri-resultats"
-                    value={directorySort}
-                    onChange={handleDirectorySortChange}
-                    aria-describedby="annuaire-tri-resultats-aide annuaire-resultats-resume"
-                    className={`min-h-11 w-full rounded-xl border-2 border-slate-900 dark:border-slate-50 bg-white dark:bg-slate-950 px-3 py-2 text-sm font-semibold text-slate-950 dark:text-slate-50 shadow-sm ${focusRingClass}`}
-                  >
-                    {directorySortOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <p id="annuaire-tri-resultats-aide" className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                <select
+                  id="annuaire-tri-resultats"
+                  value={directorySort}
+                  onChange={handleDirectorySortChange}
+                  aria-describedby="annuaire-tri-resultats-aide annuaire-resultats-resume"
+                  className="ui-field mt-1 w-auto min-w-64"
+                >
+                  {directorySortOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <p id="annuaire-tri-resultats-aide" className="sr-only">
                   Le tri met à jour immédiatement la liste « Résultats annuaire » sans déplacer le focus clavier.
                 </p>
-              </aside>
+              </div>
             </div>
 
-            {loadingDirectory && (
-              <section
-                className="mt-4 rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4 shadow-sm"
-                aria-labelledby="annuaire-chargement-titre"
-              >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <h3
-                      id="annuaire-chargement-titre"
-                      className="text-base font-semibold text-sky-900 dark:text-sky-100"
-                    >
-                      Chargement de l’annuaire en cours
-                    </h3>
-                    <p className="text-sm text-sky-900 dark:text-sky-100">
-                      Les fiches publiques arrivent. Cela peut prendre quelques secondes sur une connexion lente.
-                    </p>
-                  </div>
-                  <span
-                    className="inline-flex min-h-10 items-center rounded-full border border-sky-300 dark:border-sky-600 bg-white/70 dark:bg-slate-900/50 px-4 py-1 text-sm font-semibold text-sky-900 dark:text-sky-100"
-                  >
-                    Patientez…
-                  </span>
-                </div>
+            {showcaseEntries.length > 0 && (
+              <p className="ui-prose ui-muted mt-3 text-sm">
+                Les scores affichés sont déclarés par les organismes qui soumettent leur site et sont publiés à titre
+                informatif. Ils n’engagent pas la responsabilité éditoriale d’Annuaire RGAA. En cas de réévaluation
+                documentée, vous pouvez{' '}
+                <a href={moderationContactPath} className="font-semibold">
+                  contacter la modération
+                </a>{' '}
+                ou soumettre de nouveau le site pour actualiser son score.
+              </p>
+            )}
 
-                <div aria-hidden="true" className="mt-4 grid gap-4 md:grid-cols-2">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <div
-                      key={`loading-directory-card-${index}`}
-                      className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4"
-                    >
-                      <div className="flex flex-wrap gap-2">
-                        <div className="h-8 w-28 rounded-full bg-slate-200 dark:bg-slate-700" />
-                        <div className="h-8 w-24 rounded-full bg-slate-200 dark:bg-slate-700" />
-                        <div className="h-8 w-32 rounded-full bg-slate-200 dark:bg-slate-700" />
-                      </div>
-                      <div className="mt-4 h-7 w-48 max-w-full rounded bg-slate-200 dark:bg-slate-700" />
-                      <div className="mt-3 h-5 w-full rounded bg-slate-200 dark:bg-slate-700" />
-                      <div className="mt-2 h-5 w-40 max-w-full rounded bg-slate-200 dark:bg-slate-700" />
-                      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        <div className="h-11 rounded-xl bg-slate-200 dark:bg-slate-700" />
-                        <div className="h-11 rounded-xl bg-slate-200 dark:bg-slate-700" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {loadingDirectory && (
+              <section className="ui-panel mt-6" aria-labelledby="annuaire-chargement-titre">
+                <h3 id="annuaire-chargement-titre" className="font-semibold">
+                  Chargement de l’annuaire en cours
+                </h3>
+                <p className="ui-muted mt-1">
+                  Les fiches publiques arrivent. Cela peut prendre quelques secondes sur une connexion lente.
+                </p>
               </section>
             )}
 
@@ -2519,7 +2512,7 @@ function App() {
             )}
 
             {filteredDirectoryItems.length > 0 && (
-              <ul id="liste-vitrines" tabIndex={-1} className={`mt-4 grid gap-5 md:grid-cols-2 ${focusTargetScrollMarginClass} ${focusTargetClass}`}>
+              <ul id="liste-vitrines" tabIndex={-1} className={`mt-6 grid gap-6 md:grid-cols-2 ${focusTargetScrollMarginClass} ${focusTargetClass}`}>
                 {visibleDirectoryItems.map((item) => {
                   if (item.kind === 'group') {
                     const primaryEntry = item.primaryEntry ?? item.children[0] ?? null
@@ -2528,119 +2521,42 @@ function App() {
                     }
 
                     const rgaaBadge = getRgaaBadgePresentation(primaryEntry.rgaaBaseline)
-                    const domId = toDomSafeIdSegment(`group-${item.groupSlug}`)
-                    const badgeDescriptionId = `rgaa-badge-description-${domId}`
                     const summaryId = `resume-domaine-${item.groupSlug}`
 
                     return (
-                      <li
-                        key={`group-${item.groupSlug}`}
-                        className="@container overflow-hidden rounded-3xl border-2 border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 shadow-sm shadow-slate-950/5"
-                      >
-                      <article className="flex h-full flex-col">
-                        <div className="site-thumbnail-frame h-44 overflow-hidden border-b border-slate-200 dark:border-slate-700">
-                          {primaryEntry.thumbnailUrl ? (
-                            <div className="site-thumbnail-canvas">
-                              <img
-                                src={primaryEntry.thumbnailUrl}
-                                alt=""
-                                aria-hidden="true"
-                                className="site-thumbnail-image h-full w-full"
-                                loading="lazy"
-                                decoding="async"
-                                referrerPolicy="no-referrer"
-                              />
-                            </div>
-                          ) : (
-                            <div className="site-thumbnail-canvas flex items-center justify-center bg-linear-to-br from-sky-50 via-white to-emerald-50 px-3 text-center text-sm font-medium text-slate-800 dark:from-sky-950 dark:via-slate-900 dark:to-emerald-950 dark:text-slate-100">
-                              Aucune vignette disponible
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex flex-1 flex-col gap-4 p-4">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex min-h-8 items-center rounded-full border border-sky-700 dark:border-sky-300 bg-sky-100 dark:bg-sky-950 px-3 py-1 text-sm font-semibold text-sky-900 dark:text-sky-100">
-                              Domaine multi-sites
-                            </span>
-                            {primaryEntry.complianceStatus ? (
-                              <span
-                                className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${statusClassByValue[primaryEntry.complianceStatus]}`}
-                              >
-                                {primaryEntry.complianceStatusLabel}
-                              </span>
-                            ) : (
-                              <span className="inline-flex min-h-8 items-center rounded-full border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-50">
-                                Niveau inconnu
-                              </span>
-                            )}
-                            <span
-                              className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${rgaaBadge.className}`}
-                              aria-label={rgaaBadge.ariaLabel}
-                              aria-describedby={badgeDescriptionId}
-                            >
-                              {rgaaBadge.shortLabel}
-                            </span>
-                            <span className="inline-flex min-h-8 items-center rounded-full border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                              Score {formatScore(primaryEntry.complianceScore)}
-                            </span>
-                            <span className="inline-flex min-h-8 items-center rounded-full border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                              {item.totalSiteCount} fiche(s) publiées
-                            </span>
-                          </div>
-
-                          <header className="space-y-2">
-                            <h3 className="text-lg font-bold leading-tight text-slate-900 dark:text-slate-50">
-                              {primaryEntry.siteTitle}
+                      <li key={`group-${item.groupSlug}`} className="ui-card flex flex-col overflow-hidden">
+                        <article className="flex h-full flex-col">
+                          <CardThumbnail url={primaryEntry.thumbnailUrl} />
+                          <div className="flex flex-1 flex-col gap-3 p-5">
+                            <h3 className="text-lg font-bold leading-snug">
+                              <a href={item.groupPath} aria-describedby={summaryId}>
+                                {item.registrableDomain} : {item.totalSiteCount} sites référencés
+                              </a>
                             </h3>
-                            <p className="wrap-anywhere rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-200">
-                              {primaryEntry.normalizedUrl}
+                            <p className="ui-muted">Site principal : {primaryEntry.siteTitle}</p>
+                            <ComplianceLine
+                              status={primaryEntry.complianceStatus}
+                              statusLabel={primaryEntry.complianceStatusLabel}
+                              score={primaryEntry.complianceScore}
+                              rgaaLabel={rgaaBadge.shortLabel}
+                            />
+                            <dl className="ui-meta">
+                              <div>
+                                <dt>Catégorie :</dt>
+                                <dd>{formatCategory(primaryEntry.category)}</dd>
+                              </div>
+                              <div>
+                                <dt>Mise à jour :</dt>
+                                <dd>{formatDate(item.updatedAt)}</dd>
+                              </div>
+                            </dl>
+                            <p id={summaryId} className="ui-muted text-sm">
+                              Domaine racine : {item.registrableDomain}.
+                              {item.matchingSiteCount < item.totalSiteCount
+                                ? ` ${item.matchingSiteCount} fiche(s) de ce domaine correspondent aux filtres actuels.`
+                                : ''}
                             </p>
-                            <p id={summaryId} className="text-sm text-slate-700 dark:text-slate-300">
-                              Domaine racine: <strong>{item.registrableDomain}</strong>. {item.totalSiteCount} fiche(s)
-                              publiée(s) pour ce domaine. Dernière mise à jour: {formatDate(item.updatedAt)}.
-                            </p>
-                            {item.matchingSiteCount < item.totalSiteCount ? (
-                              <p className="text-sm text-slate-700 dark:text-slate-300">
-                                {item.matchingSiteCount} fiche(s) de ce domaine correspondent aux filtres actuels.
-                              </p>
-                            ) : null}
-                          </header>
-
-                          <dl className="grid grid-cols-1 gap-2 @md:grid-cols-2">
-                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2">
-                              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
-                                Catégorie
-                              </dt>
-                              <dd className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-50">
-                                {formatCategory(primaryEntry.category)}
-                              </dd>
-                            </div>
-                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2">
-                              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
-                                Mise à jour
-                              </dt>
-                              <dd className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-50">
-                                {formatDate(primaryEntry.updatedAt)}
-                              </dd>
-                            </div>
-                          </dl>
-
-                          <p id={badgeDescriptionId} className="text-sm text-slate-700 dark:text-slate-300">
-                            {rgaaBadge.description}
-                          </p>
-
-                          <div className="mt-auto">
-                            <a
-                              href={item.groupPath}
-                              aria-label={`Voir les ${item.totalSiteCount} fiches du domaine ${item.registrableDomain}`}
-                              aria-describedby={summaryId}
-                              className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
-                            >
-                              Voir les {item.totalSiteCount} fiches du domaine
-                            </a>
                           </div>
-                        </div>
                         </article>
                       </li>
                     )
@@ -2649,169 +2565,92 @@ function App() {
                   const entry = item.entry
                   const rgaaBadge = getRgaaBadgePresentation(entry.rgaaBaseline)
                   const domId = toDomSafeIdSegment(entry.normalizedUrl)
-                  const badgeDescriptionId = `rgaa-badge-description-${domId}`
                   const votesDescriptionId = `votes-${domId}`
 
                   return (
-                    <li
-                      key={entry.normalizedUrl}
-                      className="@container overflow-hidden rounded-3xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm shadow-slate-950/5"
-                    >
+                    <li key={entry.normalizedUrl} className="ui-card flex flex-col overflow-hidden">
                       <article className="flex h-full flex-col">
-                        <div className="site-thumbnail-frame h-44 overflow-hidden border-b border-slate-200 dark:border-slate-700">
-                          {entry.thumbnailUrl ? (
-                            <div className="site-thumbnail-canvas">
-                              <img
-                                src={entry.thumbnailUrl}
-                                alt=""
-                                aria-hidden="true"
-                                className="site-thumbnail-image h-full w-full"
-                                loading="lazy"
-                                decoding="async"
-                                referrerPolicy="no-referrer"
-                              />
-                            </div>
-                          ) : (
-                            <div className="site-thumbnail-canvas flex items-center justify-center px-3 text-center text-sm font-medium text-slate-800 dark:text-slate-100">
-                              Aucune vignette disponible
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex flex-1 flex-col gap-4 p-4">
-                          <div className="flex flex-wrap items-center gap-2">
-                            {entry.complianceStatus ? (
-                              <span
-                                className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${statusClassByValue[entry.complianceStatus]}`}
-                              >
-                                {entry.complianceStatusLabel}
-                              </span>
-                            ) : (
-                              <span className="inline-flex min-h-8 items-center rounded-full border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-50">
-                                Niveau inconnu
-                              </span>
-                            )}
-                            <span
-                              className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${rgaaBadge.className}`}
-                              aria-label={rgaaBadge.ariaLabel}
-                              aria-describedby={badgeDescriptionId}
-                            >
-                              {rgaaBadge.shortLabel}
-                            </span>
-                            <span className="inline-flex min-h-8 items-center rounded-full border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                              Score {formatScore(entry.complianceScore)}
-                            </span>
-                          </div>
-
-                          <header className="space-y-2">
-                            <h3 className="text-lg font-bold leading-tight text-slate-900 dark:text-slate-50">
+                        <CardThumbnail url={entry.thumbnailUrl} />
+                        <div className="flex flex-1 flex-col gap-3 p-5">
+                          <h3 className="text-lg font-bold leading-snug">
+                            <a href={entry.profilePath ?? resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug)}>
                               {entry.siteTitle}
-                            </h3>
-                            <p className="wrap-anywhere rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-200">
-                              {entry.normalizedUrl}
-                            </p>
-                          </header>
-
-                          <dl className="grid grid-cols-1 gap-2 @md:grid-cols-2">
-                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2">
-                              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
-                                Catégorie
-                              </dt>
-                              <dd className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-50">
-                                {formatCategory(entry.category)}
-                              </dd>
+                            </a>
+                          </h3>
+                          <p className="ui-muted wrap-anywhere text-sm">{entry.normalizedUrl}</p>
+                          <ComplianceLine
+                            status={entry.complianceStatus}
+                            statusLabel={entry.complianceStatusLabel}
+                            score={entry.complianceScore}
+                            rgaaLabel={rgaaBadge.shortLabel}
+                          />
+                          <dl className="ui-meta">
+                            <div>
+                              <dt>Catégorie :</dt>
+                              <dd>{formatCategory(entry.category)}</dd>
                             </div>
-                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2">
-                              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
-                                Mise à jour
-                              </dt>
-                              <dd className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-50">
-                                {formatDate(entry.updatedAt)}
-                              </dd>
+                            <div>
+                              <dt>Mise à jour :</dt>
+                              <dd>{formatDate(entry.updatedAt)}</dd>
                             </div>
                           </dl>
 
-                          <p
-                            id={badgeDescriptionId}
-                            className="text-sm text-slate-700 dark:text-slate-300"
-                          >
-                            {rgaaBadge.description}
-                          </p>
-
-                          <div className="mt-auto space-y-3">
-                            <div className="@container grid grid-cols-1 gap-2 @sm:grid-cols-2">
-                              <a
-                                href={entry.profilePath ?? resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug)}
-                                aria-label={`Ouvrir la fiche annuaire de ${entry.siteTitle}`}
-                                className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
-                              >
-                                Voir la fiche annuaire
-                              </a>
-                              <a
-                                href={entry.normalizedUrl}
-                                target="_blank"
-                                rel="noopener external"
-                                referrerPolicy="strict-origin-when-cross-origin"
-                                aria-label={`Visiter le site ${entry.siteTitle} (nouvel onglet)`}
-                                className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
-                              >
-                                Visiter le site (nouvel onglet)
-                              </a>
-                              {entry.accessibilityPageUrl ? (
+                          <div className="mt-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-slate-200 pt-3">
+                            <ul className="ui-actions">
+                              <li>
                                 <a
-                                  href={entry.accessibilityPageUrl}
+                                  href={entry.normalizedUrl}
                                   target="_blank"
                                   rel="noopener external"
                                   referrerPolicy="strict-origin-when-cross-origin"
-                                  aria-label={`Ouvrir la déclaration d’accessibilité de ${entry.siteTitle} (nouvel onglet)`}
-                                  className={`@sm:col-span-2 inline-flex min-h-11 w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold ${ctaEmeraldClass} ${focusRingClass}`}
+                                  className="ui-action-link"
                                 >
-                                  Déclaration d’accessibilité (nouvel onglet)
+                                  Visiter le site (nouvel onglet)
+                                  <span className="sr-only"> : {entry.siteTitle}</span>
                                 </a>
-                              ) : (
-                                <span className="@sm:col-span-2 inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-600 dark:border-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                  Déclaration non détectée
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-2">
-                              <button
-                                type="button"
-                                onClick={() => void handleUpvote(entry)}
-                                disabled={entry.votesBlocked || upvotePendingByUrl[entry.normalizedUrl]}
-                                aria-pressed={entry.hasUpvoted}
-                                aria-describedby={votesDescriptionId}
-                                aria-label={`${
-                                  entry.votesBlocked
-                                    ? 'Votes indisponibles pour'
-                                    : entry.hasUpvoted
-                                      ? 'Retirer mon vote pour'
-                                      : 'Voter pour'
-                                } ${entry.siteTitle}. ${entry.upvoteCount} vote(s).`}
-                                className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold ${
-                                      entry.votesBlocked
-                                    ? 'border-slate-400 dark:border-slate-600 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                                    : entry.hasUpvoted
-                                      ? 'border-emerald-500 dark:border-emerald-600 bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100'
-                                      : 'border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50'
-                                } disabled:cursor-not-allowed disabled:opacity-100 ${focusRingClass}`}
-                              >
-                                <span aria-hidden="true">{entry.votesBlocked ? '◌' : entry.hasUpvoted ? '▲' : '△'}</span>
-                                <span>
-                                  {entry.votesBlocked
-                                    ? 'Votes indisponibles'
-                                    : entry.hasUpvoted
-                                      ? 'Retirer mon vote'
-                                      : 'Soutenir ce site'}
-                                </span>
-                              </button>
-                              <span
-                                id={votesDescriptionId}
-                                className="inline-flex min-h-8 items-center rounded-full border border-slate-400 dark:border-slate-500 bg-white dark:bg-slate-900 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200"
-                              >
-                                {entry.upvoteCount} vote(s)
+                              </li>
+                              <li>
+                                {entry.accessibilityPageUrl ? (
+                                  <a
+                                    href={entry.accessibilityPageUrl}
+                                    target="_blank"
+                                    rel="noopener external"
+                                    referrerPolicy="strict-origin-when-cross-origin"
+                                    className="ui-action-link"
+                                  >
+                                    Déclaration d’accessibilité (nouvel onglet)
+                                    <span className="sr-only"> : {entry.siteTitle}</span>
+                                  </a>
+                                ) : (
+                                  <span className="ui-muted inline-flex min-h-11 items-center text-sm">
+                                    Déclaration non détectée
+                                  </span>
+                                )}
+                              </li>
+                            </ul>
+                            <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => void handleUpvote(entry)}
+                              disabled={entry.votesBlocked}
+                              aria-disabled={upvotePendingByUrl[entry.normalizedUrl] ? true : undefined}
+                              aria-pressed={entry.hasUpvoted}
+                              aria-describedby={votesDescriptionId}
+                              className="ui-button ui-button-secondary px-3 text-sm"
+                            >
+                              <span aria-hidden="true">{entry.votesBlocked ? '◌' : entry.hasUpvoted ? '▲' : '△'}</span>
+                              <span>
+                                {entry.votesBlocked
+                                  ? 'Votes indisponibles'
+                                  : entry.hasUpvoted
+                                    ? 'Retirer mon vote'
+                                    : 'Soutenir ce site'}
                               </span>
+                              <span className="sr-only"> : {entry.siteTitle}</span>
+                            </button>
+                            <span id={votesDescriptionId} className="ui-muted text-sm [font-variant-numeric:tabular-nums]">
+                              {entry.upvoteCount} vote(s)
+                            </span>
                             </div>
                           </div>
                         </div>
@@ -2823,24 +2662,18 @@ function App() {
             )}
 
             {filteredDirectoryItems.length > 0 && totalDirectoryPages > 1 && (
-              <nav
-                aria-label="Pagination des résultats annuaire"
-                className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3"
-              >
+              <nav aria-label="Pagination des résultats annuaire" className="mt-8 border-t border-slate-200 pt-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <button
                     type="button"
                     onClick={() => handleDirectoryPageChange(currentDirectoryPage - 1)}
                     disabled={currentDirectoryPage <= 1}
                     aria-controls="liste-vitrines"
-                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                    className="ui-button ui-button-secondary"
                   >
                     Page précédente
                   </button>
-                  <p
-                    id="annuaire-pagination-info"
-                    className="rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200"
-                  >
+                  <p id="annuaire-pagination-info" className="font-semibold [font-variant-numeric:tabular-nums]">
                     Page {currentDirectoryPage} sur {totalDirectoryPages}
                   </p>
                   <button
@@ -2848,24 +2681,24 @@ function App() {
                     onClick={() => handleDirectoryPageChange(currentDirectoryPage + 1)}
                     disabled={currentDirectoryPage >= totalDirectoryPages}
                     aria-controls="liste-vitrines"
-                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                    className="ui-button ui-button-secondary"
                   >
                     Page suivante
                   </button>
                 </div>
                 <div className="mt-3">
-                  <label htmlFor="annuaire-pagination-select" className="block text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  <label htmlFor="annuaire-pagination-select" className="ui-label">
                     Aller directement à une page
                   </label>
                   <select
                     id="annuaire-pagination-select"
                     value={currentDirectoryPage}
                     onChange={(event) => {
-                      handleDirectoryPageChange(Number(event.target.value))
+                      handleDirectoryPageChange(Number(event.target.value), { moveFocus: false })
                     }}
                     aria-controls="liste-vitrines"
                     aria-describedby="annuaire-pagination-info annuaire-resultats-resume"
-                    className={`mt-1 min-h-11 w-full rounded-xl border-2 border-slate-900 dark:border-slate-50 bg-white dark:bg-slate-950 px-3 py-2 text-sm font-semibold text-slate-950 dark:text-slate-50 ${focusRingClass}`}
+                    className="ui-field mt-1 w-auto min-w-48"
                   >
                     {Array.from({ length: totalDirectoryPages }, (_, index) => {
                       const pageNumber = index + 1
@@ -2885,50 +2718,47 @@ function App() {
             id="aide-accessibilite"
             ref={helpSectionRef}
             tabIndex={-1}
-            className={`mt-8 rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+            className={`${focusTargetScrollMarginClass} ${focusTargetClass}`}
             aria-labelledby="aide-titre"
           >
-            <h2 id="aide-titre" className="text-xl font-semibold text-sky-900 dark:text-sky-100">
+            <h2 id="aide-titre" className="ui-section-title">
               Aide accessibilité et repères WCAG 2.2
             </h2>
-            <p className="mt-2 text-sky-900 dark:text-sky-100">
+            <p className="ui-prose mt-2">
               Cette vitrine suit les recommandations WCAG 2.2 pour un usage clavier, des cibles interactives plus
               confortables et des retours clairs pour toutes et tous.
             </p>
-            <ul className="mt-3 list-disc space-y-1 ps-5 text-sm text-sky-900 dark:text-sky-100">
+            <ul className="ui-prose mt-3 list-disc space-y-1 ps-5">
               <li>Focus clavier visible et non masqué sur les contrôles interactifs.</li>
               <li>Cibles pointeur suffisantes pour limiter les erreurs de sélection.</li>
               <li>Point d’aide cohérent et retrouvé au même endroit dans l’interface.</li>
             </ul>
-            <div className="mt-4 grid gap-3">
+            <h3 className="mt-6 text-lg font-bold">Références WCAG</h3>
+            <ul className="mt-2">
               {wcagResources.map((resource) => (
-                <a
-                  key={resource.url}
-                  href={resource.url}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 font-semibold ${ctaSkyClass} ${focusRingClass}`}
-                >
-                  {resource.label} (nouvel onglet)
-                </a>
+                <li key={resource.url}>
+                  <a href={resource.url} target="_blank" rel="noreferrer noopener" className="ui-action-link">
+                    {resource.label} (nouvel onglet)
+                  </a>
+                </li>
               ))}
-            </div>
+            </ul>
           </section>
 
           <section
             id="ajout-site"
             ref={formSectionRef}
             tabIndex={-1}
-            className={`mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+            className={`ui-panel p-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
             aria-labelledby="formulaire-titre"
           >
-            <h2 id="formulaire-titre" className="text-xl font-semibold">
+            <h2 id="formulaire-titre" className="ui-section-title">
               Ajouter un site
             </h2>
-            <p id="url-help" className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+            <p id="url-help" className="ui-prose mt-2">
               Ajoutez une URL pour enrichir l’annuaire. Les métadonnées publiques seront récupérées automatiquement.
             </p>
-            <p id="url-format-help" className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+            <p id="url-format-help" className="ui-muted mt-1">
               Format recommandé: <strong>https://www.exemple.fr</strong>
             </p>
 
@@ -2950,8 +2780,8 @@ function App() {
               </div>
 
               <div>
-                <label htmlFor="url" className="block text-sm font-medium">
-                  URL du site
+                <label htmlFor="url" className="ui-label">
+                  URL du site (obligatoire)
                 </label>
                 <input
                   ref={urlInputRef}
@@ -2981,12 +2811,12 @@ function App() {
                   onInput={(event) => {
                     event.currentTarget.setCustomValidity('')
                   }}
-                  className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 user-invalid:border-rose-700 dark:user-invalid:border-rose-500 user-valid:border-emerald-700 dark:user-valid:border-emerald-500 bg-white dark:bg-slate-900 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
+                  className="ui-field mt-1 user-invalid:border-rose-700"
                 />
               </div>
 
               <div>
-                <label htmlFor="categorie-site-select" className="block text-sm font-medium">
+                <label htmlFor="categorie-site-select" className="ui-label">
                   Catégorie
                 </label>
                 <select
@@ -3017,7 +2847,7 @@ function App() {
                 type="submit"
                 disabled={isSubmissionBusy}
                 aria-describedby="preanalyse-help"
-                className={`min-h-11 rounded-xl px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 md:self-end ${ctaPrimaryClass} ${focusRingClass}`}
+                className="ui-button ui-button-primary md:self-end"
               >
                 {isPreAnalyzing ? 'Pré-analyse...' : isSubmitConfirmationStep ? 'Relancer la pré-analyse' : 'Lancer la pré-analyse'}
               </button>
@@ -3124,7 +2954,7 @@ function App() {
                       void handleConfirmSubmission()
                     }}
                     disabled={isSubmissionBusy}
-                    className={`min-h-11 rounded-xl px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${ctaConfirmClass} ${focusRingClass}`}
+                    className="ui-button ui-button-primary"
                   >
                     {isConfirmingSubmission ? 'Envoi...' : 'Confirmer l’envoi'}
                   </button>
@@ -3132,7 +2962,7 @@ function App() {
                     type="button"
                     onClick={handleCancelSubmissionConfirmation}
                     disabled={isSubmissionBusy}
-                    className={`min-h-11 rounded-xl px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-600 disabled:text-slate-100 disabled:opacity-100 ${ctaNeutralClass} ${focusRingClass}`}
+                    className="ui-button ui-button-secondary"
                   >
                     Modifier les informations
                   </button>
@@ -3193,7 +3023,7 @@ function App() {
                           submissionFeedback.entry.slug,
                         )
                       }
-                      className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                      className="ui-action-link"
                     >
                       Voir la fiche existante
                     </a>
@@ -3201,27 +3031,27 @@ function App() {
                   {submissionFeedback.entry.domainContext?.groupPath ? (
                     <a
                       href={submissionFeedback.entry.domainContext.groupPath}
-                      className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                      className="ui-action-link"
                     >
                       Voir le domaine multi-sites
                     </a>
                   ) : null}
                   <a
                     href={moderationContactPath}
-                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
+                    className="ui-action-link"
                   >
                     Contacter la modération
                   </a>
                   <a
                     href={moderationContactEmail}
-                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
+                    className="ui-action-link"
                   >
                     Envoyer un e-mail
                   </a>
                   <button
                     type="button"
                     onClick={handleDismissSubmissionFeedback}
-                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                    className="ui-button ui-button-secondary"
                   >
                     Fermer ce message
                   </button>
@@ -3266,7 +3096,7 @@ function App() {
                   <button
                     type="button"
                     onClick={handleDismissSubmitError}
-                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                    className="ui-button ui-button-secondary"
                   >
                     Fermer ce message
                   </button>
@@ -3341,7 +3171,7 @@ function App() {
                   <button
                     type="button"
                     onClick={handleRefreshAfterSuccess}
-                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaNeutralClass} ${focusRingClass}`}
+                    className="ui-button ui-button-secondary"
                   >
                     Rafraîchir la page
                   </button>
@@ -3350,22 +3180,19 @@ function App() {
             )}
           </section>
 
-          <section id="ressources-officielles" tabIndex={-1} className={`mt-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`} aria-labelledby="sources-titre">
-            <h2 id="sources-titre" className="text-xl font-semibold">
+          <section id="ressources-officielles" tabIndex={-1} className={`${focusTargetScrollMarginClass} ${focusTargetClass}`} aria-labelledby="sources-titre">
+            <h2 id="sources-titre" className="ui-section-title">
               Ressources officielles RGAA
             </h2>
-            <p className="mt-2 text-slate-700 dark:text-slate-300">
+            <p className="ui-prose mt-2">
               Pour les personnes concernées, les équipes produit et les passionnés, voici les références publiques
               utilisées pour guider la qualité du répertoire.
             </p>
-            <aside
-              className="mt-4 rounded-xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4"
-              aria-labelledby="rgaa5-focus-titre"
-            >
-              <h3 id="rgaa5-focus-titre" className="text-base font-semibold text-sky-900 dark:text-sky-100">
+            <aside className="ui-callout ui-prose mt-4" aria-labelledby="rgaa5-focus-titre">
+              <h3 id="rgaa5-focus-titre" className="font-bold">
                 Point d’attention : cap RGAA 5
               </h3>
-              <p className="mt-1 text-sm text-sky-900 dark:text-sky-100">
+              <p className="mt-1">
                 L’article officiel du 2 mars 2026 rappelle deux priorités : préparer la transition vers RGAA 5 d’ici
                 fin 2026, et maintenir dès maintenant les efforts de conformité RGAA 4.1.2.
               </p>
@@ -3374,21 +3201,16 @@ function App() {
                   href="https://design.numerique.gouv.fr/articles/2026-03-02-rgaa5/"
                   target="_blank"
                   rel="noreferrer noopener"
-                  className={`font-semibold text-sky-900 dark:text-sky-100 ${focusRingClass}`}
+                  className="font-semibold"
                 >
-                  Lire l’article "L’arrivée de RGAA 5 est annoncée" (nouvel onglet)
+                  Lire l’article « L’arrivée de RGAA 5 est annoncée » (nouvel onglet)
                 </a>
               </p>
             </aside>
-            <ul className="mt-4 grid gap-3">
+            <ul className="mt-4">
               {officialResources.map((resource) => (
-                <li key={resource.url} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm">
-                  <a
-                    href={resource.url}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className={`inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold ${ctaSkyClass} ${focusRingClass}`}
-                  >
+                <li key={resource.url}>
+                  <a href={resource.url} target="_blank" rel="noreferrer noopener" className="ui-action-link">
                     {resource.label} (nouvel onglet)
                   </a>
                 </li>

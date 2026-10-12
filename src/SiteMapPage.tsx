@@ -440,11 +440,11 @@ function SiteMapPage() {
         >
           Aller au contenu
         </a>
-        <a href="/#moteur-recherche-global" className={skipLinkClass}>
-          Aller à la recherche annuaire
-        </a>
         <a href="#navigation-principale" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, navigationRef)}>
           Aller à la navigation principale
+        </a>
+        <a href="#moteur-recherche-global" className={skipLinkClass}>
+          Aller à la recherche annuaire
         </a>
         <a
           href="#sections-annuaire"
@@ -483,54 +483,50 @@ function SiteMapPage() {
         </a>
       </nav>
 
-      <div className="min-h-screen bg-brand-surface text-brand-ink">
-        {politeAnnouncement.message ? (
-          <p
-            key={`plan-annonce-${politeAnnouncement.id}`}
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-            className="mx-auto mt-4 max-w-5xl rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 px-4 py-3 text-sm text-sky-900 dark:text-sky-100"
-          >
-            {politeAnnouncement.message}
-          </p>
-        ) : null}
+      <div className="min-h-screen bg-white text-brand-ink">
         <SecondaryPageHeader
           title="Plan du site"
           navigationRef={navigationRef}
           description="Cette page liste les entrées publiques et techniques de l’annuaire RGAA pour simplifier la navigation clavier, l’orientation et l’indexation."
           currentPath="/plan-du-site"
         />
+        {politeAnnouncement.message ? (
+          <div className="ui-container mt-4">
+            <p
+              key={`plan-annonce-${politeAnnouncement.id}`}
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              className="ui-callout text-sm"
+            >
+              {politeAnnouncement.message}
+            </p>
+          </div>
+        ) : null}
 
         <main
           id="contenu-plan"
           ref={mainContentRef}
           tabIndex={-1}
-          className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+          className={`ui-container space-y-12 py-10 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
         >
           <nav
             id="pages-principales-plan"
             ref={siteMapSectionsRef}
             tabIndex={-1}
             aria-labelledby="pages-principales-titre"
-            className={`rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+            className={`${focusTargetScrollMarginClass} ${focusTargetClass}`}
           >
-            <h2 id="pages-principales-titre" className="text-xl font-semibold">
+            <h2 id="pages-principales-titre" className="ui-section-title">
               Pages principales
             </h2>
-            <ul className="mt-4 grid gap-3">
+            <ul className="ui-prose mt-3 space-y-2">
               {primaryPages.map((link) => (
-                <li
-                  key={`${link.href}-${link.label}`}
-                  className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
-                >
-                  <a
-                    href={link.href}
-                    className={`inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
-                  >
+                <li key={`${link.href}-${link.label}`}>
+                  <a href={link.href} className="ui-action-link">
                     {link.label}
                   </a>
-                  <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{link.description}</p>
+                  <p className="ui-muted text-sm">{link.description}</p>
                 </li>
               ))}
             </ul>
@@ -541,24 +537,18 @@ function SiteMapPage() {
             ref={homeSectionsRef}
             tabIndex={-1}
             aria-labelledby="sections-annuaire-titre"
-            className={`mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+            className={`${focusTargetScrollMarginClass} ${focusTargetClass}`}
           >
-            <h2 id="sections-annuaire-titre" className="text-xl font-semibold">
+            <h2 id="sections-annuaire-titre" className="ui-section-title">
               Sections de la page d’accueil
             </h2>
-            <ul className="mt-4 grid gap-3">
+            <ul className="ui-prose mt-3 space-y-2">
               {directorySections.map((link) => (
-                <li
-                  key={`${link.href}-${link.label}`}
-                  className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
-                >
-                  <a
-                    href={link.href}
-                    className={`inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
-                  >
+                <li key={`${link.href}-${link.label}`}>
+                  <a href={link.href} className="ui-action-link">
                     {link.label}
                   </a>
-                  <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{link.description}</p>
+                  <p className="ui-muted text-sm">{link.description}</p>
                 </li>
               ))}
             </ul>
@@ -569,44 +559,38 @@ function SiteMapPage() {
             ref={profileSectionRef}
             tabIndex={-1}
             aria-labelledby="fiches-publiques-titre"
-            className={`mt-8 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+            className={`${focusTargetScrollMarginClass} ${focusTargetClass}`}
             aria-busy={isLoadingProfiles || isLoadingDomainGroups}
           >
-            <h2 id="fiches-publiques-titre" className="text-xl font-semibold">
+            <h2 id="fiches-publiques-titre" className="ui-section-title">
               Fiches publiques indexables
             </h2>
-            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+            <p className="ui-prose ui-muted mt-2">
               Extrait des fiches publiques individuelles disponibles pour l’indexation et le maillage interne.
             </p>
             {isLoadingProfiles && (
-              <p className="mt-3 text-sm text-slate-700 dark:text-slate-300" role="status" aria-live="polite">
+              <p className="ui-muted mt-3 text-sm" role="status" aria-live="polite">
                 Chargement des fiches publiques...
               </p>
             )}
             {!isLoadingProfiles && profileErrorMessage && (
-              <p className="mt-3 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-3 text-sm text-rose-900 dark:text-rose-100" role="status" aria-live="polite">
+              <p className="ui-alert ui-prose mt-3 text-sm" role="status" aria-live="polite">
                 {profileErrorMessage}
               </p>
             )}
             {!isLoadingProfiles && !profileErrorMessage && profileLinksForUi.length === 0 && (
-              <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
+              <p className="ui-muted mt-3 text-sm">
                 Aucune fiche n’est encore publiée.
               </p>
             )}
             {profileLinksForUi.length > 0 && (
-              <ul className="mt-4 grid gap-3 md:grid-cols-2">
+              <ul className="mt-3 grid gap-x-8 gap-y-2 md:grid-cols-2">
                 {profileLinksForUi.map((entry) => (
-                  <li
-                    key={entry.normalizedUrl}
-                    className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
-                  >
-                    <a
-                      href={entry.profilePath}
-                      className={`inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
-                    >
+                  <li key={entry.normalizedUrl}>
+                    <a href={entry.profilePath} className="ui-action-link">
                       {entry.siteTitle}
                     </a>
-                    <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                    <p className="ui-muted text-sm">
                       Catégorie: {entry.category}
                     </p>
                   </li>
@@ -614,47 +598,39 @@ function SiteMapPage() {
               </ul>
             )}
 
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold">Pages domaine multi-sites</h3>
-              <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-                Pages publiques dédiées aux domaines déjà référencés avec plusieurs fiches publiques.
+            <h3 className="mt-8 text-lg font-bold">Pages domaine multi-sites</h3>
+            <p className="ui-prose ui-muted mt-2">
+              Pages publiques dédiées aux domaines déjà référencés avec plusieurs fiches publiques.
+            </p>
+            {isLoadingDomainGroups && (
+              <p className="ui-muted mt-3 text-sm" role="status" aria-live="polite">
+                Chargement des pages domaine...
               </p>
-              {isLoadingDomainGroups && (
-                <p className="mt-3 text-sm text-slate-700 dark:text-slate-300" role="status" aria-live="polite">
-                  Chargement des pages domaine...
-                </p>
-              )}
-              {!isLoadingDomainGroups && domainGroupErrorMessage && (
-                <p className="mt-3 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-3 text-sm text-rose-900 dark:text-rose-100" role="status" aria-live="polite">
-                  {domainGroupErrorMessage}
-                </p>
-              )}
-              {!isLoadingDomainGroups && !domainGroupErrorMessage && domainGroupLinksForUi.length === 0 && (
-                <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
-                  Aucune page domaine multi-sites n’est encore publiée.
-                </p>
-              )}
-              {domainGroupLinksForUi.length > 0 && (
-                <ul className="mt-4 grid gap-3 md:grid-cols-2">
-                  {domainGroupLinksForUi.map((group) => (
-                    <li
-                      key={group.groupSlug}
-                      className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
-                    >
-                      <a
-                        href={group.groupPath}
-                        className={`inline-flex min-h-11 items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
-                      >
-                        {group.registrableDomain}
-                      </a>
-                      <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                        {group.siteCount} fiche(s) publique(s)
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            )}
+            {!isLoadingDomainGroups && domainGroupErrorMessage && (
+              <p className="ui-alert ui-prose mt-3 text-sm" role="status" aria-live="polite">
+                {domainGroupErrorMessage}
+              </p>
+            )}
+            {!isLoadingDomainGroups && !domainGroupErrorMessage && domainGroupLinksForUi.length === 0 && (
+              <p className="ui-muted mt-3 text-sm">
+                Aucune page domaine multi-sites n’est encore publiée.
+              </p>
+            )}
+            {domainGroupLinksForUi.length > 0 && (
+              <ul className="mt-3 grid gap-x-8 gap-y-2 md:grid-cols-2">
+                {domainGroupLinksForUi.map((group) => (
+                  <li key={group.groupSlug}>
+                    <a href={group.groupPath} className="ui-action-link">
+                      {group.registrableDomain}
+                    </a>
+                    <p className="ui-muted text-sm">
+                      {group.siteCount} fiche(s) publique(s)
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           <nav
@@ -662,29 +638,23 @@ function SiteMapPage() {
             ref={technicalResourcesRef}
             tabIndex={-1}
             aria-labelledby="liens-techniques-titre"
-            className={`mt-8 rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+            className={`${focusTargetScrollMarginClass} ${focusTargetClass}`}
           >
-            <h2 id="liens-techniques-titre" className="text-xl font-semibold text-sky-900 dark:text-sky-100">
+            <h2 id="liens-techniques-titre" className="ui-section-title">
               Ressources techniques et données publiques
             </h2>
-            <p className="mt-2 text-sky-900 dark:text-sky-100">
+            <p className="ui-prose ui-muted mt-2">
               Ces fichiers et endpoints publics en lecture seule servent à l’exploration des pages publiques et à la
               découverte des données. L’espace modération n’est pas listé dans le sitemap et reste exclu de
               l’indexation des moteurs de recherche.
             </p>
-            <ul className="mt-4 grid gap-3">
+            <ul className="ui-prose mt-3 space-y-2">
               {technicalLinks.map((link) => (
-                <li
-                  key={`${link.href}-${link.label}`}
-                  className="rounded-xl border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 p-4"
-                >
-                  <a
-                    href={link.href}
-                    className={`inline-flex min-h-11 items-center rounded-xl border border-sky-700 dark:border-sky-300 bg-sky-50 dark:bg-sky-950 px-3 py-2 font-semibold text-sky-900 dark:text-sky-100 hover:bg-sky-100 dark:hover:bg-sky-900 ${focusRingClass}`}
-                  >
+                <li key={`${link.href}-${link.label}`}>
+                  <a href={link.href} className="ui-action-link">
                     {link.label}
                   </a>
-                  <p className="mt-1 text-sm text-sky-900 dark:text-sky-100">{link.description}</p>
+                  <p className="ui-muted text-sm">{link.description}</p>
                 </li>
               ))}
             </ul>

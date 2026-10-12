@@ -104,7 +104,20 @@ Important architectural choices:
 
 This project treats accessibility as a runtime constraint, not a garnish.
 
+Public pages follow the « Sobre » design system described in `docs/design-system.md`:
+
+- content first: titles, address, compliance level and score before actions; key figures as one line of text, not dashboard tiles
+- links look like links (always underlined, navigation included) and buttons are reserved for actions (search, submit, vote, pagination), with at most one primary button per context
+- flat surfaces: one thin border per card, no nested boxes, shadows or gradients
+- one action colour (`--ui-action: #0038c7`); status colours only reinforce a level that is always written in text
+- tokens and component classes (`ui-container`, `ui-nav-link`, `ui-action-link`, `ui-button-*`, `ui-field`, `ui-card`, `ui-panel`, `ui-callout`, `ui-alert`, `ui-badge-*`, `ui-meta`) live in `src/index.css`; every text pair is ≥ 4.5:1 and ≥ APCA Lc 75 (WCAG 3 draft method)
+- the latest RGAA 4.1.2 audit (12 October 2026, 106 criteria, 63 applicable) is detailed criterion by criterion in `docs/audits/rgaa-2026-10-12.md` and feeds `shared/accessibilityStatement.js`
+
 Implemented principles:
+
+- status messages (RGAA 7.5): search, filter and sort changes announce the results summary politely after a 700 ms pause; pagination, loading, copy and vote outcomes are announced; errors use `role="alert"`
+- focus continuity (RGAA 12.8): no positive `tabindex`, the vote button stays focusable while a vote is pending (`aria-disabled`), and choosing a page in the pagination select does not move focus (RGAA 7.4)
+- skip links (RGAA 12.7) are a `<nav aria-label="Liens d’évitement">` on every page, start with content, main navigation and search in that order, always target the current page, and only link to dynamic sections once they are rendered
 
 - French UI labels and announcements
 - semantic HTML before ARIA

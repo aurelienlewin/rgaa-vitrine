@@ -2268,7 +2268,7 @@ function ModerationPage() {
 
   return (
     <>
-      <div
+      <nav
         className={skipLinksContainerClass}
         aria-label="Liens d’évitement"
       >
@@ -2312,7 +2312,7 @@ function ModerationPage() {
         <a href="#pied-page" className={skipLinkClass} onClick={focusFooter}>
           Aller au pied de page
         </a>
-      </div>
+      </nav>
 
       <div className="min-h-screen bg-brand-surface text-brand-ink">
         <SecondaryPageHeader

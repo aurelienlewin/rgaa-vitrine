@@ -7,6 +7,50 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+### Changed
+- Public pages (home, site profile, domain page, site map, accessibility statement, shared header, search form and footer) move to the « Sobre » design system (`docs/design-system.md`), replacing the CTA- and dashboard-heavy UI.
+  - Navigation and resource lists are underlined text links instead of filled pills or buttons.
+  - Directory cards are flat: the title links to the profile, then one compliance line (text badge, score, RGAA version), compact metadata, a row of text links (`Visiter le site`, `Déclaration d’accessibilité`) and the vote button. They replace the four stacked filled buttons, chips and nested boxes.
+  - Key figures fit in one line of text instead of four coloured tiles.
+  - The search form is a light panel with one primary and one secondary button.
+  - Pages use a white background, aligned 72 rem containers and no shadows or gradients.
+  - Shared tokens and component classes live in `src/index.css`.
+  - Contrast is kept or raised everywhere: text ≥ 8:1 for links and ≥ 10:1 for secondary text, and the focus ring goes from `#c67a00` (3.40:1) to `#b45309` (5.02:1). Every text pair is also checked against APCA (Lc ≥ 75).
+  - The first-paint shell (`index.html`) matches the new header and search styles.
+
+### Accessibility
+- Full RGAA 4.1.2 re-audit (self-evaluation, 12 October 2026) on the same 5-page sample as the March audit.
+  - Scope: 106 criteria evaluated, 63 applicable, 0 non-conformities, 100 % on the sample.
+  - The March non-conformities 3.3 (interface component contrast) and 10.13 (additional content on hover or focus) are lifted.
+  - The detailed per-criterion report is in `docs/audits/rgaa-2026-10-12.md`.
+  - `/accessibilite` (`shared/accessibilityStatement.js`, `rgaa:compliance-score` meta) shows the new state, the lifted non-conformities and the up-to-date technologies, environment and tools.
+- Fixes found during the audit:
+  - 8.2 / 7.1: invalid `aria-label` removed from the footer version line.
+  - 8.7: `lang="en"` on « Web Content Accessibility Guidelines ».
+  - 11.10: the add form label reads « URL du site (obligatoire) ».
+  - 7.4: choosing a page in the pagination select no longer moves focus.
+  - 7.1: the search form only declares `aria-controls` when the results list exists.
+- Status messages (RGAA 7.5): search, filter and sort changes now announce the results summary (debounced while typing). They previously updated the list silently.
+- Focus continuity (RGAA 12.8): the vote button no longer loses focus to the page body while a vote is pending.
+- Skip links (RGAA 12.7):
+  - Same order on every page (content, main navigation, search).
+  - The search skip link targets the current page's search form instead of navigating to the homepage's.
+  - The domain page gains the search skip link.
+  - Profile and domain skip links to data-dependent sections only render once those sections exist.
+  - The container is a named `<nav>` instead of a `<div>` with an ineffective `aria-label`.
+- Label in Name (WCAG 2.5.3):
+  - Card, profile and domain links put contextual text after the visible label (`Visiter le site (nouvel onglet) : nom du site`).
+  - The copyable backlink snippets no longer carry a divergent `aria-label`, and the badge alternative starts with the badge's visible text.
+- Error messages share the `ui-alert` style, distinct from neutral `ui-callout` notes.
+
+### Added
+- `docs/design-system.md`: principles, tokens with WCAG 2.x and APCA contrast values, component classes and the site card pattern.
+- `e2e/rgaa-audit.spec.ts` (with `@axe-core/playwright`):
+  - axe-core WCAG 2.2 AA plus best practices with zero violations on four public pages at 1280 and 320 px.
+  - Skip-link order and same-page targets.
+  - Results announcement after a search.
+  - Vote button focus retention while a vote is pending.
+
 ## [2026-10-12 / v0.7.0]
 
 ### Added

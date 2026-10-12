@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react'
-import { normalizeDomainGroup, readDomainGroupSlugFromPath, type DomainGroup } from './domainGroups'
+import {
+  normalizeDomainGroup,
+  readDomainGroupSlugFromPath,
+  type ComplianceStatus,
+  type DomainGroup,
+} from './domainGroups'
 import {
   focusElementWithScroll,
   focusTargetClass,
@@ -37,6 +42,32 @@ function formatScore(value: number | null) {
   }).format(value)
 
   return `${localized}%`
+}
+
+const statusClassByValue: Record<Exclude<ComplianceStatus, null>, string> = {
+  full: 'ui-badge ui-badge-full',
+  partial: 'ui-badge ui-badge-partial',
+  none: 'ui-badge ui-badge-none',
+}
+
+// One readable line: status as text badge (colour only reinforces it), score as plain text.
+function ComplianceLine({
+  status,
+  statusLabel,
+  score,
+}: {
+  status: ComplianceStatus
+  statusLabel: string | null
+  score: number | null
+}) {
+  return (
+    <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <span className={status ? statusClassByValue[status] : 'ui-badge ui-badge-unknown'}>
+        {status ? (statusLabel ?? 'Niveau inconnu') : 'Niveau inconnu'}
+      </span>
+      <span className="font-semibold [font-variant-numeric:tabular-nums]">Score {formatScore(score)}</span>
+    </p>
+  )
 }
 
 function readDomainGroupFromApiResult(result: { ok: boolean; payload: Record<string, unknown> }) {
@@ -273,117 +304,98 @@ function DomainGroupPage() {
 
   return (
     <>
-      <div className={skipLinksContainerClass} aria-label="Liens d’évitement">
+      <nav className={skipLinksContainerClass} aria-label="Liens d’évitement">
         <a href="#contenu-domaine" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, mainRef)}>
           Aller au contenu
         </a>
         <a href="#navigation-principale" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, navigationRef)}>
           Aller à la navigation principale
         </a>
+        <a href="#moteur-recherche-global" className={skipLinkClass}>
+          Aller à la recherche annuaire
+        </a>
+        {!isLoading && group ? (
         <a href="#liste-domaine" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, listRef)}>
           Aller à la liste des sous-sites
         </a>
+        ) : null}
         <a href="#pied-page" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, footerRef)}>
           Aller au pied de page
         </a>
-      </div>
+      </nav>
 
-      <div className="min-h-screen bg-brand-surface text-brand-ink">
-        {politeAnnouncement.message ? (
-          <p
-            key={`domaine-annonce-${politeAnnouncement.id}`}
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-            className="mx-auto mt-4 max-w-5xl rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 px-4 py-3 text-sm text-sky-900 dark:text-sky-100"
-          >
-            {politeAnnouncement.message}
-          </p>
-        ) : null}
+      <div className="min-h-screen bg-white text-brand-ink">
         <SecondaryPageHeader
           title="Domaine multi-sites"
           navigationRef={navigationRef}
           description="Consultez toutes les fiches publiques rattachées à un même domaine racine."
         />
+        {politeAnnouncement.message ? (
+          <div className="ui-container mt-4">
+            <p
+              key={`domaine-annonce-${politeAnnouncement.id}`}
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              className="ui-callout text-sm"
+            >
+              {politeAnnouncement.message}
+            </p>
+          </div>
+        ) : null}
 
         <main
           id="contenu-domaine"
           ref={mainRef}
           tabIndex={-1}
-          className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+          className={`ui-container space-y-12 py-10 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
           aria-busy={isLoading}
         >
           {isLoading ? (
-            <>
-              <p role="status" aria-live="polite" className="text-sm text-slate-700 dark:text-slate-300">
+            <div className="space-y-6">
+              <p role="status" aria-live="polite" className="ui-muted">
                 Chargement du domaine en cours...
               </p>
-              <section
-                aria-hidden="true"
-                className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm"
-              >
-                <div className="rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4">
-                  <div className="h-5 w-32 rounded bg-sky-200 dark:bg-sky-800" />
-                  <div className="mt-3 h-9 w-56 max-w-full rounded bg-sky-200 dark:bg-sky-800" />
-                  <div className="mt-3 h-5 w-80 max-w-full rounded bg-slate-200 dark:bg-slate-700" />
-                  <div className="mt-2 h-5 w-full rounded bg-slate-200 dark:bg-slate-700" />
-                  <div className="mt-4 h-5 w-64 max-w-full rounded bg-slate-200 dark:bg-slate-700" />
+              <div aria-hidden="true" className="space-y-6">
+                <div className="space-y-3">
+                  <div className="ui-panel h-8 w-56 max-w-full p-0" />
+                  <div className="ui-panel h-5 w-80 max-w-full p-0" />
                 </div>
-
-                <div className="mt-6">
-                  <div className="h-7 w-56 max-w-full rounded bg-slate-200 dark:bg-slate-700" />
-                  <ul className="mt-4 grid gap-4">
-                    {Array.from({ length: 4 }).map((_, index) => (
-                      <li
-                        key={`domain-loading-card-${index}`}
-                        className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
-                      >
-                        <div className="flex flex-wrap gap-2">
-                          <div className="h-8 w-28 rounded-full bg-slate-200 dark:bg-slate-700" />
-                          <div className="h-8 w-24 rounded-full bg-slate-200 dark:bg-slate-700" />
-                        </div>
-                        <div className="mt-4 h-7 w-64 max-w-full rounded bg-slate-200 dark:bg-slate-700" />
-                        <div className="mt-3 h-5 w-full rounded bg-slate-200 dark:bg-slate-700" />
-                        <div className="mt-2 h-5 w-72 max-w-full rounded bg-slate-200 dark:bg-slate-700" />
-                        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                          <div className="h-11 rounded-xl bg-slate-200 dark:bg-slate-700" />
-                          <div className="h-11 rounded-xl bg-slate-200 dark:bg-slate-700" />
-                          <div className="h-11 rounded-xl bg-slate-200 dark:bg-slate-700" />
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </section>
-            </>
+                <ul className="grid gap-6 md:grid-cols-2">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <li key={`domain-loading-card-${index}`} className="ui-card overflow-hidden">
+                      <div className="site-thumbnail-frame h-32 border-b border-slate-200" />
+                      <div className="space-y-3 p-5">
+                        <div className="ui-panel h-6 w-64 max-w-full p-0" />
+                        <div className="ui-panel h-5 w-full p-0" />
+                        <div className="ui-panel h-5 w-48 max-w-full p-0" />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           ) : null}
 
           {!isLoading && errorMessage ? (
-            <p className="rounded-xl border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-4 text-rose-900 dark:text-rose-100" role="alert">
+            <p className="ui-alert" role="alert">
               {errorMessage}
             </p>
           ) : null}
 
           {!isLoading && group ? (
-            <article className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
-              <header className="rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4">
-                <p className="text-sm font-semibold uppercase tracking-wide text-sky-900 dark:text-sky-100">
-                  Domaine racine
+            <article className="space-y-12">
+              <header className="ui-prose space-y-3">
+                <p className="ui-muted text-sm font-semibold">Domaine racine</p>
+                <h2 className="ui-section-title">{group.registrableDomain}</h2>
+                <p>
+                  {group.siteCount} fiche(s) publique(s). Dernière mise à jour : {formatDate(group.updatedAt)}.
                 </p>
-                <h2 className="mt-2 text-2xl font-bold text-slate-950 dark:text-slate-50">
-                  {group.registrableDomain}
-                </h2>
-                <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-                  {group.siteCount} fiche(s) publique(s). Dernière mise à jour: {formatDate(group.updatedAt)}.
-                </p>
-                <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{statusSummaryText}</p>
+                <p className="ui-muted">{statusSummaryText}</p>
                 {group.primaryEntry?.profilePath ? (
-                  <p className="mt-3 text-sm text-slate-900 dark:text-slate-100">
-                    Site principal repéré:{' '}
-                    <a
-                      href={group.primaryEntry.profilePath}
-                      className={`font-semibold underline ${focusRingClass}`}
-                    >
+                  <p>
+                    Site principal repéré :{' '}
+                    <a href={group.primaryEntry.profilePath} className="font-semibold">
                       {group.primaryEntry.siteTitle}
                     </a>
                   </p>
@@ -394,13 +406,13 @@ function DomainGroupPage() {
                 id="liste-domaine"
                 ref={listRef}
                 tabIndex={-1}
-                className={`mt-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                className={`space-y-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                 aria-labelledby="liste-domaine-titre"
               >
-                <h3 id="liste-domaine-titre" className="text-lg font-semibold">
+                <h3 id="liste-domaine-titre" className="ui-section-title">
                   Sous-sites déjà référencés
                 </h3>
-                <ul className="mt-4 grid gap-4">
+                <ul className="grid gap-6 md:grid-cols-2">
                   {group.children.map((entry) => {
                     const profilePath =
                       entry.profilePath ?? resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug)
@@ -408,66 +420,63 @@ function DomainGroupPage() {
                       group.primaryEntry?.normalizedUrl === entry.normalizedUrl
 
                     return (
-                      <li
-                        key={entry.normalizedUrl}
-                        className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
-                      >
-                        <article>
-                          <div className="flex flex-wrap items-center gap-2">
-                            {isPrimary ? (
-                              <span className="inline-flex min-h-8 items-center rounded-full border border-sky-700 dark:border-sky-300 bg-sky-100 dark:bg-sky-950 px-3 py-1 text-sm font-semibold text-sky-900 dark:text-sky-100">
-                                Site principal
-                              </span>
-                            ) : null}
-                            <span className="inline-flex min-h-8 items-center rounded-full border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-900 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                              Score {formatScore(entry.complianceScore)}
-                            </span>
-                            <span className="inline-flex min-h-8 items-center rounded-full border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-900 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                              {entry.complianceStatusLabel ?? 'Niveau inconnu'}
-                            </span>
-                          </div>
-                          <h4 className="mt-3 text-lg font-semibold text-slate-950 dark:text-slate-50">
-                            {entry.siteTitle}
+                      <li key={entry.normalizedUrl} className="ui-card flex flex-col">
+                        <article className="flex h-full flex-col gap-3 p-5">
+                          {isPrimary ? (
+                            <p className="ui-muted text-sm font-semibold">Site principal</p>
+                          ) : null}
+                          <h4 className="text-lg font-bold leading-snug">
+                            <a href={profilePath}>{entry.siteTitle}</a>
                           </h4>
-                          <p className="mt-1 wrap-anywhere text-sm text-slate-700 dark:text-slate-300">
-                            {entry.normalizedUrl}
-                          </p>
-                          <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                            Catégorie: {entry.category} · Mise à jour: {formatDate(entry.updatedAt)}
-                          </p>
+                          <p className="ui-muted wrap-anywhere text-sm">{entry.normalizedUrl}</p>
+                          <ComplianceLine
+                            status={entry.complianceStatus}
+                            statusLabel={entry.complianceStatusLabel}
+                            score={entry.complianceScore}
+                          />
+                          <dl className="ui-meta">
+                            <div>
+                              <dt>Catégorie :</dt>
+                              <dd>{entry.category}</dd>
+                            </div>
+                            <div>
+                              <dt>Mise à jour :</dt>
+                              <dd>{formatDate(entry.updatedAt)}</dd>
+                            </div>
+                          </dl>
 
-                          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                            <a
-                              href={profilePath}
-                              className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-sky-700 dark:border-sky-300 bg-sky-50 dark:bg-sky-950 px-3 py-2 text-sm font-semibold text-sky-900 dark:text-sky-100 hover:bg-sky-100 dark:hover:bg-sky-900 ${focusRingClass}`}
-                            >
-                              Voir la fiche annuaire
-                            </a>
-                            <a
-                              href={entry.normalizedUrl}
-                              target="_blank"
-                              rel="noopener external"
-                              referrerPolicy="strict-origin-when-cross-origin"
-                              className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800 ${focusRingClass}`}
-                            >
-                              Visiter le site (nouvel onglet)
-                            </a>
-                            {entry.accessibilityPageUrl ? (
+                          <ul className="ui-actions mt-auto border-t border-slate-200 pt-3">
+                            <li>
                               <a
-                                href={entry.accessibilityPageUrl}
+                                href={entry.normalizedUrl}
                                 target="_blank"
                                 rel="noopener external"
                                 referrerPolicy="strict-origin-when-cross-origin"
-                                className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-700 dark:border-emerald-300 bg-emerald-50 dark:bg-emerald-950 px-3 py-2 text-sm font-semibold text-emerald-900 dark:text-emerald-100 hover:bg-emerald-100 dark:hover:bg-emerald-900 ${focusRingClass}`}
+                                className="ui-action-link"
                               >
-                                Déclaration d’accessibilité (nouvel onglet)
+                                Visiter le site (nouvel onglet)
+                                <span className="sr-only"> : {entry.siteTitle}</span>
                               </a>
-                            ) : (
-                              <span className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-500 dark:border-slate-400 bg-slate-100 dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                Déclaration non détectée
-                              </span>
-                            )}
-                          </div>
+                            </li>
+                            <li>
+                              {entry.accessibilityPageUrl ? (
+                                <a
+                                  href={entry.accessibilityPageUrl}
+                                  target="_blank"
+                                  rel="noopener external"
+                                  referrerPolicy="strict-origin-when-cross-origin"
+                                  className="ui-action-link"
+                                >
+                                  Déclaration d’accessibilité (nouvel onglet)
+                                  <span className="sr-only"> : {entry.siteTitle}</span>
+                                </a>
+                              ) : (
+                                <span className="ui-muted inline-flex min-h-11 items-center text-sm">
+                                  Déclaration non détectée
+                                </span>
+                              )}
+                            </li>
+                          </ul>
                         </article>
                       </li>
                     )

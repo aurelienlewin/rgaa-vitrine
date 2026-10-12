@@ -24,7 +24,14 @@ export type AccessibilityNonConformity = {
 }
 
 export declare const accessibilityAuditSummary: AccessibilityAuditSummary
+export type AccessibilityResolvedNonConformity = {
+  id: string
+  title: string
+  detail: string
+}
+
 export declare const accessibilityNonConformities: AccessibilityNonConformity[]
+export declare const accessibilityResolvedNonConformities: AccessibilityResolvedNonConformity[]
 export declare const accessibilityImplementationTechnologies: string[]
 export declare const accessibilityAuditEnvironment: string[]
 export declare const accessibilityEvaluationTools: string[]

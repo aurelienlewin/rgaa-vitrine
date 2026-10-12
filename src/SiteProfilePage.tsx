@@ -42,6 +42,12 @@ const MAX_RELATED_FETCH_LIMIT = 80
 const PROFILE_API_LINK_ID = 'app-profile-api-link'
 const PROFILE_UP_LINK_ID = 'app-profile-up-link'
 
+const statusClassByValue: Record<Exclude<ComplianceStatus, null>, string> = {
+  full: 'ui-badge ui-badge-full',
+  partial: 'ui-badge ui-badge-partial',
+  none: 'ui-badge ui-badge-none',
+}
+
 const focusRingClass =
   'focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-focus'
 const skipLinksContainerClass =
@@ -316,14 +322,13 @@ function SiteProfilePage() {
   }, [resolvedSlug])
   const backlinkBadgeUrl = createAbsoluteUrl('/badge-backlink-annuaire-rgaa.svg')
   const backlinkSiteTitle = entry?.siteTitle ?? 'ce site'
-  const backlinkLinkAriaLabel = escapeHtmlAttribute(
-    `Voir la fiche de ${backlinkSiteTitle} sur Annuaire RGAA`,
-  )
+  // Label in Name (WCAG 2.5.3) on adopters' sites: the link name is its visible text, or the
+  // badge alt starting with the text drawn in the badge.
   const backlinkBadgeAlt = escapeHtmlAttribute(
-    `Badge Annuaire RGAA : voir la fiche de ${backlinkSiteTitle}`,
+    `Référencé sur Annuaire RGAA : voir la fiche de ${backlinkSiteTitle}`,
   )
-  const backlinkTextSnippet = `<a href="${profileUrl}" aria-label="${backlinkLinkAriaLabel}">Référencé sur Annuaire RGAA</a>`
-  const backlinkBadgeSnippet = `<a href="${profileUrl}" aria-label="${backlinkLinkAriaLabel}"><img src="${backlinkBadgeUrl}" alt="${backlinkBadgeAlt}" width="252" height="64" loading="lazy" decoding="async" /></a>`
+  const backlinkTextSnippet = `<a href="${profileUrl}">Référencé sur Annuaire RGAA</a>`
+  const backlinkBadgeSnippet = `<a href="${profileUrl}"><img src="${backlinkBadgeUrl}" alt="${backlinkBadgeAlt}" width="252" height="64" loading="lazy" decoding="async" /></a>`
 
   const announcePolite = useCallback((message: string) => {
     setPoliteAnnouncement((previous) => ({ id: previous.id + 1, message }))
@@ -710,7 +715,7 @@ function SiteProfilePage() {
 
   return (
     <>
-      <div
+      <nav
         className={skipLinksContainerClass}
         aria-label="Liens d’évitement"
       >
@@ -720,12 +725,15 @@ function SiteProfilePage() {
         <a href="#navigation-principale" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, navigationRef)}>
           Aller à la navigation principale
         </a>
-        <a href="/#moteur-recherche-global" className={skipLinkClass}>
+        <a href="#moteur-recherche-global" className={skipLinkClass}>
           Aller à la recherche annuaire
         </a>
-        <a href="#backlink-fiche" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, backlinkSectionRef)}>
-          Aller au lien retour
-        </a>
+        {/* RGAA 12.7: only link to sections that are rendered (they depend on the loaded entry). */}
+        {!isLoading && entry ? (
+          <a href="#backlink-fiche" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, backlinkSectionRef)}>
+            Aller au lien retour
+          </a>
+        ) : null}
         {entry?.domainContext && entry.domainContext.siteCount > 1 ? (
           <a
             href="#meme-domaine"
@@ -735,91 +743,119 @@ function SiteProfilePage() {
             Aller aux sous-sites du même domaine
           </a>
         ) : null}
-        <a href="#fiches-associees" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, relatedSectionRef)}>
-          Aller aux fiches associées
-        </a>
+        {!isLoading && entry ? (
+          <a href="#fiches-associees" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, relatedSectionRef)}>
+            Aller aux fiches associées
+          </a>
+        ) : null}
         <a href="#pied-page" className={skipLinkClass} onClick={(event) => handleSkipLinkClick(event, footerRef)}>
           Aller au pied de page
         </a>
-      </div>
+      </nav>
 
-      <div className="min-h-screen bg-brand-surface text-brand-ink">
-        {politeAnnouncement.message ? (
-          <p
-            key={`fiche-annonce-${politeAnnouncement.id}`}
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-            className="mx-auto mt-4 max-w-5xl rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 px-4 py-3 text-sm text-sky-900 dark:text-sky-100"
-          >
-            {politeAnnouncement.message}
-          </p>
-        ) : null}
+      <div className="min-h-screen bg-white text-brand-ink">
         <SecondaryPageHeader
           title="Fiche annuaire"
           navigationRef={navigationRef}
           description="Consultez les informations publiques d’un site référencé et ses liens utiles d’accessibilité."
         />
+        {politeAnnouncement.message ? (
+          <div className="ui-container mt-4">
+            <p
+              key={`fiche-annonce-${politeAnnouncement.id}`}
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              className="ui-callout text-sm"
+            >
+              {politeAnnouncement.message}
+            </p>
+          </div>
+        ) : null}
 
         <main
           id="contenu-fiche"
           ref={mainRef}
           tabIndex={-1}
-          className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+          className={`ui-container space-y-12 py-10 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
           aria-busy={isLoading}
         >
           {isLoading && <p role="status" aria-live="polite">Chargement de la fiche en cours...</p>}
 
           {!isLoading && errorMessage && (
-            <p className="rounded-xl border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-4 text-rose-900 dark:text-rose-100" role="alert">
+            <p className="ui-alert" role="alert">
               {errorMessage}
             </p>
           )}
 
           {!isLoading && entry && (
-            <article className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
-              <h2 className="text-2xl font-bold">{entry.siteTitle}</h2>
-              <p className="mt-2 text-slate-700 dark:text-slate-300">
-                Catégorie: <strong>{entry.category}</strong>
-              </p>
-              <p className="mt-1 text-slate-700 dark:text-slate-300">
-                Dernière mise à jour: {formatDate(entry.updatedAt)}
-              </p>
-              <p className="mt-1 text-slate-700 dark:text-slate-300">
-                Score détecté: <strong>{formatScore(entry.complianceScore)}</strong>
-              </p>
-              <p className="mt-1 text-slate-700 dark:text-slate-300">
-                Niveau détecté: <strong>{entry.complianceStatusLabel ?? 'N/A'}</strong>
-              </p>
-              <p className="mt-1 text-slate-700 dark:text-slate-300">
-                Référentiel déclaré: <strong>{formatRgaaBaseline(entry.rgaaBaseline)}</strong>
-              </p>
+            <article className="space-y-12">
+              <div className="space-y-4">
+                <h2 className="ui-section-title wrap-anywhere">{entry.siteTitle}</h2>
+                <p className="ui-muted wrap-anywhere text-sm">{entry.normalizedUrl}</p>
+                <dl className="ui-meta">
+                  <div>
+                    <dt>Niveau détecté :</dt>
+                    <dd>
+                      <span
+                        className={
+                          entry.complianceStatus
+                            ? statusClassByValue[entry.complianceStatus]
+                            : 'ui-badge ui-badge-unknown'
+                        }
+                      >
+                        {entry.complianceStatusLabel ?? 'N/A'}
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Score détecté :</dt>
+                    <dd className="[font-variant-numeric:tabular-nums]">{formatScore(entry.complianceScore)}</dd>
+                  </div>
+                  <div>
+                    <dt>Référentiel déclaré :</dt>
+                    <dd>{formatRgaaBaseline(entry.rgaaBaseline)}</dd>
+                  </div>
+                  <div>
+                    <dt>Catégorie :</dt>
+                    <dd>{entry.category}</dd>
+                  </div>
+                  <div>
+                    <dt>Dernière mise à jour :</dt>
+                    <dd>{formatDate(entry.updatedAt)}</dd>
+                  </div>
+                </dl>
 
-              <div className="mt-4 flex flex-wrap gap-3">
-                <a
-                  href={entry.normalizedUrl}
-                  target="_blank"
-                  rel="noopener external"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  className={`inline-flex min-h-11 items-center rounded-xl border-2 border-slate-800 dark:border-slate-200 bg-slate-100 dark:bg-slate-100 px-4 py-2 font-semibold text-slate-950 dark:text-slate-950 hover:bg-slate-200 dark:hover:bg-white ${focusRingClass}`}
-                >
-                  Visiter le site d’origine (nouvel onglet)
-                </a>
-                {entry.accessibilityPageUrl ? (
-                  <a
-                    href={entry.accessibilityPageUrl}
-                    target="_blank"
-                    rel="noopener external"
-                    referrerPolicy="strict-origin-when-cross-origin"
-                    className={`inline-flex min-h-11 items-center rounded-xl border border-emerald-700 dark:border-emerald-300 bg-emerald-50 dark:bg-emerald-950 px-4 py-2 font-semibold text-emerald-900 dark:text-emerald-100 hover:bg-emerald-100 dark:hover:bg-emerald-900 ${focusRingClass}`}
-                  >
-                    Déclaration d’accessibilité (nouvel onglet)
-                  </a>
-                ) : (
-                  <span className="inline-flex min-h-11 items-center rounded-xl border-2 border-slate-700 dark:border-slate-200 bg-slate-100 dark:bg-slate-100 px-4 py-2 text-slate-900 dark:text-slate-900">
-                    Déclaration non détectée
-                  </span>
-                )}
+                <ul className="ui-actions border-t border-slate-200 pt-2">
+                  <li>
+                    <a
+                      href={entry.normalizedUrl}
+                      target="_blank"
+                      rel="noopener external"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      className="ui-action-link"
+                    >
+                      Visiter le site d’origine (nouvel onglet)
+                    </a>
+                  </li>
+                  <li>
+                    {entry.accessibilityPageUrl ? (
+                      <a
+                        href={entry.accessibilityPageUrl}
+                        target="_blank"
+                        rel="noopener external"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        className="ui-action-link"
+                      >
+                        Déclaration d’accessibilité (nouvel onglet)
+                      </a>
+                    ) : (
+                      <span className="ui-muted inline-flex min-h-11 items-center">
+                        Déclaration non détectée
+                      </span>
+                    )}
+                  </li>
+                </ul>
               </div>
 
               {entry.domainContext && entry.domainContext.siteCount > 1 ? (
@@ -827,96 +863,80 @@ function SiteProfilePage() {
                   id="meme-domaine"
                   ref={sameDomainSectionRef}
                   tabIndex={-1}
-                  className={`mt-6 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                  className={`space-y-3 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                   aria-labelledby="meme-domaine-titre"
                 >
-                  <h3 id="meme-domaine-titre" className="text-lg font-semibold text-sky-900 dark:text-sky-100">
+                  <h3 id="meme-domaine-titre" className="text-lg font-bold">
                     Autres sous-sites du même domaine
                   </h3>
-                  <p className="mt-2 text-sm text-sky-900 dark:text-sky-100">
+                  <p className="ui-prose">
                     Le domaine <strong>{entry.domainContext.registrableDomain}</strong> compte{' '}
                     <strong>{entry.domainContext.siteCount}</strong> fiche(s) publique(s).
                   </p>
                   {entry.domainContext.groupPath ? (
-                    <p className="mt-2 text-sm text-sky-900 dark:text-sky-100">
-                      <a
-                        href={entry.domainContext.groupPath}
-                        className={`font-semibold underline ${focusRingClass}`}
-                      >
+                    <p>
+                      <a href={entry.domainContext.groupPath} className="ui-action-link">
                         Ouvrir la page domaine
                       </a>
                     </p>
                   ) : null}
                   {entry.domainContext.siblings.length > 0 ? (
-                    <ul className="mt-3 grid gap-3">
+                    <ul className="divide-y divide-slate-200 border-y border-slate-200">
                       {entry.domainContext.siblings.map((candidate) => (
-                        <li
-                          key={candidate.normalizedUrl}
-                          className="min-w-0 rounded-xl border border-sky-200 dark:border-sky-700 bg-white dark:bg-slate-900 p-3"
-                        >
+                        <li key={candidate.normalizedUrl} className="min-w-0 py-2">
                           <a
                             href={
                               candidate.profilePath ??
                               resolveShowcaseProfilePath(candidate.normalizedUrl, candidate.slug)
                             }
-                            className={`inline-flex min-h-11 w-full items-center rounded-xl border border-sky-700 dark:border-sky-300 bg-sky-50 dark:bg-sky-950 px-3 py-2 text-start font-semibold text-sky-900 dark:text-sky-100 whitespace-normal wrap-anywhere ${focusRingClass}`}
+                            className="ui-action-link whitespace-normal wrap-anywhere"
                           >
                             {candidate.siteTitle}
                           </a>
-                          <p className="mt-1 wrap-anywhere text-sm text-slate-700 dark:text-slate-300">
-                            {candidate.normalizedUrl}
-                          </p>
+                          <p className="ui-muted wrap-anywhere text-sm">{candidate.normalizedUrl}</p>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="mt-3 text-sm text-sky-900 dark:text-sky-100">
+                    <p className="ui-muted">
                       Aucune autre fiche publique n’est listée pour ce domaine pour le moment.
                     </p>
                   )}
                 </section>
               ) : null}
 
-              <section id="backlink-fiche" ref={backlinkSectionRef} tabIndex={-1} className={`mt-6 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950 p-4 ${focusTargetScrollMarginClass} ${focusTargetClass}`} aria-labelledby="backlink-fiche-titre">
-                <h3 id="backlink-fiche-titre" className="text-lg font-semibold text-sky-900 dark:text-sky-100">
+              <section
+                id="backlink-fiche"
+                ref={backlinkSectionRef}
+                tabIndex={-1}
+                className={`space-y-3 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                aria-labelledby="backlink-fiche-titre"
+              >
+                <h3 id="backlink-fiche-titre" className="text-lg font-bold">
                   Lien retour recommandé
                 </h3>
-                <p className="mt-2 text-sm text-sky-900 dark:text-sky-100">
+                <p className="ui-prose">
                   Pour faciliter la découverte mutuelle, vous pouvez publier ce lien vers votre fiche annuaire.
                 </p>
 
-                <div className="mt-3 rounded-xl border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 p-3">
-                  <p className="text-sm font-semibold text-sky-900 dark:text-sky-100">Aperçu en texte stylé</p>
-                  <a
-                    href={profileUrl}
-                    aria-label={`Voir la fiche de ${backlinkSiteTitle} sur Annuaire RGAA`}
-                    className={`mt-2 inline-flex max-w-full flex-col rounded-2xl border border-sky-700 dark:border-sky-300 bg-sky-50 dark:bg-sky-950 px-4 py-3 text-start text-sky-950 dark:text-sky-50 ${focusRingClass}`}
-                  >
-                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-900 dark:text-sky-100">
-                      Annuaire RGAA
-                    </span>
-                    <span className="mt-1 text-base font-bold">
-                      Référencé sur l’annuaire
-                    </span>
-                    <span className="mt-1 text-sm text-sky-900 dark:text-sky-100">
-                      Voir la fiche de {backlinkSiteTitle}
-                    </span>
+                <div className="ui-panel space-y-2">
+                  <p className="font-semibold">Aperçu en texte stylé</p>
+                  <a href={profileUrl} className="inline-flex min-h-11 max-w-full flex-col text-start">
+                    <span className="text-xs font-semibold uppercase tracking-[0.18em]">Annuaire RGAA</span>
+                    <span className="text-base font-bold">Référencé sur l’annuaire</span>
+                    <span className="text-sm">Voir la fiche de {backlinkSiteTitle}</span>
                   </a>
-                  <p className="mt-2 text-xs text-sky-900 dark:text-sky-100">
+                  <p className="ui-muted text-sm">
                     Le code HTML du badge image reste disponible en option pour les intégrations qui souhaitent
                     reprendre le visuel de marque.
                   </p>
                 </div>
 
-                <h4 id="backlink-code-badge-label" className="mt-3 text-sm font-semibold text-sky-900 dark:text-sky-100">
+                <h4 id="backlink-code-badge-label" className="pt-3 font-bold">
                   Code HTML du badge (recommandé)
                 </h4>
-                <div
-                  role="region"
-                  aria-labelledby="backlink-code-badge-label"
-                  className="mt-1 rounded-xl border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 p-3"
-                >
-                  <pre className="wrap-anywhere whitespace-pre-wrap break-all text-sm leading-relaxed text-slate-900 dark:text-slate-50">
+                <div role="region" aria-labelledby="backlink-code-badge-label" className="ui-panel">
+                  <pre className="font-mono text-sm whitespace-pre-wrap wrap-anywhere">
                     <code>{backlinkBadgeSnippet}</code>
                   </pre>
                 </div>
@@ -928,20 +948,16 @@ function SiteProfilePage() {
                       'Code du badge copié. Vous pouvez le coller dans votre site.',
                     )
                   }}
-                  className={`mt-3 inline-flex min-h-11 items-center rounded-xl bg-sky-700 px-4 py-2 font-semibold text-white ${focusRingClass}`}
+                  className="ui-button ui-button-primary"
                 >
                   Copier le code du badge
                 </button>
 
-                <h4 id="backlink-code-text-label" className="mt-4 text-sm font-semibold text-sky-900 dark:text-sky-100">
+                <h4 id="backlink-code-text-label" className="pt-3 font-bold">
                   Alternative texte seule
                 </h4>
-                <div
-                  role="region"
-                  aria-labelledby="backlink-code-text-label"
-                  className="mt-1 rounded-xl border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 p-3"
-                >
-                  <pre className="wrap-anywhere whitespace-pre-wrap break-all text-sm leading-relaxed text-slate-900 dark:text-slate-50">
+                <div role="region" aria-labelledby="backlink-code-text-label" className="ui-panel">
+                  <pre className="font-mono text-sm whitespace-pre-wrap wrap-anywhere">
                     <code>{backlinkTextSnippet}</code>
                   </pre>
                 </div>
@@ -953,57 +969,62 @@ function SiteProfilePage() {
                       'Code texte copié. Vous pouvez le coller dans votre site.',
                     )
                   }}
-                  className={`mt-3 inline-flex min-h-11 items-center rounded-xl border border-sky-700 dark:border-sky-300 bg-sky-50 dark:bg-sky-950 px-4 py-2 font-semibold text-sky-900 dark:text-sky-100 hover:bg-sky-100 dark:hover:bg-sky-900 ${focusRingClass}`}
+                  className="ui-button ui-button-secondary"
                 >
                   Copier le code texte
                 </button>
                 {copyMessage && (
-                  <p className="mt-3 text-sm text-sky-900 dark:text-sky-100" role="status" aria-live="polite">
+                  <p className="text-sm" role="status" aria-live="polite">
                     {copyMessage}
                   </p>
                 )}
               </section>
 
-              <section id="fiches-associees" ref={relatedSectionRef} tabIndex={-1} className={`mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4 ${focusTargetScrollMarginClass} ${focusTargetClass}`} aria-labelledby="fiches-associees-titre" aria-busy={isLoadingRelated}>
-                <h3 id="fiches-associees-titre" className="text-lg font-semibold">
+              <section
+                id="fiches-associees"
+                ref={relatedSectionRef}
+                tabIndex={-1}
+                className={`space-y-3 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                aria-labelledby="fiches-associees-titre"
+                aria-busy={isLoadingRelated}
+              >
+                <h3 id="fiches-associees-titre" className="text-lg font-bold">
                   Fiches associées
                 </h3>
-                <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                <p className="ui-prose">
                   Autres sites référencés dans la catégorie <strong>{entry.category}</strong>.
                 </p>
                 {isLoadingRelated && (
-                  <p className="mt-3 text-sm text-slate-700 dark:text-slate-300" role="status" aria-live="polite">
+                  <p className="ui-muted text-sm" role="status" aria-live="polite">
                     Chargement des fiches associées...
                   </p>
                 )}
                 {!isLoadingRelated && relatedErrorMessage && (
-                  <p className="mt-3 rounded-lg border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 p-3 text-sm text-rose-900 dark:text-rose-100" role="status" aria-live="polite">
+                  <p className="rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-900" role="status" aria-live="polite">
                     {relatedErrorMessage}
                   </p>
                 )}
                 {!isLoadingRelated && !relatedErrorMessage && relatedEntries.length === 0 && (
-                  <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
+                  <p className="ui-muted">
                     Aucune autre fiche de cette catégorie n’est disponible pour le moment.
                   </p>
                 )}
                 {relatedEntries.length > 0 && (
-                  <ul className="mt-3 grid gap-3">
+                  <ul className="divide-y divide-slate-200 border-y border-slate-200">
                     {relatedEntries.map((candidate) => {
                       const candidateProfilePath = resolveShowcaseProfilePath(
                         candidate.normalizedUrl,
                         candidate.slug,
                       )
                       return (
-                        <li key={candidate.normalizedUrl} className="min-w-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
+                        <li key={candidate.normalizedUrl} className="min-w-0 py-2">
                           <a
                             href={candidateProfilePath}
-                            className={`inline-flex min-h-11 w-full items-center rounded-xl border border-slate-700 dark:border-slate-300 bg-white dark:bg-slate-900 px-3 py-2 text-start font-semibold text-slate-900 dark:text-slate-50 whitespace-normal wrap-anywhere ${focusRingClass}`}
+                            className="ui-action-link whitespace-normal wrap-anywhere"
                           >
                             {candidate.siteTitle}
                           </a>
-                          <p className="mt-1 wrap-anywhere text-sm text-slate-700 dark:text-slate-300">
-                            {candidate.normalizedUrl}
-                          </p>
+                          <p className="ui-muted wrap-anywhere text-sm">{candidate.normalizedUrl}</p>
                         </li>
                       )
                     })}
