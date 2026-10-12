@@ -341,6 +341,11 @@ Submission incident log:
 - the `Échecs de soumission` section of `/moderation` searches an incident by reference and lists the 50 latest ones
 - a `github-error` outcome such as `Bad credentials` means `GITHUB_NOTIFY_TOKEN` is invalid or expired and must be replaced in the deployment environment
 
+Clearing notifier issues:
+
+- the `Issues GitHub de notification` section of `/moderation` lists the open notifier issues and closes a selection as `Traitée` or `Sans suite` after a two-step confirmation
+- issues are closed, never deleted, and only issues created by the notifier can be closed; the notifier token needs Issues read/write on `GITHUB_NOTIFY_REPO`
+
 ## API Surface
 
 ### Public APIs
@@ -363,6 +368,8 @@ Submission incident log:
 - `GET /api/moderation/pending`
 - `GET /api/moderation/showcase`
 - `GET /api/moderation/submission-failures`: latest submission incidents, or one incident with `?reference=SUB-…`
+- `GET /api/moderation/github-issues`: open issues created by the notifier (marker or legacy title)
+- `POST /api/moderation/github-issues/close`: close notifier issues (`{ "numbers": [13], "reason": "completed" | "not_planned" }`, at most 50 per call); other issues and pull requests are refused
 - `GET /api/moderation/blocklist`
 - `GET /api/moderation/maintenance`
 - `GET /api/moderation/archive`

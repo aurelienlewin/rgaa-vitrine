@@ -11,7 +11,11 @@ import {
   validatePublicHttpUrl,
 } from './siteInsight.js'
 import {
+  closeNotifierIssue,
+  GithubNotifierError,
   isGithubNotifierEnabled,
+  listNotifierIssues,
+  MAX_NOTIFIER_ISSUES_PER_CLOSE,
   notifyApprovedPublicationOnGithub,
   notifyPendingModerationOnGithub,
   notifySubmissionFailureOnGithub,
@@ -3167,6 +3171,81 @@ app.get('/api/moderation/pending', requireModerationAuth, async (request, respon
     console.error('Unexpected error in /api/moderation/pending', error)
     sendJsonError(response, 500, 'Erreur interne lors de la lecture de la file de modération.')
   }
+})
+
+function sendGithubIssuesError(response, error, fallbackMessage) {
+  if (error instanceof GithubNotifierError) {
+    sendJsonError(response, error.statusCode, error.message)
+    return
+  }
+  console.error(fallbackMessage, error)
+  sendJsonError(response, 502, 'GitHub est injoignable pour le moment.')
+}
+
+app.get('/api/moderation/github-issues', requireModerationAuth, async (_request, response) => {
+  if (!isGithubNotifierEnabled()) {
+    response.json({ enabled: false, issues: [] })
+    return
+  }
+
+  try {
+    response.json(await listNotifierIssues())
+  } catch (error) {
+    sendGithubIssuesError(response, error, 'Unable to list GitHub notifier issues')
+  }
+})
+
+app.post('/api/moderation/github-issues/close', requireModerationAuth, async (request, response) => {
+  if (!isGithubNotifierEnabled()) {
+    sendJsonError(response, 503, 'Notifications GitHub non configurées.')
+    return
+  }
+
+  const rawNumbers = request.body?.numbers
+  const stateReason = request.body?.reason === 'not_planned' ? 'not_planned' : 'completed'
+  const numbers = Array.isArray(rawNumbers)
+    ? [...new Set(rawNumbers.filter((value) => Number.isInteger(value) && value > 0 && value < 10_000_000))]
+    : []
+
+  if (numbers.length === 0 || numbers.length !== (Array.isArray(rawNumbers) ? rawNumbers.length : 0)) {
+    sendJsonError(response, 400, 'Liste de numéros d’issues invalide.')
+    return
+  }
+  if (numbers.length > MAX_NOTIFIER_ISSUES_PER_CLOSE) {
+    sendJsonError(
+      response,
+      400,
+      `Fermeture limitée à ${MAX_NOTIFIER_ISSUES_PER_CLOSE} issues par opération.`,
+    )
+    return
+  }
+
+  // Sequential on purpose: keeps well within GitHub secondary rate limits.
+  const results = []
+  for (const number of numbers) {
+    try {
+      const issue = await closeNotifierIssue(number, stateReason)
+      results.push({ number, ok: true, alreadyClosed: issue.alreadyClosed })
+    } catch (error) {
+      results.push({
+        number,
+        ok: false,
+        error:
+          error instanceof GithubNotifierError ? error.message : 'Erreur inattendue lors de la fermeture.',
+      })
+      if (!(error instanceof GithubNotifierError)) {
+        console.error(`Unable to close GitHub issue #${number}`, error)
+      }
+    }
+  }
+
+  const closedCount = results.filter((result) => result.ok).length
+  response.json({
+    results,
+    closedCount,
+    failedCount: results.length - closedCount,
+    reason: stateReason,
+  })
 })
 
 app.get('/api/moderation/submission-failures', requireModerationAuth, async (request, response) => {

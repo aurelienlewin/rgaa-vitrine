@@ -212,6 +212,38 @@ type SubmissionFailureRecord = {
 
 const SUBMISSION_REFERENCE_PATTERN = /^SUB-[0-9A-F]{10}$/
 
+type NotifierIssueKind = 'submission-failure' | 'pending-moderation' | 'auto-approved-publication'
+type NotifierIssue = {
+  number: number
+  title: string
+  kind: NotifierIssueKind
+  createdAt: string | null
+  url: string | null
+  labels: string[]
+}
+type IssueCloseReason = 'completed' | 'not_planned'
+type IssueCloseResult = { number: number; ok: boolean; alreadyClosed?: boolean; error?: string }
+
+const NOTIFIER_ISSUE_KIND_LABELS: Record<NotifierIssueKind, string> = {
+  'submission-failure': 'Échec de soumission',
+  'pending-moderation': 'Modération requise',
+  'auto-approved-publication': 'Publication automatique',
+}
+const MAX_ISSUES_PER_CLOSE = 50
+
+function isNotifierIssue(value: unknown): value is NotifierIssue {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+  const candidate = value as Record<string, unknown>
+  return (
+    Number.isInteger(candidate.number) &&
+    typeof candidate.title === 'string' &&
+    typeof candidate.kind === 'string' &&
+    candidate.kind in NOTIFIER_ISSUE_KIND_LABELS
+  )
+}
+
 const SUBMISSION_FAILURE_STAGE_LABELS: Record<SubmissionFailureRecord['stage'], string> = {
   preview: 'Pré-analyse',
   confirmation: 'Confirmation de l’envoi',
@@ -726,6 +758,17 @@ function ModerationPage() {
   const [isLookingUpFailure, setIsLookingUpFailure] = useState(false)
   const [recentSubmissionFailures, setRecentSubmissionFailures] = useState<SubmissionFailureRecord[]>([])
   const [isLoadingSubmissionFailures, setIsLoadingSubmissionFailures] = useState(false)
+  const githubIssuesRef = useRef<HTMLElement | null>(null)
+  const githubIssuesResultRef = useRef<HTMLParagraphElement | null>(null)
+  const [githubIssues, setGithubIssues] = useState<NotifierIssue[]>([])
+  const [githubIssuesEnabled, setGithubIssuesEnabled] = useState(true)
+  const [githubIssuesRepo, setGithubIssuesRepo] = useState<string | null>(null)
+  const [isLoadingGithubIssues, setIsLoadingGithubIssues] = useState(false)
+  const [selectedIssueNumbers, setSelectedIssueNumbers] = useState<number[]>([])
+  const [issueCloseReason, setIssueCloseReason] = useState<IssueCloseReason>('completed')
+  const [isIssueCloseConfirm, setIsIssueCloseConfirm] = useState(false)
+  const [isClosingIssues, setIsClosingIssues] = useState(false)
+  const [githubIssuesResult, setGithubIssuesResult] = useState<string | null>(null)
   const maintenanceSectionRef = useRef<HTMLElement | null>(null)
   const tokenInputRef = useRef<HTMLInputElement | null>(null)
   const messageRef = useRef<HTMLParagraphElement | null>(null)
@@ -854,6 +897,10 @@ function ModerationPage() {
 
   const focusSubmissionFailures = useCallback(() => {
     focusElement(submissionFailuresRef.current)
+  }, [focusElement])
+
+  const focusGithubIssues = useCallback(() => {
+    focusElement(githubIssuesRef.current)
   }, [focusElement])
 
   const focusSiteBlocklist = useCallback(() => {
@@ -1127,6 +1174,103 @@ function ModerationPage() {
     }
   }, [buildAuthHeaders, hasToken])
 
+  const loadGithubIssues = useCallback(async () => {
+    if (!hasToken) {
+      return false
+    }
+
+    setIsLoadingGithubIssues(true)
+    try {
+      const response = await fetch('/api/moderation/github-issues', {
+        headers: buildAuthHeaders(false),
+      })
+      const payload = await readApiPayload(response)
+
+      if (!response.ok) {
+        throw new Error(typeof payload.error === 'string' ? payload.error : 'Chargement des issues GitHub impossible.')
+      }
+
+      const issues = Array.isArray(payload.issues) ? payload.issues.filter(isNotifierIssue) : []
+      setGithubIssuesEnabled(payload.enabled !== false)
+      setGithubIssuesRepo(typeof payload.repo === 'string' ? payload.repo : null)
+      setGithubIssues(issues)
+      setSelectedIssueNumbers((current) => current.filter((number) => issues.some((issue) => issue.number === number)))
+      return true
+    } catch (error) {
+      setGithubIssuesResult(error instanceof Error ? error.message : 'Erreur lors du chargement des issues GitHub.')
+      return false
+    } finally {
+      setIsLoadingGithubIssues(false)
+    }
+  }, [buildAuthHeaders, hasToken])
+
+  const toggleIssueSelection = useCallback((number: number, selected: boolean) => {
+    setIsIssueCloseConfirm(false)
+    setSelectedIssueNumbers((current) =>
+      selected ? [...new Set([...current, number])] : current.filter((value) => value !== number),
+    )
+  }, [])
+
+  const handleCloseSelectedIssues = useCallback(async () => {
+    if (selectedIssueNumbers.length === 0) {
+      return
+    }
+    // Two-step confirmation, consistent with the other bulk moderation actions.
+    if (!isIssueCloseConfirm) {
+      setIsIssueCloseConfirm(true)
+      setPoliteMessage(
+        `Confirmez la fermeture de ${selectedIssueNumbers.length} issue(s) en activant de nouveau le bouton, ou annulez.`,
+      )
+      return
+    }
+
+    const numbers = selectedIssueNumbers.slice(0, MAX_ISSUES_PER_CLOSE)
+    setIsClosingIssues(true)
+    setIsIssueCloseConfirm(false)
+    try {
+      const response = await fetch('/api/moderation/github-issues/close', {
+        method: 'POST',
+        headers: buildAuthHeaders(true),
+        body: JSON.stringify({ numbers, reason: issueCloseReason }),
+      })
+      const payload = await readApiPayload(response)
+
+      if (!response.ok) {
+        throw new Error(typeof payload.error === 'string' ? payload.error : 'Fermeture des issues impossible.')
+      }
+
+      const results: IssueCloseResult[] = Array.isArray(payload.results)
+        ? payload.results.filter(
+            (result): result is IssueCloseResult =>
+              Boolean(result) && typeof result === 'object' && Number.isInteger((result as IssueCloseResult).number),
+          )
+        : []
+      const closed = results.filter((result) => result.ok)
+      const failed = results.filter((result) => !result.ok)
+      const reasonLabel = issueCloseReason === 'not_planned' ? 'sans suite' : 'traitée(s)'
+      const summary = [
+        closed.length > 0 ? `${closed.length} issue(s) fermée(s) comme ${reasonLabel}.` : null,
+        failed.length > 0
+          ? `${failed.length} échec(s) : ${failed.map((result) => `#${result.number} (${result.error ?? 'erreur inconnue'})`).join(', ')}.`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' ')
+      setGithubIssuesResult(summary || 'Aucune issue fermée.')
+      setSelectedIssueNumbers((current) =>
+        current.filter((number) => !closed.some((result) => result.number === number)),
+      )
+      await loadGithubIssues()
+    } catch (error) {
+      setGithubIssuesResult(error instanceof Error ? error.message : 'Erreur lors de la fermeture des issues.')
+    } finally {
+      setIsClosingIssues(false)
+      window.setTimeout(() => {
+        focusElement(githubIssuesResultRef.current)
+      }, 0)
+    }
+  }, [buildAuthHeaders, focusElement, isIssueCloseConfirm, issueCloseReason, loadGithubIssues, selectedIssueNumbers])
+
   // Move focus to the result once it is rendered (async lookup, so a timeout could fire too early).
   useEffect(() => {
     if (failureLookupResult) {
@@ -1287,6 +1431,7 @@ function ModerationPage() {
 
       if (unlocked) {
         void loadSubmissionFailures()
+        void loadGithubIssues()
         persistStoredModerationSession(moderationToken, rememberModerationSession)
         setHasStoredModerationSession(true)
         setIsModerationUnlocked(true)
@@ -1306,6 +1451,7 @@ function ModerationPage() {
       loadMaintenanceState,
       loadPendingEntries,
       loadPublishedEntries,
+      loadGithubIssues,
       loadSubmissionFailures,
       lockModerationView,
       moderationToken,
@@ -2082,6 +2228,9 @@ function ModerationPage() {
             </a>
             <a href="#echecs-soumission" className={skipLinkClass} onClick={focusSubmissionFailures}>
               Aller aux échecs de soumission
+            </a>
+            <a href="#issues-github" className={skipLinkClass} onClick={focusGithubIssues}>
+              Aller aux issues GitHub
             </a>
             <a href="#archive-donnees" className={skipLinkClass} onClick={focusArchive}>
               Aller à l’archivage
@@ -3269,6 +3418,181 @@ function ModerationPage() {
                     ))}
                   </ul>
                 )}
+              </section>
+
+              <section
+                id="issues-github"
+                ref={githubIssuesRef}
+                tabIndex={-1}
+                className={`mt-8 rounded-2xl p-6 ${moderationSurfaceClass} ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                aria-labelledby="issues-github-titre"
+              >
+                <h2 id="issues-github-titre" className="text-lg font-semibold">
+                  Issues GitHub de notification
+                </h2>
+                <p className={`mt-2 ${moderationTextMutedClass}`}>
+                  Issues ouvertes créées par le notificateur de l’annuaire
+                  {githubIssuesRepo ? ` dans ${githubIssuesRepo}` : ''} : échecs de soumission, modérations requises et
+                  publications automatiques. Seules ces issues peuvent être fermées depuis la modération ; une issue
+                  fermée reste consultable et peut être rouverte sur GitHub.
+                </p>
+
+                {!githubIssuesEnabled ? (
+                  <p className={`mt-4 text-sm font-semibold ${moderationTextStrongClass}`}>
+                    Notifications GitHub non configurées : aucune issue à gérer.
+                  </p>
+                ) : (
+                  <>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGithubIssuesResult(null)
+                          void loadGithubIssues()
+                        }}
+                        disabled={!hasToken || isLoadingGithubIssues || isClosingIssues}
+                        className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaNeutralClass} ${focusRingClass}`}
+                      >
+                        {isLoadingGithubIssues ? 'Actualisation...' : 'Actualiser les issues GitHub'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsIssueCloseConfirm(false)
+                          setSelectedIssueNumbers((current) =>
+                            current.length === githubIssues.length
+                              ? []
+                              : githubIssues.slice(0, MAX_ISSUES_PER_CLOSE).map((issue) => issue.number),
+                          )
+                        }}
+                        disabled={githubIssues.length === 0 || isClosingIssues}
+                        className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaNeutralClass} ${focusRingClass}`}
+                      >
+                        {githubIssues.length > 0 && selectedIssueNumbers.length === githubIssues.length
+                          ? 'Tout désélectionner'
+                          : `Tout sélectionner (${Math.min(githubIssues.length, MAX_ISSUES_PER_CLOSE)} au plus)`}
+                      </button>
+                    </div>
+
+                    {githubIssues.length === 0 ? (
+                      <p className={`mt-4 text-sm ${moderationTextMutedClass}`}>
+                        {isLoadingGithubIssues
+                          ? 'Chargement des issues GitHub en cours.'
+                          : 'Aucune issue de notification ouverte.'}
+                      </p>
+                    ) : (
+                      <fieldset className="mt-4">
+                        <legend className="text-base font-semibold">
+                          Issues ouvertes ({githubIssues.length}) — {selectedIssueNumbers.length} sélectionnée(s)
+                        </legend>
+                        <ul className="mt-3 grid gap-3">
+                          {githubIssues.map((issue) => {
+                            const checkboxId = `issue-github-${issue.number}`
+                            return (
+                              <li key={issue.number} className={`rounded-xl p-4 ${moderationSurfaceStrongClass}`}>
+                                <div className="flex items-start gap-3">
+                                  <input
+                                    id={checkboxId}
+                                    type="checkbox"
+                                    className="mt-1 h-6 w-6 shrink-0 accent-sky-800 dark:accent-sky-300"
+                                    checked={selectedIssueNumbers.includes(issue.number)}
+                                    onChange={(event) => toggleIssueSelection(issue.number, event.target.checked)}
+                                    disabled={isClosingIssues}
+                                  />
+                                  <div className="min-w-0">
+                                    <label htmlFor={checkboxId} className="block font-semibold wrap-anywhere">
+                                      #{issue.number} {issue.title}
+                                    </label>
+                                    <p className={`mt-1 text-sm ${moderationTextMutedClass}`}>
+                                      {NOTIFIER_ISSUE_KIND_LABELS[issue.kind]}
+                                      {issue.createdAt ? ` · ouverte le ${formatDate(issue.createdAt)}` : ''}
+                                    </p>
+                                    {issue.url ? (
+                                      <a
+                                        href={issue.url}
+                                        target="_blank"
+                                        rel="noreferrer noopener"
+                                        className={`mt-1 inline-flex min-h-11 items-center text-sm font-semibold underline ${focusRingClass}`}
+                                      >
+                                        Voir l’issue #{issue.number} sur GitHub (nouvel onglet)
+                                      </a>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </fieldset>
+                    )}
+
+                    {githubIssues.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap items-end gap-4">
+                        <fieldset>
+                          <legend className="text-sm font-semibold">Motif de fermeture</legend>
+                          <div className="mt-1 flex flex-wrap gap-4">
+                            {(
+                              [
+                                ['completed', 'Traitée'],
+                                ['not_planned', 'Sans suite (test, doublon, non pertinent)'],
+                              ] as const
+                            ).map(([value, label]) => (
+                              <label key={value} className={`inline-flex min-h-11 items-center gap-2 text-sm ${focusRingClass}`}>
+                                <input
+                                  type="radio"
+                                  name="issue-close-reason"
+                                  value={value}
+                                  className="h-6 w-6 shrink-0 accent-sky-800 dark:accent-sky-300"
+                                  checked={issueCloseReason === value}
+                                  onChange={() => {
+                                    setIsIssueCloseConfirm(false)
+                                    setIssueCloseReason(value)
+                                  }}
+                                />
+                                {label}
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void handleCloseSelectedIssues()
+                          }}
+                          disabled={!hasToken || selectedIssueNumbers.length === 0 || isClosingIssues}
+                          className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${
+                            isIssueCloseConfirm ? moderationCtaDangerClass : moderationCtaPrimaryClass
+                          } ${focusRingClass}`}
+                        >
+                          {isClosingIssues
+                            ? 'Fermeture en cours...'
+                            : isIssueCloseConfirm
+                              ? `Confirmer la fermeture de ${selectedIssueNumbers.length} issue(s)`
+                              : `Fermer la sélection (${selectedIssueNumbers.length})`}
+                        </button>
+                        {isIssueCloseConfirm ? (
+                          <button
+                            type="button"
+                            onClick={() => setIsIssueCloseConfirm(false)}
+                            className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${moderationCtaNeutralClass} ${focusRingClass}`}
+                          >
+                            Annuler
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </>
+                )}
+
+                <p
+                  ref={githubIssuesResultRef}
+                  tabIndex={-1}
+                  role="status"
+                  aria-live="polite"
+                  className={`mt-4 text-sm font-semibold empty:hidden ${focusRingClass}`}
+                >
+                  {githubIssuesResult}
+                </p>
               </section>
 
               <div className="mt-8 grid gap-8 xl:grid-cols-2 xl:items-start">

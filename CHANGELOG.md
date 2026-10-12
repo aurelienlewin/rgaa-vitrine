@@ -7,6 +7,10 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+### Added
+- Added an `Issues GitHub de notification` section to `/moderation` (reachable from the skip links) to clear notifier issues without leaving the console. It lists the open issues created by the notifier (submission failures, moderation required, auto-publications), with a 24×24 px checkbox per issue, `Tout sélectionner`, a closing reason (`Traitée` → `completed`, `Sans suite` → `not_planned`) and a two-step `Fermer la sélection` / `Confirmer la fermeture` action with `Annuler`. The per-issue outcome is announced in a focused `role="status"` message. Issues are closed, not deleted: they stay readable and can be reopened on GitHub, and deletion is restricted to repository admins anyway.
+- Added `GET /api/moderation/github-issues` and `POST /api/moderation/github-issues/close` (moderation token required, at most 50 issues per call, closed sequentially). The server only lists or closes issues it created: it identifies them by their `<!-- annuaire-rgaa:… -->` body marker, or by the legacy `[Modération RGAA]` / `[Publication RGAA]` title prefixes. It re-reads every issue before closing it, and refuses pull requests and any other issue. GitHub calls share one `githubRequest` helper with the existing timeout.
+
 ## [2026-10-12 / v0.6.0]
 
 ### Accessibility

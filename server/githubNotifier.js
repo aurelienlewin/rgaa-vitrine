@@ -517,25 +517,25 @@ export function isGithubNotifierEnabled() {
   return Boolean(githubNotifierConfig)
 }
 
-async function createGithubIssue({ title, body, labels }) {
-  if (!githubNotifierConfig) {
-    return { enabled: false, notified: false }
+export class GithubNotifierError extends Error {
+  constructor(message, statusCode = 502) {
+    super(message)
+    this.name = 'GithubNotifierError'
+    this.statusCode = statusCode
   }
+}
 
+async function githubRequest(method, path, body) {
   const fetchOptions = {
-    method: 'POST',
+    method,
     headers: {
       authorization: `Bearer ${githubNotifierConfig.token}`,
       accept: 'application/vnd.github+json',
-      'content-type': 'application/json',
       'x-github-api-version': '2022-11-28',
       'user-agent': 'annuaire-rgaa-notifier/1.0',
+      ...(body ? { 'content-type': 'application/json' } : {}),
     },
-    body: JSON.stringify({
-      title,
-      body,
-      labels: Array.isArray(labels) && labels.length > 0 ? labels : githubNotifierConfig.labels,
-    }),
+    ...(body ? { body: JSON.stringify(body) } : {}),
   }
 
   if (typeof AbortSignal?.timeout === 'function') {
@@ -544,27 +544,140 @@ async function createGithubIssue({ title, body, labels }) {
 
   let response
   try {
-    response = await fetch(`${githubNotifierConfig.apiBaseUrl}/repos/${githubNotifierConfig.repo}/issues`, fetchOptions)
+    response = await fetch(`${githubNotifierConfig.apiBaseUrl}/repos/${githubNotifierConfig.repo}${path}`, fetchOptions)
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error(`GitHub notifier timeout after ${GITHUB_NOTIFY_TIMEOUT_MS}ms`)
+    if (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')) {
+      throw new GithubNotifierError(`GitHub notifier timeout after ${GITHUB_NOTIFY_TIMEOUT_MS}ms`, 504)
     }
     throw error
   }
 
   const payload = await readJsonSafely(response)
-
   if (!response.ok) {
-    const message =
-      typeof payload?.message === 'string' ? payload.message : `HTTP ${response.status} lors de la création d’issue`
-    throw new Error(`GitHub notifier error: ${message}`)
+    const message = typeof payload?.message === 'string' ? payload.message : `HTTP ${response.status}`
+    throw new GithubNotifierError(`GitHub notifier error: ${message}`, response.status === 404 ? 404 : 502)
   }
+
+  return payload
+}
+
+async function createGithubIssue({ title, body, labels }) {
+  if (!githubNotifierConfig) {
+    return { enabled: false, notified: false }
+  }
+
+  const payload = await githubRequest('POST', '/issues', {
+    title,
+    body,
+    labels: Array.isArray(labels) && labels.length > 0 ? labels : githubNotifierConfig.labels,
+  })
 
   return {
     enabled: true,
     notified: true,
     issueUrl: typeof payload?.html_url === 'string' ? payload.html_url : null,
   }
+}
+
+const NOTIFIER_ISSUE_MARKERS = {
+  'submission-failure': '<!-- annuaire-rgaa:submission-failure -->',
+  'pending-moderation': '<!-- annuaire-rgaa:pending-moderation -->',
+  'auto-approved-publication': '<!-- annuaire-rgaa:auto-approved-publication -->',
+}
+// Issues opened before body markers existed are recognised by their title prefix.
+const LEGACY_NOTIFIER_TITLE_PREFIXES = {
+  '[Modération RGAA]': 'pending-moderation',
+  '[Publication RGAA]': 'auto-approved-publication',
+}
+const MAX_NOTIFIER_ISSUE_PAGES = 5
+const NOTIFIER_ISSUES_PER_PAGE = 100
+export const MAX_NOTIFIER_ISSUES_PER_CLOSE = 50
+
+function readNotifierIssueKind(issue) {
+  const body = typeof issue?.body === 'string' ? issue.body : ''
+  for (const [kind, marker] of Object.entries(NOTIFIER_ISSUE_MARKERS)) {
+    if (body.includes(marker)) {
+      return kind
+    }
+  }
+  const title = typeof issue?.title === 'string' ? issue.title : ''
+  for (const [prefix, kind] of Object.entries(LEGACY_NOTIFIER_TITLE_PREFIXES)) {
+    if (title.startsWith(prefix)) {
+      return kind
+    }
+  }
+  return null
+}
+
+function toNotifierIssueSummary(issue, kind) {
+  return {
+    number: issue.number,
+    title: typeof issue.title === 'string' ? issue.title : `Issue #${issue.number}`,
+    kind,
+    state: issue.state === 'closed' ? 'closed' : 'open',
+    createdAt: typeof issue.created_at === 'string' ? issue.created_at : null,
+    url: sanitizeIssueUrl(issue.html_url),
+    labels: Array.isArray(issue.labels)
+      ? issue.labels.map((label) => (typeof label === 'string' ? label : label?.name)).filter(Boolean).slice(0, 12)
+      : [],
+  }
+}
+
+// Lists open issues created by this notifier only (marker or legacy title); pull requests are excluded.
+export async function listNotifierIssues() {
+  if (!githubNotifierConfig) {
+    return { enabled: false, issues: [] }
+  }
+
+  const issues = []
+  for (let page = 1; page <= MAX_NOTIFIER_ISSUE_PAGES; page += 1) {
+    const batch = await githubRequest(
+      'GET',
+      `/issues?state=open&sort=created&direction=desc&per_page=${NOTIFIER_ISSUES_PER_PAGE}&page=${page}`,
+    )
+    if (!Array.isArray(batch) || batch.length === 0) {
+      break
+    }
+    for (const issue of batch) {
+      if (issue?.pull_request || !Number.isInteger(issue?.number)) {
+        continue
+      }
+      const kind = readNotifierIssueKind(issue)
+      if (kind) {
+        issues.push(toNotifierIssueSummary(issue, kind))
+      }
+    }
+    if (batch.length < NOTIFIER_ISSUES_PER_PAGE) {
+      break
+    }
+  }
+
+  return { enabled: true, repo: githubNotifierConfig.repo, issues }
+}
+
+// Closes one issue after re-reading it: anything not created by this notifier is refused.
+export async function closeNotifierIssue(number, stateReason = 'completed') {
+  if (!githubNotifierConfig) {
+    throw new GithubNotifierError('Notifications GitHub non configurées.', 503)
+  }
+
+  const issue = await githubRequest('GET', `/issues/${number}`)
+  if (issue?.pull_request) {
+    throw new GithubNotifierError('Cette référence désigne une pull request, pas une issue.', 400)
+  }
+  const kind = readNotifierIssueKind(issue)
+  if (!kind) {
+    throw new GithubNotifierError('Issue non créée par le notificateur de l’annuaire : fermeture refusée.', 403)
+  }
+  if (issue.state === 'closed') {
+    return { ...toNotifierIssueSummary(issue, kind), alreadyClosed: true }
+  }
+
+  const closed = await githubRequest('PATCH', `/issues/${number}`, {
+    state: 'closed',
+    state_reason: stateReason === 'not_planned' ? 'not_planned' : 'completed',
+  })
+  return { ...toNotifierIssueSummary(closed, kind), alreadyClosed: false }
 }
 
 export async function notifyPendingModerationOnGithub(entry) {
