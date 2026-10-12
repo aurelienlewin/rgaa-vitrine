@@ -15,6 +15,11 @@ const PENDING_BY_URL_HASH_KEY = 'rgaa:vitrine:moderation:pending:by-url'
 const GITHUB_NOTIFY_WINDOW_KEY_PREFIX = 'rgaa:vitrine:notifications:github:window:'
 const SUBMISSION_FAILURE_ALERT_KEY_PREFIX = 'rgaa:vitrine:notifications:submission-failure:'
 const SUBMISSION_PREVIEW_KEY_PREFIX = 'rgaa:vitrine:submission:preview:'
+const SUBMISSION_FAILURE_KEY_PREFIX = 'rgaa:vitrine:submission-failures:ref:'
+const SUBMISSION_FAILURE_INDEX_KEY = 'rgaa:vitrine:submission-failures:index'
+const MAX_SUBMISSION_FAILURE_RECORDS = 500
+const MAX_SUBMISSION_FAILURE_LIST_LIMIT = 100
+const DEFAULT_SUBMISSION_FAILURE_LIST_LIMIT = 50
 const MAX_SUBMISSION_PREVIEW_BYTES = 32_000
 const MAX_STORED_ENTRIES = 500
 const MAX_PENDING_STORED_ENTRIES = 2000
@@ -879,6 +884,28 @@ export function sanitizeCategory(input) {
   return trimmed.slice(0, 60)
 }
 
+function parseSubmissionFailureLimit(value) {
+  const parsed = Number.parseInt(String(value ?? ''), 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_SUBMISSION_FAILURE_LIST_LIMIT
+  }
+  return Math.min(parsed, MAX_SUBMISSION_FAILURE_LIST_LIMIT)
+}
+
+function parseStoredSubmissionFailure(raw) {
+  if (!raw) {
+    return null
+  }
+  if (typeof raw === 'object') {
+    return raw
+  }
+  try {
+    return JSON.parse(String(raw))
+  } catch {
+    return null
+  }
+}
+
 class InMemoryShowcaseStorage {
   constructor() {
     this.mode = 'memory'
@@ -893,6 +920,7 @@ class InMemoryShowcaseStorage {
     this.githubNotificationCountByWindow = new Map()
     this.submissionFailureAlertExpiresAt = new Map()
     this.submissionPreviews = new Map()
+    this.submissionFailures = new Map()
   }
 
   async upsert(entry) {
@@ -1247,6 +1275,36 @@ class InMemoryShowcaseStorage {
       return null
     }
     return entry.payload
+  }
+
+  async recordSubmissionFailure(entry, ttlMs) {
+    const now = Date.now()
+    for (const [reference, record] of this.submissionFailures.entries()) {
+      if (record.expiresAt <= now) {
+        this.submissionFailures.delete(reference)
+      }
+    }
+    this.submissionFailures.set(entry.reference, { entry, expiresAt: now + ttlMs })
+    while (this.submissionFailures.size > MAX_SUBMISSION_FAILURE_RECORDS) {
+      this.submissionFailures.delete(this.submissionFailures.keys().next().value)
+    }
+  }
+
+  async getSubmissionFailure(reference) {
+    const record = this.submissionFailures.get(reference)
+    if (!record || record.expiresAt <= Date.now()) {
+      return null
+    }
+    return record.entry
+  }
+
+  async listSubmissionFailures(options = {}) {
+    const now = Date.now()
+    return Array.from(this.submissionFailures.values())
+      .filter((record) => record.expiresAt > now)
+      .map((record) => record.entry)
+      .reverse()
+      .slice(0, parseSubmissionFailureLimit(options.limit))
   }
 
   async getPendingById(submissionId) {
@@ -2250,6 +2308,54 @@ class UpstashShowcaseStorage {
     } catch (error) {
       console.warn('Redis readSubmissionPreview failed', error)
       return null
+    }
+  }
+
+  async recordSubmissionFailure(entry, ttlMs) {
+    const now = Date.now()
+    try {
+      await this.redis
+        .multi()
+        .set(`${SUBMISSION_FAILURE_KEY_PREFIX}${entry.reference}`, JSON.stringify(entry), {
+          px: Math.max(1000, Math.floor(ttlMs)),
+        })
+        .zadd(SUBMISSION_FAILURE_INDEX_KEY, { score: now, member: entry.reference })
+        .zremrangebyscore(SUBMISSION_FAILURE_INDEX_KEY, 0, now - ttlMs)
+        .zremrangebyrank(SUBMISSION_FAILURE_INDEX_KEY, 0, -(MAX_SUBMISSION_FAILURE_RECORDS + 1))
+        .exec()
+    } catch (error) {
+      console.error('Redis recordSubmissionFailure failed', error)
+      throw new ShowcaseStorageError('Journal des échecs de soumission indisponible.', 503)
+    }
+  }
+
+  async getSubmissionFailure(reference) {
+    try {
+      return parseStoredSubmissionFailure(await this.redis.get(`${SUBMISSION_FAILURE_KEY_PREFIX}${reference}`))
+    } catch (error) {
+      console.error('Redis getSubmissionFailure failed', error)
+      throw new ShowcaseStorageError('Journal des échecs de soumission indisponible.', 503)
+    }
+  }
+
+  async listSubmissionFailures(options = {}) {
+    try {
+      const references = await this.redis.zrange(
+        SUBMISSION_FAILURE_INDEX_KEY,
+        0,
+        parseSubmissionFailureLimit(options.limit) - 1,
+        { rev: true },
+      )
+      if (!Array.isArray(references) || references.length === 0) {
+        return []
+      }
+      const rawEntries = await this.redis.mget(
+        ...references.map((reference) => `${SUBMISSION_FAILURE_KEY_PREFIX}${reference}`),
+      )
+      return rawEntries.map(parseStoredSubmissionFailure).filter(Boolean)
+    } catch (error) {
+      console.error('Redis listSubmissionFailures failed', error)
+      throw new ShowcaseStorageError('Journal des échecs de soumission indisponible.', 503)
     }
   }
 

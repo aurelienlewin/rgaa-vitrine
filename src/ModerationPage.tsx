@@ -189,6 +189,114 @@ function formatDate(value: string) {
   }).format(new Date(value))
 }
 
+type SubmissionFailureAlert = {
+  status: 'sent' | 'skipped' | 'failed'
+  reason: string | null
+  detail?: string | null
+  issueUrl?: string | null
+}
+
+type SubmissionFailureRecord = {
+  reference: string
+  occurredAt: string
+  stage: 'preview' | 'confirmation'
+  source: 'server' | 'client'
+  host: string | null
+  inputUrl: string | null
+  errorCode: string
+  statusCode: number | null
+  message: string | null
+  userAgent: string | null
+  alert: SubmissionFailureAlert | null
+}
+
+const SUBMISSION_REFERENCE_PATTERN = /^SUB-[0-9A-F]{10}$/
+
+const SUBMISSION_FAILURE_STAGE_LABELS: Record<SubmissionFailureRecord['stage'], string> = {
+  preview: 'Pré-analyse',
+  confirmation: 'Confirmation de l’envoi',
+}
+
+const SUBMISSION_FAILURE_SOURCE_LABELS: Record<SubmissionFailureRecord['source'], string> = {
+  server: 'Serveur (erreur identifiée par l’API)',
+  client: 'Navigateur (réponse API absente ou inexploitable)',
+}
+
+const SUBMISSION_FAILURE_ALERT_REASON_LABELS: Record<string, string> = {
+  'non-alerting-code': 'pas d’alerte : cause liée à la saisie, à une adresse interdite ou à un blocage de modération',
+  deduplicated: 'pas d’alerte : incident identique (même hôte, même cause) déjà signalé dans les 6 dernières heures',
+  'notifier-disabled': 'pas d’alerte : notifications GitHub non configurées',
+  'quota-reached': 'pas d’alerte : quota de notifications GitHub atteint',
+  'github-error': 'échec de l’alerte GitHub',
+  'dedup-unavailable': 'échec de l’alerte : déduplication indisponible',
+}
+
+function isSubmissionFailureRecord(value: unknown): value is SubmissionFailureRecord {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+  const candidate = value as Record<string, unknown>
+  return (
+    typeof candidate.reference === 'string' &&
+    typeof candidate.occurredAt === 'string' &&
+    typeof candidate.errorCode === 'string'
+  )
+}
+
+function describeSubmissionFailureAlert(alert: SubmissionFailureAlert | null) {
+  if (!alert) {
+    return 'Statut d’alerte non enregistré.'
+  }
+  if (alert.status === 'sent') {
+    return 'Alerte GitHub envoyée.'
+  }
+  const label = SUBMISSION_FAILURE_ALERT_REASON_LABELS[alert.reason ?? ''] ?? 'pas d’alerte : raison inconnue'
+  const sentence = `${label.charAt(0).toUpperCase()}${label.slice(1)}`
+  return alert.detail ? `${sentence} (${alert.detail})` : `${sentence}.`
+}
+
+function SubmissionFailureDetails({ failure }: { failure: SubmissionFailureRecord }) {
+  const rows: Array<[string, string]> = [
+    ['Date', formatDate(failure.occurredAt)],
+    ['Étape', SUBMISSION_FAILURE_STAGE_LABELS[failure.stage] ?? failure.stage],
+    ['Origine', SUBMISSION_FAILURE_SOURCE_LABELS[failure.source] ?? failure.source],
+    ['Hôte', failure.host ?? 'Inconnu'],
+    ['URL saisie', failure.inputUrl ?? 'Non transmise'],
+    ['Code de cause', failure.errorCode],
+    ['Statut HTTP', failure.statusCode === null ? 'N/A' : String(failure.statusCode)],
+    ['Message affiché', failure.message ?? 'Non précisé'],
+    ['Alerte', describeSubmissionFailureAlert(failure.alert)],
+    ['Navigateur', failure.userAgent ?? 'Non transmis'],
+  ]
+
+  return (
+    <>
+      <dl className="mt-3 grid gap-x-4 gap-y-2 text-sm sm:grid-cols-[auto_minmax(0,1fr)]">
+        {rows.map(([term, value]) => (
+          <div key={term} className="contents">
+            <dt className="font-semibold text-slate-950 dark:text-slate-50">{term}</dt>
+            <dd className={`wrap-anywhere ${term === 'Code de cause' || term === 'URL saisie' ? 'font-mono' : ''}`}>
+              {value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {failure.alert?.issueUrl ? (
+        <p className="mt-3 text-sm">
+          <a
+            href={failure.alert.issueUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+            className={`inline-flex min-h-11 items-center font-semibold underline ${focusRingClass}`}
+          >
+            Ouvrir l’issue GitHub de l’incident {failure.reference} (nouvel onglet)
+          </a>
+        </p>
+      ) : null}
+    </>
+  )
+}
+
 function createDefaultMaintenanceState(): MaintenanceState {
   return {
     enabled: false,
@@ -609,6 +717,15 @@ function ModerationPage() {
   const pendingRef = useRef<HTMLElement | null>(null)
   const publishedRef = useRef<HTMLElement | null>(null)
   const archiveRef = useRef<HTMLElement | null>(null)
+  const submissionFailuresRef = useRef<HTMLElement | null>(null)
+  const failureReferenceInputRef = useRef<HTMLInputElement | null>(null)
+  const failureLookupResultRef = useRef<HTMLHeadingElement | null>(null)
+  const [failureReferenceInput, setFailureReferenceInput] = useState('')
+  const [failureLookupResult, setFailureLookupResult] = useState<SubmissionFailureRecord | null>(null)
+  const [failureLookupError, setFailureLookupError] = useState<string | null>(null)
+  const [isLookingUpFailure, setIsLookingUpFailure] = useState(false)
+  const [recentSubmissionFailures, setRecentSubmissionFailures] = useState<SubmissionFailureRecord[]>([])
+  const [isLoadingSubmissionFailures, setIsLoadingSubmissionFailures] = useState(false)
   const maintenanceSectionRef = useRef<HTMLElement | null>(null)
   const tokenInputRef = useRef<HTMLInputElement | null>(null)
   const messageRef = useRef<HTMLParagraphElement | null>(null)
@@ -733,6 +850,10 @@ function ModerationPage() {
 
   const focusArchive = useCallback(() => {
     focusElement(archiveRef.current)
+  }, [focusElement])
+
+  const focusSubmissionFailures = useCallback(() => {
+    focusElement(submissionFailuresRef.current)
   }, [focusElement])
 
   const focusSiteBlocklist = useCallback(() => {
@@ -974,6 +1095,84 @@ function ModerationPage() {
     }
   }, [buildAuthHeaders, focusMessage, hasToken])
 
+  const loadSubmissionFailures = useCallback(async () => {
+    if (!hasToken) {
+      return false
+    }
+
+    setIsLoadingSubmissionFailures(true)
+    try {
+      const response = await fetch('/api/moderation/submission-failures?limit=50', {
+        headers: buildAuthHeaders(false),
+      })
+      const payload = await readApiPayload(response)
+
+      if (!response.ok) {
+        throw new Error(
+          typeof payload.error === 'string' ? payload.error : 'Chargement des échecs de soumission impossible.',
+        )
+      }
+
+      const failures = Array.isArray(payload.failures) ? payload.failures.filter(isSubmissionFailureRecord) : []
+      setRecentSubmissionFailures(failures)
+      return true
+    } catch (error) {
+      const localizedMessage =
+        error instanceof Error ? error.message : 'Erreur lors du chargement des échecs de soumission.'
+      setAssertiveMessage(localizedMessage)
+      setPoliteMessage('')
+      return false
+    } finally {
+      setIsLoadingSubmissionFailures(false)
+    }
+  }, [buildAuthHeaders, hasToken])
+
+  // Move focus to the result once it is rendered (async lookup, so a timeout could fire too early).
+  useEffect(() => {
+    if (failureLookupResult) {
+      focusElement(failureLookupResultRef.current)
+    }
+  }, [failureLookupResult, focusElement])
+
+  const handleFailureLookup = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+      const reference = failureReferenceInput.trim().toUpperCase()
+      setFailureLookupResult(null)
+
+      if (!SUBMISSION_REFERENCE_PATTERN.test(reference)) {
+        setFailureLookupError(
+          'Référence invalide. Saisissez SUB- suivi de 10 caractères (chiffres 0 à 9 et lettres A à F), par exemple SUB-EA82279803.',
+        )
+        focusElement(failureReferenceInputRef.current)
+        return
+      }
+
+      setFailureLookupError(null)
+      setIsLookingUpFailure(true)
+      try {
+        const response = await fetch(
+          `/api/moderation/submission-failures?reference=${encodeURIComponent(reference)}`,
+          { headers: buildAuthHeaders(false) },
+        )
+        const payload = await readApiPayload(response)
+
+        if (!response.ok || !isSubmissionFailureRecord(payload.failure)) {
+          throw new Error(typeof payload.error === 'string' ? payload.error : 'Recherche impossible.')
+        }
+
+        setFailureLookupResult(payload.failure)
+        setPoliteMessage(`Incident ${reference} trouvé.`)
+      } catch (error) {
+        setFailureLookupError(error instanceof Error ? error.message : 'Erreur lors de la recherche.')
+        focusElement(failureReferenceInputRef.current)
+      } finally {
+        setIsLookingUpFailure(false)
+      }
+    },
+    [buildAuthHeaders, failureReferenceInput, focusElement],
+  )
+
   const resolveNextPendingSubmissionId = useCallback(
     (submissionId: string) => {
       const currentIndex = pendingEntries.findIndex((entry) => entry.submissionId === submissionId)
@@ -1087,6 +1286,7 @@ function ModerationPage() {
       const unlocked = pendingLoaded || publishedLoaded || blocklistsLoaded || maintenanceLoaded
 
       if (unlocked) {
+        void loadSubmissionFailures()
         persistStoredModerationSession(moderationToken, rememberModerationSession)
         setHasStoredModerationSession(true)
         setIsModerationUnlocked(true)
@@ -1106,6 +1306,7 @@ function ModerationPage() {
       loadMaintenanceState,
       loadPendingEntries,
       loadPublishedEntries,
+      loadSubmissionFailures,
       lockModerationView,
       moderationToken,
       rememberModerationSession,
@@ -1878,6 +2079,9 @@ function ModerationPage() {
             </a>
             <a href="#blocklist-votes" className={skipLinkClass} onClick={focusVoteBlocklist}>
               Aller à la blocklist votes
+            </a>
+            <a href="#echecs-soumission" className={skipLinkClass} onClick={focusSubmissionFailures}>
+              Aller aux échecs de soumission
             </a>
             <a href="#archive-donnees" className={skipLinkClass} onClick={focusArchive}>
               Aller à l’archivage
@@ -2959,6 +3163,113 @@ function ModerationPage() {
             )}
               </section>
               </div>
+
+              <section
+                id="echecs-soumission"
+                ref={submissionFailuresRef}
+                tabIndex={-1}
+                className={`mt-8 rounded-2xl p-6 ${moderationSurfaceClass} ${focusTargetScrollMarginClass} ${focusTargetClass}`}
+                aria-labelledby="echecs-soumission-titre"
+              >
+                <h2 id="echecs-soumission-titre" className="text-lg font-semibold">
+                  Échecs de soumission
+                </h2>
+                <p className={`mt-2 ${moderationTextMutedClass}`}>
+                  Chaque échec affiché à un utilisateur porte une référence d’incident conservée 30 jours, y compris lorsqu’aucune alerte GitHub n’a été envoyée. Le statut d’alerte indique pourquoi.
+                </p>
+                <form className="mt-4 flex flex-wrap items-end gap-3" onSubmit={handleFailureLookup} noValidate>
+                  <div className="min-w-0 flex-1 basis-64">
+                    <label htmlFor="failure-reference" className="block text-sm font-medium">
+                      Référence d’incident
+                    </label>
+                    <input
+                      ref={failureReferenceInputRef}
+                      id="failure-reference"
+                      name="failure-reference"
+                      type="text"
+                      value={failureReferenceInput}
+                      onChange={(event) => setFailureReferenceInput(event.target.value)}
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      aria-invalid={failureLookupError ? true : undefined}
+                      aria-describedby={
+                        failureLookupError ? 'failure-reference-help failure-reference-error' : 'failure-reference-help'
+                      }
+                      className={`mt-1 font-mono ${moderationFieldClass}`}
+                    />
+                    <p id="failure-reference-help" className={`mt-1 text-sm ${moderationTextMutedClass}`}>
+                      Format : SUB- suivi de 10 caractères, par exemple SUB-EA82279803. Les minuscules sont acceptées.
+                    </p>
+                    {failureLookupError ? (
+                      <p
+                        id="failure-reference-error"
+                        role="alert"
+                        className="mt-1 text-sm font-semibold text-rose-900 dark:text-rose-100"
+                      >
+                        {failureLookupError}
+                      </p>
+                    ) : null}
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={!hasToken || isLookingUpFailure}
+                    className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaPrimaryClass} ${focusRingClass}`}
+                  >
+                    {isLookingUpFailure ? 'Recherche en cours...' : 'Rechercher l’incident'}
+                  </button>
+                </form>
+
+                {failureLookupResult ? (
+                  <div className={`mt-4 rounded-xl p-4 ${moderationSurfaceStrongClass}`}>
+                    <h3
+                      ref={failureLookupResultRef}
+                      tabIndex={-1}
+                      className={`text-base font-semibold ${focusRingClass}`}
+                    >
+                      Incident <span className="font-mono">{failureLookupResult.reference}</span>
+                    </h3>
+                    <SubmissionFailureDetails failure={failureLookupResult} />
+                  </div>
+                ) : null}
+
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-base font-semibold">Derniers échecs (50 au plus)</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void loadSubmissionFailures().then((loaded) => {
+                        if (loaded) {
+                          setPoliteMessage('Liste des échecs de soumission actualisée.')
+                        }
+                      })
+                    }}
+                    disabled={!hasToken || isLoadingSubmissionFailures}
+                    className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${moderationCtaNeutralClass} ${focusRingClass}`}
+                  >
+                    {isLoadingSubmissionFailures ? 'Actualisation...' : 'Actualiser la liste des échecs'}
+                  </button>
+                </div>
+                {recentSubmissionFailures.length === 0 ? (
+                  <p className={`mt-3 text-sm ${moderationTextMutedClass}`}>
+                    {isLoadingSubmissionFailures
+                      ? 'Chargement des échecs de soumission en cours.'
+                      : 'Aucun échec de soumission enregistré sur les 30 derniers jours.'}
+                  </p>
+                ) : (
+                  <ul className="mt-3 grid gap-3">
+                    {recentSubmissionFailures.map((failure) => (
+                      <li key={failure.reference} className={`rounded-xl p-4 ${moderationSurfaceStrongClass}`}>
+                        <h4 className="text-sm font-semibold">
+                          <span className="font-mono">{failure.reference}</span> · {failure.host ?? 'Hôte inconnu'} ·{' '}
+                          <span className="font-mono">{failure.errorCode}</span>
+                        </h4>
+                        <SubmissionFailureDetails failure={failure} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
 
               <div className="mt-8 grid gap-8 xl:grid-cols-2 xl:items-start">
                 <section

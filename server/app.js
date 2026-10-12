@@ -113,6 +113,10 @@ const MIN_ARCHIVE_SIGNING_SECRET_LENGTH = 32
 const SITE_INSIGHT_PREVIEW_CACHE_TTL_MS = 10 * 60 * 1000
 const SITE_INSIGHT_PREVIEW_CACHE_MAX_ENTRIES = 200
 const SUBMISSION_FAILURE_ALERT_DEDUP_MS = 6 * 60 * 60 * 1000
+// Platform logs are short-lived: incident references stay searchable from /moderation.
+const SUBMISSION_FAILURE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000
+const SUBMISSION_REFERENCE_PATTERN = /^SUB-[0-9A-F]{10}$/
+const MAX_STORED_USER_AGENT_LENGTH = 200
 // Causes that come from the submitter's input or a moderation decision, not from a defect.
 const NON_ALERTING_SUBMISSION_ERROR_CODES = new Set(['invalid-input', 'forbidden-host', 'site-blocked'])
 const CLIENT_SUBMISSION_FAILURE_KINDS = new Set(['network', 'timeout', 'invalid-response'])
@@ -314,7 +318,7 @@ function readBlocklistProjectConfig() {
 
 async function tryGithubNotification(kind, task) {
   if (!isGithubNotifierEnabled()) {
-    return
+    return { status: 'skipped', reason: 'notifier-disabled' }
   }
 
   try {
@@ -325,12 +329,22 @@ async function tryGithubNotification(kind, task) {
 
     if (!notificationSlot.allowed) {
       console.warn(`GitHub ${kind} notification skipped: quota reached until ${notificationSlot.resetAt}.`)
-      return
+      return { status: 'skipped', reason: 'quota-reached', detail: `Quota atteint jusqu’au ${notificationSlot.resetAt}.` }
     }
 
-    await task()
+    const result = await task()
+    return {
+      status: 'sent',
+      reason: null,
+      issueUrl: typeof result?.issueUrl === 'string' ? result.issueUrl : null,
+    }
   } catch (notificationError) {
     console.error(`GitHub ${kind} notification failed`, notificationError)
+    return {
+      status: 'failed',
+      reason: 'github-error',
+      detail: notificationError instanceof Error ? notificationError.message.slice(0, 300) : 'Erreur inconnue.',
+    }
   }
 }
 
@@ -391,13 +405,65 @@ async function reportSubmissionFailure({
     }),
   )
 
-  if (NON_ALERTING_SUBMISSION_ERROR_CODES.has(safeErrorCode) || !isGithubNotifierEnabled()) {
-    return
+  const userAgentHeader = request?.headers?.['user-agent']
+  const userAgent =
+    typeof userAgentHeader === 'string' ? userAgentHeader.slice(0, MAX_STORED_USER_AGENT_LENGTH) : null
+  const occurredAt = new Date().toISOString()
+  const safeInputUrl =
+    typeof inputUrl === 'string' ? inputUrl.trim().slice(0, MAX_CLIENT_FAILURE_URL_LENGTH) : null
+
+  const alert = await raiseSubmissionFailureAlert({
+    reference,
+    stage,
+    source,
+    host,
+    inputUrl: safeInputUrl,
+    siteUrl: readSubmissionSiteUrl(inputUrl),
+    errorCode: safeErrorCode,
+    statusCode,
+    message,
+    userAgent,
+    occurredAt,
+  })
+
+  if (alert.status !== 'sent') {
+    console.warn(JSON.stringify({ event: 'submission-failure-alert-skipped', reference, ...alert }))
+  }
+
+  try {
+    await showcaseStorage.recordSubmissionFailure(
+      {
+        reference,
+        occurredAt,
+        stage,
+        source,
+        host,
+        inputUrl: safeInputUrl,
+        errorCode: safeErrorCode,
+        statusCode: Number.isInteger(statusCode) ? statusCode : null,
+        message: typeof message === 'string' ? message.slice(0, MAX_CLIENT_FAILURE_MESSAGE_LENGTH) : null,
+        userAgent,
+        alert,
+      },
+      SUBMISSION_FAILURE_RETENTION_MS,
+    )
+  } catch (recordError) {
+    console.error('Unable to record submission failure', recordError)
+  }
+}
+
+async function raiseSubmissionFailureAlert(failure) {
+  if (NON_ALERTING_SUBMISSION_ERROR_CODES.has(failure.errorCode)) {
+    return { status: 'skipped', reason: 'non-alerting-code' }
+  }
+
+  if (!isGithubNotifierEnabled()) {
+    return { status: 'skipped', reason: 'notifier-disabled' }
   }
 
   try {
     const fingerprint = createHash('sha256')
-      .update(`${host ?? 'unknown-host'}|${safeErrorCode}`)
+      .update(`${failure.host ?? 'unknown-host'}|${failure.errorCode}`)
       .digest('hex')
       .slice(0, 32)
     const shouldAlert = await showcaseStorage.reserveSubmissionFailureAlert(
@@ -405,29 +471,14 @@ async function reportSubmissionFailure({
       SUBMISSION_FAILURE_ALERT_DEDUP_MS,
     )
     if (!shouldAlert) {
-      return
+      return { status: 'skipped', reason: 'deduplicated' }
     }
   } catch (dedupError) {
     console.error('Submission failure alert deduplication failed', dedupError)
-    return
+    return { status: 'failed', reason: 'dedup-unavailable' }
   }
 
-  const userAgentHeader = request?.headers?.['user-agent']
-  await tryGithubNotification('submission-failure', () =>
-    notifySubmissionFailureOnGithub({
-      reference,
-      stage,
-      source,
-      host,
-      inputUrl: typeof inputUrl === 'string' ? inputUrl.trim().slice(0, MAX_CLIENT_FAILURE_URL_LENGTH) : null,
-      siteUrl: readSubmissionSiteUrl(inputUrl),
-      errorCode: safeErrorCode,
-      statusCode,
-      message,
-      userAgent: typeof userAgentHeader === 'string' ? userAgentHeader : null,
-      occurredAt: new Date().toISOString(),
-    }),
-  )
+  return tryGithubNotification('submission-failure', () => notifySubmissionFailureOnGithub(failure))
 }
 
 async function sendSubmissionFailure(response, request, { stage, inputUrl, statusCode, message, errorCode }) {
@@ -3115,6 +3166,46 @@ app.get('/api/moderation/pending', requireModerationAuth, async (request, respon
 
     console.error('Unexpected error in /api/moderation/pending', error)
     sendJsonError(response, 500, 'Erreur interne lors de la lecture de la file de modération.')
+  }
+})
+
+app.get('/api/moderation/submission-failures', requireModerationAuth, async (request, response) => {
+  const rawReference = firstQueryValue(request.query.reference)
+
+  try {
+    if (typeof rawReference === 'string' && rawReference.trim()) {
+      const reference = rawReference.trim().toUpperCase()
+      if (!SUBMISSION_REFERENCE_PATTERN.test(reference)) {
+        sendJsonError(response, 400, 'Référence invalide. Format attendu: SUB- suivi de 10 caractères hexadécimaux.')
+        return
+      }
+
+      const failure = await showcaseStorage.getSubmissionFailure(reference)
+      if (!failure) {
+        sendJsonError(
+          response,
+          404,
+          'Aucun incident enregistré pour cette référence (inconnue ou expirée après 30 jours).',
+        )
+        return
+      }
+
+      response.json({ failure })
+      return
+    }
+
+    const failures = await showcaseStorage.listSubmissionFailures({
+      limit: firstQueryValue(request.query.limit),
+    })
+    response.json({ failures, retentionDays: SUBMISSION_FAILURE_RETENTION_MS / (24 * 60 * 60 * 1000) })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+
+    console.error('Unexpected error in /api/moderation/submission-failures', error)
+    sendJsonError(response, 500, 'Erreur interne lors de la lecture des échecs de soumission.')
   }
 })
 

@@ -333,7 +333,13 @@ Submission-failure alerts:
 - are not raised for input mistakes (`invalid-input`), forbidden private/local hosts (`forbidden-host`), or moderation-blocked sites (`site-blocked`)
 - share the global notification quota (`GITHUB_NOTIFY_MAX_PER_WINDOW`)
 
-Every submission failure is also logged as a structured `submission-failure` JSON line.
+Every submission failure is also logged as a structured `submission-failure` JSON line, and skipped or failed alerts as `submission-failure-alert-skipped`.
+
+Submission incident log:
+
+- every failure, alerting or not, is stored for 30 days under its `SUB-…` reference (500 most recent at most), with its GitHub alert outcome: `sent`, or `skipped`/`failed` with a reason (`non-alerting-code`, `deduplicated`, `notifier-disabled`, `quota-reached`, `github-error`, `dedup-unavailable`)
+- the `Échecs de soumission` section of `/moderation` searches an incident by reference and lists the 50 latest ones
+- a `github-error` outcome such as `Bad credentials` means `GITHUB_NOTIFY_TOKEN` is invalid or expired and must be replaced in the deployment environment
 
 ## API Surface
 
@@ -356,6 +362,7 @@ Every submission failure is also logged as a structured `submission-failure` JSO
 
 - `GET /api/moderation/pending`
 - `GET /api/moderation/showcase`
+- `GET /api/moderation/submission-failures`: latest submission incidents, or one incident with `?reference=SUB-…`
 - `GET /api/moderation/blocklist`
 - `GET /api/moderation/maintenance`
 - `GET /api/moderation/archive`
