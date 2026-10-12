@@ -395,8 +395,17 @@ x-moderation-token: <MODERATION_API_TOKEN>
 `POST /api/site-insight` can return:
 
 - `approved`: published immediately
-- `duplicate`: already listed
+- `duplicate`: already listed with an unchanged score (the message states the current score), or the new analysis could not detect a score or status
+- `update` (pre-analysis only) / `updated` (confirmation): already listed and the new analysis detected a different compliance score or status; confirming updates the published entry
 - `pending`: stored for moderation when key integrity checks fail (for example missing accessibility statement, mismatch between statement domain and submitted site domain, invalid/inaccessible detected thumbnail, or sensitive dictionary matches on submitted metadata)
+
+Resubmitting a published site:
+
+- a listed site can be resubmitted at any time: the analysis runs again and its score and status are compared with the published entry (`scoreUpdate`: `changed`, `previousScore`, `previousStatusLabel`, `nextScore`, `nextStatusLabel`, `requiresReview`)
+- when they changed, the entry keeps its votes, category, title, thumbnail and moderator edits; only the compliance score, status, label and accessibility statement URL are updated
+- `updatedAt` is refreshed, so the entry ranks first in the default `Plus récentes d’abord` order, like a new entry
+- an update that fails integrity checks (missing or foreign-domain statement, `Totalement conforme` with a score below `100`, `Non conforme` level) goes to manual moderation as a pending update; approving it merges into the published entry instead of creating a second one
+- the pre-analysis panel shows `Score actuel de la fiche publiée` and `Nouveau score détecté`; the confirmation panel reads `Fiche mise à jour`
 
 Analysis fallback to manual moderation:
 

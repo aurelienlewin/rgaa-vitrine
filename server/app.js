@@ -2024,18 +2024,21 @@ function withCandidateDomainContext(entryLike, domainSnapshot) {
   }
 }
 
-function buildSubsiteContextMessage(prefix, domainContext, suffix) {
-  if (
-    !domainContext ||
-    typeof domainContext.registrableDomain !== 'string' ||
-    ((domainContext.publishedSiteCount ?? domainContext.siteCount ?? 0) <= 0 &&
-      (domainContext.pendingSiteCount ?? 0) <= 0)
-  ) {
+// `selfKind` is set when the context was computed after saving the entry itself ('published' or
+// 'pending'), so the entry is not counted among the sites the domain "already" has.
+function buildSubsiteContextMessage(prefix, domainContext, suffix, selfKind = null) {
+  if (!domainContext || typeof domainContext.registrableDomain !== 'string') {
     return prefix
   }
 
-  const publishedCount = domainContext.publishedSiteCount ?? domainContext.siteCount ?? 0
-  const pendingCount = domainContext.pendingSiteCount ?? 0
+  const publishedCount = Math.max(
+    0,
+    (domainContext.publishedSiteCount ?? domainContext.siteCount ?? 0) - (selfKind === 'published' ? 1 : 0),
+  )
+  const pendingCount = Math.max(0, (domainContext.pendingSiteCount ?? 0) - (selfKind === 'pending' ? 1 : 0))
+  if (publishedCount <= 0 && pendingCount <= 0) {
+    return prefix
+  }
   const details = []
   if (publishedCount > 0) {
     details.push(`${publishedCount} fiche(s) publiée(s)`)
@@ -2830,6 +2833,95 @@ app.post('/api/showcase/upvote', voteLimiter, async (request, response) => {
   }
 })
 
+function formatScoreForMessage(score) {
+  return typeof score === 'number' && Number.isFinite(score) ? `${Math.round(score * 100) / 100} %` : 'non renseigné'
+}
+
+// Compares a fresh analysis with a published entry: only a detected score or status can update it.
+function readComplianceUpdate(existingEntry, insight, analysisFailure) {
+  const previous = normalizeComplianceSnapshot(existingEntry)
+  const next = normalizeComplianceSnapshot(insight)
+  const summary = {
+    previousScore: previous.complianceScore,
+    previousStatus: previous.complianceStatus,
+    previousStatusLabel: previous.complianceStatusLabel,
+    nextScore: next.complianceScore,
+    nextStatus: next.complianceStatus,
+    nextStatusLabel: next.complianceStatusLabel,
+  }
+
+  if (analysisFailure) {
+    return {
+      ...summary,
+      changed: false,
+      message: `Ce site est déjà référencé. L’analyse automatique n’a pas pu vérifier une évolution du score (${analysisFailure.message})`,
+    }
+  }
+
+  if (next.complianceScore === null && !next.complianceStatus) {
+    return {
+      ...summary,
+      changed: false,
+      message:
+        'Ce site est déjà référencé. Aucun score ni niveau de conformité n’a été détecté par la nouvelle analyse : la fiche reste inchangée.',
+    }
+  }
+
+  const scoreChanged =
+    next.complianceScore !== null &&
+    (previous.complianceScore === null || Math.abs(next.complianceScore - previous.complianceScore) >= 0.01)
+  const statusChanged = Boolean(next.complianceStatus) && next.complianceStatus !== previous.complianceStatus
+
+  if (!scoreChanged && !statusChanged) {
+    return {
+      ...summary,
+      changed: false,
+      message: `Ce site est déjà référencé et son score est inchangé (${formatScoreForMessage(previous.complianceScore)}${
+        previous.complianceStatusLabel ? `, ${previous.complianceStatusLabel}` : ''
+      }).`,
+    }
+  }
+
+  return {
+    ...summary,
+    changed: true,
+    message: `Score de conformité modifié depuis la publication : ${formatScoreForMessage(previous.complianceScore)}${
+      previous.complianceStatusLabel ? ` (${previous.complianceStatusLabel})` : ''
+    } → ${formatScoreForMessage(next.complianceScore)}${next.complianceStatusLabel ? ` (${next.complianceStatusLabel})` : ''}.`,
+  }
+}
+
+// Same integrity rules as a first publication, minus checks already passed by the published entry
+// (sensitive categorisation, thumbnail): the update only touches compliance data.
+function getComplianceUpdateReviewReasons(insight, { complianceConsistencyIssue = null } = {}) {
+  const reasons = []
+  if (typeof complianceConsistencyIssue === 'string' && complianceConsistencyIssue.trim()) {
+    reasons.push(complianceConsistencyIssue.trim())
+  }
+  if (!insight.accessibilityPageUrl) {
+    reasons.push('Aucune déclaration d’accessibilité détectée.')
+  } else if (hasAccessibilityDomainMismatch(insight.normalizedUrl, insight.accessibilityPageUrl)) {
+    reasons.push('La déclaration d’accessibilité détectée pointe vers un domaine différent du site soumis.')
+  }
+  if (!AUTO_PUBLISH_STATUSES.has(insight.complianceStatus ?? '')) {
+    reasons.push('Niveau de conformité insuffisant pour une mise à jour automatique.')
+  }
+  return reasons
+}
+
+// Keeps votes, category, title, thumbnail and moderator edits; refreshing updatedAt ranks the entry as new.
+function buildComplianceUpdatedEntry(existingEntry, compliance) {
+  const normalized = normalizeComplianceSnapshot(compliance)
+  return {
+    ...existingEntry,
+    complianceStatus: normalized.complianceStatus ?? existingEntry.complianceStatus ?? null,
+    complianceStatusLabel: normalized.complianceStatusLabel ?? existingEntry.complianceStatusLabel ?? null,
+    complianceScore: normalized.complianceScore ?? existingEntry.complianceScore ?? null,
+    accessibilityPageUrl: compliance.accessibilityPageUrl ?? existingEntry.accessibilityPageUrl ?? null,
+    updatedAt: new Date().toISOString(),
+  }
+}
+
 function buildAnalysisFallbackReason(analysisFailure) {
   const detail =
     typeof analysisFailure?.message === 'string' && analysisFailure.message.trim()
@@ -2936,11 +3028,96 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
       const existingPublishedEntry =
         domainSnapshot.publishedEntries.find((entry) => entry.normalizedUrl === normalizedInsight.normalizedUrl) ??
         withCandidateDomainContext(existingEntry, domainSnapshot)
+      const complianceUpdate = readComplianceUpdate(existingEntry, normalizedInsight, analysisFailure)
+      const scoreUpdatePayload = {
+        previousScore: complianceUpdate.previousScore,
+        previousStatusLabel: complianceUpdate.previousStatusLabel,
+        nextScore: complianceUpdate.nextScore,
+        nextStatusLabel: complianceUpdate.nextStatusLabel,
+      }
+
+      if (!complianceUpdate.changed) {
+        response.json({
+          ...existingPublishedEntry,
+          submissionStatus: 'duplicate',
+          preview: previewMode,
+          scoreUpdate: { ...scoreUpdatePayload, changed: false },
+          message: complianceUpdate.message,
+        })
+        return
+      }
+
+      if (existingPending) {
+        const existingPendingEntry =
+          domainSnapshot.pendingEntries.find((entry) => entry.normalizedUrl === normalizedInsight.normalizedUrl) ??
+          withCandidateDomainContext(existingPending, domainSnapshot)
+        response.status(202).json({
+          ...existingPendingEntry,
+          submissionStatus: 'pending',
+          alreadySubmitted: true,
+          preview: previewMode,
+          message:
+            'Une mise à jour de cette fiche est déjà en attente de validation manuelle. Inutile de la renvoyer.',
+        })
+        return
+      }
+
+      const updateReviewReasons = getComplianceUpdateReviewReasons(normalizedInsight, {
+        complianceConsistencyIssue,
+      })
+      const requiresReview = updateReviewReasons.length > 0
+      const updatedEntry = buildComplianceUpdatedEntry(existingEntry, normalizedInsight)
+
+      if (previewMode) {
+        const nextPreviewToken = await storeSiteInsightPreview(
+          url,
+          normalizedInsight,
+          complianceConsistencyIssue,
+          analysisFailure,
+        )
+        response.status(requiresReview ? 202 : 200).json({
+          ...withCandidateDomainContext(updatedEntry, domainSnapshot),
+          submissionStatus: requiresReview ? 'pending' : 'update',
+          preview: true,
+          previewToken: nextPreviewToken,
+          scoreUpdate: { ...scoreUpdatePayload, changed: true, requiresReview },
+          message: requiresReview
+            ? `${complianceUpdate.message} Si vous confirmez, la mise à jour sera vérifiée par la modération : ${formatManualReviewReason(updateReviewReasons)}`
+            : `${complianceUpdate.message} Confirmez l’envoi pour mettre à jour la fiche publiée.`,
+        })
+        return
+      }
+
+      if (requiresReview) {
+        const pendingUpdate = buildPendingSubmission(
+          { ...normalizedInsight, siteTitle: existingEntry.siteTitle, thumbnailUrl: existingEntry.thumbnailUrl ?? null },
+          existingEntry.category,
+          `Mise à jour d’une fiche publiée demandée. ${complianceUpdate.message} ${formatManualReviewReason(updateReviewReasons)}`,
+        )
+        const savedPendingUpdate = await showcaseStorage.upsertPending(pendingUpdate)
+        await tryGithubNotification('moderation', () => notifyPendingModerationOnGithub(savedPendingUpdate))
+        response.status(202).json({
+          ...withCandidateDomainContext(savedPendingUpdate, domainSnapshot),
+          submissionStatus: 'pending',
+          scoreUpdate: { ...scoreUpdatePayload, changed: true, requiresReview: true },
+          message: `${complianceUpdate.message} La mise à jour est enregistrée en file de validation manuelle avant publication.`,
+        })
+        return
+      }
+
+      const persistedUpdate = await showcaseStorage.upsert(updatedEntry)
+      const updatedSnapshot = await buildSubmissionDomainSnapshot()
+      const persistedUpdateWithContext =
+        updatedSnapshot.publishedEntries.find((entry) => entry.normalizedUrl === persistedUpdate.normalizedUrl) ??
+        withCandidateDomainContext(persistedUpdate, updatedSnapshot)
+      await tryGithubNotification('auto-publication', () =>
+        notifyApprovedPublicationOnGithub(persistedUpdateWithContext),
+      )
       response.json({
-        ...existingPublishedEntry,
-        submissionStatus: 'duplicate',
-        preview: previewMode,
-        message: 'Ce site est déjà référencé dans la vitrine.',
+        ...persistedUpdateWithContext,
+        submissionStatus: 'updated',
+        scoreUpdate: { ...scoreUpdatePayload, changed: true, requiresReview: false },
+        message: `${complianceUpdate.message} La fiche est mise à jour et remonte en tête des fiches les plus récentes.`,
       })
       return
     }
@@ -3031,6 +3208,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
             : 'Soumission reçue. Elle est enregistrée en file de validation manuelle avant publication.',
           pendingEntryWithContext.domainContext,
           'La modération verra ce site comme un sous-site distinct du même domaine.',
+          'pending',
         ),
       })
       return
@@ -3054,6 +3232,7 @@ app.post('/api/site-insight', submissionLimiter, async (request, response) => {
         'Site publié dans la vitrine.',
         persistedEntryWithContext.domainContext,
         'Cette fiche est désormais rattachée au même domaine que les autres sous-sites déjà référencés.',
+        'published',
       ),
     })
   } catch (error) {
@@ -3636,6 +3815,21 @@ app.post('/api/moderation/approve', requireModerationAuth, async (request, respo
     }
 
     const existingEntry = await showcaseStorage.getByNormalizedUrl(pendingEntry.normalizedUrl)
+    if (existingEntry && readComplianceUpdate(existingEntry, pendingEntry, null).changed) {
+      // Pending score update of a published entry: merge it instead of creating a second entry.
+      const savedUpdate = await showcaseStorage.upsert(buildComplianceUpdatedEntry(existingEntry, pendingEntry))
+      await showcaseStorage.deletePendingById(submissionId)
+      const updatedDomainSnapshot = await buildSubmissionDomainSnapshot()
+      const savedUpdateWithContext =
+        updatedDomainSnapshot.publishedEntries.find((entry) => entry.normalizedUrl === savedUpdate.normalizedUrl) ??
+        withCandidateDomainContext(savedUpdate, updatedDomainSnapshot)
+      response.json({
+        ...savedUpdateWithContext,
+        submissionStatus: 'updated',
+        message: 'Mise à jour approuvée : le score de la fiche publiée est actualisé et la fiche remonte en tête.',
+      })
+      return
+    }
     if (existingEntry) {
       await showcaseStorage.deletePendingById(submissionId)
       response.json({
@@ -3675,6 +3869,7 @@ app.post('/api/moderation/approve', requireModerationAuth, async (request, respo
         'Soumission approuvée et publiée dans l’annuaire.',
         approvedEntryWithContext.domainContext,
         'La fiche rejoint désormais le groupe multi-sites de ce domaine.',
+        'published',
       ),
       moderation: {
         submissionId,

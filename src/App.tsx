@@ -81,7 +81,15 @@ type InitialDirectoryFilters = {
   hasActiveFilters: boolean
 }
 
-type SubmissionStatus = 'approved' | 'duplicate' | 'pending'
+type SubmissionStatus = 'approved' | 'duplicate' | 'pending' | 'update' | 'updated'
+type SubmissionScoreUpdate = {
+  changed: boolean
+  previousScore: number | null
+  previousStatusLabel: string | null
+  nextScore: number | null
+  nextStatusLabel: string | null
+  requiresReview?: boolean
+}
 type SubmissionFeedbackKind = 'duplicate' | 'already-pending'
 type SubmissionFeedback = {
   id: number
@@ -395,6 +403,9 @@ function formatSubmissionStatusLabel(value: SubmissionStatus | null) {
   }
   if (value === 'duplicate') {
     return 'Déjà référencé'
+  }
+  if (value === 'update' || value === 'updated') {
+    return 'Mise à jour de la fiche publiée'
   }
   return 'En attente d’analyse'
 }
@@ -774,10 +785,34 @@ function readShowcaseEntriesFromPayload(payload: unknown) {
 
 function readSubmissionStatus(payload: Record<string, unknown>) {
   const rawStatus = payload.submissionStatus
-  if (rawStatus === 'approved' || rawStatus === 'duplicate' || rawStatus === 'pending') {
+  if (
+    rawStatus === 'approved' ||
+    rawStatus === 'duplicate' ||
+    rawStatus === 'pending' ||
+    rawStatus === 'update' ||
+    rawStatus === 'updated'
+  ) {
     return rawStatus as SubmissionStatus
   }
   return null
+}
+
+function readSubmissionScoreUpdate(payload: Record<string, unknown>): SubmissionScoreUpdate | null {
+  const raw = payload.scoreUpdate
+  if (!raw || typeof raw !== 'object') {
+    return null
+  }
+  const candidate = raw as Record<string, unknown>
+  const readScore = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : null)
+  const readLabel = (value: unknown) => (typeof value === 'string' && value.trim() ? value : null)
+  return {
+    changed: candidate.changed === true,
+    previousScore: readScore(candidate.previousScore),
+    previousStatusLabel: readLabel(candidate.previousStatusLabel),
+    nextScore: readScore(candidate.nextScore),
+    nextStatusLabel: readLabel(candidate.nextStatusLabel),
+    requiresReview: candidate.requiresReview === true,
+  }
 }
 
 function readSubmissionMessage(payload: Record<string, unknown>) {
@@ -984,6 +1019,8 @@ function App() {
   const [submissionPreviewStatus, setSubmissionPreviewStatus] = useState<SubmissionStatus | null>(null)
   const [submissionPreviewToken, setSubmissionPreviewToken] = useState<string | null>(null)
   const [lastAddedEntry, setLastAddedEntry] = useState<ShowcaseEntry | null>(null)
+  const [lastAddedWasUpdate, setLastAddedWasUpdate] = useState(false)
+  const [submissionScoreUpdate, setSubmissionScoreUpdate] = useState<SubmissionScoreUpdate | null>(null)
   const [showcaseEntries, setShowcaseEntries] = useState<ShowcaseEntry[]>([])
   const [searchQuery, setSearchQuery] = useState(() => initialDirectoryFilters.query)
   const [statusFilter, setStatusFilter] = useState<ShowcaseStatusFilter>(() => initialDirectoryFilters.status)
@@ -1838,6 +1875,7 @@ function App() {
       setIsSubmitConfirmationStep(false)
       setSubmissionPreviewEntry(null)
       setSubmissionPreviewStatus(null)
+      setSubmissionScoreUpdate(null)
       setSubmissionPreviewToken(null)
       setLastAddedEntry(null)
       setSubmitInfoMessage(null)
@@ -1857,6 +1895,7 @@ function App() {
     setIsSubmitConfirmationStep(false)
     setSubmissionPreviewEntry(null)
     setSubmissionPreviewStatus(null)
+    setSubmissionScoreUpdate(null)
     setSubmissionPreviewToken(null)
     setSubmitInfoMessage('Vous pouvez modifier les informations avant de confirmer l’envoi.')
     announcePolite('Étape de confirmation annulée. Modifiez les champs puis continuez.')
@@ -2014,6 +2053,7 @@ function App() {
 
       setSubmissionPreviewEntry(normalizeShowcaseEntry(payload))
       setSubmissionPreviewStatus(submissionStatus)
+      setSubmissionScoreUpdate(readSubmissionScoreUpdate(payload))
       setSubmissionPreviewToken(readPreviewToken(payload))
       setIsSubmitConfirmationStep(true)
 
@@ -2028,6 +2068,7 @@ function App() {
     } catch (error) {
       setSubmissionPreviewEntry(null)
       setSubmissionPreviewStatus(null)
+      setSubmissionScoreUpdate(null)
       setSubmissionPreviewToken(null)
       const localizedMessage = error instanceof Error ? error.message : 'Erreur réseau.'
       showSubmitError(
@@ -2104,6 +2145,7 @@ function App() {
         setIsSubmitConfirmationStep(false)
         setSubmissionPreviewEntry(null)
         setSubmissionPreviewStatus(null)
+        setSubmissionScoreUpdate(null)
         setSubmissionPreviewToken(null)
         setInputUrl('')
         setWebsiteField('')
@@ -2135,13 +2177,19 @@ function App() {
       setIsSubmitConfirmationStep(false)
       setSubmissionPreviewEntry(null)
       setSubmissionPreviewStatus(null)
+      setSubmissionScoreUpdate(null)
       setSubmissionPreviewToken(null)
       const addedEntry = normalizeShowcaseEntry(payload)
+      setLastAddedWasUpdate(submissionStatus === 'updated')
       setLastAddedEntry(addedEntry)
       setInputUrl('')
       setWebsiteField('')
 
-      const successMessage = submissionMessage ?? `Site ajouté : ${payload.siteTitle}.`
+      const successMessage =
+        submissionMessage ??
+        (submissionStatus === 'updated'
+          ? `Fiche mise à jour : ${payload.siteTitle}.`
+          : `Site ajouté : ${payload.siteTitle}.`)
       announcePolite(successMessage)
       setSubmitInfoMessage(null)
 
@@ -2922,6 +2970,7 @@ function App() {
                     setIsSubmitConfirmationStep(false)
                     setSubmissionPreviewEntry(null)
                     setSubmissionPreviewStatus(null)
+                    setSubmissionScoreUpdate(null)
                     setSubmissionPreviewToken(null)
                   }}
                   onInvalid={(event) => {
@@ -2951,6 +3000,7 @@ function App() {
                     setIsSubmitConfirmationStep(false)
                     setSubmissionPreviewEntry(null)
                     setSubmissionPreviewStatus(null)
+                    setSubmissionScoreUpdate(null)
                     setSubmissionPreviewToken(null)
                   }}
                   className={`mt-1 min-h-11 w-full rounded-xl border border-slate-600 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-base text-slate-900 dark:text-slate-50 shadow-sm ${focusRingClass}`}
@@ -3020,8 +3070,21 @@ function App() {
                     <dt className="font-semibold">Niveau détecté</dt>
                     <dd>{submissionPreviewEntry?.complianceStatusLabel ?? 'N/A'}</dd>
                   </div>
+                  {submissionScoreUpdate?.changed ? (
+                    <div>
+                      <dt className="font-semibold">Score actuel de la fiche publiée</dt>
+                      <dd>
+                        {formatScore(submissionScoreUpdate.previousScore)}
+                        {submissionScoreUpdate.previousStatusLabel
+                          ? ` (${submissionScoreUpdate.previousStatusLabel})`
+                          : ''}
+                      </dd>
+                    </div>
+                  ) : null}
                   <div>
-                    <dt className="font-semibold">Score détecté</dt>
+                    <dt className="font-semibold">
+                      {submissionScoreUpdate?.changed ? 'Nouveau score détecté' : 'Score détecté'}
+                    </dt>
                     <dd>{formatScore(submissionPreviewEntry?.complianceScore ?? null)}</dd>
                   </div>
                   <div>
@@ -3243,10 +3306,20 @@ function App() {
                 aria-describedby="site-ajoute-detail"
               >
                 <h3 id="site-ajoute-titre" className="text-base font-semibold">
-                  Site ajouté
+                  {lastAddedWasUpdate ? 'Fiche mise à jour' : 'Site ajouté'}
                 </h3>
                 <p id="site-ajoute-detail" className="mt-1" role="status" aria-live="polite">
-                  La fiche <strong>{lastAddedEntry.siteTitle}</strong> a été publiée.
+                  {lastAddedWasUpdate ? (
+                    <>
+                      La fiche <strong>{lastAddedEntry.siteTitle}</strong> affiche désormais le score{' '}
+                      {formatScore(lastAddedEntry.complianceScore ?? null)} et remonte en tête des fiches les plus
+                      récentes.
+                    </>
+                  ) : (
+                    <>
+                      La fiche <strong>{lastAddedEntry.siteTitle}</strong> a été publiée.
+                    </>
+                  )}
                 </p>
                 {lastAddedDomainDescription ? (
                   <p className="mt-2 text-sm">

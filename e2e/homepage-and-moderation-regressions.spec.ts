@@ -285,3 +285,73 @@ test('restaure le jeton de modération depuis le stockage local au chargement', 
   await expect(page.getByRole('checkbox')).toBeChecked()
   await expect(page.getByText('Jeton restauré. Activez le chargement pour ouvrir la modération.')).toBeVisible()
 })
+
+test('met à jour une fiche publiée dont le score a changé et la présente comme mise à jour', async ({ page }) => {
+  const publishedEntry = createShowcaseEntry(7, {
+    siteTitle: 'Site déjà publié',
+    normalizedUrl: 'https://site-deja-publie.fr/',
+    complianceStatus: 'partial',
+    complianceScore: 72,
+  })
+  const updatedEntry = {
+    ...publishedEntry,
+    complianceStatus: 'partial' as const,
+    complianceStatusLabel: 'Partiellement conforme',
+    complianceScore: 88,
+    updatedAt: new Date().toISOString(),
+  }
+  const scoreUpdate = {
+    changed: true,
+    previousScore: 72,
+    previousStatusLabel: 'Partiellement conforme',
+    nextScore: 88,
+    nextStatusLabel: 'Partiellement conforme',
+    requiresReview: false,
+  }
+
+  await mockShowcaseApis(page, [publishedEntry])
+  await page.route(/\/api\/site-insight\?preview=1$/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ...updatedEntry,
+        submissionStatus: 'update',
+        preview: true,
+        previewToken: 'a'.repeat(32),
+        scoreUpdate,
+        message: 'Score de conformité modifié depuis la publication : 72 % → 88 %. Confirmez l’envoi pour mettre à jour la fiche publiée.',
+      }),
+    }),
+  )
+  let confirmBody: Record<string, unknown> | null = null
+  await page.route(/\/api\/site-insight$/, (route) => {
+    confirmBody = route.request().postDataJSON() as Record<string, unknown>
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ...updatedEntry,
+        submissionStatus: 'updated',
+        scoreUpdate,
+        message: 'Score de conformité modifié depuis la publication : 72 % → 88 %. La fiche est mise à jour.',
+      }),
+    })
+  })
+
+  await page.goto('/')
+  await page.fill('#url', 'https://site-deja-publie.fr/')
+  await page.getByRole('button', { name: 'Lancer la pré-analyse' }).click()
+
+  await expect(page.getByText('Score actuel de la fiche publiée')).toBeVisible()
+  await expect(page.getByText('Mise à jour de la fiche publiée')).toBeVisible()
+  await expect(page.getByText('Nouveau score détecté')).toBeVisible()
+
+  await page.getByRole('button', { name: /Confirmer/ }).first().click()
+  await expect.poll(() => confirmBody?.previewToken).toBe('a'.repeat(32))
+
+  const panel = page.locator('section[aria-labelledby="site-ajoute-titre"]')
+  await expect(page.locator('#site-ajoute-titre')).toHaveText('Fiche mise à jour')
+  await expect(panel).toBeFocused()
+  await expect(page.locator('#site-ajoute-detail')).toContainText('remonte en tête')
+})
