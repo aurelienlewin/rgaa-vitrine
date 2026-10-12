@@ -456,6 +456,11 @@ Important deployment characteristics:
 - API functions run with `maxDuration: 30` seconds, above the 14 s analysis budget plus moderation checks and notifications
 - host-level redirects should avoid cyclic apex/`www` rules
 
+Versioning and releases:
+
+- the footer shows `Version publique X.Y.Z`, resolved at build time from `VITE_BUILD_VERSION` or `RELEASE_VERSION` (only when they are semantic versions), then `package.json`, then the latest git tag
+- a release bumps `package.json` (`npm version X.Y.Z --no-git-tag-version`), moves the `[Unreleased]` changelog entries under `## [YYYY-MM-DD / vX.Y.Z]`, is committed as `chore(release): vX.Y.Z`, and is tagged `vX.Y.Z`
+
 Recommended production environment variables:
 
 - Redis: `KV_REST_API_URL` + `KV_REST_API_TOKEN` or `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`

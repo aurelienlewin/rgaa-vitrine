@@ -7,6 +7,8 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+## [2026-10-12 / v0.6.0]
+
 ### Accessibility
 - WCAG 2.2 `2.5.8` (Target Size, Minimum): moderation checkboxes and radios (session memory, archive import mode, rollback authorization) grow from the native `13×13px` to `24×24px`.
 - WCAG 2.2 `3.3.8` (Accessible Authentication, Minimum): the moderation token field switches from `autocomplete="off"` to `current-password` with a fixed `username` companion field so password managers can store and fill the token; help text states that paste and password managers are accepted.
@@ -49,6 +51,8 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - Site-insight logo detection (`findStructuredDataLogoUrl`, `findHtmlLogoUrl`) now stops scanning further JSON-LD blocks or DOM elements as soon as a matching logo is found, instead of continuing to parse/inspect every remaining match; both helpers already only kept the first match, so the result is unchanged.
 
 ### Fixed
+- The public footer version stayed on `0.5.3`: no release had been cut since March, and the build preferred the latest git tag over `package.json`, so an old tag could pin the displayed version. `package.json` is the source of truth; `VITE_BUILD_VERSION`/`RELEASE_VERSION`/`GITHUB_REF_NAME` overrides apply only when they are semantic versions (a branch name like `main` is ignored), and the git tag is a last resort.
+- GitHub submission-failure alerts were failing with `Bad credentials` (expired notifier token); the token was rotated, and end-to-end delivery was verified in production (issue #13, test incident `SUB-DE1E2B0162`).
 - Submitting a site whose registrable domain already had a published entry (for example `http://lenord.fr/` while `https://mdph.lenord.fr/` is listed) failed at pre-analysis with `Erreur interne lors de l’analyse.` (`TypeError: Cannot read properties of undefined (reading 'slice')` in `buildCandidateDomainContext`; incident `SUB-53F0E63AB4`). `buildDomainGroups` exposed the raw grouping accumulator through `groupsBySlug` instead of the finalized group, so `children`, `siteCount` and `primaryEntry` were missing; it now indexes the finalized group, which also restores correct published-sibling counts in pending moderation contexts.
 - Blocklist Project feeds were unreachable (`HTTP 404` after the upstream move from `master` to `main`) and the adult/gambling lists also exceeded the 2.5 MB cap, so external sensitive categorization was silently inactive; defaults now use the `main` branch domain-only (`-nl`) lists with a 24 MB cap, an 8 s timeout, and warm-up in parallel with the site analysis.
 - Homepage KPI cards now display a loading dash with a screen-reader-only `Chargement en cours` label instead of temporary zero values while directory cards load; the results summary also stays in an explicit loading state until data is available.

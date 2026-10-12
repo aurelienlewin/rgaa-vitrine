@@ -20,14 +20,38 @@ function sanitizeVersion(rawValue: string | undefined) {
   return trimmed.replace(/^v/i, '')
 }
 
+const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/
+
+function sanitizeSemver(rawValue: string | undefined) {
+  const sanitized = sanitizeVersion(rawValue)
+  return sanitized && SEMVER_PATTERN.test(sanitized) ? sanitized : null
+}
+
+function readPackageVersion() {
+  try {
+    const packageJson = JSON.parse(readFileSync(resolvePath(process.cwd(), 'package.json'), 'utf8'))
+    return sanitizeSemver(typeof packageJson.version === 'string' ? packageJson.version : undefined)
+  } catch {
+    return null
+  }
+}
+
+// package.json is the release source of truth (bumped by each `chore(release)` commit).
+// Explicit overrides win only when they are real versions (a CI branch name such as `main` is ignored);
+// the latest git tag is a last resort, so an old tag can no longer pin the displayed version.
 function resolveBuildVersion() {
   const envVersion =
-    sanitizeVersion(process.env.VITE_BUILD_VERSION) ||
-    sanitizeVersion(process.env.RELEASE_VERSION) ||
-    sanitizeVersion(process.env.GITHUB_REF_NAME)
+    sanitizeSemver(process.env.VITE_BUILD_VERSION) ||
+    sanitizeSemver(process.env.RELEASE_VERSION) ||
+    sanitizeSemver(process.env.GITHUB_REF_NAME)
 
   if (envVersion) {
     return envVersion
+  }
+
+  const packageVersion = sanitizeSemver(process.env.npm_package_version) ?? readPackageVersion()
+  if (packageVersion) {
+    return packageVersion
   }
 
   try {
@@ -37,7 +61,7 @@ function resolveBuildVersion() {
       .toString('utf8')
       .trim()
 
-    const sanitizedTag = sanitizeVersion(latestTag)
+    const sanitizedTag = sanitizeSemver(latestTag)
     if (sanitizedTag) {
       return sanitizedTag
     }
@@ -45,7 +69,7 @@ function resolveBuildVersion() {
     // Ignore tag lookup failures in shallow/non-git environments.
   }
 
-  return sanitizeVersion(process.env.npm_package_version) ?? '0.0.0'
+  return '0.0.0'
 }
 
 const buildVersion = resolveBuildVersion()
