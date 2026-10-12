@@ -41,6 +41,35 @@ Badges de statut (texte et bordure de même couleur) :
 
 Seuils retenus : au moins 4,5:1 pour tout texte et 3:1 pour les composants (RGAA 3.2, 3.3 ; WCAG 1.4.3, 1.4.11) ; au moins APCA Lc 75 pour le texte courant, méthode du brouillon WCAG 3, comme garde-fou supplémentaire.
 
+## Typographie et rythme vertical
+
+Toutes les hauteurs de ligne et tous les espacements verticaux sont des multiples de 8 px (`--ui-rhythm: 0.5rem`). L’échelle suit un rapport proche de 1,25, arrondi à ce rythme. Les tailles des deux plus grands niveaux augmentent à partir de 48 rem de large.
+
+| Classe | Usage | Petit écran | À partir de 48 rem |
+| --- | --- | --- | --- |
+| `ui-h1` | titre de page (`h1`) | 2 rem / 2,5 rem | 2,5 rem / 3 rem |
+| `ui-h2`, `ui-section-title` | titre de section (`h2`) | 1,5 rem / 2 rem | 1,75 rem / 2,25 rem |
+| `ui-h3` | titre de carte ou de sous-section (`h3`) | 1,25 rem / 1,75 rem | idem |
+| `ui-h4` | titre de niveau 4 | 1,0625 rem / 1,5 rem | idem |
+| `ui-lead` | chapeau sous le titre de page | 1,125 rem / 1,75 rem | idem |
+| texte courant | paragraphes, listes | 1 rem / 1,5 rem | idem |
+| `ui-small` | métadonnées, mentions | 0,875 rem / 1,25 rem | idem |
+
+- Longueur de ligne limitée à 65 caractères (`--ui-measure`) pour le texte de lecture (`ui-prose`, `ui-lead`).
+- Titres équilibrés (`text-wrap: balance`), paragraphes sans veuve (`text-wrap: pretty`), chiffres à chasse fixe pour les scores et compteurs (`tabular-nums`).
+
+## Grille
+
+- Conteneur de page `ui-container` : 75 rem au plus, gouttière `--ui-gutter` de 1 rem, puis 1,5 rem à partir de 48 rem.
+- Grille `ui-grid` : une colonne sur petit écran, 12 colonnes à partir de 48 rem, avec la même gouttière. Portées disponibles : `ui-span-full`, `ui-span-8`, `ui-span-6`, `ui-span-4`.
+- En-tête (`SiteHeaderBar`) : marque « Annuaire RGAA » à gauche et navigation principale à droite, sur les bords du conteneur. Le titre de page, la recherche, les sections et le pied de page partagent le même bord gauche.
+- Introductions de page sur 8 colonnes ; tri des résultats sur 4 colonnes en regard du titre « Résultats annuaire » ; chiffres clés sur 4 × 3 colonnes ; pied de page en 3 × 4 colonnes avec un colophon sur toute la largeur ; plan du site en deux colonnes de 6.
+- Listes de définitions alignées (`ui-dl`) : libellés dans une colonne et valeurs dans la suivante, alignés sur la ligne de base, empilés sur petit écran.
+
+## Grille de cartes
+
+`ui-card-grid` place les cartes sur deux colonnes à partir de 48 rem. Chaque carte (`li.ui-card`) occupe six rangées de la grille parente et les partage via `grid-template-rows: subgrid` : média, titre, sous-titre, ligne de conformité, métadonnées, pied de carte (`ui-card-footer`). Les cartes d’une même rangée s’alignent donc ligne à ligne, quelle que soit la longueur de leurs titres. Sans prise en charge de subgrid, les cartes s’empilent normalement.
+
 ## Composants
 
 Classes définies dans `src/index.css` (`@layer components`).

@@ -412,7 +412,7 @@ function DomainGroupPage() {
                 <h3 id="liste-domaine-titre" className="ui-section-title">
                   Sous-sites déjà référencés
                 </h3>
-                <ul className="grid gap-6 md:grid-cols-2">
+                <ul className="ui-card-grid">
                   {group.children.map((entry) => {
                     const profilePath =
                       entry.profilePath ?? resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug)
@@ -420,15 +420,13 @@ function DomainGroupPage() {
                       group.primaryEntry?.normalizedUrl === entry.normalizedUrl
 
                     return (
-                      <li key={entry.normalizedUrl} className="ui-card flex flex-col">
-                        <article className="flex h-full flex-col gap-3 p-5">
-                          {isPrimary ? (
-                            <p className="ui-muted text-sm font-semibold">Site principal</p>
-                          ) : null}
-                          <h4 className="text-lg font-bold leading-snug">
+                      <li key={entry.normalizedUrl} className="ui-card">
+                          {/* Keeps the same subgrid rows in every card, labelled or not. */}
+                          <div className="ui-muted ui-small pt-5 font-semibold">{isPrimary ? 'Site principal' : null}</div>
+                          <h4 className="ui-h3">
                             <a href={profilePath}>{entry.siteTitle}</a>
                           </h4>
-                          <p className="ui-muted wrap-anywhere text-sm">{entry.normalizedUrl}</p>
+                          <p className="ui-muted ui-small wrap-anywhere">{entry.normalizedUrl}</p>
                           <ComplianceLine
                             status={entry.complianceStatus}
                             statusLabel={entry.complianceStatusLabel}
@@ -445,7 +443,7 @@ function DomainGroupPage() {
                             </div>
                           </dl>
 
-                          <ul className="ui-actions mt-auto border-t border-slate-200 pt-3">
+                          <ul className="ui-card-footer ui-actions">
                             <li>
                               <a
                                 href={entry.normalizedUrl}
@@ -477,7 +475,6 @@ function DomainGroupPage() {
                               )}
                             </li>
                           </ul>
-                        </article>
                       </li>
                     )
                   })}

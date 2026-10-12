@@ -217,12 +217,12 @@ function AccessibilityPage() {
               État actuel
             </h2>
             <div className="ui-panel ui-prose mt-4">
-              <dl className="grid gap-2">
-                <div className="flex flex-wrap gap-x-2">
+              <dl className="ui-dl">
+                <div>
                   <dt className="font-bold">État de conformité :</dt>
                   <dd className="m-0">{auditSummary.status}</dd>
                 </div>
-                <div className="flex flex-wrap gap-x-2">
+                <div>
                   <dt className="font-bold">Taux estimé :</dt>
                   <dd className="m-0">{auditSummary.score}</dd>
                 </div>
@@ -271,7 +271,7 @@ function AccessibilityPage() {
             </div>
             {resolvedNonConformities.length > 0 ? (
               <>
-                <h3 className="mt-6 text-lg font-bold">Non-conformités levées depuis l’audit précédent</h3>
+                <h3 className="ui-h3 mt-6">Non-conformités levées depuis l’audit précédent</h3>
                 <ul className="ui-prose mt-3 list-none space-y-4 p-0">
                   {resolvedNonConformities.map((item) => (
                     <li key={item.id} className="border-t border-slate-200 pt-3">
@@ -287,7 +287,7 @@ function AccessibilityPage() {
             <ul className="ui-prose mt-6 list-none space-y-6 p-0 empty:hidden">
               {currentNonConformities.map((item) => (
                 <li key={item.id} className="border-t border-slate-200 pt-4">
-                  <h3 className="wrap-anywhere text-lg font-bold text-slate-900">
+                  <h3 className="ui-h3 wrap-anywhere">
                     Critère {item.id} · {item.title}
                   </h3>
                   <p className="mt-1 wrap-anywhere text-slate-800">{item.detail}</p>
@@ -315,21 +315,21 @@ function AccessibilityPage() {
               et la campagne d’audit de référence du <strong>{auditSummary.auditDate}</strong>.
             </p>
 
-            <h3 className="mt-6 text-lg font-bold">Technologies utilisées pour la réalisation du site</h3>
+            <h3 className="ui-h3 mt-6">Technologies utilisées pour la réalisation du site</h3>
             <ul className="ui-prose mt-2 list-disc space-y-1 ps-5">
               {implementationTechnologies.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
 
-            <h3 className="mt-6 text-lg font-bold">Environnement de test de référence</h3>
+            <h3 className="ui-h3 mt-6">Environnement de test de référence</h3>
             <ul className="ui-prose mt-2 list-disc space-y-1 ps-5">
               {accessibilityAuditEnvironment.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
 
-            <h3 className="mt-6 text-lg font-bold">Outils utilisés pour évaluer l’accessibilité</h3>
+            <h3 className="ui-h3 mt-6">Outils utilisés pour évaluer l’accessibilité</h3>
             <ul className="ui-prose mt-2 list-disc space-y-1 ps-5">
               {accessibilityEvaluationTools.map((item) => (
                 <li key={item}>{item}</li>
@@ -357,7 +357,7 @@ function AccessibilityPage() {
                 affichés à titre informatif et peuvent être réévalués sur demande motivée auprès de la modération.
               </p>
             </div>
-            <dl className="ui-prose mt-4 grid gap-3">
+            <dl className="ui-dl ui-prose mt-4">
               <div>
                 <dt className="font-bold">Contact principal</dt>
                 <dd className="m-0">Aurélien Lewin</dd>

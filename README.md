@@ -109,6 +109,8 @@ Public pages follow the « Sobre » design system described in `docs/design-syst
 - content first: titles, address, compliance level and score before actions; key figures as one line of text, not dashboard tiles
 - links look like links (always underlined, navigation included) and buttons are reserved for actions (search, submit, vote, pagination), with at most one primary button per context
 - flat surfaces: one thin border per card, no nested boxes, shadows or gradients
+- typographic system: a type scale whose line heights all sit on an 8px vertical rhythm, a 65-character reading measure, and a 12-column grid (`ui-grid`) shared by the header (brand and navigation on one row), introductions, sections and footer
+- cards in `ui-card-grid` share row tracks through CSS subgrid, so titles, compliance lines, metadata and actions line up across a row
 - one action colour (`--ui-action: #0038c7`); status colours only reinforce a level that is always written in text
 - tokens and component classes (`ui-container`, `ui-nav-link`, `ui-action-link`, `ui-button-*`, `ui-field`, `ui-card`, `ui-panel`, `ui-callout`, `ui-alert`, `ui-badge-*`, `ui-meta`) live in `src/index.css`; every text pair is ≥ 4.5:1 and ≥ APCA Lc 75 (WCAG 3 draft method)
 - the latest RGAA 4.1.2 audit (12 October 2026, 106 criteria, 63 applicable) is detailed criterion by criterion in `docs/audits/rgaa-2026-10-12.md` and feeds `shared/accessibilityStatement.js`

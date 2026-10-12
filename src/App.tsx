@@ -13,7 +13,7 @@ import { resolveShowcaseProfilePath } from './siteProfiles'
 import { visuallyHiddenStyle } from './visuallyHidden'
 import SiteFooter from './SiteFooter'
 import GlobalSearchForm from './GlobalSearchForm'
-import PrimaryNavigation from './PrimaryNavigation'
+import SiteHeaderBar from './SiteHeaderBar'
 import {
   formatCategory,
   readStatusFilterFromQuery,
@@ -318,7 +318,7 @@ const directorySortOptions: Array<{
 
 function CardThumbnail({ url }: { url: string | null }) {
   return (
-    <div className="site-thumbnail-frame h-32 border-b border-slate-200">
+    <div className="ui-card-media site-thumbnail-frame h-32 border-b border-slate-200">
       {url ? (
         <div className="site-thumbnail-canvas">
           <img
@@ -2329,38 +2329,22 @@ function App() {
         >
           {assertiveAnnouncement.message}
         </p>
-        <header className="app-site-header border-b border-slate-200 bg-white">
-          <div className="ui-container py-4">
-            <PrimaryNavigation
-              currentPath="/"
-              navId="navigation-principale"
-              navRef={primaryNavigationRef}
-              listClassName="ui-nav-list"
-              linkClassName="ui-nav-link"
-            />
-          </div>
-          <div className="ui-container pb-8 pt-4">
-            <div className="flex items-center gap-4">
-              <img
-                src="/logo-rgaa-vitrine.svg"
-                alt=""
-                width={64}
-                height={64}
-                fetchPriority="high"
-                className="h-16 w-16 flex-none rounded-md"
-                loading="eager"
-              />
-              <div className="min-w-0">
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900">Annuaire RGAA</h1>
-                <p className="mt-1 text-lg text-slate-800">
+        <header className="app-site-header bg-white">
+          <SiteHeaderBar currentPath="/" navId="navigation-principale" navRef={primaryNavigationRef} />
+          <div className="border-b border-slate-200">
+          <div className="ui-container ui-page-intro">
+            <div className="ui-grid">
+              <div className="ui-span-8">
+                <h1 className="ui-h1">Annuaire RGAA</h1>
+                <p className="ui-lead mt-3">
                   Les sites qui affichent leur conformité au Référentiel général d’amélioration de l’accessibilité.
+                </p>
+                <p className="ui-prose ui-muted mt-3">
+                  Une vitrine simple pour référencer et découvrir les sites qui affichent leur conformité RGAA, avec
+                  filtres et recherche accessibles à tous, alignés sur les WCAG (<span lang="en">Web Content Accessibility Guidelines</span>) 2.2.
                 </p>
               </div>
             </div>
-            <p className="ui-prose ui-muted mt-4">
-              Une vitrine simple pour référencer et découvrir les sites qui affichent leur conformité RGAA, avec
-              filtres et recherche accessibles à tous, alignés sur les WCAG (<span lang="en">Web Content Accessibility Guidelines</span>) 2.2.
-            </p>
             <GlobalSearchForm
               inputId="accueil-recherche-annuaire"
               className="mt-6"
@@ -2385,6 +2369,7 @@ function App() {
               onReset={handleResetFilters}
             />
           </div>
+          </div>
         </header>
 
         <main id="contenu" ref={mainContentRef} tabIndex={-1} className={`ui-container space-y-12 py-10 ${focusTargetScrollMarginClass} ${focusTargetClass}`}>
@@ -2392,31 +2377,22 @@ function App() {
             <h2 id="annuaire-titre" className="ui-section-title">
               L’annuaire en chiffres
             </h2>
-            <dl className="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-base">
-              <div className="flex items-baseline gap-2">
-                <dt className="font-semibold">Fiches référencées</dt>
-                <dd className="text-xl font-bold [font-variant-numeric:tabular-nums]">
-                  <DirectoryStatValue isLoading={loadingDirectory} value={directoryStats.total} />
-                </dd>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <dt className="font-semibold">Totalement conformes</dt>
-                <dd className="text-xl font-bold [font-variant-numeric:tabular-nums]">
-                  <DirectoryStatValue isLoading={loadingDirectory} value={directoryStats.full} />
-                </dd>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <dt className="font-semibold">Partiellement conformes</dt>
-                <dd className="text-xl font-bold [font-variant-numeric:tabular-nums]">
-                  <DirectoryStatValue isLoading={loadingDirectory} value={directoryStats.partial} />
-                </dd>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <dt className="font-semibold">Non conformes</dt>
-                <dd className="text-xl font-bold [font-variant-numeric:tabular-nums]">
-                  <DirectoryStatValue isLoading={loadingDirectory} value={directoryStats.none} />
-                </dd>
-              </div>
+            <dl className="ui-grid mt-4">
+              {(
+                [
+                  ['Fiches référencées', directoryStats.total],
+                  ['Totalement conformes', directoryStats.full],
+                  ['Partiellement conformes', directoryStats.partial],
+                  ['Non conformes', directoryStats.none],
+                ] as const
+              ).map(([label, value]) => (
+                <div key={label} className="ui-span-4 flex flex-col-reverse border-t border-slate-200 pt-3 md:col-span-3">
+                  <dt className="ui-small ui-muted font-semibold">{label}</dt>
+                  <dd className="ui-h2 [font-variant-numeric:tabular-nums]">
+                    <DirectoryStatValue isLoading={loadingDirectory} value={value} />
+                  </dd>
+                </div>
+              ))}
             </dl>
             <p className="ui-prose ui-muted mt-3">
               Le score indique une direction. La vraie mesure, c’est un parcours client débloqué et une expérience
@@ -2432,8 +2408,8 @@ function App() {
             aria-labelledby="galerie-titre"
             aria-busy={loadingDirectory}
           >
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div className="min-w-0">
+            <div className="ui-grid items-end">
+              <div className="ui-span-8 min-w-0">
                 <h2 id="galerie-titre" className="ui-section-title">
                   Résultats annuaire
                 </h2>
@@ -2446,7 +2422,7 @@ function App() {
                   {directorySummaryText}
                 </p>
               </div>
-              <div>
+              <div className="ui-span-4">
                 <label htmlFor="annuaire-tri-resultats" className="ui-label">
                   Trier les résultats
                 </label>
@@ -2455,7 +2431,7 @@ function App() {
                   value={directorySort}
                   onChange={handleDirectorySortChange}
                   aria-describedby="annuaire-tri-resultats-aide annuaire-resultats-resume"
-                  className="ui-field mt-1 w-auto min-w-64"
+                  className="ui-field mt-1"
                 >
                   {directorySortOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -2470,7 +2446,7 @@ function App() {
             </div>
 
             {showcaseEntries.length > 0 && (
-              <p className="ui-prose ui-muted mt-3 text-sm">
+              <p className="ui-prose ui-muted ui-small mt-3">
                 Les scores affichés sont déclarés par les organismes qui soumettent leur site et sont publiés à titre
                 informatif. Ils n’engagent pas la responsabilité éditoriale d’Annuaire RGAA. En cas de réévaluation
                 documentée, vous pouvez{' '}
@@ -2483,7 +2459,7 @@ function App() {
 
             {loadingDirectory && (
               <section className="ui-panel mt-6" aria-labelledby="annuaire-chargement-titre">
-                <h3 id="annuaire-chargement-titre" className="font-semibold">
+                <h3 id="annuaire-chargement-titre" className="ui-h3">
                   Chargement de l’annuaire en cours
                 </h3>
                 <p className="ui-muted mt-1">
@@ -2512,7 +2488,7 @@ function App() {
             )}
 
             {filteredDirectoryItems.length > 0 && (
-              <ul id="liste-vitrines" tabIndex={-1} className={`mt-6 grid gap-6 md:grid-cols-2 ${focusTargetScrollMarginClass} ${focusTargetClass}`}>
+              <ul id="liste-vitrines" tabIndex={-1} className={`ui-card-grid mt-6 ${focusTargetScrollMarginClass} ${focusTargetClass}`}>
                 {visibleDirectoryItems.map((item) => {
                   if (item.kind === 'group') {
                     const primaryEntry = item.primaryEntry ?? item.children[0] ?? null
@@ -2524,40 +2500,36 @@ function App() {
                     const summaryId = `resume-domaine-${item.groupSlug}`
 
                     return (
-                      <li key={`group-${item.groupSlug}`} className="ui-card flex flex-col overflow-hidden">
-                        <article className="flex h-full flex-col">
-                          <CardThumbnail url={primaryEntry.thumbnailUrl} />
-                          <div className="flex flex-1 flex-col gap-3 p-5">
-                            <h3 className="text-lg font-bold leading-snug">
-                              <a href={item.groupPath} aria-describedby={summaryId}>
-                                {item.registrableDomain} : {item.totalSiteCount} sites référencés
-                              </a>
-                            </h3>
-                            <p className="ui-muted">Site principal : {primaryEntry.siteTitle}</p>
-                            <ComplianceLine
-                              status={primaryEntry.complianceStatus}
-                              statusLabel={primaryEntry.complianceStatusLabel}
-                              score={primaryEntry.complianceScore}
-                              rgaaLabel={rgaaBadge.shortLabel}
-                            />
-                            <dl className="ui-meta">
-                              <div>
-                                <dt>Catégorie :</dt>
-                                <dd>{formatCategory(primaryEntry.category)}</dd>
-                              </div>
-                              <div>
-                                <dt>Mise à jour :</dt>
-                                <dd>{formatDate(item.updatedAt)}</dd>
-                              </div>
-                            </dl>
-                            <p id={summaryId} className="ui-muted text-sm">
-                              Domaine racine : {item.registrableDomain}.
-                              {item.matchingSiteCount < item.totalSiteCount
-                                ? ` ${item.matchingSiteCount} fiche(s) de ce domaine correspondent aux filtres actuels.`
-                                : ''}
-                            </p>
+                      <li key={`group-${item.groupSlug}`} className="ui-card overflow-hidden">
+                        <CardThumbnail url={primaryEntry.thumbnailUrl} />
+                        <h3 className="ui-h3">
+                          <a href={item.groupPath} aria-describedby={summaryId}>
+                            {item.registrableDomain} : {item.totalSiteCount} sites référencés
+                          </a>
+                        </h3>
+                        <p className="ui-muted ui-small">Site principal : {primaryEntry.siteTitle}</p>
+                        <ComplianceLine
+                          status={primaryEntry.complianceStatus}
+                          statusLabel={primaryEntry.complianceStatusLabel}
+                          score={primaryEntry.complianceScore}
+                          rgaaLabel={rgaaBadge.shortLabel}
+                        />
+                        <dl className="ui-meta">
+                          <div>
+                            <dt>Catégorie :</dt>
+                            <dd>{formatCategory(primaryEntry.category)}</dd>
                           </div>
-                        </article>
+                          <div>
+                            <dt>Mise à jour :</dt>
+                            <dd>{formatDate(item.updatedAt)}</dd>
+                          </div>
+                        </dl>
+                        <p id={summaryId} className="ui-card-footer ui-muted ui-small">
+                          Domaine racine : {item.registrableDomain}.
+                          {item.matchingSiteCount < item.totalSiteCount
+                            ? ` ${item.matchingSiteCount} fiche(s) de ce domaine correspondent aux filtres actuels.`
+                            : ''}
+                        </p>
                       </li>
                     )
                   }
@@ -2568,93 +2540,88 @@ function App() {
                   const votesDescriptionId = `votes-${domId}`
 
                   return (
-                    <li key={entry.normalizedUrl} className="ui-card flex flex-col overflow-hidden">
-                      <article className="flex h-full flex-col">
-                        <CardThumbnail url={entry.thumbnailUrl} />
-                        <div className="flex flex-1 flex-col gap-3 p-5">
-                          <h3 className="text-lg font-bold leading-snug">
-                            <a href={entry.profilePath ?? resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug)}>
-                              {entry.siteTitle}
-                            </a>
-                          </h3>
-                          <p className="ui-muted wrap-anywhere text-sm">{entry.normalizedUrl}</p>
-                          <ComplianceLine
-                            status={entry.complianceStatus}
-                            statusLabel={entry.complianceStatusLabel}
-                            score={entry.complianceScore}
-                            rgaaLabel={rgaaBadge.shortLabel}
-                          />
-                          <dl className="ui-meta">
-                            <div>
-                              <dt>Catégorie :</dt>
-                              <dd>{formatCategory(entry.category)}</dd>
-                            </div>
-                            <div>
-                              <dt>Mise à jour :</dt>
-                              <dd>{formatDate(entry.updatedAt)}</dd>
-                            </div>
-                          </dl>
-
-                          <div className="mt-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-slate-200 pt-3">
-                            <ul className="ui-actions">
-                              <li>
-                                <a
-                                  href={entry.normalizedUrl}
-                                  target="_blank"
-                                  rel="noopener external"
-                                  referrerPolicy="strict-origin-when-cross-origin"
-                                  className="ui-action-link"
-                                >
-                                  Visiter le site (nouvel onglet)
-                                  <span className="sr-only"> : {entry.siteTitle}</span>
-                                </a>
-                              </li>
-                              <li>
-                                {entry.accessibilityPageUrl ? (
-                                  <a
-                                    href={entry.accessibilityPageUrl}
-                                    target="_blank"
-                                    rel="noopener external"
-                                    referrerPolicy="strict-origin-when-cross-origin"
-                                    className="ui-action-link"
-                                  >
-                                    Déclaration d’accessibilité (nouvel onglet)
-                                    <span className="sr-only"> : {entry.siteTitle}</span>
-                                  </a>
-                                ) : (
-                                  <span className="ui-muted inline-flex min-h-11 items-center text-sm">
-                                    Déclaration non détectée
-                                  </span>
-                                )}
-                              </li>
-                            </ul>
-                            <div className="flex items-center gap-3">
-                            <button
-                              type="button"
-                              onClick={() => void handleUpvote(entry)}
-                              disabled={entry.votesBlocked}
-                              aria-disabled={upvotePendingByUrl[entry.normalizedUrl] ? true : undefined}
-                              aria-pressed={entry.hasUpvoted}
-                              aria-describedby={votesDescriptionId}
-                              className="ui-button ui-button-secondary px-3 text-sm"
-                            >
-                              <span aria-hidden="true">{entry.votesBlocked ? '◌' : entry.hasUpvoted ? '▲' : '△'}</span>
-                              <span>
-                                {entry.votesBlocked
-                                  ? 'Votes indisponibles'
-                                  : entry.hasUpvoted
-                                    ? 'Retirer mon vote'
-                                    : 'Soutenir ce site'}
-                              </span>
-                              <span className="sr-only"> : {entry.siteTitle}</span>
-                            </button>
-                            <span id={votesDescriptionId} className="ui-muted text-sm [font-variant-numeric:tabular-nums]">
-                              {entry.upvoteCount} vote(s)
-                            </span>
-                            </div>
-                          </div>
+                    <li key={entry.normalizedUrl} className="ui-card overflow-hidden">
+                      <CardThumbnail url={entry.thumbnailUrl} />
+                      <h3 className="ui-h3">
+                        <a href={entry.profilePath ?? resolveShowcaseProfilePath(entry.normalizedUrl, entry.slug)}>
+                          {entry.siteTitle}
+                        </a>
+                      </h3>
+                      <p className="ui-muted ui-small wrap-anywhere">{entry.normalizedUrl}</p>
+                      <ComplianceLine
+                        status={entry.complianceStatus}
+                        statusLabel={entry.complianceStatusLabel}
+                        score={entry.complianceScore}
+                        rgaaLabel={rgaaBadge.shortLabel}
+                      />
+                      <dl className="ui-meta">
+                        <div>
+                          <dt>Catégorie :</dt>
+                          <dd>{formatCategory(entry.category)}</dd>
                         </div>
-                      </article>
+                        <div>
+                          <dt>Mise à jour :</dt>
+                          <dd>{formatDate(entry.updatedAt)}</dd>
+                        </div>
+                      </dl>
+                      <div className="ui-card-footer flex flex-col items-start gap-2">
+                        <ul className="ui-actions">
+                          <li>
+                            <a
+                              href={entry.normalizedUrl}
+                              target="_blank"
+                              rel="noopener external"
+                              referrerPolicy="strict-origin-when-cross-origin"
+                              className="ui-action-link"
+                            >
+                              Visiter le site (nouvel onglet)
+                              <span className="sr-only"> : {entry.siteTitle}</span>
+                            </a>
+                          </li>
+                          <li>
+                            {entry.accessibilityPageUrl ? (
+                              <a
+                                href={entry.accessibilityPageUrl}
+                                target="_blank"
+                                rel="noopener external"
+                                referrerPolicy="strict-origin-when-cross-origin"
+                                className="ui-action-link"
+                              >
+                                Déclaration d’accessibilité (nouvel onglet)
+                                <span className="sr-only"> : {entry.siteTitle}</span>
+                              </a>
+                            ) : (
+                              <span className="ui-muted inline-flex min-h-11 items-center text-sm">
+                                Déclaration non détectée
+                              </span>
+                            )}
+                          </li>
+                        </ul>
+                        <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => void handleUpvote(entry)}
+                          disabled={entry.votesBlocked}
+                          aria-disabled={upvotePendingByUrl[entry.normalizedUrl] ? true : undefined}
+                          aria-pressed={entry.hasUpvoted}
+                          aria-describedby={votesDescriptionId}
+                          className="ui-button ui-button-secondary px-3 text-sm"
+                        >
+                          <span aria-hidden="true">{entry.votesBlocked ? '◌' : entry.hasUpvoted ? '▲' : '△'}</span>
+                          <span>
+                            {entry.votesBlocked
+                              ? 'Votes indisponibles'
+                              : entry.hasUpvoted
+                                ? 'Retirer mon vote'
+                                : 'Soutenir ce site'}
+                          </span>
+                          <span className="sr-only"> : {entry.siteTitle}</span>
+                        </button>
+                        <span id={votesDescriptionId} className="ui-muted text-sm [font-variant-numeric:tabular-nums]">
+                          {entry.upvoteCount} vote(s)
+                        </span>
+                        </div>
+                      </div>
                     </li>
                   )
                 })}
@@ -2733,7 +2700,7 @@ function App() {
               <li>Cibles pointeur suffisantes pour limiter les erreurs de sélection.</li>
               <li>Point d’aide cohérent et retrouvé au même endroit dans l’interface.</li>
             </ul>
-            <h3 className="mt-6 text-lg font-bold">Références WCAG</h3>
+            <h3 className="ui-h3 mt-6">Références WCAG</h3>
             <ul className="mt-2">
               {wcagResources.map((resource) => (
                 <li key={resource.url}>
@@ -2868,7 +2835,7 @@ function App() {
                 aria-describedby="verification-envoi-help"
                 aria-busy={isConfirmingSubmission}
               >
-                <h3 id="verification-envoi-titre" className="text-base font-semibold text-sky-900 dark:text-sky-100">
+                <h3 id="verification-envoi-titre" className="ui-h3 text-sky-900 dark:text-sky-100">
                   Vérification avant envoi
                 </h3>
                 <p id="verification-envoi-help" className="mt-2 text-sm text-sky-900 dark:text-sky-100">
@@ -2982,7 +2949,7 @@ function App() {
                 aria-labelledby="soumission-deja-presente-titre"
                 aria-describedby="soumission-deja-presente-aide soumission-deja-presente-raisons"
               >
-                <h3 id="soumission-deja-presente-titre" className="text-base font-semibold">
+                <h3 id="soumission-deja-presente-titre" className="ui-h3">
                   {submissionFeedback.kind === 'already-pending'
                     ? 'Site déjà soumis et en cours de revue'
                     : 'Site déjà référencé'}
@@ -3076,7 +3043,7 @@ function App() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h3 id="url-error-title" className="text-base font-semibold">
+                    <h3 id="url-error-title" className="ui-h3">
                       Analyse interrompue
                     </h3>
                     <p id="url-error-message" className="mt-2 text-sm font-medium">
@@ -3135,7 +3102,7 @@ function App() {
                 aria-labelledby="site-ajoute-titre"
                 aria-describedby="site-ajoute-detail"
               >
-                <h3 id="site-ajoute-titre" className="text-base font-semibold">
+                <h3 id="site-ajoute-titre" className="ui-h3">
                   {lastAddedWasUpdate ? 'Fiche mise à jour' : 'Site ajouté'}
                 </h3>
                 <p id="site-ajoute-detail" className="mt-1" role="status" aria-live="polite">
@@ -3189,7 +3156,7 @@ function App() {
               utilisées pour guider la qualité du répertoire.
             </p>
             <aside className="ui-callout ui-prose mt-4" aria-labelledby="rgaa5-focus-titre">
-              <h3 id="rgaa5-focus-titre" className="font-bold">
+              <h3 id="rgaa5-focus-titre" className="ui-h3">
                 Point d’attention : cap RGAA 5
               </h3>
               <p className="mt-1">

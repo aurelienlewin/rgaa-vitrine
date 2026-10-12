@@ -520,9 +520,9 @@ function SiteMapPage() {
             <h2 id="pages-principales-titre" className="ui-section-title">
               Pages principales
             </h2>
-            <ul className="ui-prose mt-3 space-y-2">
+            <ul className="ui-grid mt-3">
               {primaryPages.map((link) => (
-                <li key={`${link.href}-${link.label}`}>
+                <li key={`${link.href}-${link.label}`} className="ui-span-6">
                   <a href={link.href} className="ui-action-link">
                     {link.label}
                   </a>
@@ -542,9 +542,9 @@ function SiteMapPage() {
             <h2 id="sections-annuaire-titre" className="ui-section-title">
               Sections de la page d’accueil
             </h2>
-            <ul className="ui-prose mt-3 space-y-2">
+            <ul className="ui-grid mt-3">
               {directorySections.map((link) => (
-                <li key={`${link.href}-${link.label}`}>
+                <li key={`${link.href}-${link.label}`} className="ui-span-6">
                   <a href={link.href} className="ui-action-link">
                     {link.label}
                   </a>
@@ -584,9 +584,9 @@ function SiteMapPage() {
               </p>
             )}
             {profileLinksForUi.length > 0 && (
-              <ul className="mt-3 grid gap-x-8 gap-y-2 md:grid-cols-2">
+              <ul className="ui-grid mt-3">
                 {profileLinksForUi.map((entry) => (
-                  <li key={entry.normalizedUrl}>
+                  <li key={entry.normalizedUrl} className="ui-span-6">
                     <a href={entry.profilePath} className="ui-action-link">
                       {entry.siteTitle}
                     </a>
@@ -598,7 +598,7 @@ function SiteMapPage() {
               </ul>
             )}
 
-            <h3 className="mt-8 text-lg font-bold">Pages domaine multi-sites</h3>
+            <h3 className="ui-h3 mt-8">Pages domaine multi-sites</h3>
             <p className="ui-prose ui-muted mt-2">
               Pages publiques dédiées aux domaines déjà référencés avec plusieurs fiches publiques.
             </p>
@@ -618,9 +618,9 @@ function SiteMapPage() {
               </p>
             )}
             {domainGroupLinksForUi.length > 0 && (
-              <ul className="mt-3 grid gap-x-8 gap-y-2 md:grid-cols-2">
+              <ul className="ui-grid mt-3">
                 {domainGroupLinksForUi.map((group) => (
-                  <li key={group.groupSlug}>
+                  <li key={group.groupSlug} className="ui-span-6">
                     <a href={group.groupPath} className="ui-action-link">
                       {group.registrableDomain}
                     </a>
@@ -648,9 +648,9 @@ function SiteMapPage() {
               découverte des données. L’espace modération n’est pas listé dans le sitemap et reste exclu de
               l’indexation des moteurs de recherche.
             </p>
-            <ul className="ui-prose mt-3 space-y-2">
+            <ul className="ui-grid mt-3">
               {technicalLinks.map((link) => (
-                <li key={`${link.href}-${link.label}`}>
+                <li key={`${link.href}-${link.label}`} className="ui-span-6">
                   <a href={link.href} className="ui-action-link">
                     {link.label}
                   </a>

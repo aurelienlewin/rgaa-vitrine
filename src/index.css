@@ -171,7 +171,36 @@
     --ui-action-hover: #002f9f;
     --ui-on-action: #ffffff;
     --ui-radius: 0.375rem;
-    --ui-measure: 70ch;
+    --ui-measure: 65ch;
+    /* Vertical rhythm: every line-height and vertical space is a multiple of 8px (0.5rem). */
+    --ui-rhythm: 0.5rem;
+    --ui-gutter: 1rem;
+  }
+
+  @media (min-width: 48rem) {
+    :root {
+      --ui-gutter: 1.5rem;
+    }
+  }
+
+  body {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-variant-numeric: lining-nums;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  p,
+  li,
+  dd {
+    text-wrap: pretty;
   }
 }
 
@@ -179,19 +208,185 @@
   .ui-container {
     margin-inline: auto;
     width: 100%;
-    max-width: 72rem;
-    padding-inline: 1rem;
+    max-width: 75rem;
+    padding-inline: var(--ui-gutter);
   }
 
-  @media (min-width: 40rem) {
-    .ui-container {
-      padding-inline: 1.5rem;
-    }
+  /* Site header: brand on the left, navigation on the right, both on the container edges. */
+  .ui-site-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    column-gap: calc(var(--ui-rhythm) * 4);
+    row-gap: var(--ui-rhythm);
+    padding-block: calc(var(--ui-rhythm) * 1.5);
+  }
+
+  .ui-brand {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--ui-ink);
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .ui-brand:visited,
+  .ui-brand:hover {
+    color: var(--ui-ink);
+  }
+
+  .ui-brand:hover .ui-brand-name {
+    text-decoration-line: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.25em;
+  }
+
+  .ui-page-intro {
+    padding-block: calc(var(--ui-rhythm) * 5) calc(var(--ui-rhythm) * 6);
   }
 
   .ui-prose {
     max-width: var(--ui-measure);
-    line-height: 1.6;
+    line-height: 1.5rem;
+  }
+
+  /*
+   * Type scale (ratio ~1.25, rounded to the 8px rhythm). Sizes step up at 48rem.
+   *   h1 2rem/2.5rem → 2.5rem/3rem · h2 1.5rem/2rem → 1.75rem/2.25rem
+   *   h3 1.25rem/1.75rem · h4 1.0625rem/1.5rem · lead 1.125rem/1.75rem · small 0.875rem/1.25rem
+   */
+  .ui-h1 {
+    font-size: 2rem;
+    line-height: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--ui-ink);
+  }
+
+  .ui-section-title,
+  .ui-h2 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ui-ink);
+  }
+
+  .ui-h3 {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+  }
+
+  .ui-h4 {
+    font-size: 1.0625rem;
+    line-height: 1.5rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+  }
+
+  @media (min-width: 48rem) {
+    .ui-h1 {
+      font-size: 2.5rem;
+      line-height: 3rem;
+    }
+
+    .ui-section-title,
+    .ui-h2 {
+      font-size: 1.75rem;
+      line-height: 2.25rem;
+    }
+  }
+
+  .ui-lead {
+    max-width: var(--ui-measure);
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    color: var(--ui-ink);
+  }
+
+  .ui-small {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  /* 12-column layout grid: one column on small screens, 12 from 48rem, shared gutters. */
+  .ui-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: var(--ui-gutter);
+    row-gap: calc(var(--ui-rhythm) * 3);
+  }
+
+  @media (min-width: 48rem) {
+    .ui-grid {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+    }
+
+    .ui-span-full {
+      grid-column: 1 / -1;
+    }
+
+    .ui-span-8 {
+      grid-column: span 8 / span 8;
+    }
+
+    .ui-span-6 {
+      grid-column: span 6 / span 6;
+    }
+
+    .ui-span-4 {
+      grid-column: span 4 / span 4;
+    }
+  }
+
+  /*
+   * Card grid: cards on the same row share row tracks (CSS subgrid), so titles, compliance lines,
+   * metadata and actions line up whatever the text length. Without subgrid, cards stack normally.
+   */
+  .ui-card-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: var(--ui-gutter);
+    row-gap: calc(var(--ui-rhythm) * 3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 48rem) {
+    .ui-card-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .ui-card-grid > .ui-card {
+    display: grid;
+    grid-row: span var(--ui-card-rows, 6);
+    grid-template-rows: subgrid;
+    row-gap: calc(var(--ui-rhythm) * 1.5);
+    padding-bottom: calc(var(--ui-rhythm) * 2.5);
+  }
+
+  .ui-card-grid > .ui-card > * {
+    min-width: 0;
+    padding-inline: 1.25rem;
+  }
+
+  .ui-card-grid > .ui-card > .ui-card-media {
+    padding-inline: 0;
+  }
+
+  .ui-card-footer {
+    align-self: end;
+    border-top: 1px solid var(--ui-border-subtle);
+    padding-top: calc(var(--ui-rhythm) * 1.5);
   }
 
   .ui-muted {
@@ -381,11 +576,46 @@
   .ui-meta {
     display: flex;
     flex-wrap: wrap;
-    column-gap: 1rem;
-    row-gap: 0.25rem;
+    column-gap: 1.5rem;
+    row-gap: 0;
     margin: 0;
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
+    line-height: 1.5rem;
     color: var(--ui-ink-muted);
+  }
+
+  /* Aligned definition list: labels in one column, values in the next (stacked on small screens). */
+  .ui-dl {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: calc(var(--ui-rhythm) * 3);
+    row-gap: var(--ui-rhythm);
+    align-items: baseline;
+    margin: 0;
+  }
+
+  .ui-dl > div {
+    display: contents;
+  }
+
+  .ui-dl dt {
+    font-weight: 700;
+    color: var(--ui-ink-muted);
+  }
+
+  .ui-dl dd {
+    margin: 0 0 calc(var(--ui-rhythm) * 0.5);
+    color: var(--ui-ink);
+  }
+
+  @media (min-width: 40rem) {
+    .ui-dl {
+      grid-template-columns: max-content minmax(0, 1fr);
+    }
+
+    .ui-dl dd {
+      margin: 0;
+    }
   }
 
   .ui-meta dt {

@@ -793,7 +793,7 @@ function SiteProfilePage() {
               <div className="space-y-4">
                 <h2 className="ui-section-title wrap-anywhere">{entry.siteTitle}</h2>
                 <p className="ui-muted wrap-anywhere text-sm">{entry.normalizedUrl}</p>
-                <dl className="ui-meta">
+                <dl className="ui-dl ui-prose">
                   <div>
                     <dt>Niveau détecté :</dt>
                     <dd>
@@ -866,7 +866,7 @@ function SiteProfilePage() {
                   className={`space-y-3 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                   aria-labelledby="meme-domaine-titre"
                 >
-                  <h3 id="meme-domaine-titre" className="text-lg font-bold">
+                  <h3 id="meme-domaine-titre" className="ui-h3">
                     Autres sous-sites du même domaine
                   </h3>
                   <p className="ui-prose">
@@ -912,7 +912,7 @@ function SiteProfilePage() {
                 className={`space-y-3 ${focusTargetScrollMarginClass} ${focusTargetClass}`}
                 aria-labelledby="backlink-fiche-titre"
               >
-                <h3 id="backlink-fiche-titre" className="text-lg font-bold">
+                <h3 id="backlink-fiche-titre" className="ui-h3">
                   Lien retour recommandé
                 </h3>
                 <p className="ui-prose">
@@ -932,7 +932,7 @@ function SiteProfilePage() {
                   </p>
                 </div>
 
-                <h4 id="backlink-code-badge-label" className="pt-3 font-bold">
+                <h4 id="backlink-code-badge-label" className="ui-h4 pt-3">
                   Code HTML du badge (recommandé)
                 </h4>
                 <div role="region" aria-labelledby="backlink-code-badge-label" className="ui-panel">
@@ -953,7 +953,7 @@ function SiteProfilePage() {
                   Copier le code du badge
                 </button>
 
-                <h4 id="backlink-code-text-label" className="pt-3 font-bold">
+                <h4 id="backlink-code-text-label" className="ui-h4 pt-3">
                   Alternative texte seule
                 </h4>
                 <div role="region" aria-labelledby="backlink-code-text-label" className="ui-panel">
@@ -988,7 +988,7 @@ function SiteProfilePage() {
                 aria-labelledby="fiches-associees-titre"
                 aria-busy={isLoadingRelated}
               >
-                <h3 id="fiches-associees-titre" className="text-lg font-bold">
+                <h3 id="fiches-associees-titre" className="ui-h3">
                   Fiches associées
                 </h3>
                 <p className="ui-prose">

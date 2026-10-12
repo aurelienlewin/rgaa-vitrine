@@ -37,8 +37,8 @@ function SiteFooter({ id = 'pied-page', footerRef, helpHref = '/#aide-accessibil
       className={`mt-12 ${focusTargetScrollMarginClass} border-t border-slate-200 bg-white ${focusTargetClass}`}
       aria-label="Informations de bas de page"
     >
-      <div className="ui-container grid gap-8 py-8 text-slate-800 lg:grid-cols-[1.4fr_1fr_1fr]">
-        <section>
+      <div className="ui-container ui-grid py-10 text-slate-800">
+        <section className="ui-span-4">
           <p className={footerLabelClass}>Projet</p>
           <div className="mt-2 flex items-center gap-3">
             <img
@@ -49,7 +49,7 @@ function SiteFooter({ id = 'pied-page', footerRef, helpHref = '/#aide-accessibil
               className="h-8 w-8 rounded-full"
               loading="lazy"
             />
-            <p className="text-sm">
+            <p className="ui-small">
               Créé et maintenu par{' '}
               <a href={githubProfile.profileUrl} target="_blank" rel="noreferrer noopener">
                 {githubProfile.name} (@{githubProfile.login}) (nouvel onglet)
@@ -58,9 +58,9 @@ function SiteFooter({ id = 'pied-page', footerRef, helpHref = '/#aide-accessibil
           </div>
         </section>
 
-        <nav aria-label="Navigation rapide du pied de page">
+        <nav aria-label="Navigation rapide du pied de page" className="ui-span-4">
           <p className={footerLabelClass}>Navigation rapide</p>
-          <ul className="mt-1 text-sm">
+          <ul className="ui-small mt-1">
             <li>
               <a href="/#moteur-recherche-global" className="ui-action-link">
                 Recherche annuaire
@@ -89,27 +89,27 @@ function SiteFooter({ id = 'pied-page', footerRef, helpHref = '/#aide-accessibil
           </ul>
         </nav>
 
-        <section>
+        <section className="ui-span-4">
           <p className={footerLabelClass}>Soutien</p>
-          <p className="mt-2 text-sm leading-relaxed">
+          <p className="ui-small mt-2">
             J’ai lancé cet annuaire pour que le RGAA ne reste pas un sigle, mais une promesse tenue à chaque
             personne. Quand l’empathie guide les choix, l’activité progresse et l’équité devient concrète.
           </p>
-          <p className="mt-2 text-sm leading-relaxed">
+          <p className="ui-small mt-2">
             Le score est une boussole, pas la destination: la priorité reste de libérer les parcours et l’usage.
           </p>
           <a
             href={supportProfile.koFiUrl}
             target="_blank"
             rel="noreferrer noopener"
-            className="ui-action-link text-sm"
+            className="ui-action-link ui-small"
           >
             M’offrir un café via Ko-fi (nouvel onglet)
           </a>
-          <p className="ui-muted mt-2 text-sm">
-            Version publique {buildVersion} · générée le {buildTimestampDisplay}
-          </p>
         </section>
+        <p className="ui-span-full ui-small ui-muted border-t border-slate-200 pt-4">
+          Version publique {buildVersion} · générée le {buildTimestampDisplay}
+        </p>
       </div>
     </footer>
   )

@@ -8,6 +8,14 @@ Changelog entries are written in English; referenced UI labels remain in French 
 ## [Unreleased]
 
 ### Changed
+- Typographic system for the public pages (`docs/design-system.md`):
+  - Type scale on an 8px vertical rhythm: `ui-h1` to `ui-h4`, `ui-lead` and `ui-small`, with every heading mapped onto it. The secondary page titles, previously pinned to 1.5rem by the first-paint shell, now match the homepage `h1`.
+  - 65-character reading measure, balanced headings and tabular figures.
+  - 12-column grid `ui-grid`, with a 75rem container and 1rem / 1.5rem gutters.
+  - New shared `SiteHeaderBar`: the brand link and the main navigation sit on one row, so page titles, search, sections and footer share one left edge. Previously the logo pushed the homepage title off the grid.
+  - Introductions span 8 columns. The results header puts the sort control in a 4-column column next to it, key figures form a 4 × 3-column typographic row, and the footer uses 3 × 4 columns plus a full-width colophon. The site map lists sit in two 6-column columns.
+  - Aligned definition lists (`ui-dl`) on the profile and accessibility statement pages.
+  - Directory and domain cards are now `li.ui-card` items of a `ui-card-grid` that share six row tracks through CSS subgrid: media, title, subtitle, compliance, metadata, footer. Cards on the same row line up whatever their title length, and the card footer keeps action links on their own row.
 - Public pages (home, site profile, domain page, site map, accessibility statement, shared header, search form and footer) move to the « Sobre » design system (`docs/design-system.md`), replacing the CTA- and dashboard-heavy UI.
   - Navigation and resource lists are underlined text links instead of filled pills or buttons.
   - Directory cards are flat: the title links to the profile, then one compliance line (text badge, score, RGAA version), compact metadata, a row of text links (`Visiter le site`, `Déclaration d’accessibilité`) and the vote button. They replace the four stacked filled buttons, chips and nested boxes.
