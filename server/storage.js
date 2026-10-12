@@ -1307,6 +1307,22 @@ class InMemoryShowcaseStorage {
       .slice(0, parseSubmissionFailureLimit(options.limit))
   }
 
+  async deleteSubmissionFailures(references) {
+    let deleted = 0
+    for (const reference of references) {
+      if (this.submissionFailures.delete(reference)) {
+        deleted += 1
+      }
+    }
+    return deleted
+  }
+
+  async clearSubmissionFailures() {
+    const deleted = this.submissionFailures.size
+    this.submissionFailures.clear()
+    return deleted
+  }
+
   async getPendingById(submissionId) {
     return this.pendingEntries.get(submissionId) ?? null
   }
@@ -2355,6 +2371,39 @@ class UpstashShowcaseStorage {
       return rawEntries.map(parseStoredSubmissionFailure).filter(Boolean)
     } catch (error) {
       console.error('Redis listSubmissionFailures failed', error)
+      throw new ShowcaseStorageError('Journal des échecs de soumission indisponible.', 503)
+    }
+  }
+
+  async deleteSubmissionFailures(references) {
+    if (references.length === 0) {
+      return 0
+    }
+    try {
+      const [deletedKeys] = await this.redis
+        .multi()
+        .del(...references.map((reference) => `${SUBMISSION_FAILURE_KEY_PREFIX}${reference}`))
+        .zrem(SUBMISSION_FAILURE_INDEX_KEY, ...references)
+        .exec()
+      return typeof deletedKeys === 'number' ? deletedKeys : 0
+    } catch (error) {
+      console.error('Redis deleteSubmissionFailures failed', error)
+      throw new ShowcaseStorageError('Journal des échecs de soumission indisponible.', 503)
+    }
+  }
+
+  async clearSubmissionFailures() {
+    try {
+      const references = await this.redis.zrange(SUBMISSION_FAILURE_INDEX_KEY, 0, -1)
+      const safeReferences = Array.isArray(references) ? references.filter((value) => typeof value === 'string') : []
+      const cleanup = this.redis.multi().del(SUBMISSION_FAILURE_INDEX_KEY)
+      if (safeReferences.length > 0) {
+        cleanup.del(...safeReferences.map((reference) => `${SUBMISSION_FAILURE_KEY_PREFIX}${reference}`))
+      }
+      const results = await cleanup.exec()
+      return safeReferences.length > 0 && typeof results?.[1] === 'number' ? results[1] : 0
+    } catch (error) {
+      console.error('Redis clearSubmissionFailures failed', error)
       throw new ShowcaseStorageError('Journal des échecs de soumission indisponible.', 503)
     }
   }

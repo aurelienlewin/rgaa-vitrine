@@ -338,7 +338,7 @@ Every submission failure is also logged as a structured `submission-failure` JSO
 Submission incident log:
 
 - every failure, alerting or not, is stored for 30 days under its `SUB-…` reference (500 most recent at most), with its GitHub alert outcome: `sent`, or `skipped`/`failed` with a reason (`non-alerting-code`, `deduplicated`, `notifier-disabled`, `quota-reached`, `github-error`, `dedup-unavailable`)
-- the `Échecs de soumission` section of `/moderation` searches an incident by reference and lists the 50 latest ones
+- the `Échecs de soumission` section of `/moderation` searches an incident by reference, lists the 50 latest ones, and deletes one incident or clears the whole log after a two-step confirmation
 - a `github-error` outcome such as `Bad credentials` means `GITHUB_NOTIFY_TOKEN` is invalid or expired and must be replaced in the deployment environment
 
 Clearing notifier issues:
@@ -368,6 +368,7 @@ Clearing notifier issues:
 - `GET /api/moderation/pending`
 - `GET /api/moderation/showcase`
 - `GET /api/moderation/submission-failures`: latest submission incidents, or one incident with `?reference=SUB-…`
+- `POST /api/moderation/submission-failures/delete`: delete incidents (`{ "references": ["SUB-…"] }`, at most 100) or clear the whole log (`{ "all": true }`)
 - `GET /api/moderation/github-issues`: open issues created by the notifier (marker or legacy title)
 - `POST /api/moderation/github-issues/close`: close notifier issues (`{ "numbers": [13], "reason": "completed" | "not_planned" }`, at most 50 per call); other issues and pull requests are refused
 - `GET /api/moderation/blocklist`

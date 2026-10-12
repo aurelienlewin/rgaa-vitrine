@@ -758,6 +758,12 @@ function ModerationPage() {
   const [isLookingUpFailure, setIsLookingUpFailure] = useState(false)
   const [recentSubmissionFailures, setRecentSubmissionFailures] = useState<SubmissionFailureRecord[]>([])
   const [isLoadingSubmissionFailures, setIsLoadingSubmissionFailures] = useState(false)
+  const failuresResultRef = useRef<HTMLParagraphElement | null>(null)
+  const [failureDeleteConfirmReference, setFailureDeleteConfirmReference] = useState<string | null>(null)
+  const [isFailureClearConfirm, setIsFailureClearConfirm] = useState(false)
+  const [isDeletingFailures, setIsDeletingFailures] = useState(false)
+  const [failuresResult, setFailuresResult] = useState<string | null>(null)
+  const [failuresResultId, setFailuresResultId] = useState(0)
   const githubIssuesRef = useRef<HTMLElement | null>(null)
   const githubIssuesResultRef = useRef<HTMLParagraphElement | null>(null)
   const [githubIssues, setGithubIssues] = useState<NotifierIssue[]>([])
@@ -1270,6 +1276,69 @@ function ModerationPage() {
       }, 0)
     }
   }, [buildAuthHeaders, focusElement, isIssueCloseConfirm, issueCloseReason, loadGithubIssues, selectedIssueNumbers])
+
+  const deleteSubmissionFailures = useCallback(
+    async (target: { reference: string } | { all: true }) => {
+      const isClearAll = 'all' in target
+      // Irreversible: two-step confirmation, consistent with the other destructive moderation actions.
+      if (isClearAll ? !isFailureClearConfirm : failureDeleteConfirmReference !== target.reference) {
+        setFailureDeleteConfirmReference(isClearAll ? null : target.reference)
+        setIsFailureClearConfirm(isClearAll)
+        setPoliteMessage(
+          isClearAll
+            ? 'Confirmez la suppression de tous les échecs enregistrés en activant de nouveau le bouton, ou annulez.'
+            : `Confirmez la suppression de l’incident ${target.reference} en activant de nouveau le bouton.`,
+        )
+        return
+      }
+
+      setFailureDeleteConfirmReference(null)
+      setIsFailureClearConfirm(false)
+      setIsDeletingFailures(true)
+      try {
+        const response = await fetch('/api/moderation/submission-failures/delete', {
+          method: 'POST',
+          headers: buildAuthHeaders(true),
+          body: JSON.stringify(isClearAll ? { all: true } : { references: [target.reference] }),
+        })
+        const payload = await readApiPayload(response)
+
+        if (!response.ok) {
+          throw new Error(typeof payload.error === 'string' ? payload.error : 'Suppression impossible.')
+        }
+
+        const deletedCount = typeof payload.deletedCount === 'number' ? payload.deletedCount : 0
+        if (isClearAll) {
+          setRecentSubmissionFailures([])
+          setFailureLookupResult(null)
+          setFailuresResult(`Liste des échecs vidée : ${deletedCount} incident(s) supprimé(s).`)
+        } else {
+          setRecentSubmissionFailures((current) =>
+            current.filter((failure) => failure.reference !== target.reference),
+          )
+          setFailureLookupResult((current) => (current?.reference === target.reference ? null : current))
+          setFailuresResult(
+            deletedCount > 0
+              ? `Incident ${target.reference} supprimé.`
+              : `Incident ${target.reference} déjà absent du journal.`,
+          )
+        }
+      } catch (error) {
+        setFailuresResult(error instanceof Error ? error.message : 'Erreur lors de la suppression.')
+      } finally {
+        setIsDeletingFailures(false)
+        setFailuresResultId((current) => current + 1)
+      }
+    },
+    [buildAuthHeaders, failureDeleteConfirmReference, isFailureClearConfirm],
+  )
+
+  // The deleted item's button disappears with it: move focus to the announced outcome once rendered.
+  useEffect(() => {
+    if (failuresResultId > 0) {
+      focusElement(failuresResultRef.current)
+    }
+  }, [failuresResultId, focusElement])
 
   // Move focus to the result once it is rendered (async lookup, so a timeout could fire too early).
   useEffect(() => {
@@ -3398,7 +3467,41 @@ function ModerationPage() {
                   >
                     {isLoadingSubmissionFailures ? 'Actualisation...' : 'Actualiser la liste des échecs'}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void deleteSubmissionFailures({ all: true })
+                    }}
+                    disabled={!hasToken || recentSubmissionFailures.length === 0 || isDeletingFailures}
+                    className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${
+                      isFailureClearConfirm ? moderationCtaDangerClass : moderationCtaOutlineDangerClass
+                    } ${focusRingClass}`}
+                  >
+                    {isDeletingFailures && isFailureClearConfirm
+                      ? 'Suppression...'
+                      : isFailureClearConfirm
+                        ? 'Confirmer : supprimer tout le journal des échecs'
+                        : 'Vider la liste des échecs'}
+                  </button>
+                  {isFailureClearConfirm ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsFailureClearConfirm(false)}
+                      className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${moderationCtaNeutralClass} ${focusRingClass}`}
+                    >
+                      Annuler
+                    </button>
+                  ) : null}
                 </div>
+                <p
+                  ref={failuresResultRef}
+                  tabIndex={-1}
+                  role="status"
+                  aria-live="polite"
+                  className={`mt-3 text-sm font-semibold empty:hidden ${focusRingClass}`}
+                >
+                  {failuresResult}
+                </p>
                 {recentSubmissionFailures.length === 0 ? (
                   <p className={`mt-3 text-sm ${moderationTextMutedClass}`}>
                     {isLoadingSubmissionFailures
@@ -3414,6 +3517,33 @@ function ModerationPage() {
                           <span className="font-mono">{failure.errorCode}</span>
                         </h4>
                         <SubmissionFailureDetails failure={failure} />
+                        <div className="mt-3 flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void deleteSubmissionFailures({ reference: failure.reference })
+                            }}
+                            disabled={!hasToken || isDeletingFailures}
+                            className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${ctaDisabledClass} ${
+                              failureDeleteConfirmReference === failure.reference
+                                ? moderationCtaDangerClass
+                                : moderationCtaOutlineDangerClass
+                            } ${focusRingClass}`}
+                          >
+                            {failureDeleteConfirmReference === failure.reference
+                              ? `Confirmer la suppression de ${failure.reference}`
+                              : `Supprimer l’incident ${failure.reference}`}
+                          </button>
+                          {failureDeleteConfirmReference === failure.reference ? (
+                            <button
+                              type="button"
+                              onClick={() => setFailureDeleteConfirmReference(null)}
+                              className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold ${moderationCtaNeutralClass} ${focusRingClass}`}
+                            >
+                              Annuler
+                            </button>
+                          ) : null}
+                        </div>
                       </li>
                     ))}
                   </ul>

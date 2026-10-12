@@ -3352,6 +3352,53 @@ app.get('/api/moderation/pending', requireModerationAuth, async (request, respon
   }
 })
 
+const MAX_SUBMISSION_FAILURES_PER_DELETE = 100
+
+app.post('/api/moderation/submission-failures/delete', requireModerationAuth, async (request, response) => {
+  const clearAll = request.body?.all === true
+  const rawReferences = request.body?.references
+
+  try {
+    if (clearAll) {
+      const deletedCount = await showcaseStorage.clearSubmissionFailures()
+      response.json({ deletedCount, cleared: true })
+      return
+    }
+
+    const references = Array.isArray(rawReferences)
+      ? [
+          ...new Set(
+            rawReferences
+              .filter((value) => typeof value === 'string')
+              .map((value) => value.trim().toUpperCase()),
+          ),
+        ]
+      : []
+    if (
+      references.length === 0 ||
+      references.length !== rawReferences.length ||
+      references.some((reference) => !SUBMISSION_REFERENCE_PATTERN.test(reference))
+    ) {
+      sendJsonError(response, 400, 'Liste de références invalide. Format attendu: SUB- suivi de 10 caractères hexadécimaux.')
+      return
+    }
+    if (references.length > MAX_SUBMISSION_FAILURES_PER_DELETE) {
+      sendJsonError(response, 400, `Suppression limitée à ${MAX_SUBMISSION_FAILURES_PER_DELETE} incidents par opération.`)
+      return
+    }
+
+    const deletedCount = await showcaseStorage.deleteSubmissionFailures(references)
+    response.json({ deletedCount, cleared: false, references })
+  } catch (error) {
+    if (error instanceof ShowcaseStorageError) {
+      sendJsonError(response, error.statusCode, error.message)
+      return
+    }
+    console.error('Unexpected error in /api/moderation/submission-failures/delete', error)
+    sendJsonError(response, 500, 'Erreur interne lors de la suppression des échecs de soumission.')
+  }
+})
+
 function sendGithubIssuesError(response, error, fallbackMessage) {
   if (error instanceof GithubNotifierError) {
     sendJsonError(response, error.statusCode, error.message)

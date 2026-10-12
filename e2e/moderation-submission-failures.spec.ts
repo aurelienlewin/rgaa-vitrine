@@ -169,3 +169,65 @@ test.describe('issues GitHub de notification', () => {
     expect(closeCalls).toBe(0)
   })
 })
+
+test.describe('suppression des échecs de soumission', () => {
+  const second = { ...failureRecord, reference: 'SUB-0BA4BFC9EF', host: 'verification-jeton-github.invalid' }
+
+  test('supprime un incident après confirmation et annonce le résultat', async ({ page }) => {
+    let deleteBody: Record<string, unknown> | null = null
+    await unlockModeration(page, async () => {
+      await page.route(/\/api\/moderation\/submission-failures(?:\?.*)?$/, (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ failures: [failureRecord, second], retentionDays: 30 }),
+        }),
+      )
+      await page.route(/\/api\/moderation\/submission-failures\/delete$/, (route) => {
+        deleteBody = route.request().postDataJSON() as Record<string, unknown>
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '{"deletedCount":1}' })
+      })
+    })
+
+    const section = page.locator('#echecs-soumission')
+    await section.getByRole('button', { name: 'Supprimer l’incident SUB-53F0E63AB4' }).click()
+    expect(deleteBody).toBeNull()
+    await section.getByRole('button', { name: 'Confirmer la suppression de SUB-53F0E63AB4' }).click()
+
+    await expect.poll(() => deleteBody).toEqual({ references: ['SUB-53F0E63AB4'] })
+    const status = section.getByRole('status')
+    await expect(status).toHaveText('Incident SUB-53F0E63AB4 supprimé.')
+    await expect(status).toBeFocused()
+    await expect(section.getByRole('button', { name: /SUB-53F0E63AB4/ })).toHaveCount(0)
+    await expect(section.getByRole('button', { name: 'Supprimer l’incident SUB-0BA4BFC9EF' })).toBeVisible()
+  })
+
+  test('vide tout le journal après confirmation, annuler ne supprime rien', async ({ page }) => {
+    const deleteBodies: Array<Record<string, unknown>> = []
+    await unlockModeration(page, async () => {
+      await page.route(/\/api\/moderation\/submission-failures(?:\?.*)?$/, (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ failures: [failureRecord, second], retentionDays: 30 }),
+        }),
+      )
+      await page.route(/\/api\/moderation\/submission-failures\/delete$/, (route) => {
+        deleteBodies.push(route.request().postDataJSON() as Record<string, unknown>)
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '{"deletedCount":2,"cleared":true}' })
+      })
+    })
+
+    const section = page.locator('#echecs-soumission')
+    await section.getByRole('button', { name: 'Vider la liste des échecs' }).click()
+    await section.getByRole('button', { name: 'Annuler' }).click()
+    expect(deleteBodies).toHaveLength(0)
+
+    await section.getByRole('button', { name: 'Vider la liste des échecs' }).click()
+    await section.getByRole('button', { name: 'Confirmer : supprimer tout le journal des échecs' }).click()
+    await expect.poll(() => deleteBodies).toEqual([{ all: true }])
+    await expect(section.getByRole('status')).toHaveText('Liste des échecs vidée : 2 incident(s) supprimé(s).')
+    await expect(section.getByText('Aucun échec de soumission enregistré sur les 30 derniers jours.')).toBeVisible()
+    await expect(section.getByRole('button', { name: 'Vider la liste des échecs' })).toBeDisabled()
+  })
+})
