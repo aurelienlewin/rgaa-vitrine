@@ -7,6 +7,8 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+## [2026-10-12 / v0.7.0]
+
 ### Added
 - The `Échecs de soumission` section of `/moderation` can clear the incident log: each incident has a `Supprimer l’incident SUB-…` button, and `Vider la liste des échecs` empties the whole log. Both use a two-step confirmation with `Annuler`, since deletion is irreversible. The outcome is announced in a `role="status"` message that receives focus, because the deleted item's button disappears with it, and a deleted incident shown in the search result is cleared too. Backed by `POST /api/moderation/submission-failures/delete` (`{ "references": [...] }`, at most 100, or `{ "all": true }`; moderation token required).
 - Published sites can be resubmitted to refresh their score. The new analysis is compared with the published entry: when the compliance score or status changed, the pre-analysis returns `update` with a `scoreUpdate` summary (old → new score), and confirming returns `updated`. The entry keeps its votes, category, title, thumbnail and moderator edits, gets the new score, status and statement URL, and its refreshed `updatedAt` ranks it first in the default `Plus récentes d’abord` order. Unchanged scores still return `duplicate`, now stating the current score. Updates failing integrity checks (missing or foreign-domain statement, inconsistent `Totalement conforme`, `Non conforme`) become pending updates, and approving one merges it into the published entry instead of discarding it as a duplicate. The homepage shows `Score actuel de la fiche publiée` / `Nouveau score détecté` in the pre-analysis and a `Fiche mise à jour` confirmation panel. Covered by a new e2e test.
