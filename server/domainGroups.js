@@ -278,6 +278,8 @@ export function buildDomainGroups(entries) {
         entries: sortedChildren,
       }
 
+      // Expose the finalized group (children, siteCount, primaryEntry…) by slug, not the raw accumulator.
+      groupsBySlug.set(finalizedGroup.groupSlug, finalizedGroup)
       for (const entry of sortedChildren) {
         groupsByUrl.set(entry.normalizedUrl, finalizedGroup)
       }
