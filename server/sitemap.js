@@ -23,21 +23,18 @@ function escapeXml(value) {
 
 function toIsoDate(value) {
   const parsed = Date.parse(value)
-  if (Number.isNaN(parsed)) {
-    return new Date().toISOString()
-  }
-
-  return new Date(parsed).toISOString()
+  return Number.isNaN(parsed) ? null : new Date(parsed).toISOString()
 }
 
 function serializeUrlEntry(baseUrl, entry) {
   const absoluteUrl = new URL(entry.path, `${baseUrl}/`).toString()
   const lastModified = toIsoDate(entry.lastModified)
-  const lines = [
-    '  <url>',
-    `    <loc>${escapeXml(absoluteUrl)}</loc>`,
-    `    <lastmod>${escapeXml(lastModified)}</lastmod>`,
-  ]
+  const lines = ['  <url>', `    <loc>${escapeXml(absoluteUrl)}</loc>`]
+
+  // lastmod is omitted when unknown: a fabricated date would erode crawler trust.
+  if (lastModified) {
+    lines.push(`    <lastmod>${escapeXml(lastModified)}</lastmod>`)
+  }
 
   if (entry.changeFrequency) {
     lines.push(`    <changefreq>${escapeXml(entry.changeFrequency)}</changefreq>`)

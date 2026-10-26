@@ -254,6 +254,18 @@ function DomainGroupPage() {
               description: `Page domaine multi-sites listant ${group.siteCount} fiches publiques pour ${group.registrableDomain}.`,
             },
             {
+              '@type': 'BreadcrumbList',
+              itemListElement: [
+                { '@type': 'ListItem', position: 1, name: 'Accueil', item: createAbsoluteUrl('/') },
+                {
+                  '@type': 'ListItem',
+                  position: 2,
+                  name: group.registrableDomain,
+                  item: createAbsoluteUrl(group.groupPath),
+                },
+              ],
+            },
+            {
               '@type': 'ItemList',
               '@id': `${createAbsoluteUrl(group.groupPath)}#item-list`,
               name: `Sous-sites référencés pour ${group.registrableDomain}`,

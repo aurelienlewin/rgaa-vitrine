@@ -7,6 +7,16 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+### Added
+- Optional Google Search Console and Bing Webmaster ownership meta tags, injected at build time from `VITE_GOOGLE_SITE_VERIFICATION` and `VITE_BING_SITE_VERIFICATION`.
+- `X-Robots-Tag: noindex` header on `/api/*` and `/ai-context.json`.
+- `BreadcrumbList` structured data on domain-group pages.
+
+### Changed
+- XML sitemap lists only indexable HTML pages: `/api/showcase`, `/api/domain-groups`, `/ai-context.json`, `/llms.txt` and `/llms-full.txt` are removed.
+- Sitemap `lastmod` is omitted when unknown instead of using the request time, and the accessibility statement uses its audit date.
+- Sitemap responses are cacheable (`s-maxage=3600`, `stale-while-revalidate=86400`) instead of `no-store`.
+
 ### Security
 - Node.js toolchain pinned to 26.12.1 and `engines` restricted to `^24.22.1 || ^26.12.1`, the releases fixing the Brotli decoder RCE CVE-2026-111497 (Node2Shell / HTTP2Shell).
 

@@ -22,6 +22,7 @@ import {
 } from './githubNotifier.js'
 import { buildSitemapXml, resolvePublicAppUrl } from './sitemap.js'
 import { buildAiContextPayload } from './aiContext.js'
+import { accessibilityAuditSummary } from '../shared/accessibilityStatement.js'
 import {
   buildDomainGroups,
   buildDomainGroupSlug,
@@ -2320,7 +2321,7 @@ app.use(async (request, response, next) => {
 
 app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
   const baseUrl = resolvePublicAppUrl()
-  let lastModified = new Date().toISOString()
+  let lastModified = null
   let siteProfileEntries = []
   let domainGroupEntries = []
 
@@ -2381,46 +2382,16 @@ app.get(['/sitemap.xml', '/api/sitemap'], async (_request, response) => {
     },
     {
       path: '/accessibilite',
-      lastModified,
+      lastModified: accessibilityAuditSummary.auditDateIso,
       changeFrequency: 'monthly',
       priority: 0.9,
-    },
-    {
-      path: '/ai-context.json',
-      lastModified,
-      changeFrequency: 'daily',
-      priority: 0.7,
-    },
-    {
-      path: '/api/showcase',
-      lastModified,
-      changeFrequency: 'daily',
-      priority: 0.6,
-    },
-    {
-      path: '/api/domain-groups',
-      lastModified,
-      changeFrequency: 'daily',
-      priority: 0.5,
-    },
-    {
-      path: '/llms.txt',
-      lastModified,
-      changeFrequency: 'monthly',
-      priority: 0.6,
-    },
-    {
-      path: '/llms-full.txt',
-      lastModified,
-      changeFrequency: 'monthly',
-      priority: 0.5,
     },
     ...domainGroupEntries,
     ...siteProfileEntries,
   ])
 
   response.setHeader('content-type', 'application/xml; charset=utf-8')
-  response.setHeader('cache-control', 'no-store, max-age=0')
+  response.setHeader('cache-control', 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400')
   response.status(200).send(sitemapXml)
 })
 

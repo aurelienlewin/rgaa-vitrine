@@ -247,9 +247,26 @@ function optimizeCriticalStylesheetDelivery(): Plugin {
   }
 }
 
+// Search Console / Bing Webmaster ownership tags, injected only when the variables are set.
+function injectSearchEngineVerification(): Plugin {
+  const tags = [
+    ['google-site-verification', process.env.VITE_GOOGLE_SITE_VERIFICATION],
+    ['msvalidate.01', process.env.VITE_BING_SITE_VERIFICATION],
+  ]
+    .filter((tag): tag is [string, string] => typeof tag[1] === 'string' && /^[\w-]{8,128}$/.test(tag[1].trim()))
+    .map(([name, content]) => `    <meta name="${name}" content="${content.trim()}" />`)
+
+  return {
+    name: 'inject-search-engine-verification',
+    transformIndexHtml(html) {
+      return tags.length > 0 ? html.replace('</head>', `${tags.join('\n')}\n  </head>`) : html
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), optimizeCriticalStylesheetDelivery()],
+  plugins: [react(), tailwindcss(), injectSearchEngineVerification(), optimizeCriticalStylesheetDelivery()],
   resolve: {
     alias: {
       '@vercel/analytics/next': '@vercel/analytics/react',
