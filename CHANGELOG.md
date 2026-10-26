@@ -7,6 +7,12 @@ Changelog entries are written in English; referenced UI labels remain in French 
 
 ## [Unreleased]
 
+### Security
+- Node.js toolchain pinned to 26.12.1 and `engines` restricted to `^24.22.1 || ^26.12.1`, the releases fixing the Brotli decoder RCE CVE-2026-111497 (Node2Shell / HTTP2Shell).
+
+### Changed
+- Dependencies updated within their semver ranges (React 19.3.1, Vite 8.3.5, Playwright 1.64.1, and others).
+
 ## [2026-10-13 / v0.8.0]
 
 ### Changed

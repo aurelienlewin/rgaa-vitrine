@@ -220,7 +220,7 @@ Redis-related runtime notes:
 
 Toolchain is pinned in [`package.json`](./package.json):
 
-- Node.js `25.2.1`
+- Node.js `26.12.1` (ou `^24.22.1`, plages corrigées de CVE-2026-111497)
 - npm `11.6.2`
 
 Install and run:
