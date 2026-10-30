@@ -587,8 +587,14 @@
             "@type": "DataCatalog",
             "@id": "https://www.annuaire-rgaa.fr/#data-catalog",
             "name": "Catalogue de données Annuaire RGAA",
+            "description": "Catalogue public des données éditoriales et techniques publiées par Annuaire RGAA pour l’indexation et la réutilisation.",
             "url": "https://www.annuaire-rgaa.fr/api/showcase",
             "inLanguage": "fr-FR",
+            "creator": {
+              "@type": "Organization",
+              "name": "Annuaire RGAA",
+              "url": "https://www.annuaire-rgaa.fr/"
+            },
             "dataset": [
               {
                 "@id": "https://www.annuaire-rgaa.fr/#dataset-showcase"
@@ -599,12 +605,20 @@
             "@type": "Dataset",
             "@id": "https://www.annuaire-rgaa.fr/#dataset-showcase",
             "name": "Vitrine RGAA - données publiques",
+            "description": "Jeu de données public des sites référencés dans l’annuaire RGAA, incluant catégorie et indicateurs de conformité.",
             "url": "https://www.annuaire-rgaa.fr/api/showcase",
             "inLanguage": "fr-FR",
             "isAccessibleForFree": true,
             "license": "https://opensource.org/license/mit/",
+            "creator": {
+              "@type": "Organization",
+              "name": "Annuaire RGAA",
+              "url": "https://www.annuaire-rgaa.fr/"
+            },
             "includedInDataCatalog": {
-              "@id": "https://www.annuaire-rgaa.fr/#data-catalog"
+              "@type": "DataCatalog",
+              "name": "Catalogue de données Annuaire RGAA",
+              "url": "https://www.annuaire-rgaa.fr/api/showcase"
             }
           }
         ]

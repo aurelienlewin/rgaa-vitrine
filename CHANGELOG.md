@@ -12,6 +12,9 @@ Changelog entries are written in English; referenced UI labels remain in French 
 - `X-Robots-Tag: noindex` header on `/api/*` and `/ai-context.json`.
 - `BreadcrumbList` structured data on domain-group pages.
 
+### Fixed
+- Dataset structured data reported by Search Console: the static homepage `Dataset` and `DataCatalog` gain a `description` and a `creator`, and `creator` and `includedInDataCatalog` are described inline (typed `Organization` / `DataCatalog`) instead of by `@id` reference on the homepage and profile pages.
+
 ### Changed
 - XML sitemap lists only indexable HTML pages: `/api/showcase`, `/api/domain-groups`, `/ai-context.json`, `/llms.txt` and `/llms-full.txt` are removed.
 - Sitemap `lastmod` is omitted when unknown instead of using the request time, and the accessibility statement uses its audit date.

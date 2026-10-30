@@ -8,7 +8,12 @@ import {
   useHashTargetFocus,
 } from './hashNavigation'
 import { preloadRouteApi, readPreloadedRouteApi, type RouteApiResult } from './routeData'
-import { applySeo, createAbsoluteUrl } from './seo'
+import {
+  applySeo,
+  buildDatasetCatalogReference,
+  buildDatasetCreator,
+  createAbsoluteUrl,
+} from './seo'
 import { readSiteSlugFromPath, resolveShowcaseProfilePath } from './siteProfiles'
 import SecondaryPageHeader from './SecondaryPageHeader'
 import SiteFooter from './SiteFooter'
@@ -417,16 +422,12 @@ function SiteProfilePage() {
               url: profileApiUrl,
               isAccessibleForFree: true,
               license: 'https://opensource.org/license/mit/',
-              includedInDataCatalog: {
-                '@id': dataCatalogId,
-              },
+              includedInDataCatalog: buildDatasetCatalogReference(),
               dateModified: entry.updatedAt,
               about: {
                 '@id': referencedSiteId,
               },
-              creator: {
-                '@id': organizationId,
-              },
+              creator: buildDatasetCreator(),
               measurementTechnique: [
                 'Analyse automatisée de métadonnées publiques',
                 'Détection de déclaration d’accessibilité',

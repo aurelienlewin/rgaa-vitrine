@@ -164,3 +164,21 @@ export function applySeo(config: SeoConfig) {
     script.textContent = JSON.stringify(config.structuredData)
   }
 }
+
+// Google's Dataset validator does not resolve `@id` references: `creator` and
+// `includedInDataCatalog` must be described inline.
+export function buildDatasetCreator() {
+  return {
+    '@type': 'Organization',
+    name: DEFAULT_SITE_NAME,
+    url: createAbsoluteUrl('/'),
+  }
+}
+
+export function buildDatasetCatalogReference() {
+  return {
+    '@type': 'DataCatalog',
+    name: 'Catalogue de données Annuaire RGAA',
+    url: createAbsoluteUrl('/api/showcase'),
+  }
+}

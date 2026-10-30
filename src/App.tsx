@@ -8,7 +8,12 @@ import {
   focusTargetScrollMarginClass,
   useHashTargetFocus,
 } from './hashNavigation'
-import { applySeo, createAbsoluteUrl } from './seo'
+import {
+  applySeo,
+  buildDatasetCatalogReference,
+  buildDatasetCreator,
+  createAbsoluteUrl,
+} from './seo'
 import { resolveShowcaseProfilePath } from './siteProfiles'
 import { visuallyHiddenStyle } from './visuallyHidden'
 import SiteFooter from './SiteFooter'
@@ -1638,9 +1643,7 @@ function App() {
             'Catalogue public des données éditoriales et techniques publiées par Annuaire RGAA pour l’indexation et la réutilisation.',
           url: createAbsoluteUrl('/api/showcase'),
           inLanguage: 'fr-FR',
-          creator: {
-            '@id': organizationId,
-          },
+          creator: buildDatasetCreator(),
           dataset: [
             {
               '@id': showcaseDatasetId,
@@ -1658,12 +1661,8 @@ function App() {
           license: 'https://opensource.org/license/mit/',
           url: createAbsoluteUrl('/api/showcase'),
           dateModified: latestUpdatedAt,
-          includedInDataCatalog: {
-            '@id': dataCatalogId,
-          },
-          creator: {
-            '@id': organizationId,
-          },
+          includedInDataCatalog: buildDatasetCatalogReference(),
+          creator: buildDatasetCreator(),
           publisher: {
             '@id': organizationId,
           },
