@@ -342,8 +342,6 @@ function SiteProfilePage() {
   useEffect(() => {
     if (entry) {
       const websiteId = `${createAbsoluteUrl('/')}#website`
-      const organizationId = `${createAbsoluteUrl('/')}#organization`
-      const dataCatalogId = `${createAbsoluteUrl('/')}#data-catalog`
       const referencedSiteId = `${profileUrl}#referenced-site`
       const datasetEntryId = `${profileUrl}#dataset-entry`
       const accessibilityStatementId = `${profileUrl}#accessibility-statement`
